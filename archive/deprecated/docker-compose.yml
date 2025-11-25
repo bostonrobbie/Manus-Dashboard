@@ -1,0 +1,154 @@
+# Trading Portfolio Dashboard - FastAPI Architecture
+# Docker Compose configuration for local development and production
+
+version: '3.9'
+
+services:
+  # PostgreSQL database
+  postgres:
+    container_name: trading_postgres
+    image: postgres:15-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=trader
+      - POSTGRES_PASSWORD=traderpw
+      - POSTGRES_DB=trading
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U trader -d trading"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Redis (for Celery task queue)
+  redis:
+    container_name: trading_redis
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # FastAPI application
+  api:
+    container_name: trading_api
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "8000:8000"
+    environment:
+      - POSTGRES_HOST=postgres
+      - POSTGRES_DB=trading
+      - POSTGRES_USER=trader
+      - POSTGRES_PASSWORD=traderpw
+      - POSTGRES_PORT=5432
+      - DATABASE_URL=postgresql+psycopg2://trader:traderpw@postgres:5432/trading
+      - REDIS_URL=redis://redis:6379/0
+      - JWT_SECRET=dev_secret_change_in_production
+      - JWT_ALGORITHM=HS256
+      - JWT_EXPIRE_MIN=10080
+      - TIMEZONE=America/New_York
+      - LOG_LEVEL=INFO
+      - BENCHMARKS=SPY,QQQ,DIA,TLT
+      - FRONTEND_URL=http://localhost:3000
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+    volumes:
+      - ../backend:/app
+      - api_logs:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Celery worker (background tasks)
+  worker:
+    container_name: trading_worker
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    command: celery -A workers.celery_app worker --loglevel=info
+    environment:
+      - POSTGRES_HOST=postgres
+      - POSTGRES_DB=trading
+      - POSTGRES_USER=trader
+      - POSTGRES_PASSWORD=traderpw
+      - DATABASE_URL=postgresql+psycopg2://trader:traderpw@postgres:5432/trading
+      - REDIS_URL=redis://redis:6379/0
+      - TIMEZONE=America/New_York
+      - LOG_LEVEL=INFO
+      - BENCHMARKS=SPY,QQQ,DIA,TLT
+    volumes:
+      - ../backend:/app
+      - worker_logs:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Celery beat (scheduler for periodic tasks)
+  scheduler:
+    container_name: trading_scheduler
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    command: celery -A workers.celery_app beat --loglevel=info
+    environment:
+      - POSTGRES_HOST=postgres
+      - POSTGRES_DB=trading
+      - POSTGRES_USER=trader
+      - POSTGRES_PASSWORD=traderpw
+      - DATABASE_URL=postgresql+psycopg2://trader:traderpw@postgres:5432/trading
+      - REDIS_URL=redis://redis:6379/0
+      - TIMEZONE=America/New_York
+      - LOG_LEVEL=INFO
+      - BENCHMARKS=SPY,QQQ,DIA,TLT
+    volumes:
+      - ../backend:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Next.js frontend (TODO: Update to Next.js)
+  web:
+    container_name: trading_web
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  api_logs:
+  worker_logs:
