@@ -18,3 +18,5 @@ coverage
 .cache
 *.zip
 *.tsbuildinfo
+
+ManusDashboardClean/
