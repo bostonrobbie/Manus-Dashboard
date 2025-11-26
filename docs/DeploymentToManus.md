@@ -6,32 +6,22 @@
 - PostgreSQL 15+ reachable via `DATABASE_URL`
 - Environment variables populated from `.env.example`
 
-## Install
+## Install & Build
+From a fresh clone, run all commands from the repository root:
 ```bash
 pnpm install --frozen-lockfile
-```
-
-## Typecheck
-```bash
-pnpm -w tsc
-```
-
-## Build
-```bash
-pnpm build          # runs client and server builds
-pnpm build:client   # optional: client only
-pnpm build:server   # optional: server only
+pnpm -r build
 ```
 
 ## Database & Migrations
-Ensure `DATABASE_URL` is set.
+`DATABASE_URL` must point at a reachable PostgreSQL instance. Apply schema migrations with:
 ```bash
-pnpm --filter drizzle run migrate   # executes Drizzle migrations against DATABASE_URL
+pnpm --filter drizzle run migrate   # uses drizzle.config.cjs and DATABASE_URL
 ```
 
-## Start
+## Start Commands
 ```bash
-# Backend (binds PORT, default 3001)
+# Backend (binds PORT, default 3001). Runs compiled CommonJS output with tsconfig-paths.
 pnpm --filter server start
 
 # Frontend preview (served from dist on port 4173 by default)
