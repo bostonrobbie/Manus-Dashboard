@@ -4,13 +4,13 @@
   "private": true,
   "packageManager": "pnpm@8.15.8",
   "scripts": {
+    "tsc": "pnpm -w tsc",
     "build": "pnpm -r run build",
     "build:client": "pnpm --filter client run build",
     "build:server": "pnpm --filter server run build",
-    "start:server": "pnpm --filter server run start",
-    "start:client": "pnpm --filter client run dev",
-    "lint": "pnpm -r run lint",
-    "tsc": "pnpm -r run tsc"
+    "start": "pnpm --filter server run start",
+    "preview": "pnpm --filter client run preview",
+    "migrate": "pnpm --filter drizzle run migrate"
   },
   "devDependencies": {
     "dotenv": "^16.4.5",

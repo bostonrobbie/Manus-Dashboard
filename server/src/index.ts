@@ -22,8 +22,10 @@ app.use(
 );
 
 const port = env.port;
-app.listen(port, () => {
-  console.log(`[server] listening on port ${port}`);
+const host = "0.0.0.0";
+
+app.listen(port, host, () => {
+  console.log(`[server] listening on http://${host}:${port}`);
 });
 
 export type { AppRouter } from "./routers";
