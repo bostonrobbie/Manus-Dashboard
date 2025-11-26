@@ -5,8 +5,8 @@ import {
   buildPortfolioSummary,
   buildStrategyComparison,
   loadTrades,
-} from "../engine/portfolio-engine";
-import { authedProcedure, router } from "../trpc/router";
+} from "@server/engine/portfolio-engine";
+import { authedProcedure, router } from "@server/trpc/router";
 
 export const portfolioRouter = router({
   equityCurves: authedProcedure
