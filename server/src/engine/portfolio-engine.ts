@@ -55,7 +55,20 @@ export async function loadStrategies(userId: number): Promise<StrategySummary[]>
 export async function loadTrades(userId: number): Promise<TradeRow[]> {
   const db = await getDb();
   if (db) {
-    return db
+    type TradeRecord = {
+      id: number;
+      strategyId: number;
+      userId: number;
+      symbol: string;
+      side: string;
+      quantity: unknown;
+      entryPrice: unknown;
+      exitPrice: unknown;
+      entryTime: Date | string;
+      exitTime: Date | string;
+    };
+
+    const rows: TradeRecord[] = await db
       .select({
         id: schema.trades.id,
         strategyId: schema.trades.strategyId,
@@ -70,6 +83,19 @@ export async function loadTrades(userId: number): Promise<TradeRow[]> {
       })
       .from(schema.trades)
       .where(eq(schema.trades.userId, userId));
+
+    return rows.map((trade): TradeRow => ({
+      id: trade.id,
+      strategyId: trade.strategyId,
+      userId: trade.userId,
+      symbol: trade.symbol,
+      side: trade.side,
+      quantity: Number(trade.quantity),
+      entryPrice: Number(trade.entryPrice),
+      exitPrice: Number(trade.exitPrice),
+      entryTime: new Date(trade.entryTime).toISOString(),
+      exitTime: new Date(trade.exitTime).toISOString(),
+    }));
   }
   return sampleTrades.filter(t => t.userId === userId);
 }
@@ -77,7 +103,13 @@ export async function loadTrades(userId: number): Promise<TradeRow[]> {
 async function loadBenchmarks() {
   const db = await getDb();
   if (db) {
-    return db.select({ date: schema.benchmarks.date, close: schema.benchmarks.close }).from(schema.benchmarks);
+    type BenchmarkRecord = { date: string; close: unknown };
+
+    const rows: BenchmarkRecord[] = await db
+      .select({ date: schema.benchmarks.date, close: schema.benchmarks.close })
+      .from(schema.benchmarks);
+
+    return rows.map((row): { date: string; close: number } => ({ date: row.date, close: Number(row.close) }));
   }
   return sampleBenchmarks;
 }

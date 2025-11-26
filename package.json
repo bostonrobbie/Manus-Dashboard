@@ -13,6 +13,8 @@
     "tsc": "pnpm -r run tsc"
   },
   "devDependencies": {
+    "dotenv": "^16.4.5",
+    "drizzle-orm": "^0.44.7",
     "typescript": "^5.4.5"
   }
 }
