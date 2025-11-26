@@ -73,6 +73,10 @@ importers:
         specifier: ^5.2.12
         version: 5.4.21
 
+  drizzle: {}
+
+  scripts: {}
+
   server:
     dependencies:
       '@trpc/server':
