@@ -26,7 +26,7 @@ pnpm build:server   # optional: server only
 ## Database & Migrations
 Ensure `DATABASE_URL` is set.
 ```bash
-pnpm --filter server run migrate   # executes scripts/migrate.ts against DATABASE_URL
+pnpm --filter drizzle run migrate   # executes Drizzle migrations against DATABASE_URL
 ```
 
 ## Start
@@ -40,7 +40,7 @@ pnpm --filter client preview
 ```
 
 ## Health Checks
-- Backend: `GET /health` -> `{ "status": "ok" }`
+- Backend: `GET /health` -> `{ "status": "ok", "db": "up" }` when the database responds, returns `503` with `{ "status": "degraded", "db": "down" }` if not.
 
 ## Environment Variables
 - `PORT` (default 3001)

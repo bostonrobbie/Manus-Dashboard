@@ -16,5 +16,10 @@
     "dotenv": "^16.4.5",
     "drizzle-orm": "^0.44.7",
     "typescript": "^5.4.5"
+  },
+  "pnpm": {
+    "patchedDependencies": {
+      "drizzle-kit@0.22.8": "patches/drizzle-kit@0.22.8.patch"
+    }
   }
 }
