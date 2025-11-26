@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { getDb } from "@server/db";
+import { getDb } from "../server/src/db";
 
 async function main() {
   const db = await getDb();

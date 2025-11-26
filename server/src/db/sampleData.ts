@@ -1,4 +1,4 @@
-import { StrategyType } from "@shared/types/portfolio";
+import { StrategyType } from "../../shared/types/portfolio";
 
 export interface StrategyRow {
   id: number;

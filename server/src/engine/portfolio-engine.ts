@@ -9,7 +9,7 @@ import {
   StrategySummary,
   StrategyType,
   TradeRow,
-} from "@shared/types/portfolio";
+} from "../../shared/types/portfolio";
 import { eq } from "drizzle-orm";
 import { benchmarks as sampleBenchmarks, strategies as sampleStrategies, trades as sampleTrades } from "../db/sampleData";
 import { getDb, schema } from "../db";

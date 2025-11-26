@@ -11,7 +11,7 @@ const queryClient = new QueryClient();
 const trpcClient = trpc.createClient({
   links: [
     httpBatchLink({
-      url: `${window.location.origin.replace(/\/$/, "")}/trpc`,
+      url: `${(import.meta.env.VITE_API_URL ?? "http://localhost:3001").replace(/\/$/, "")}/trpc`,
       transformer: SuperJSON,
     }),
   ],
