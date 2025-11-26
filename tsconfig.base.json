@@ -15,7 +15,8 @@
     "baseUrl": ".",
     "paths": {
       "@shared/*": ["shared/*"],
-      "@drizzle/*": ["drizzle/*"]
+      "@drizzle/*": ["drizzle/*"],
+      "@server/*": ["server/src/*"]
     }
   },
   "include": ["client", "server", "shared", "drizzle", "scripts"],
