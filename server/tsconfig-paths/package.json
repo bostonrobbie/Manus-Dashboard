@@ -1,0 +1,11 @@
+{
+  "name": "tsconfig-paths",
+  "version": "0.0.0-local",
+  "private": true,
+  "type": "commonjs",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./register": "./register.js"
+  }
+}

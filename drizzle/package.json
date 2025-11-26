@@ -5,8 +5,8 @@
   "type": "module",
   "packageManager": "pnpm@8.15.8",
   "scripts": {
-    "generate": "drizzle-kit generate --config ./drizzle.config.ts",
-    "migrate": "drizzle-kit migrate --config ./drizzle.config.ts"
+    "generate": "drizzle-kit generate --config ../drizzle.config.ts",
+    "migrate": "drizzle-kit migrate --config ../drizzle.config.ts"
   },
   "dependencies": {
     "drizzle-kit": "^0.22.8",

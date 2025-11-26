@@ -2,12 +2,12 @@
   "name": "server",
   "version": "1.0.0",
   "private": true,
-  "type": "module",
-  "main": "dist/index.js",
+  "type": "commonjs",
+  "main": "dist/server/src/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc -p tsconfig.json",
-    "start": "node dist/index.js",
+    "start": "node -r tsconfig-paths/register dist/server/src/index.js",
     "tsc": "tsc -p tsconfig.json",
     "migrate": "tsx ../scripts/migrate.ts"
   },
@@ -18,6 +18,7 @@
     "drizzle-orm": "^0.44.7",
     "express": "^4.19.2",
     "pg": "^8.11.5",
+    "tsconfig-paths": "file:./tsconfig-paths",
     "zod": "^3.23.8"
   },
   "devDependencies": {
