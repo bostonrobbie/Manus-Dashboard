@@ -1,0 +1,17 @@
+diff --git a/bin.cjs b/bin.cjs
+index 142ed9c20f28dc1080bebfb52325fa308c6cb771..2d1bfa96ef9004f653fba97d0f334a861a0438d9 100755
+--- a/bin.cjs
++++ b/bin.cjs
+@@ -11501,10 +11501,11 @@ var init_utils2 = __esm({
+             "This version of drizzle-kit is outdated\nPlease update drizzle-kit package to the latest version \u{1F44D}"
+           );
+         }
++        return;
+       } catch (e2) {
+         console.log("Please install latest version of drizzle-orm");
+       }
+-      process.exit(1);
++      return;
+     };
+     ormCoreVersions = async () => {
+       try {
