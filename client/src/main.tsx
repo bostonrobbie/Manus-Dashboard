@@ -8,10 +8,18 @@ import "./index.css";
 import { trpc } from "./lib/trpc";
 
 const queryClient = new QueryClient();
+
+const getBaseUrl = () => {
+  if (typeof window === "undefined") return "";
+  const apiUrl = import.meta.env.VITE_API_URL?.trim();
+  if (apiUrl && apiUrl.length > 0) return apiUrl.replace(/\/$/, "");
+  return window.location.origin.replace(/\/$/, "");
+};
+
 const trpcClient = trpc.createClient({
   links: [
     httpBatchLink({
-      url: `${(import.meta.env.VITE_API_URL ?? "http://localhost:3001").replace(/\/$/, "")}/trpc`,
+      url: `${getBaseUrl()}/trpc`,
       transformer: SuperJSON,
     }),
   ],
