@@ -10,8 +10,67 @@ import {
 } from "@server/engine/portfolio-engine";
 import { authedProcedure, router } from "@server/trpc/router";
 
+const finiteNumber = z.number().finite();
+const equityPointSchema = z.object({
+  date: z.string(),
+  combined: finiteNumber,
+  swing: finiteNumber,
+  intraday: finiteNumber,
+  spx: finiteNumber,
+});
+const drawdownPointSchema = z.object({
+  date: z.string(),
+  combined: finiteNumber,
+  swing: finiteNumber,
+  intraday: finiteNumber,
+  spx: finiteNumber,
+});
+const overviewSchema = z.object({
+  equity: finiteNumber,
+  dailyPnL: finiteNumber,
+  dailyReturn: finiteNumber,
+  totalReturn: finiteNumber,
+  sharpeRatio: finiteNumber,
+  maxDrawdown: finiteNumber,
+  currentDrawdown: finiteNumber,
+  totalTrades: z.number().int(),
+  winningTrades: z.number().int(),
+  losingTrades: z.number().int(),
+  winRate: finiteNumber,
+  profitFactor: finiteNumber,
+  positions: z.number().int(),
+  lastUpdated: z.date(),
+});
+const summarySchema = z.object({
+  totalReturnPct: finiteNumber,
+  maxDrawdownPct: finiteNumber,
+  sharpeRatio: finiteNumber,
+  winRatePct: finiteNumber,
+});
+const strategyRowSchema = z.object({
+  strategyId: z.number().int(),
+  name: z.string(),
+  type: z.enum(["swing", "intraday"]),
+  totalReturn: finiteNumber,
+  totalReturnPct: finiteNumber,
+  maxDrawdown: finiteNumber,
+  maxDrawdownPct: finiteNumber,
+  sharpeRatio: finiteNumber,
+  winRatePct: finiteNumber,
+  totalTrades: z.number().int(),
+  profitFactor: finiteNumber,
+});
+const monteCarloSchema = z.object({
+  futureDates: z.array(z.string()),
+  p10: z.array(finiteNumber),
+  p50: z.array(finiteNumber),
+  p90: z.array(finiteNumber),
+  currentEquity: finiteNumber,
+  finalEquities: z.array(finiteNumber),
+});
+
 export const portfolioRouter = router({
-  overview: authedProcedure.query(async ({ ctx }) => buildPortfolioOverview(ctx.userId)),
+  overview: authedProcedure.query(async ({ ctx }) => overviewSchema.parse(await buildPortfolioOverview(ctx.userId))),
   equityCurves: authedProcedure
     .input(
       z
@@ -23,7 +82,8 @@ export const portfolioRouter = router({
         .optional()
     )
     .query(async ({ ctx, input }) => {
-      return buildAggregatedEquityCurve(ctx.userId, input ?? {});
+      const res = await buildAggregatedEquityCurve(ctx.userId, input ?? {});
+      return { points: res.points.map(p => equityPointSchema.parse(p)) };
     }),
   drawdowns: authedProcedure
     .input(
@@ -36,7 +96,8 @@ export const portfolioRouter = router({
         .optional()
     )
     .query(async ({ ctx, input }) => {
-      return buildDrawdownCurves(ctx.userId, input ?? {});
+      const res = await buildDrawdownCurves(ctx.userId, input ?? {});
+      return { points: res.points.map(p => drawdownPointSchema.parse(p)) };
     }),
   strategyComparison: authedProcedure
     .input(
@@ -64,9 +125,13 @@ export const portfolioRouter = router({
       })
     )
     .query(async ({ ctx, input }) => {
-      return buildStrategyComparison({ ...input, userId: ctx.userId });
+      const result = await buildStrategyComparison({ ...input, userId: ctx.userId });
+      return {
+        rows: result.rows.map(row => strategyRowSchema.parse(row)),
+        total: result.total,
+      };
     }),
-  summary: authedProcedure.query(async ({ ctx }) => buildPortfolioSummary(ctx.userId)),
+  summary: authedProcedure.query(async ({ ctx }) => summarySchema.parse(await buildPortfolioSummary(ctx.userId))),
   trades: authedProcedure.query(async ({ ctx }) => loadTrades(ctx.userId)),
   monteCarloSimulation: authedProcedure
     .input(
@@ -76,10 +141,12 @@ export const portfolioRouter = router({
       })
     )
     .query(async ({ ctx, input }) =>
-      runMonteCarloSimulation({
-        userId: ctx.userId,
-        days: input.days,
-        simulations: input.simulations,
-      }),
+      monteCarloSchema.parse(
+        await runMonteCarloSimulation({
+          userId: ctx.userId,
+          days: input.days,
+          simulations: input.simulations,
+        }),
+      ),
     ),
 });

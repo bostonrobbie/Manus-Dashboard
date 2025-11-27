@@ -26,6 +26,25 @@ function MonteCarloPanel({ result, days, simulations, isLoading, onRerun }: Mont
   const [daysInput, setDaysInput] = useState(days);
   const [simulationsInput, setSimulationsInput] = useState(simulations);
 
+  const currency = useMemo(
+    () =>
+      new Intl.NumberFormat(undefined, {
+        style: "currency",
+        currency: "USD",
+        maximumFractionDigits: 0,
+      }),
+    [],
+  );
+  const percent = useMemo(
+    () =>
+      new Intl.NumberFormat(undefined, {
+        style: "percent",
+        minimumFractionDigits: 1,
+        maximumFractionDigits: 1,
+      }),
+    [],
+  );
+
   useEffect(() => setDaysInput(days), [days]);
   useEffect(() => setSimulationsInput(simulations), [simulations]);
 
@@ -112,12 +131,15 @@ function MonteCarloPanel({ result, days, simulations, isLoading, onRerun }: Mont
       ) : (
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-            <MetricCard label="Current equity" value={`$${result?.currentEquity.toFixed(0) ?? "0"}`} />
-            <MetricCard label="Median final" value={`$${summaryStats.medianFinal.toFixed(0)}`} />
-            <MetricCard label="10th - 90th %" value={`$${summaryStats.p10Final.toFixed(0)} - $${summaryStats.p90Final.toFixed(0)}`} />
+            <MetricCard label="Current equity" value={currency.format(result?.currentEquity ?? 0)} />
+            <MetricCard label="Median final" value={currency.format(summaryStats.medianFinal)} />
+            <MetricCard
+              label="10th - 90th %"
+              value={`${currency.format(summaryStats.p10Final)} - ${currency.format(summaryStats.p90Final)}`}
+            />
             <MetricCard
               label="Prob. below current"
-              value={`${summaryStats.probBelowCurrent.toFixed(1)}%`}
+              value={percent.format(summaryStats.probBelowCurrent / 100)}
               helper="Chance finishing under today’s equity"
             />
           </div>
