@@ -37,8 +37,10 @@ export interface StrategyComparisonInput {
   search?: string;
 }
 
-const INITIAL_CAPITAL = 100_000;
-const TRADING_DAYS = 252;
+export const ENGINE_CONFIG = {
+  initialCapital: 100_000,
+  tradingDays: 252,
+};
 
 function tradePnl(side: string, entry: number, exit: number, qty: number): number {
   const normalizedSide = side.toLowerCase();
@@ -325,14 +327,52 @@ export async function buildDrawdownCurves(
   const pts = equity.points;
   if (pts.length === 0) return { points: [] };
 
-  let peakCombined = pts[0].combined;
-  let peakSwing = pts[0].swing;
-  let peakIntraday = pts[0].intraday;
-  let peakSpx = pts[0].spx;
+  const ddPoints = buildDrawdownSeries(pts);
+
+  if (opts.maxPoints && ddPoints.length > opts.maxPoints) {
+    return { points: downsamplePoints(ddPoints, opts.maxPoints) };
+  }
+
+  return { points: ddPoints };
+}
+
+function computeSharpeRatio(returns: number[]): number {
+  const finiteReturns = returns.filter(r => Number.isFinite(r));
+  if (!Array.isArray(finiteReturns) || finiteReturns.length < 2) return 0;
+  const mean = finiteReturns.reduce((a, b) => a + b, 0) / finiteReturns.length;
+  const variance =
+    finiteReturns.reduce((a, b) => a + (b - mean) * (b - mean), 0) /
+    Math.max(finiteReturns.length - 1, 1);
+  const std = Math.sqrt(Math.max(variance, 1e-12));
+  return Number.isFinite(std) && std > 0 ? Math.sqrt(ENGINE_CONFIG.tradingDays) * (mean / std) : 0;
+}
+
+function computeDailyReturns(points: EquityCurvePoint[], initialCapital: number): number[] {
+  let prevEquity = initialCapital;
+  const returns: number[] = [];
+
+  for (const p of points) {
+    const equity = initialCapital + p.combined;
+    const dailyPnL = equity - prevEquity;
+    const dailyReturn = prevEquity !== 0 ? dailyPnL / prevEquity : 0;
+    returns.push(Number.isFinite(dailyReturn) ? dailyReturn : 0);
+    prevEquity = equity;
+  }
+
+  return returns;
+}
+
+function buildDrawdownSeries(points: EquityCurvePoint[]): DrawdownPoint[] {
+  if (points.length === 0) return [];
+
+  let peakCombined = points[0].combined;
+  let peakSwing = points[0].swing;
+  let peakIntraday = points[0].intraday;
+  let peakSpx = points[0].spx;
 
   const ddPoints: DrawdownPoint[] = [];
 
-  for (const p of pts) {
+  for (const p of points) {
     peakCombined = Math.max(peakCombined, p.combined);
     peakSwing = Math.max(peakSwing, p.swing);
     peakIntraday = Math.max(peakIntraday, p.intraday);
@@ -347,35 +387,7 @@ export async function buildDrawdownCurves(
     });
   }
 
-  if (opts.maxPoints && ddPoints.length > opts.maxPoints) {
-    return { points: downsamplePoints(ddPoints, opts.maxPoints) };
-  }
-
-  return { points: ddPoints };
-}
-
-function computeSharpeRatio(returns: number[]): number {
-  if (!Array.isArray(returns) || returns.length < 2) return 0;
-  const mean = returns.reduce((a, b) => a + b, 0) / returns.length;
-  const variance =
-    returns.reduce((a, b) => a + (b - mean) * (b - mean), 0) / Math.max(returns.length - 1, 1);
-  const std = Math.sqrt(Math.max(variance, 1e-12));
-  return Number.isFinite(std) && std > 0 ? Math.sqrt(TRADING_DAYS) * (mean / std) : 0;
-}
-
-function computeDailyReturns(points: EquityCurvePoint[], initialCapital: number): number[] {
-  let prevEquity = initialCapital;
-  const returns: number[] = [];
-
-  for (const p of points) {
-    const equity = initialCapital + p.combined;
-    const dailyPnL = equity - prevEquity;
-    const dailyReturn = prevEquity !== 0 ? dailyPnL / prevEquity : 0;
-    returns.push(dailyReturn);
-    prevEquity = equity;
-  }
-
-  return returns;
+  return ddPoints;
 }
 
 export async function buildStrategyComparison(
@@ -455,11 +467,7 @@ export async function buildStrategyComparison(
   const comparisonRows: StrategyComparisonRow[] = [];
 
   for (const agg of map.values()) {
-    const mean = agg.tradeReturns.reduce((a, b) => a + b, 0) / Math.max(agg.tradeReturns.length, 1);
-    const variance =
-      agg.tradeReturns.reduce((a, b) => a + (b - mean) * (b - mean), 0) / Math.max(agg.tradeReturns.length - 1, 1);
-    const std = Math.sqrt(Math.max(variance, 1e-12));
-    const sharpeRatio = std > 0 ? Math.sqrt(TRADING_DAYS) * (mean / std) : 0;
+    const sharpeRatio = computeSharpeRatio(agg.tradeReturns);
     const winRatePct = agg.totalTrades > 0 ? (agg.wins / agg.totalTrades) * 100 : 0;
     const profitFactor = agg.grossLoss > 0 ? agg.grossProfit / agg.grossLoss : agg.grossProfit > 0 ? Infinity : 0;
 
@@ -529,12 +537,13 @@ export async function buildPortfolioSummary(userId: number): Promise<PortfolioSu
   const max = returns.reduce((m, v) => Math.max(m, v), 0);
   const min = returns.reduce((m, v) => Math.min(m, v), 0);
   const maxDrawdownPct = max === 0 ? 0 : ((min - max) / max) * 100;
-  const finalReturnPct = returns.length === 0 ? 0 : (returns[returns.length - 1] / INITIAL_CAPITAL) * 100;
+  const finalReturnPct =
+    returns.length === 0 ? 0 : (returns[returns.length - 1] / ENGINE_CONFIG.initialCapital) * 100;
   const allTrades = comparison.rows.reduce((sum, r) => sum + r.totalTrades, 0);
   const wins = comparison.rows.reduce((sum, r) => sum + (r.winRatePct / 100) * r.totalTrades, 0);
   const winRatePct = allTrades === 0 ? 0 : (wins / allTrades) * 100;
 
-  const dailyReturns = computeDailyReturns(curve.points, INITIAL_CAPITAL);
+  const dailyReturns = computeDailyReturns(curve.points, ENGINE_CONFIG.initialCapital);
   const sharpeRatio = computeSharpeRatio(dailyReturns);
 
   return {
@@ -552,35 +561,32 @@ export async function buildPortfolioOverview(userId: number): Promise<PortfolioO
     loadTrades(userId),
   ]);
 
+  const initialCapital = ENGINE_CONFIG.initialCapital;
   const equityPoints = equityCurve.points;
-  const drawdownPoints = drawdowns.points;
+  const drawdownPoints = drawdowns.points.length > 0 ? drawdowns.points : buildDrawdownSeries(equityPoints);
+  const hasDailyReturns = equityPoints.length >= 2;
 
-  const latestEquityPnl = equityPoints.at(-1)?.combined ?? 0;
-  const prevEquityPnl = equityPoints.length > 1 ? equityPoints[equityPoints.length - 2].combined : latestEquityPnl;
-  const prevEquity = INITIAL_CAPITAL + prevEquityPnl;
+  const latestEquityPoint = equityPoints.at(-1);
+  const previousEquityPoint = hasDailyReturns ? equityPoints[equityPoints.length - 2] : latestEquityPoint;
 
-  const dailyPnL = equityPoints.length > 1 ? latestEquityPnl - prevEquityPnl : 0;
-  const dailyReturn = prevEquity !== 0 ? dailyPnL / prevEquity : 0;
-  const totalReturn = latestEquityPnl / INITIAL_CAPITAL;
+  const latestEquity = latestEquityPoint ? initialCapital + latestEquityPoint.combined : initialCapital;
+  const previousEquity = previousEquityPoint ? initialCapital + previousEquityPoint.combined : latestEquity;
 
-  const dailyReturns = computeDailyReturns(equityPoints, INITIAL_CAPITAL);
-  const sharpeRatio = computeSharpeRatio(dailyReturns);
+  const rawDailyPnL = hasDailyReturns ? latestEquity - previousEquity : 0;
+  const rawDailyReturn = hasDailyReturns && previousEquity !== 0 ? latestEquity / previousEquity - 1 : 0;
+  const rawTotalReturn = initialCapital !== 0 ? (latestEquity - initialCapital) / initialCapital : 0;
 
-  let maxDrawdown = 0;
-  let currentDrawdown = 0;
-  if (equityPoints.length > 0) {
-    let peakEquity = INITIAL_CAPITAL;
-    for (const point of equityPoints) {
-      const equity = INITIAL_CAPITAL + point.combined;
-      peakEquity = Math.max(peakEquity, equity);
-      const dd = peakEquity > 0 ? (equity - peakEquity) / peakEquity : 0;
-      maxDrawdown = Math.min(maxDrawdown, dd);
-      currentDrawdown = dd;
-    }
-  } else if (drawdownPoints.length > 0) {
-    maxDrawdown = drawdownPoints.reduce((m, p) => Math.min(m, p.combined), 0);
-    currentDrawdown = drawdownPoints[drawdownPoints.length - 1].combined;
-  }
+  const dailyPnL = Number.isFinite(rawDailyPnL) ? rawDailyPnL : 0;
+  const dailyReturn = Number.isFinite(rawDailyReturn) ? rawDailyReturn : 0;
+  const totalReturn = Number.isFinite(rawTotalReturn) ? rawTotalReturn : 0;
+
+  const dailyReturns = hasDailyReturns ? computeDailyReturns(equityPoints, initialCapital) : [];
+  const sharpeRatio = dailyReturns.length > 1 ? computeSharpeRatio(dailyReturns) : 0;
+
+  const maxDrawdown = drawdownPoints.length
+    ? drawdownPoints.reduce((m, p) => Math.min(m, p.combined), 0)
+    : 0;
+  const currentDrawdown = drawdownPoints.at(-1)?.combined ?? 0;
 
   let totalTrades = 0;
   let winningTrades = 0;
@@ -601,10 +607,11 @@ export async function buildPortfolioOverview(userId: number): Promise<PortfolioO
   }
 
   const winRate = totalTrades > 0 ? (winningTrades / totalTrades) * 100 : 0;
-  const profitFactor = grossLoss > 0 ? grossProfit / grossLoss : grossProfit > 0 ? Infinity : 0;
+  const profitFactorRaw = grossLoss > 0 ? grossProfit / grossLoss : 0;
+  const profitFactor = Number.isFinite(profitFactorRaw) ? profitFactorRaw : 0;
 
   return {
-    equity: INITIAL_CAPITAL + latestEquityPnl,
+    equity: latestEquity,
     dailyPnL,
     dailyReturn,
     totalReturn,
@@ -698,17 +705,18 @@ export async function runMonteCarloSimulation(input: {
 }): Promise<MonteCarloResult> {
   const equity = await buildAggregatedEquityCurve(input.userId, {});
   const pts = equity.points;
+  const initialCapital = ENGINE_CONFIG.initialCapital;
   if (pts.length < 2) {
-    return { futureDates: [], p10: [], p50: [], p90: [], currentEquity: INITIAL_CAPITAL, finalEquities: [] };
+    return { futureDates: [], p10: [], p50: [], p90: [], currentEquity: initialCapital, finalEquities: [] };
   }
 
-  const dailyReturns = computeDailyReturns(pts, INITIAL_CAPITAL);
+  const dailyReturns = computeDailyReturns(pts, initialCapital);
   const returns = dailyReturns.filter(r => Number.isFinite(r));
   const mean = returns.reduce((a, b) => a + b, 0) / Math.max(returns.length, 1);
   const variance = returns.reduce((a, b) => a + (b - mean) * (b - mean), 0) / Math.max(returns.length - 1, 1);
   const std = Math.sqrt(Math.max(variance, 1e-12));
 
-  const currentEquity = INITIAL_CAPITAL + (pts[pts.length - 1]?.combined ?? 0);
+  const currentEquity = initialCapital + (pts[pts.length - 1]?.combined ?? 0);
   const simResults: number[][] = [];
   const finalEquities: number[] = [];
 

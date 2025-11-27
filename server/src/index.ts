@@ -13,12 +13,17 @@ app.use(express.json());
 
 // Lightweight readiness probe with DB connectivity signal
 app.get("/health", async (_req, res) => {
+  const HEALTH_TIMEOUT_MS = 3000;
+  const timeoutPromise = new Promise((_, reject) =>
+    setTimeout(() => reject(new Error("health check timed out")), HEALTH_TIMEOUT_MS),
+  );
+
   try {
     const db = await getDb();
-    if (db) {
-      await db.execute(sql`select 1`);
-      return res.json({ status: "ok", db: "up" });
-    }
+    if (!db) throw new Error("database not configured");
+
+    await Promise.race([db.execute(sql`select 1`), timeoutPromise]);
+    return res.json({ status: "ok", db: "up" });
   } catch (error) {
     console.error("[health] database check failed", error);
   }
