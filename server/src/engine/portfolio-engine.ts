@@ -1,17 +1,24 @@
+import { and, between, eq, gte, lte } from "drizzle-orm";
 import {
   DrawdownPoint,
   DrawdownResponse,
   EquityCurvePoint,
   EquityCurveResponse,
+  PortfolioOverview,
   PortfolioSummary,
   StrategyComparisonResult,
   StrategyComparisonRow,
   StrategySummary,
   StrategyType,
   TradeRow,
+  MonteCarloResult,
+  ExportTradesInput,
 } from "@shared/types/portfolio";
-import { eq } from "drizzle-orm";
-import { benchmarks as sampleBenchmarks, strategies as sampleStrategies, trades as sampleTrades } from "@server/db/sampleData";
+import {
+  benchmarks as sampleBenchmarks,
+  strategies as sampleStrategies,
+  trades as sampleTrades,
+} from "@server/db/sampleData";
 import { getDb, schema } from "@server/db";
 
 export interface EquityCurveOptions {
@@ -30,12 +37,110 @@ export interface StrategyComparisonInput {
   search?: string;
 }
 
+const INITIAL_CAPITAL = 100_000;
+const TRADING_DAYS = 252;
+
 function tradePnl(side: string, entry: number, exit: number, qty: number): number {
   const normalizedSide = side.toLowerCase();
   if (normalizedSide === "short" || normalizedSide === "sell") {
     return (entry - exit) * qty;
   }
   return (exit - entry) * qty;
+}
+
+function normalizeToDateKey(date: Date): string {
+  const year = date.getUTCFullYear();
+  const month = date.getUTCMonth() + 1;
+  const day = date.getUTCDate();
+
+  const mm = month < 10 ? `0${month}` : String(month);
+  const dd = day < 10 ? `0${day}` : String(day);
+
+  return `${year}-${mm}-${dd}`;
+}
+
+function downsamplePoints<T extends { date: string }>(points: T[], maxPoints: number): T[] {
+  const n = points.length;
+  if (!Array.isArray(points) || n === 0 || maxPoints <= 0) return [];
+  if (n <= maxPoints) return points;
+
+  const sampled: T[] = [];
+  const buckets = maxPoints - 2;
+  const bucketSize = (n - 2) / buckets;
+
+  let a = 0;
+  sampled.push(points[a]);
+
+  for (let i = 0; i < buckets; i++) {
+    const bucketStart = Math.floor(1 + i * bucketSize);
+    const bucketEnd = Math.floor(1 + (i + 1) * bucketSize);
+    const bucketEndClamped = Math.min(bucketEnd, n - 1);
+
+    const rangeStart = bucketStart;
+    const rangeEnd = bucketEndClamped;
+
+    if (rangeStart >= rangeEnd) continue;
+
+    const nextBucketStart = bucketEndClamped;
+    const nextBucketEnd = Math.min(Math.floor(1 + (i + 2) * bucketSize), n);
+
+    let avgX = 0;
+    let avgY = 0;
+    let avgCount = 0;
+
+    for (let j = nextBucketStart; j < nextBucketEnd; j++) {
+      const x = j;
+      const y = getY(points[j]);
+      avgX += x;
+      avgY += y;
+      avgCount++;
+    }
+
+    if (avgCount > 0) {
+      avgX /= avgCount;
+      avgY /= avgCount;
+    } else {
+      avgX = nextBucketStart;
+      avgY = getY(points[nextBucketStart]);
+    }
+
+    const pointA = points[a];
+    const ax = a;
+    const ay = getY(pointA);
+
+    let maxArea = -1;
+    let chosenIndex = rangeStart;
+
+    for (let j = rangeStart; j < rangeEnd; j++) {
+      const px = j;
+      const py = getY(points[j]);
+      const area = Math.abs((ax - avgX) * (py - ay) - (ax - px) * (avgY - ay));
+      if (area > maxArea) {
+        maxArea = area;
+        chosenIndex = j;
+      }
+    }
+
+    sampled.push(points[chosenIndex]);
+    a = chosenIndex;
+  }
+
+  sampled.push(points[n - 1]);
+
+  sampled.sort((a, b) => {
+    const idxA = points.indexOf(a);
+    const idxB = points.indexOf(b);
+    return idxA - idxB;
+  });
+
+  return sampled;
+
+  function getY(p: any): number {
+    if (typeof p.combined === "number" && Number.isFinite(p.combined)) {
+      return p.combined;
+    }
+    return 0;
+  }
 }
 
 export async function loadStrategies(userId: number): Promise<StrategySummary[]> {
@@ -100,29 +205,44 @@ export async function loadTrades(userId: number): Promise<TradeRow[]> {
   return sampleTrades.filter(t => t.userId === userId);
 }
 
-async function loadBenchmarks() {
+async function loadBenchmarks(startDate?: string, endDate?: string) {
   const db = await getDb();
   if (db) {
     type BenchmarkRecord = { date: string; close: unknown };
 
+    const predicates: any[] = [];
+    if (startDate && endDate) {
+      predicates.push(between(schema.benchmarks.date, startDate, endDate));
+    } else if (startDate) {
+      predicates.push(gte(schema.benchmarks.date, startDate));
+    } else if (endDate) {
+      predicates.push(lte(schema.benchmarks.date, endDate));
+    }
+
     const rows: BenchmarkRecord[] = await db
       .select({ date: schema.benchmarks.date, close: schema.benchmarks.close })
-      .from(schema.benchmarks);
+      .from(schema.benchmarks)
+      .where(predicates.length ? and(...predicates) : undefined);
 
     return rows.map((row): { date: string; close: number } => ({ date: row.date, close: Number(row.close) }));
   }
-  return sampleBenchmarks;
+
+  return sampleBenchmarks.filter(row => {
+    if (startDate && row.date < startDate) return false;
+    if (endDate && row.date > endDate) return false;
+    return true;
+  });
 }
 
 export async function buildAggregatedEquityCurve(
   userId: number,
-  opts: EquityCurveOptions = {}
+  opts: EquityCurveOptions = {},
 ): Promise<EquityCurveResponse> {
   const { startDate, endDate, maxPoints } = opts;
   const [strategies, trades, benchmarkRows] = await Promise.all([
     loadStrategies(userId),
     loadTrades(userId),
-    loadBenchmarks(),
+    loadBenchmarks(startDate, endDate),
   ]);
 
   const typeByStrategy = new Map<number, StrategyType>();
@@ -135,7 +255,7 @@ export async function buildAggregatedEquityCurve(
 
   for (const trade of trades) {
     const exit = new Date(trade.exitTime);
-    const isoDate = exit.toISOString().slice(0, 10);
+    const isoDate = normalizeToDateKey(exit);
     if (startDate && isoDate < startDate) continue;
     if (endDate && isoDate > endDate) continue;
 
@@ -171,7 +291,7 @@ export async function buildAggregatedEquityCurve(
       swing += pnl.swing;
       intraday += pnl.intraday;
     }
-    const benchmark = benchmarkRows.find((b: any) => b.date === d);
+    const benchmark = benchmarkRows.find(b => b.date === d);
     if (benchmark) {
       if (baseBenchmark == null) baseBenchmark = benchmark.close;
       benchmarkEquity = benchmark.close - (baseBenchmark ?? benchmark.close);
@@ -191,120 +311,186 @@ export async function buildAggregatedEquityCurve(
   }
 
   if (maxPoints && points.length > maxPoints) {
-    const step = Math.ceil(points.length / maxPoints);
-    return { points: points.filter((_, idx) => idx % step === 0) };
+    return { points: downsamplePoints(points, maxPoints) };
   }
 
   return { points };
 }
 
-export async function buildDrawdownCurves(userId: number, opts: EquityCurveOptions = {}): Promise<DrawdownResponse> {
+export async function buildDrawdownCurves(
+  userId: number,
+  opts: EquityCurveOptions = {},
+): Promise<DrawdownResponse> {
   const equity = await buildAggregatedEquityCurve(userId, opts);
-  let peakCombined = Number.NEGATIVE_INFINITY;
-  let peakSwing = Number.NEGATIVE_INFINITY;
-  let peakIntraday = Number.NEGATIVE_INFINITY;
-  let peakSpx = Number.NEGATIVE_INFINITY;
+  const pts = equity.points;
+  if (pts.length === 0) return { points: [] };
 
-  const points: DrawdownPoint[] = [];
-  for (const point of equity.points) {
-    peakCombined = Math.max(peakCombined, point.combined);
-    peakSwing = Math.max(peakSwing, point.swing);
-    peakIntraday = Math.max(peakIntraday, point.intraday);
-    peakSpx = Math.max(peakSpx, point.spx);
+  let peakCombined = pts[0].combined;
+  let peakSwing = pts[0].swing;
+  let peakIntraday = pts[0].intraday;
+  let peakSpx = pts[0].spx;
 
-    points.push({
-      date: point.date,
-      combined: point.combined - peakCombined,
-      swing: point.swing - peakSwing,
-      intraday: point.intraday - peakIntraday,
-      spx: point.spx - peakSpx,
+  const ddPoints: DrawdownPoint[] = [];
+
+  for (const p of pts) {
+    peakCombined = Math.max(peakCombined, p.combined);
+    peakSwing = Math.max(peakSwing, p.swing);
+    peakIntraday = Math.max(peakIntraday, p.intraday);
+    peakSpx = Math.max(peakSpx, p.spx);
+
+    ddPoints.push({
+      date: p.date,
+      combined: p.combined - peakCombined,
+      swing: p.swing - peakSwing,
+      intraday: p.intraday - peakIntraday,
+      spx: p.spx - peakSpx,
     });
   }
 
-  return { points };
-}
-
-export async function buildStrategyComparison(input: StrategyComparisonInput): Promise<StrategyComparisonResult> {
-  const trades = await loadTrades(input.userId);
-  const strategies = await loadStrategies(input.userId);
-  const typeByStrategy = new Map<number, StrategyType>();
-  const nameByStrategy = new Map<number, string>();
-  for (const s of strategies) {
-    typeByStrategy.set(s.id, s.type);
-    nameByStrategy.set(s.id, s.name);
+  if (opts.maxPoints && ddPoints.length > opts.maxPoints) {
+    return { points: downsamplePoints(ddPoints, opts.maxPoints) };
   }
 
-  type Agg = {
-    equity: number[];
-    cumulative: number;
-    maxDrawdown: number;
-    returns: number[];
+  return { points: ddPoints };
+}
+
+function computeSharpeRatio(returns: number[]): number {
+  if (!Array.isArray(returns) || returns.length < 2) return 0;
+  const mean = returns.reduce((a, b) => a + b, 0) / returns.length;
+  const variance =
+    returns.reduce((a, b) => a + (b - mean) * (b - mean), 0) / Math.max(returns.length - 1, 1);
+  const std = Math.sqrt(Math.max(variance, 1e-12));
+  return Number.isFinite(std) && std > 0 ? Math.sqrt(TRADING_DAYS) * (mean / std) : 0;
+}
+
+function computeDailyReturns(points: EquityCurvePoint[], initialCapital: number): number[] {
+  let prevEquity = initialCapital;
+  const returns: number[] = [];
+
+  for (const p of points) {
+    const equity = initialCapital + p.combined;
+    const dailyPnL = equity - prevEquity;
+    const dailyReturn = prevEquity !== 0 ? dailyPnL / prevEquity : 0;
+    returns.push(dailyReturn);
+    prevEquity = equity;
+  }
+
+  return returns;
+}
+
+export async function buildStrategyComparison(
+  input: StrategyComparisonInput,
+): Promise<StrategyComparisonResult> {
+  const db = await getDb();
+  const useDb = Boolean(db);
+  const trades = useDb ? await loadTrades(input.userId) : sampleTrades.filter(t => t.userId === input.userId);
+  const strategies = useDb ? await loadStrategies(input.userId) : sampleStrategies.filter(s => s.userId === input.userId);
+
+  const rows = trades.map(trade => {
+    const strat = strategies.find(s => s.id === trade.strategyId);
+    const type = strat?.type ?? "swing";
+    const pnl = tradePnl(trade.side, Number(trade.entryPrice), Number(trade.exitPrice), Number(trade.quantity));
+    const notional = Math.abs(Number(trade.entryPrice) * Number(trade.quantity));
+    const retPct = notional > 0 ? pnl / notional : 0;
+
+    return {
+      strategyId: trade.strategyId,
+      name: strat?.name ?? `Strategy ${trade.strategyId}`,
+      type,
+      pnl,
+      notional,
+      exitTime: trade.exitTime,
+      retPct,
+    };
+  });
+
+  type AggRow = {
+    strategyId: number;
+    name: string;
+    type: StrategyType;
+    pnl: number;
+    notional: number;
+    tradeReturns: number[];
+    totalTrades: number;
     wins: number;
     losses: number;
     grossProfit: number;
     grossLoss: number;
-    notional: number;
   };
 
-  const aggregated = new Map<number, Agg>();
+  const map = new Map<number, AggRow>();
 
-  const sortedTrades = [...trades].sort((a, b) => a.exitTime.localeCompare(b.exitTime));
-  for (const trade of sortedTrades) {
-    const pnl = tradePnl(trade.side, Number(trade.entryPrice), Number(trade.exitPrice), Number(trade.quantity));
-    const notional = Math.abs(Number(trade.entryPrice) * Number(trade.quantity));
-    const agg = aggregated.get(trade.strategyId) ?? {
-      equity: [],
-      cumulative: 0,
-      maxDrawdown: 0,
-      returns: [],
-      wins: 0,
-      losses: 0,
-      grossProfit: 0,
-      grossLoss: 0,
-      notional: 0,
-    };
-
-    agg.cumulative += pnl;
-    agg.notional += notional;
-    agg.equity.push(agg.cumulative);
-    agg.maxDrawdown = Math.min(agg.maxDrawdown, agg.cumulative - Math.max(...agg.equity));
-    agg.returns.push(notional === 0 ? 0 : pnl / notional);
-    if (pnl >= 0) {
-      agg.wins += 1;
-      agg.grossProfit += pnl;
-    } else {
-      agg.losses += 1;
-      agg.grossLoss += pnl;
+  for (const row of rows) {
+    let agg = map.get(row.strategyId);
+    if (!agg) {
+      agg = {
+        strategyId: row.strategyId,
+        name: row.name,
+        type: row.type,
+        pnl: 0,
+        notional: 0,
+        tradeReturns: [],
+        totalTrades: 0,
+        wins: 0,
+        losses: 0,
+        grossProfit: 0,
+        grossLoss: 0,
+      };
+      map.set(row.strategyId, agg);
     }
 
-    aggregated.set(trade.strategyId, agg);
+    agg.pnl += row.pnl;
+    agg.notional += row.notional;
+    agg.tradeReturns.push(row.retPct);
+    agg.totalTrades += 1;
+    if (row.pnl > 0) {
+      agg.wins += 1;
+      agg.grossProfit += row.pnl;
+    } else if (row.pnl < 0) {
+      agg.losses += 1;
+      agg.grossLoss += Math.abs(row.pnl);
+    }
   }
 
-  const rows: StrategyComparisonRow[] = [];
-  aggregated.forEach((agg, strategyId) => {
-    const equityPeak = agg.equity.reduce((max, v) => Math.max(max, v), 0);
-    const mdd = equityPeak === 0 ? 0 : agg.equity.reduce((m, v) => Math.min(m, v - equityPeak), 0);
-    const totalTrades = agg.wins + agg.losses;
-    const winRatePct = totalTrades === 0 ? 0 : (agg.wins / totalTrades) * 100;
-    const sharpeRatio = agg.returns.length === 0 ? 0 : (agg.returns.reduce((a, b) => a + b, 0) / agg.returns.length) / 0.02;
-    const profitFactor = agg.grossLoss === 0 ? agg.grossProfit : agg.grossProfit / Math.abs(agg.grossLoss);
+  const comparisonRows: StrategyComparisonRow[] = [];
 
-    rows.push({
-      strategyId,
-      name: nameByStrategy.get(strategyId) ?? `Strategy ${strategyId}`,
-      type: typeByStrategy.get(strategyId) ?? "swing",
-      totalReturn: agg.cumulative,
-      totalReturnPct: agg.notional === 0 ? 0 : (agg.cumulative / agg.notional) * 100,
-      maxDrawdown: mdd,
-      maxDrawdownPct: equityPeak === 0 ? 0 : (mdd / equityPeak) * 100,
+  for (const agg of map.values()) {
+    const mean = agg.tradeReturns.reduce((a, b) => a + b, 0) / Math.max(agg.tradeReturns.length, 1);
+    const variance =
+      agg.tradeReturns.reduce((a, b) => a + (b - mean) * (b - mean), 0) / Math.max(agg.tradeReturns.length - 1, 1);
+    const std = Math.sqrt(Math.max(variance, 1e-12));
+    const sharpeRatio = std > 0 ? Math.sqrt(TRADING_DAYS) * (mean / std) : 0;
+    const winRatePct = agg.totalTrades > 0 ? (agg.wins / agg.totalTrades) * 100 : 0;
+    const profitFactor = agg.grossLoss > 0 ? agg.grossProfit / agg.grossLoss : agg.grossProfit > 0 ? Infinity : 0;
+
+    const totalReturn = agg.pnl;
+    const totalReturnPct = agg.notional > 0 ? (agg.pnl / agg.notional) * 100 : 0;
+
+    let maxDrawdown = 0;
+    let peak = 0;
+    let cum = 0;
+    for (const ret of agg.tradeReturns) {
+      cum += ret;
+      peak = Math.max(peak, cum);
+      maxDrawdown = Math.min(maxDrawdown, cum - peak);
+    }
+
+    comparisonRows.push({
+      strategyId: agg.strategyId,
+      name: agg.name,
+      type: agg.type,
+      totalReturn,
+      totalReturnPct,
+      maxDrawdown,
+      maxDrawdownPct: peak > 0 ? (maxDrawdown / peak) * 100 : 0,
       sharpeRatio,
       winRatePct,
-      totalTrades,
+      totalTrades: agg.totalTrades,
       profitFactor,
     });
-  });
+  }
 
-  let filtered = rows;
+  let filtered = comparisonRows;
   if (input.filterType !== "all") {
     filtered = filtered.filter(r => r.type === input.filterType);
   }
@@ -343,15 +529,246 @@ export async function buildPortfolioSummary(userId: number): Promise<PortfolioSu
   const max = returns.reduce((m, v) => Math.max(m, v), 0);
   const min = returns.reduce((m, v) => Math.min(m, v), 0);
   const maxDrawdownPct = max === 0 ? 0 : ((min - max) / max) * 100;
-  const finalReturnPct = returns.length < 2 ? 0 : ((returns[returns.length - 1] - returns[0]) / 100000) * 100;
+  const finalReturnPct = returns.length === 0 ? 0 : (returns[returns.length - 1] / INITIAL_CAPITAL) * 100;
   const allTrades = comparison.rows.reduce((sum, r) => sum + r.totalTrades, 0);
   const wins = comparison.rows.reduce((sum, r) => sum + (r.winRatePct / 100) * r.totalTrades, 0);
   const winRatePct = allTrades === 0 ? 0 : (wins / allTrades) * 100;
 
+  const dailyReturns = computeDailyReturns(curve.points, INITIAL_CAPITAL);
+  const sharpeRatio = computeSharpeRatio(dailyReturns);
+
   return {
     totalReturnPct: finalReturnPct,
     maxDrawdownPct,
-    sharpeRatio: comparison.rows.length === 0 ? 0 : comparison.rows[0].sharpeRatio,
+    sharpeRatio,
     winRatePct,
   };
+}
+
+export async function buildPortfolioOverview(userId: number): Promise<PortfolioOverview> {
+  const [equityCurve, drawdowns, trades] = await Promise.all([
+    buildAggregatedEquityCurve(userId, {}),
+    buildDrawdownCurves(userId, {}),
+    loadTrades(userId),
+  ]);
+
+  const equityPoints = equityCurve.points;
+  const drawdownPoints = drawdowns.points;
+
+  const latestEquityPnl = equityPoints.at(-1)?.combined ?? 0;
+  const prevEquityPnl = equityPoints.length > 1 ? equityPoints[equityPoints.length - 2].combined : latestEquityPnl;
+  const prevEquity = INITIAL_CAPITAL + prevEquityPnl;
+
+  const dailyPnL = equityPoints.length > 1 ? latestEquityPnl - prevEquityPnl : 0;
+  const dailyReturn = prevEquity !== 0 ? dailyPnL / prevEquity : 0;
+  const totalReturn = latestEquityPnl / INITIAL_CAPITAL;
+
+  const dailyReturns = computeDailyReturns(equityPoints, INITIAL_CAPITAL);
+  const sharpeRatio = computeSharpeRatio(dailyReturns);
+
+  let maxDrawdown = 0;
+  let currentDrawdown = 0;
+  if (equityPoints.length > 0) {
+    let peakEquity = INITIAL_CAPITAL;
+    for (const point of equityPoints) {
+      const equity = INITIAL_CAPITAL + point.combined;
+      peakEquity = Math.max(peakEquity, equity);
+      const dd = peakEquity > 0 ? (equity - peakEquity) / peakEquity : 0;
+      maxDrawdown = Math.min(maxDrawdown, dd);
+      currentDrawdown = dd;
+    }
+  } else if (drawdownPoints.length > 0) {
+    maxDrawdown = drawdownPoints.reduce((m, p) => Math.min(m, p.combined), 0);
+    currentDrawdown = drawdownPoints[drawdownPoints.length - 1].combined;
+  }
+
+  let totalTrades = 0;
+  let winningTrades = 0;
+  let losingTrades = 0;
+  let grossProfit = 0;
+  let grossLoss = 0;
+
+  for (const t of trades) {
+    const pnl = tradePnl(t.side, Number(t.entryPrice), Number(t.exitPrice), Number(t.quantity));
+    totalTrades += 1;
+    if (pnl > 0) {
+      winningTrades += 1;
+      grossProfit += pnl;
+    } else if (pnl < 0) {
+      losingTrades += 1;
+      grossLoss += Math.abs(pnl);
+    }
+  }
+
+  const winRate = totalTrades > 0 ? (winningTrades / totalTrades) * 100 : 0;
+  const profitFactor = grossLoss > 0 ? grossProfit / grossLoss : grossProfit > 0 ? Infinity : 0;
+
+  return {
+    equity: INITIAL_CAPITAL + latestEquityPnl,
+    dailyPnL,
+    dailyReturn,
+    totalReturn,
+    sharpeRatio,
+    maxDrawdown,
+    currentDrawdown,
+    totalTrades,
+    winningTrades,
+    losingTrades,
+    winRate,
+    profitFactor,
+    positions: 0,
+    lastUpdated: new Date(),
+  };
+}
+
+export async function generateTradesCsv(input: ExportTradesInput): Promise<string> {
+  const trades = await loadTrades(input.userId);
+
+  const filtered = trades.filter(trade => {
+    if (input.strategyIds && !input.strategyIds.includes(trade.strategyId)) return false;
+    const exitDate = trade.exitTime.slice(0, 10);
+    if (input.startDate && exitDate < input.startDate) return false;
+    if (input.endDate && exitDate > input.endDate) return false;
+    return true;
+  });
+
+  const header = [
+    "Date",
+    "Strategy",
+    "Symbol",
+    "Side",
+    "Entry Price",
+    "Exit Price",
+    "Quantity",
+    "P&L",
+    "Holding Period (days)",
+    "Return %",
+  ];
+
+  const lines: string[] = [];
+  lines.push(header.map(csvEscape).join(","));
+
+  for (const trade of filtered) {
+    const entry = new Date(trade.entryTime);
+    const exit = new Date(trade.exitTime);
+
+    const dateStr = normalizeToDateKey(exit);
+    const qty = Number(trade.quantity) || 0;
+    const entryPrice = Number(trade.entryPrice) || 0;
+    const exitPrice = Number(trade.exitPrice) || 0;
+    const side = String(trade.side).toLowerCase();
+
+    const pnl = side === "short" || side === "sell" ? (entryPrice - exitPrice) * qty : (exitPrice - entryPrice) * qty;
+    const notional = Math.abs(entryPrice * qty);
+    const retPct = notional > 0 ? (pnl / notional) * 100 : 0;
+    const holdingDays = (exit.getTime() - entry.getTime()) / (1000 * 60 * 60 * 24);
+
+    const rowArr = [
+      dateStr,
+      trade.strategyId.toString(),
+      trade.symbol ?? "",
+      trade.side ?? "",
+      entryPrice.toFixed(2),
+      exitPrice.toFixed(2),
+      qty.toString(),
+      pnl.toFixed(2),
+      holdingDays.toFixed(2),
+      retPct.toFixed(2),
+    ];
+
+    lines.push(rowArr.map(csvEscape).join(","));
+  }
+
+  return lines.join("\n");
+}
+
+function csvEscape(value: string): string {
+  const v = value.replace(/"/g, '""');
+  if (v.search(/("|,|\n)/g) >= 0) {
+    return `"${v}"`;
+  }
+  return v;
+}
+
+export async function runMonteCarloSimulation(input: {
+  userId: number;
+  strategyIds?: number[];
+  days: number;
+  simulations: number;
+}): Promise<MonteCarloResult> {
+  const equity = await buildAggregatedEquityCurve(input.userId, {});
+  const pts = equity.points;
+  if (pts.length < 2) {
+    return { futureDates: [], p10: [], p50: [], p90: [], currentEquity: INITIAL_CAPITAL, finalEquities: [] };
+  }
+
+  const dailyReturns = computeDailyReturns(pts, INITIAL_CAPITAL);
+  const returns = dailyReturns.filter(r => Number.isFinite(r));
+  const mean = returns.reduce((a, b) => a + b, 0) / Math.max(returns.length, 1);
+  const variance = returns.reduce((a, b) => a + (b - mean) * (b - mean), 0) / Math.max(returns.length - 1, 1);
+  const std = Math.sqrt(Math.max(variance, 1e-12));
+
+  const currentEquity = INITIAL_CAPITAL + (pts[pts.length - 1]?.combined ?? 0);
+  const simResults: number[][] = [];
+  const finalEquities: number[] = [];
+
+  for (let s = 0; s < input.simulations; s++) {
+    let eq = currentEquity;
+    const path: number[] = [];
+    for (let d = 0; d < input.days; d++) {
+      const r = randomNormal(mean, std);
+      eq = eq * (1 + r);
+      path.push(eq);
+    }
+    simResults.push(path);
+    if (path.length > 0) finalEquities.push(path[path.length - 1]);
+  }
+
+  const p10: number[] = [];
+  const p50: number[] = [];
+  const p90: number[] = [];
+
+  for (let i = 0; i < input.days; i++) {
+    const slice = simResults.map(path => path[i]).filter(v => v != null).sort((a, b) => a - b);
+    const n = slice.length;
+    if (n === 0) {
+      p10.push(currentEquity);
+      p50.push(currentEquity);
+      p90.push(currentEquity);
+      continue;
+    }
+    const idx10 = Math.floor(0.1 * (n - 1));
+    const idx50 = Math.floor(0.5 * (n - 1));
+    const idx90 = Math.floor(0.9 * (n - 1));
+
+    p10.push(slice[idx10]);
+    p50.push(slice[idx50]);
+    p90.push(slice[idx90]);
+  }
+
+  const lastDateStr = pts[pts.length - 1].date;
+  const lastDate = new Date(lastDateStr + "T00:00:00.000Z");
+  const futureDates: string[] = [];
+  for (let i = 1; i <= input.days; i++) {
+    const d = new Date(lastDate.getTime() + i * 24 * 60 * 60 * 1000);
+    futureDates.push(normalizeToDateKey(d));
+  }
+
+  return {
+    futureDates,
+    p10,
+    p50,
+    p90,
+    currentEquity,
+    finalEquities,
+  };
+}
+
+function randomNormal(mean: number, std: number): number {
+  let u = 0;
+  let v = 0;
+  while (u === 0) u = Math.random();
+  while (v === 0) v = Math.random();
+  const z = Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+  return mean + std * z;
 }

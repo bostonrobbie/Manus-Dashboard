@@ -63,6 +63,39 @@ export interface TradeRow {
   exitTime: string;
 }
 
+export interface PortfolioOverview {
+  equity: number;
+  dailyPnL: number;
+  dailyReturn: number;
+  totalReturn: number;
+  sharpeRatio: number;
+  maxDrawdown: number;
+  currentDrawdown: number;
+  totalTrades: number;
+  winningTrades: number;
+  losingTrades: number;
+  winRate: number;
+  profitFactor: number;
+  positions: number;
+  lastUpdated: Date;
+}
+
+export interface ExportTradesInput {
+  userId: number;
+  strategyIds?: number[];
+  startDate?: string;
+  endDate?: string;
+}
+
+export interface MonteCarloResult {
+  futureDates: string[];
+  p10: number[];
+  p50: number[];
+  p90: number[];
+  currentEquity: number;
+  finalEquities: number[];
+}
+
 export interface PortfolioSummary {
   totalReturnPct: number;
   maxDrawdownPct: number;

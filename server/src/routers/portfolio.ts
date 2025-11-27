@@ -2,6 +2,7 @@ import { z } from "zod";
 import {
   buildAggregatedEquityCurve,
   buildDrawdownCurves,
+  buildPortfolioOverview,
   buildPortfolioSummary,
   buildStrategyComparison,
   loadTrades,
@@ -9,6 +10,7 @@ import {
 import { authedProcedure, router } from "@server/trpc/router";
 
 export const portfolioRouter = router({
+  overview: authedProcedure.query(async ({ ctx }) => buildPortfolioOverview(ctx.userId)),
   equityCurves: authedProcedure
     .input(
       z

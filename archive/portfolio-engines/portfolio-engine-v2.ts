@@ -3,8 +3,9 @@
  * 
  * This represents a single $50k capital pool trading multiple strategies simultaneously.
  * Each strategy's PnL is added to the shared capital.
- */
+*/
 
+// Deprecated: use server/src/engine/portfolio-engine instead. Kept for reference only.
 import { getDb } from './db';
 import { trades, strategies } from '../drizzle/schema';
 import { eq, and, gte, lte } from 'drizzle-orm';
