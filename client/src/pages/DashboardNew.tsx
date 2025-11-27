@@ -1,5 +1,7 @@
+import { useState } from "react";
 import ChartSkeleton from "../components/ChartSkeleton";
 import MetricCard from "../components/MetricCard";
+import MonteCarloPanel from "../components/MonteCarloPanel";
 import RollingMetrics from "../components/RollingMetrics";
 import StrategyComparison from "../components/StrategyComparison";
 import TradesTable from "../components/TradesTable";
@@ -7,6 +9,7 @@ import { trpc } from "../lib/trpc";
 import type { DrawdownPoint, EquityCurvePoint, TradeRow } from "@shared/types/portfolio";
 
 function DashboardNew() {
+  const [monteCarloParams, setMonteCarloParams] = useState({ days: 90, simulations: 500 });
   const { data: summary } = trpc.analytics.summary.useQuery();
   const { data: overview } = trpc.portfolio.overview.useQuery();
   const { data: equity } = trpc.portfolio.equityCurves.useQuery({ maxPoints: 12 });
@@ -19,6 +22,7 @@ function DashboardNew() {
     filterType: "all",
   });
   const { data: trades } = trpc.portfolio.trades.useQuery();
+  const { data: monteCarlo, isLoading: monteCarloLoading } = trpc.portfolio.monteCarloSimulation.useQuery(monteCarloParams);
 
   return (
     <div className="space-y-6">
@@ -58,6 +62,14 @@ function DashboardNew() {
           </ul>
         </ChartSkeleton>
       </div>
+
+      <MonteCarloPanel
+        result={monteCarlo}
+        days={monteCarloParams.days}
+        simulations={monteCarloParams.simulations}
+        isLoading={monteCarloLoading}
+        onRerun={params => setMonteCarloParams(params)}
+      />
 
       <StrategyComparison rows={comparison?.rows ?? []} />
       <TradesTable trades={(trades as TradeRow[]) ?? []} />

@@ -5,6 +5,7 @@ import {
   buildPortfolioOverview,
   buildPortfolioSummary,
   buildStrategyComparison,
+  runMonteCarloSimulation,
   loadTrades,
 } from "@server/engine/portfolio-engine";
 import { authedProcedure, router } from "@server/trpc/router";
@@ -67,4 +68,18 @@ export const portfolioRouter = router({
     }),
   summary: authedProcedure.query(async ({ ctx }) => buildPortfolioSummary(ctx.userId)),
   trades: authedProcedure.query(async ({ ctx }) => loadTrades(ctx.userId)),
+  monteCarloSimulation: authedProcedure
+    .input(
+      z.object({
+        days: z.number().int().min(7).max(365).default(90),
+        simulations: z.number().int().min(100).max(5000).default(500),
+      })
+    )
+    .query(async ({ ctx, input }) =>
+      runMonteCarloSimulation({
+        userId: ctx.userId,
+        days: input.days,
+        simulations: input.simulations,
+      }),
+    ),
 });

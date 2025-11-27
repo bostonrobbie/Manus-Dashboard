@@ -6,7 +6,8 @@
     "paths": {
       "@shared/*": ["../shared/*"],
       "@server/*": ["../server/src/*"],
-      "@drizzle/*": ["../drizzle/*"]
+      "@drizzle/*": ["../drizzle/*"],
+      "recharts": ["./src/vendor/recharts"]
     },
     "types": ["vite/client"]
   },
