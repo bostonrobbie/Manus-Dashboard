@@ -537,10 +537,12 @@ export async function buildPortfolioSummary(userId: number): Promise<PortfolioSu
   const max = returns.reduce((m, v) => Math.max(m, v), 0);
   const min = returns.reduce((m, v) => Math.min(m, v), 0);
   const maxDrawdownPct = max === 0 ? 0 : ((min - max) / max) * 100;
-  const finalReturnPct =
-    returns.length === 0 ? 0 : (returns[returns.length - 1] / ENGINE_CONFIG.initialCapital) * 100;
-  const allTrades = comparison.rows.reduce((sum, r) => sum + r.totalTrades, 0);
-  const wins = comparison.rows.reduce((sum, r) => sum + (r.winRatePct / 100) * r.totalTrades, 0);
+  const finalReturnPct = returns.length < 2 ? 0 : ((returns[returns.length - 1] - returns[0]) / 100000) * 100;
+  const allTrades = comparison.rows.reduce((sum: number, r: StrategyComparisonRow) => sum + r.totalTrades, 0);
+  const wins = comparison.rows.reduce(
+    (sum: number, r: StrategyComparisonRow) => sum + (r.winRatePct / 100) * r.totalTrades,
+    0,
+  );
   const winRatePct = allTrades === 0 ? 0 : (wins / allTrades) * 100;
 
   const dailyReturns = computeDailyReturns(curve.points, ENGINE_CONFIG.initialCapital);

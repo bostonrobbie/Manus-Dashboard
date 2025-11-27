@@ -4,7 +4,7 @@
   "private": true,
   "packageManager": "pnpm@8.15.8",
   "scripts": {
-    "tsc": "pnpm -w tsc",
+    "typecheck": "tsc --noEmit",
     "build": "pnpm -r run build",
     "build:client": "pnpm --filter client run build",
     "build:server": "pnpm --filter server run build",
