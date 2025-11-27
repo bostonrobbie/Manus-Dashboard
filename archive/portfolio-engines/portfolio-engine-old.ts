@@ -1,3 +1,4 @@
+// Deprecated: use server/src/engine/portfolio-engine instead. Kept for reference only.
 
   if (strategyList.length === 0) {
     console.warn(`[Portfolio Engine] Strategy ${strategyId} not found for user ${userId}`);
