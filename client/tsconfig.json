@@ -4,7 +4,9 @@
     "jsx": "react-jsx",
     "baseUrl": ".",
     "paths": {
-      "@shared/*": ["../shared/*"]
+      "@shared/*": ["../shared/*"],
+      "@server/*": ["../server/src/*"],
+      "@drizzle/*": ["../drizzle/*"]
     },
     "types": ["vite/client"]
   },

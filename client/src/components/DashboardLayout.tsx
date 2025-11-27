@@ -2,13 +2,13 @@ import { PropsWithChildren, useMemo } from "react";
 import { useHealthStatus } from "../hooks/useHealthStatus";
 
 function DashboardLayout({ children }: PropsWithChildren) {
-  const { status, label } = useHealthStatus();
+  const { status, db, label } = useHealthStatus();
 
   const badgeClasses = useMemo(() => {
-    if (status === "ok") return "bg-emerald-100 text-emerald-700 border-emerald-200";
+    if (status === "ok" && db === "up") return "bg-emerald-100 text-emerald-700 border-emerald-200";
     if (status === "checking") return "bg-slate-100 text-slate-700 border-slate-200";
     return "bg-amber-100 text-amber-700 border-amber-200";
-  }, [status]);
+  }, [db, status]);
 
   return (
     <div className="min-h-screen bg-slate-50">
