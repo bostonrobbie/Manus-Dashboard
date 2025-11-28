@@ -45,3 +45,4 @@ pnpm --filter client preview
 - `drizzle/` (schema + migrations)
 - `scripts/` (database utilities)
 - `docs/`, `archive/`, `package.json`, `pnpm-workspace.yaml`, `tsconfig.base.json`
+- `app/` (legacy dashboard kept for reference; not used for deployments)

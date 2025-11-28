@@ -1,0 +1,9 @@
+{
+  "name": "app",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Legacy Manus dashboard; kept for reference only.",
+  "scripts": {
+    "tsc": "../node_modules/.bin/tsc -p tsconfig.json"
+  }
+}

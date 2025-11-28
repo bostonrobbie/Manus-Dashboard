@@ -7,5 +7,6 @@ This monorepo uses pnpm workspaces to coordinate a React client and an Express +
 - **drizzle/** – PostgreSQL schema and migrations managed via Drizzle ORM.
 - **scripts/** – operational scripts such as the migration runner.
 - **archive/** – preserved content from the original Manus export.
+- **app/** – legacy dashboard preserved only for reference; not part of standard builds.
 
 The system is intentionally small but production-ready: types are shared, the server can run without a database by using baked-in sample data, and the client renders the aggregated analytics using React Query-powered tRPC hooks.
