@@ -7,6 +7,8 @@
 5. Run migrations (optional): `pnpm ts-node scripts/migrate.ts` when `DATABASE_URL` is configured.
 6. Build for production: `pnpm run build`.
 
+The deprecated legacy dashboard remains in `app/` for reference only and is not part of the standard workflow above.
+
 Tests are not included in this reconstruction but the portfolio engine is deterministic and covered by shared types to catch regressions through the type system.
 
 ## Git configuration

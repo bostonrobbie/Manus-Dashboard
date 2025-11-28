@@ -3,11 +3,12 @@
 A Manus-compatible, Antigravity-ready monorepo with a React 19 + Vite frontend and an Express + tRPC backend. The portfolio engine provides deterministic analytics backed by Drizzle ORM and PostgreSQL, with sample data available when no database is configured.
 
 ## Workspaces
-- `client/` – Vite-powered dashboard UI
+- `client/` – Vite-powered dashboard UI (active frontend)
 - `server/` – Express + tRPC API
 - `shared/` – Shared TypeScript contracts
 - `drizzle/` – Database schema and migrations
 - `scripts/` – Operational helpers
+- `app/` – Legacy dashboard kept for reference; not part of standard builds
 
 ## Getting Started
 1. Install pnpm if needed: `corepack enable`.

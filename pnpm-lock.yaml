@@ -43,6 +43,9 @@ importers:
       react-dom:
         specifier: 19.0.0-rc.0
         version: 19.0.0-rc.0(react@19.0.0-rc.0)
+      recharts:
+        specifier: file:src/vendor/recharts
+        version: file:client/src/vendor/recharts
       superjson:
         specifier: ^2.2.1
         version: 2.2.5
@@ -3439,6 +3442,11 @@ packages:
 
   /zod@3.25.76:
     resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
+    dev: false
+
+  file:client/src/vendor/recharts:
+    resolution: {directory: client/src/vendor/recharts, type: directory}
+    name: recharts
     dev: false
 
   file:server/tsconfig-paths:

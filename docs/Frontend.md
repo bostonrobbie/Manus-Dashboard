@@ -10,3 +10,5 @@
   - `StrategyComparison` and `TradesTable` display tabular analytics.
 
 Run `pnpm --filter client dev` to start the Vite dev server.
+
+The former dashboard under `app/` is preserved only for reference and is not part of the supported frontend.
