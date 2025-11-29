@@ -12,6 +12,7 @@ import {
 } from "@server/engine/portfolio-engine";
 import { authedProcedure, router } from "@server/trpc/router";
 import { ingestTradesCsv } from "@server/services/tradeIngestion";
+import { TIME_RANGE_PRESETS, deriveDateRangeFromTimeRange } from "@server/utils/timeRange";
 
 const finiteNumber = z.number().finite();
 const equityPointSchema = z.object({
@@ -82,8 +83,27 @@ const tradeIngestionResultSchema = z.object({
   errors: z.array(z.string()),
 });
 
+const timeRangeInput = z
+  .object({
+    preset: z.enum(TIME_RANGE_PRESETS),
+    startDate: z.string().optional(),
+    endDate: z.string().optional(),
+  })
+  .optional();
+
 export const portfolioRouter = router({
-  overview: authedProcedure.query(async ({ ctx }) => overviewSchema.parse(await buildPortfolioOverview(ctx.userId))),
+  overview: authedProcedure
+    .input(
+      z
+        .object({
+          timeRange: timeRangeInput,
+        })
+        .optional(),
+    )
+    .query(async ({ ctx, input }) => {
+      const range = deriveDateRangeFromTimeRange(input?.timeRange);
+      return overviewSchema.parse(await buildPortfolioOverview(ctx.userId, range));
+    }),
   equityCurves: authedProcedure
     .input(
       z
@@ -91,11 +111,17 @@ export const portfolioRouter = router({
           startDate: z.string().optional(),
           endDate: z.string().optional(),
           maxPoints: z.number().int().positive().optional(),
+          timeRange: timeRangeInput,
         })
         .optional()
     )
     .query(async ({ ctx, input }) => {
-      const res = await buildAggregatedEquityCurve(ctx.userId, input ?? {});
+      const range = deriveDateRangeFromTimeRange(input?.timeRange);
+      const res = await buildAggregatedEquityCurve(ctx.userId, {
+        startDate: input?.startDate ?? range.startDate,
+        endDate: input?.endDate ?? range.endDate,
+        maxPoints: input?.maxPoints,
+      });
       return { points: res.points.map(p => equityPointSchema.parse(p)) };
     }),
   drawdowns: authedProcedure
@@ -105,11 +131,17 @@ export const portfolioRouter = router({
           startDate: z.string().optional(),
           endDate: z.string().optional(),
           maxPoints: z.number().int().positive().optional(),
+          timeRange: timeRangeInput,
         })
         .optional()
     )
     .query(async ({ ctx, input }) => {
-      const res = await buildDrawdownCurves(ctx.userId, input ?? {});
+      const range = deriveDateRangeFromTimeRange(input?.timeRange);
+      const res = await buildDrawdownCurves(ctx.userId, {
+        startDate: input?.startDate ?? range.startDate,
+        endDate: input?.endDate ?? range.endDate,
+        maxPoints: input?.maxPoints,
+      });
       return { points: res.points.map(p => drawdownPointSchema.parse(p)) };
     }),
   strategyComparison: authedProcedure
@@ -135,33 +167,66 @@ export const portfolioRouter = router({
         sortOrder: z.enum(["asc", "desc"]).default("desc"),
         filterType: z.enum(["all", "swing", "intraday"]).default("all"),
         search: z.string().optional(),
+        startDate: z.string().optional(),
+        endDate: z.string().optional(),
+        timeRange: timeRangeInput,
       })
     )
     .query(async ({ ctx, input }) => {
-      const result = await buildStrategyComparison({ ...input, userId: ctx.userId });
+      const range = deriveDateRangeFromTimeRange(input.timeRange);
+      const result = await buildStrategyComparison({
+        ...input,
+        userId: ctx.userId,
+        startDate: input.startDate ?? range.startDate,
+        endDate: input.endDate ?? range.endDate,
+      });
       return {
         rows: result.rows.map(row => strategyRowSchema.parse(row)),
         total: result.total,
       };
     }),
-  summary: authedProcedure.query(async ({ ctx }) => summarySchema.parse(await buildPortfolioSummary(ctx.userId))),
-  trades: authedProcedure.query(async ({ ctx }) => loadTrades(ctx.userId)),
+  summary: authedProcedure
+    .input(
+      z
+        .object({
+          timeRange: timeRangeInput,
+        })
+        .optional(),
+    )
+    .query(async ({ ctx, input }) => {
+      const range = deriveDateRangeFromTimeRange(input?.timeRange);
+      return summarySchema.parse(await buildPortfolioSummary(ctx.userId, range));
+    }),
+  trades: authedProcedure
+    .input(
+      z
+        .object({
+          timeRange: timeRangeInput,
+        })
+        .optional(),
+    )
+    .query(async ({ ctx, input }) => {
+      const range = deriveDateRangeFromTimeRange(input?.timeRange);
+      return loadTrades(ctx.userId, range);
+    }),
   exportTradesCsv: authedProcedure
     .input(
       z.object({
         strategyIds: z.array(z.number().int()).optional(),
         startDate: z.string().optional(),
         endDate: z.string().optional(),
+        timeRange: timeRangeInput,
       }),
     )
     .output(exportTradesResponseSchema)
     .mutation(async ({ ctx, input }) => {
       try {
+        const range = deriveDateRangeFromTimeRange(input.timeRange);
         const csvString = await generateTradesCsv({
           userId: ctx.userId,
           strategyIds: input.strategyIds,
-          startDate: input.startDate,
-          endDate: input.endDate,
+          startDate: input.startDate ?? range.startDate,
+          endDate: input.endDate ?? range.endDate,
         });
 
         return exportTradesResponseSchema.parse({
@@ -206,6 +271,7 @@ export const portfolioRouter = router({
       z.object({
         days: z.number().int().min(7).max(365).default(90),
         simulations: z.number().int().min(100).max(5000).default(500),
+        timeRange: timeRangeInput,
       })
     )
     .query(async ({ ctx, input }) =>
@@ -214,6 +280,7 @@ export const portfolioRouter = router({
           userId: ctx.userId,
           days: input.days,
           simulations: input.simulations,
+          ...deriveDateRangeFromTimeRange(input.timeRange),
         }),
       ),
     ),

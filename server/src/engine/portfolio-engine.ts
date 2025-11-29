@@ -1,4 +1,4 @@
-import { and, between, eq, gte, lte } from "drizzle-orm";
+import { and, between, eq, gte, inArray, lte } from "drizzle-orm";
 import {
   DrawdownPoint,
   DrawdownResponse,
@@ -22,8 +22,8 @@ import {
 import { getDb, schema } from "@server/db";
 
 export interface EquityCurveOptions {
-  startDate?: string;
-  endDate?: string;
+  startDate?: string; // derived from time range selector
+  endDate?: string; // derived from time range selector
   maxPoints?: number;
 }
 
@@ -35,6 +35,14 @@ export interface StrategyComparisonInput {
   sortOrder: "asc" | "desc";
   filterType: "all" | StrategyType;
   search?: string;
+  startDate?: string; // derived from time range selector
+  endDate?: string; // derived from time range selector
+}
+
+export interface TradeLoadOptions {
+  startDate?: string; // derived from time range selector
+  endDate?: string; // derived from time range selector
+  strategyIds?: number[];
 }
 
 export const ENGINE_CONFIG = {
@@ -163,7 +171,8 @@ export async function loadStrategies(userId: number): Promise<StrategySummary[]>
   return sampleStrategies.filter(s => s.userId === userId);
 }
 
-export async function loadTrades(userId: number): Promise<TradeRow[]> {
+export async function loadTrades(userId: number, opts: TradeLoadOptions = {}): Promise<TradeRow[]> {
+  const { startDate, endDate, strategyIds } = opts;
   const db = await getDb();
   if (db) {
     type TradeRecord = {
@@ -179,6 +188,17 @@ export async function loadTrades(userId: number): Promise<TradeRow[]> {
       exitTime: Date | string;
     };
 
+    const predicates = [eq(schema.trades.userId, userId)];
+    if (startDate) {
+      predicates.push(gte(schema.trades.exitTime, new Date(`${startDate}T00:00:00.000Z`)));
+    }
+    if (endDate) {
+      predicates.push(lte(schema.trades.exitTime, new Date(`${endDate}T23:59:59.999Z`)));
+    }
+    if (strategyIds && strategyIds.length > 0) {
+      predicates.push(inArray(schema.trades.strategyId, strategyIds));
+    }
+
     const rows: TradeRecord[] = await db
       .select({
         id: schema.trades.id,
@@ -193,10 +213,10 @@ export async function loadTrades(userId: number): Promise<TradeRow[]> {
         exitTime: schema.trades.exitTime,
       })
       .from(schema.trades)
-      .where(eq(schema.trades.userId, userId));
+      .where(and(...predicates));
 
     if (rows.length > 0) {
-      return rows.map((trade): TradeRow => ({
+      const mapped = rows.map((trade): TradeRow => ({
         id: trade.id,
         strategyId: trade.strategyId,
         userId: trade.userId,
@@ -208,9 +228,25 @@ export async function loadTrades(userId: number): Promise<TradeRow[]> {
         entryTime: new Date(trade.entryTime).toISOString(),
         exitTime: new Date(trade.exitTime).toISOString(),
       }));
+
+      return mapped.filter(trade => {
+        const exitDate = trade.exitTime.slice(0, 10);
+        if (startDate && exitDate < startDate) return false;
+        if (endDate && exitDate > endDate) return false;
+        if (strategyIds && strategyIds.length > 0 && !strategyIds.includes(trade.strategyId)) return false;
+        return true;
+      });
     }
   }
-  return sampleTrades.filter(t => t.userId === userId);
+  return sampleTrades
+    .filter(t => t.userId === userId)
+    .filter(t => {
+      const exitDate = t.exitTime.slice(0, 10);
+      if (startDate && exitDate < startDate) return false;
+      if (endDate && exitDate > endDate) return false;
+      if (strategyIds && strategyIds.length > 0 && !strategyIds.includes(t.strategyId)) return false;
+      return true;
+    });
 }
 
 async function loadBenchmarks(startDate?: string, endDate?: string) {
@@ -249,7 +285,7 @@ export async function buildAggregatedEquityCurve(
   const { startDate, endDate, maxPoints } = opts;
   const [strategies, trades, benchmarkRows] = await Promise.all([
     loadStrategies(userId),
-    loadTrades(userId),
+    loadTrades(userId, { startDate, endDate }),
     loadBenchmarks(startDate, endDate),
   ]);
 
@@ -456,7 +492,16 @@ export async function buildStrategyComparison(
 ): Promise<StrategyComparisonResult> {
   const db = await getDb();
   const useDb = Boolean(db);
-  const trades = useDb ? await loadTrades(input.userId) : sampleTrades.filter(t => t.userId === input.userId);
+  const trades = useDb
+    ? await loadTrades(input.userId, { startDate: input.startDate, endDate: input.endDate })
+    : sampleTrades
+        .filter(t => t.userId === input.userId)
+        .filter(t => {
+          const exitDate = t.exitTime.slice(0, 10);
+          if (input.startDate && exitDate < input.startDate) return false;
+          if (input.endDate && exitDate > input.endDate) return false;
+          return true;
+        });
   const strategies = useDb ? await loadStrategies(input.userId) : sampleStrategies.filter(s => s.userId === input.userId);
 
   const rows = trades.map(trade => {
@@ -590,8 +635,11 @@ export async function buildStrategyComparison(
   return { rows: filtered.slice(start, end), total: filtered.length };
 }
 
-export async function buildPortfolioSummary(userId: number): Promise<PortfolioSummary> {
-  const curve = await buildAggregatedEquityCurve(userId, {});
+export async function buildPortfolioSummary(
+  userId: number,
+  opts: { startDate?: string; endDate?: string } = {},
+): Promise<PortfolioSummary> {
+  const curve = await buildAggregatedEquityCurve(userId, opts);
   const comparison = await buildStrategyComparison({
     userId,
     page: 1,
@@ -599,6 +647,8 @@ export async function buildPortfolioSummary(userId: number): Promise<PortfolioSu
     sortBy: "totalReturn",
     sortOrder: "desc",
     filterType: "all",
+    startDate: opts.startDate,
+    endDate: opts.endDate,
   });
 
   const { totalReturn, maxDrawdownPct, sharpeRatio } = deriveEquityAnalytics(
@@ -621,11 +671,14 @@ export async function buildPortfolioSummary(userId: number): Promise<PortfolioSu
   };
 }
 
-export async function buildPortfolioOverview(userId: number): Promise<PortfolioOverview> {
+export async function buildPortfolioOverview(
+  userId: number,
+  opts: { startDate?: string; endDate?: string } = {},
+): Promise<PortfolioOverview> {
   const [equityCurve, drawdowns, trades] = await Promise.all([
-    buildAggregatedEquityCurve(userId, {}),
-    buildDrawdownCurves(userId, {}),
-    loadTrades(userId),
+    buildAggregatedEquityCurve(userId, opts),
+    buildDrawdownCurves(userId, opts),
+    loadTrades(userId, opts),
   ]);
 
   const initialCapital = ENGINE_CONFIG.initialCapital;
@@ -679,7 +732,11 @@ export async function buildPortfolioOverview(userId: number): Promise<PortfolioO
 }
 
 export async function generateTradesCsv(input: ExportTradesInput): Promise<string> {
-  const trades = await loadTrades(input.userId);
+  const trades = await loadTrades(input.userId, {
+    startDate: input.startDate,
+    endDate: input.endDate,
+    strategyIds: input.strategyIds,
+  });
 
   const filtered = trades.filter(trade => {
     if (input.strategyIds && !input.strategyIds.includes(trade.strategyId)) return false;
@@ -752,8 +809,13 @@ export async function runMonteCarloSimulation(input: {
   strategyIds?: number[];
   days: number;
   simulations: number;
+  startDate?: string; // derived from time range selector
+  endDate?: string; // derived from time range selector
 }): Promise<MonteCarloResult> {
-  const equity = await buildAggregatedEquityCurve(input.userId, {});
+  const equity = await buildAggregatedEquityCurve(input.userId, {
+    startDate: input.startDate,
+    endDate: input.endDate,
+  });
   const pts = equity.points;
   const initialCapital = ENGINE_CONFIG.initialCapital;
   if (pts.length < 2) {
