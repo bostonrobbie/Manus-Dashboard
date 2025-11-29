@@ -11,7 +11,8 @@
     "tsc": "tsc -p tsconfig.json",
     "test": "node --test -r ts-node/register -r tsconfig-paths/register tests/**/*.test.ts",
     "migrate": "tsx ../scripts/migrate.ts",
-    "load:trades": "tsx ./scripts/load-real-trades.ts"
+    "load:trades": "tsx ./scripts/load-real-trades.ts",
+    "smoke": "tsx ./scripts/smoke-test-portfolio.ts"
   },
   "dependencies": {
     "@trpc/server": "^11.0.0-rc.660",

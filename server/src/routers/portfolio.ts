@@ -1,3 +1,4 @@
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import {
   buildAggregatedEquityCurve,
@@ -75,11 +76,10 @@ const exportTradesResponseSchema = z.object({
   mimeType: z.string(),
   content: z.string(),
 });
-const ingestTradesResponseSchema = z.object({
-  rowsParsed: z.number().int(),
-  insertedTrades: z.number().int(),
-  skippedRows: z.number().int(),
-  strategiesCreated: z.number().int(),
+const tradeIngestionResultSchema = z.object({
+  importedCount: z.number().int(),
+  skippedCount: z.number().int(),
+  errors: z.array(z.string()),
 });
 
 export const portfolioRouter = router({
@@ -156,18 +156,25 @@ export const portfolioRouter = router({
     )
     .output(exportTradesResponseSchema)
     .mutation(async ({ ctx, input }) => {
-      const csvString = await generateTradesCsv({
-        userId: ctx.userId,
-        strategyIds: input.strategyIds,
-        startDate: input.startDate,
-        endDate: input.endDate,
-      });
+      try {
+        const csvString = await generateTradesCsv({
+          userId: ctx.userId,
+          strategyIds: input.strategyIds,
+          startDate: input.startDate,
+          endDate: input.endDate,
+        });
 
-      return exportTradesResponseSchema.parse({
-        filename: "trades-export.csv",
-        mimeType: "text/csv",
-        content: csvString,
-      });
+        return exportTradesResponseSchema.parse({
+          filename: "trades-export.csv",
+          mimeType: "text/csv",
+          content: csvString,
+        });
+      } catch (error) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: error instanceof Error ? error.message : "Failed to export trades",
+        });
+      }
     }),
   uploadTradesCsv: authedProcedure
     .input(
@@ -177,17 +184,23 @@ export const portfolioRouter = router({
         strategyType: z.enum(["swing", "intraday"]).optional(),
       }),
     )
-    .output(ingestTradesResponseSchema)
-    .mutation(async ({ ctx, input }) =>
-      ingestTradesResponseSchema.parse(
-        await ingestTradesCsv({
+    .output(tradeIngestionResultSchema)
+    .mutation(async ({ ctx, input }) => {
+      try {
+        const result = await ingestTradesCsv({
           csv: input.csv,
           userId: ctx.userId,
           defaultStrategyName: input.strategyName,
           defaultStrategyType: input.strategyType,
-        }),
-      ),
-    ),
+        });
+        return tradeIngestionResultSchema.parse(result);
+      } catch (error) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: error instanceof Error ? error.message : "Failed to ingest trades",
+        });
+      }
+    }),
   monteCarloSimulation: authedProcedure
     .input(
       z.object({
