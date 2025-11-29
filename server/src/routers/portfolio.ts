@@ -7,8 +7,10 @@ import {
   buildStrategyComparison,
   runMonteCarloSimulation,
   loadTrades,
+  generateTradesCsv,
 } from "@server/engine/portfolio-engine";
 import { authedProcedure, router } from "@server/trpc/router";
+import { ingestTradesCsv } from "@server/services/tradeIngestion";
 
 const finiteNumber = z.number().finite();
 const equityPointSchema = z.object({
@@ -67,6 +69,17 @@ const monteCarloSchema = z.object({
   p90: z.array(finiteNumber),
   currentEquity: finiteNumber,
   finalEquities: z.array(finiteNumber),
+});
+const exportTradesResponseSchema = z.object({
+  filename: z.string(),
+  mimeType: z.string(),
+  content: z.string(),
+});
+const ingestTradesResponseSchema = z.object({
+  rowsParsed: z.number().int(),
+  insertedTrades: z.number().int(),
+  skippedRows: z.number().int(),
+  strategiesCreated: z.number().int(),
 });
 
 export const portfolioRouter = router({
@@ -133,6 +146,48 @@ export const portfolioRouter = router({
     }),
   summary: authedProcedure.query(async ({ ctx }) => summarySchema.parse(await buildPortfolioSummary(ctx.userId))),
   trades: authedProcedure.query(async ({ ctx }) => loadTrades(ctx.userId)),
+  exportTradesCsv: authedProcedure
+    .input(
+      z.object({
+        strategyIds: z.array(z.number().int()).optional(),
+        startDate: z.string().optional(),
+        endDate: z.string().optional(),
+      }),
+    )
+    .output(exportTradesResponseSchema)
+    .mutation(async ({ ctx, input }) => {
+      const csvString = await generateTradesCsv({
+        userId: ctx.userId,
+        strategyIds: input.strategyIds,
+        startDate: input.startDate,
+        endDate: input.endDate,
+      });
+
+      return exportTradesResponseSchema.parse({
+        filename: "trades-export.csv",
+        mimeType: "text/csv",
+        content: csvString,
+      });
+    }),
+  uploadTradesCsv: authedProcedure
+    .input(
+      z.object({
+        csv: z.string(),
+        strategyName: z.string().optional(),
+        strategyType: z.enum(["swing", "intraday"]).optional(),
+      }),
+    )
+    .output(ingestTradesResponseSchema)
+    .mutation(async ({ ctx, input }) =>
+      ingestTradesResponseSchema.parse(
+        await ingestTradesCsv({
+          csv: input.csv,
+          userId: ctx.userId,
+          defaultStrategyName: input.strategyName,
+          defaultStrategyType: input.strategyType,
+        }),
+      ),
+    ),
   monteCarloSimulation: authedProcedure
     .input(
       z.object({

@@ -1,18 +1,24 @@
+import type { ReactNode } from "react";
+
 import type { TradeRow } from "@shared/types/portfolio";
 
 interface TradesTableProps {
   trades: TradeRow[];
   isLoading?: boolean;
+  action?: ReactNode;
 }
 
 const currency = new Intl.NumberFormat(undefined, { style: "currency", currency: "USD", minimumFractionDigits: 2 });
 
-function TradesTable({ trades, isLoading }: TradesTableProps) {
+function TradesTable({ trades, isLoading, action }: TradesTableProps) {
   return (
     <div className="card">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-semibold text-slate-800">Recent trades</h3>
-        <span className="text-xs text-slate-500">{trades.length} fills</span>
+        <div className="flex items-center gap-2">
+          {action}
+          <span className="text-xs text-slate-500">{trades.length} fills</span>
+        </div>
       </div>
       <div className="overflow-auto">
         {isLoading ? (

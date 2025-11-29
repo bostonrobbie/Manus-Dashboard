@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import ChartSkeleton from "../components/ChartSkeleton";
+import ExportTradesButton from "../components/ExportTradesButton";
 import MetricCard from "../components/MetricCard";
 import MonteCarloPanel from "../components/MonteCarloPanel";
 import RollingMetrics from "../components/RollingMetrics";
@@ -21,6 +22,7 @@ function DashboardNew() {
     sortOrder: "desc",
     filterType: "all",
   });
+  const strategiesQuery = trpc.strategies.list.useQuery(undefined, { retry: 1 });
   const tradesQuery = trpc.portfolio.trades.useQuery(undefined, { retry: 1 });
   const monteCarloQuery = trpc.portfolio.monteCarloSimulation.useQuery(monteCarloParams, { retry: 1 });
 
@@ -49,6 +51,7 @@ function DashboardNew() {
   const equity = equityQuery.data;
   const drawdowns = drawdownQuery.data;
   const comparison = comparisonQuery.data;
+  const strategies = strategiesQuery.data;
   const trades = tradesQuery.data as TradeRow[] | undefined;
   const monteCarlo = monteCarloQuery.data;
 
@@ -140,7 +143,11 @@ function DashboardNew() {
 
       {comparisonQuery.isError && renderError("Strategy comparison failed to load.", comparisonQuery.refetch)}
       <StrategyComparison rows={comparison?.rows ?? []} isLoading={comparisonQuery.isLoading} />
-      <TradesTable trades={trades ?? []} isLoading={tradesQuery.isLoading} />
+      <TradesTable
+        trades={trades ?? []}
+        isLoading={tradesQuery.isLoading}
+        action={<ExportTradesButton strategies={strategies} />}
+      />
     </div>
   );
 }

@@ -10,7 +10,8 @@
     "start": "node -r tsconfig-paths/register dist/server/src/index.js",
     "tsc": "tsc -p tsconfig.json",
     "test": "node --test -r ts-node/register -r tsconfig-paths/register tests/**/*.test.ts",
-    "migrate": "tsx ../scripts/migrate.ts"
+    "migrate": "tsx ../scripts/migrate.ts",
+    "load:trades": "tsx ./scripts/load-real-trades.ts"
   },
   "dependencies": {
     "@trpc/server": "^11.0.0-rc.660",

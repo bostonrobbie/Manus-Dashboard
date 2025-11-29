@@ -87,6 +87,12 @@ export interface ExportTradesInput {
   endDate?: string;
 }
 
+export interface ExportTradesResponse {
+  filename: string;
+  mimeType: string;
+  content: string;
+}
+
 export interface MonteCarloResult {
   futureDates: string[];
   p10: number[];
