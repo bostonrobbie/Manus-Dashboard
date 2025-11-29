@@ -46,3 +46,7 @@ pnpm --filter client preview
 - `scripts/` (database utilities)
 - `docs/`, `archive/`, `package.json`, `pnpm-workspace.yaml`, `tsconfig.base.json`
 - `app/` (legacy dashboard kept for reference; not used for deployments)
+
+## Real trade ingestion
+- Manus environments should already ship with database tables populated; the CSV ingestion script is primarily for local/dev.
+- To backfill locally, place CSVs in `server/data/` and run `pnpm -C server load:trades`. The TRPC mutation `portfolio.uploadTradesCsv` is also available for automated uploads.

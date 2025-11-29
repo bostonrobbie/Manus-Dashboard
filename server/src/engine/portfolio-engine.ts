@@ -151,12 +151,14 @@ export async function loadStrategies(userId: number): Promise<StrategySummary[]>
   const db = await getDb();
   if (db) {
     const rows = await db.select().from(schema.strategies).where(eq(schema.strategies.userId, userId));
-    return rows.map((r: any) => ({
-      id: r.id,
-      name: r.name,
-      type: r.type as StrategyType,
-      description: r.description ?? undefined,
-    }));
+    if (rows.length > 0) {
+      return rows.map((r: any) => ({
+        id: r.id,
+        name: r.name,
+        type: r.type as StrategyType,
+        description: r.description ?? undefined,
+      }));
+    }
   }
   return sampleStrategies.filter(s => s.userId === userId);
 }
@@ -193,18 +195,20 @@ export async function loadTrades(userId: number): Promise<TradeRow[]> {
       .from(schema.trades)
       .where(eq(schema.trades.userId, userId));
 
-    return rows.map((trade): TradeRow => ({
-      id: trade.id,
-      strategyId: trade.strategyId,
-      userId: trade.userId,
-      symbol: trade.symbol,
-      side: trade.side,
-      quantity: Number(trade.quantity),
-      entryPrice: Number(trade.entryPrice),
-      exitPrice: Number(trade.exitPrice),
-      entryTime: new Date(trade.entryTime).toISOString(),
-      exitTime: new Date(trade.exitTime).toISOString(),
-    }));
+    if (rows.length > 0) {
+      return rows.map((trade): TradeRow => ({
+        id: trade.id,
+        strategyId: trade.strategyId,
+        userId: trade.userId,
+        symbol: trade.symbol,
+        side: trade.side,
+        quantity: Number(trade.quantity),
+        entryPrice: Number(trade.entryPrice),
+        exitPrice: Number(trade.exitPrice),
+        entryTime: new Date(trade.entryTime).toISOString(),
+        exitTime: new Date(trade.exitTime).toISOString(),
+      }));
+    }
   }
   return sampleTrades.filter(t => t.userId === userId);
 }
