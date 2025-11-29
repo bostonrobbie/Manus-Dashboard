@@ -6,6 +6,7 @@ import {
   buildStrategyComparison,
   runMonteCarloSimulation,
 } from "@server/engine/portfolio-engine";
+import { deriveDateRangeFromTimeRange } from "@server/utils/timeRange";
 
 function assertFinite(name: string, value: number): void {
   if (!Number.isFinite(value)) {
@@ -28,6 +29,17 @@ async function main() {
 
   const equityCurve = await buildAggregatedEquityCurve(userId, {});
   console.log(`Aggregated equity curve points: ${equityCurve.points.length}`);
+
+  const threeMonthRange = deriveDateRangeFromTimeRange({ preset: "3M" });
+  const equityCurve3M = await buildAggregatedEquityCurve(userId, threeMonthRange);
+  console.log(
+    `3M equity curve points: ${equityCurve3M.points.length} (start=${threeMonthRange.startDate ?? "n/a"}, end=${
+      threeMonthRange.endDate ?? "n/a"
+    })`,
+  );
+  if (equityCurve3M.points.length > equityCurve.points.length) {
+    throw new Error("3M equity curve should not have more points than full history");
+  }
 
   const strategyComparison = await buildStrategyComparison({
     userId,

@@ -1,3 +1,11 @@
+export type TimeRangePreset = "1M" | "3M" | "6M" | "YTD" | "1Y" | "ALL";
+
+export interface TimeRange {
+  preset: TimeRangePreset;
+  startDate?: string; // ISO YYYY-MM-DD (derived from selector or manual overrides)
+  endDate?: string; // ISO YYYY-MM-DD (derived from selector or manual overrides)
+}
+
 export type StrategyType = "swing" | "intraday";
 
 export interface StrategySummary {
@@ -83,8 +91,9 @@ export interface PortfolioOverview {
 export interface ExportTradesInput {
   userId: number;
   strategyIds?: number[];
-  startDate?: string;
-  endDate?: string;
+  startDate?: string; // derived from time range selector unless explicitly set
+  endDate?: string; // derived from time range selector unless explicitly set
+  timeRange?: TimeRange;
 }
 
 export interface ExportTradesResponse {

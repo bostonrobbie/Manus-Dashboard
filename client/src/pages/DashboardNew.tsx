@@ -5,28 +5,35 @@ import MetricCard from "../components/MetricCard";
 import MonteCarloPanel from "../components/MonteCarloPanel";
 import RollingMetrics from "../components/RollingMetrics";
 import StrategyComparison from "../components/StrategyComparison";
+import TimeRangeSelector from "../components/TimeRangeSelector";
 import TodayPlaybook from "../components/TodayPlaybook";
 import TradesTable from "../components/TradesTable";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { useTimeRange } from "../hooks/useTimeRange";
 import { trpc } from "../lib/trpc";
 import type { DrawdownPoint, EquityCurvePoint, PortfolioOverview, TradeRow } from "@shared/types/portfolio";
 
 function DashboardNew() {
+  const { timeRange, setTimeRange } = useTimeRange();
   const [monteCarloParams, setMonteCarloParams] = useState({ days: 90, simulations: 500 });
-  const summaryQuery = trpc.analytics.summary.useQuery(undefined, { retry: 1 });
-  const overviewQuery = trpc.portfolio.overview.useQuery(undefined, { retry: 1 });
-  const equityQuery = trpc.portfolio.equityCurves.useQuery({ maxPoints: 12 }, { retry: 1 });
-  const drawdownQuery = trpc.portfolio.drawdowns.useQuery({ maxPoints: 12 }, { retry: 1 });
+  const summaryQuery = trpc.analytics.summary.useQuery({ timeRange }, { retry: 1 });
+  const overviewQuery = trpc.portfolio.overview.useQuery({ timeRange }, { retry: 1 });
+  const equityQuery = trpc.portfolio.equityCurves.useQuery({ maxPoints: 12, timeRange }, { retry: 1 });
+  const drawdownQuery = trpc.portfolio.drawdowns.useQuery({ maxPoints: 12, timeRange }, { retry: 1 });
   const comparisonQuery = trpc.portfolio.strategyComparison.useQuery({
     page: 1,
     pageSize: 25,
     sortBy: "totalReturn",
     sortOrder: "desc",
     filterType: "all",
+    timeRange,
   });
   const strategiesQuery = trpc.strategies.list.useQuery(undefined, { retry: 1 });
-  const tradesQuery = trpc.portfolio.trades.useQuery(undefined, { retry: 1 });
-  const monteCarloQuery = trpc.portfolio.monteCarloSimulation.useQuery(monteCarloParams, { retry: 1 });
+  const tradesQuery = trpc.portfolio.trades.useQuery({ timeRange }, { retry: 1 });
+  const monteCarloQuery = trpc.portfolio.monteCarloSimulation.useQuery(
+    { ...monteCarloParams, timeRange },
+    { retry: 1 },
+  );
 
   const currency = useMemo(
     () =>
@@ -74,6 +81,10 @@ function DashboardNew() {
 
   return (
     <div className="space-y-6">
+      <div className="flex justify-end">
+        <TimeRangeSelector value={timeRange} onChange={setTimeRange} />
+      </div>
+
       <TodayPlaybook
         overview={overview}
         summary={summary}
@@ -180,7 +191,7 @@ function DashboardNew() {
         <TradesTable
           trades={trades ?? []}
           isLoading={tradesQuery.isLoading}
-          action={<ExportTradesButton strategies={strategies} />}
+          action={<ExportTradesButton strategies={strategies} timeRange={timeRange} />}
         />
       </div>
     </div>
