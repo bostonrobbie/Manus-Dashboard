@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 
 interface ChartSkeletonProps {
   title: string;
@@ -7,15 +8,17 @@ interface ChartSkeletonProps {
 
 function ChartSkeleton({ title, children }: ChartSkeletonProps) {
   return (
-    <div className="card">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-semibold text-slate-800">{title}</h3>
-        <span className="text-xs text-slate-500">Live</span>
-      </div>
-      <div className="min-h-[180px] text-slate-500 text-sm">
-        {children ?? <div className="h-[160px] bg-slate-100 rounded" />}
-      </div>
-    </div>
+    <Card className="h-full">
+      <CardHeader className="flex-row items-center justify-between">
+        <CardTitle className="text-sm">{title}</CardTitle>
+        <span className="text-xs font-medium text-slate-500">Live</span>
+      </CardHeader>
+      <CardContent>
+        <div className="min-h-[200px] text-sm text-slate-600">
+          {children ?? <div className="h-[180px] rounded-lg bg-slate-100" />}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 

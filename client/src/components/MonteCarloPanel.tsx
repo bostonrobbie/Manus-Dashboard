@@ -10,6 +10,9 @@ import {
   YAxis,
 } from "recharts";
 import MetricCard from "./MetricCard";
+import { Button } from "./ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Separator } from "./ui/separator";
 import type { MonteCarloResult } from "@shared/types/portfolio";
 
 interface MonteCarloPanelProps {
@@ -83,84 +86,85 @@ function MonteCarloPanel({ result, days, simulations, isLoading, onRerun }: Mont
   const hasData = Boolean(result && result.futureDates.length);
 
   return (
-    <div className="card space-y-4">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-        <div>
-          <h3 className="text-sm font-semibold text-slate-900">Monte Carlo projections</h3>
-          <p className="text-xs text-slate-500">Future paths based on your historical trade distribution.</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2 text-xs text-slate-700">
-          <label className="flex items-center gap-1">
-            <span className="text-slate-500">Days</span>
-            <input
-              type="number"
-              min={7}
-              max={365}
-              value={daysInput}
-              onChange={e => setDaysInput(Number(e.target.value) || 0)}
-              className="w-20 rounded border border-slate-200 px-2 py-1"
-            />
-          </label>
-          <label className="flex items-center gap-1">
-            <span className="text-slate-500">Simulations</span>
-            <input
-              type="number"
-              min={100}
-              max={5000}
-              value={simulationsInput}
-              onChange={e => setSimulationsInput(Number(e.target.value) || 0)}
-              className="w-24 rounded border border-slate-200 px-2 py-1"
-            />
-          </label>
-          <button
-            type="button"
-            onClick={handleRun}
-            className="ml-auto rounded bg-slate-900 px-3 py-1.5 text-white hover:bg-slate-800"
-          >
-            Run
-          </button>
-        </div>
-      </div>
-
-      {isLoading ? (
-        <div className="h-[240px] rounded bg-slate-100" />
-      ) : !hasData ? (
-        <div className="text-sm text-slate-500">
-          Not enough data to run Monte Carlo yet. Add more trades to see projections.
-        </div>
-      ) : (
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-            <MetricCard label="Current equity" value={currency.format(result?.currentEquity ?? 0)} />
-            <MetricCard label="Median final" value={currency.format(summaryStats.medianFinal)} />
-            <MetricCard
-              label="10th - 90th %"
-              value={`${currency.format(summaryStats.p10Final)} - ${currency.format(summaryStats.p90Final)}`}
-            />
-            <MetricCard
-              label="Prob. below current"
-              value={percent.format(summaryStats.probBelowCurrent / 100)}
-              helper="Chance finishing under today’s equity"
-            />
+    <Card className="h-full">
+      <CardHeader>
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <CardTitle className="text-sm">Monte Carlo projections</CardTitle>
+            <p className="text-xs text-slate-500">Future paths based on your historical trade distribution.</p>
           </div>
-
-          <div className="h-[320px]">
-            <ResponsiveContainer width="100%" height={320}>
-              <LineChart data={chartData} margin={{ left: 8, right: 16 }}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Line type="monotone" dataKey="p10" stroke="#f59e0b" name="P10 - bearish" />
-                <Line type="monotone" dataKey="p50" stroke="#0f172a" name="P50 - median" />
-                <Line type="monotone" dataKey="p90" stroke="#16a34a" name="P90 - bullish" />
-              </LineChart>
-            </ResponsiveContainer>
+          <div className="flex flex-wrap items-center gap-2 text-xs text-slate-700">
+            <label className="flex items-center gap-1">
+              <span className="text-slate-500">Days</span>
+              <input
+                type="number"
+                min={7}
+                max={365}
+                value={daysInput}
+                onChange={e => setDaysInput(Number(e.target.value) || 0)}
+                className="h-9 w-20 rounded-md border border-slate-200 px-2"
+              />
+            </label>
+            <label className="flex items-center gap-1">
+              <span className="text-slate-500">Simulations</span>
+              <input
+                type="number"
+                min={100}
+                max={5000}
+                value={simulationsInput}
+                onChange={e => setSimulationsInput(Number(e.target.value) || 0)}
+                className="h-9 w-24 rounded-md border border-slate-200 px-2"
+              />
+            </label>
+            <Button type="button" size="sm" onClick={handleRun} disabled={isLoading}>
+              Run
+            </Button>
           </div>
         </div>
-      )}
-    </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {isLoading ? (
+          <div className="h-[240px] rounded-lg bg-slate-100" />
+        ) : !hasData ? (
+          <div className="text-sm text-slate-500">
+            Not enough data to run Monte Carlo yet. Add more trades to see projections.
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
+              <MetricCard label="Current equity" value={currency.format(result?.currentEquity ?? 0)} />
+              <MetricCard label="Median final" value={currency.format(summaryStats.medianFinal)} />
+              <MetricCard
+                label="10th - 90th %"
+                value={`${currency.format(summaryStats.p10Final)} - ${currency.format(summaryStats.p90Final)}`}
+              />
+              <MetricCard
+                label="Prob. below current"
+                value={percent.format(summaryStats.probBelowCurrent / 100)}
+                helper="Chance finishing under today’s equity"
+              />
+            </div>
+
+            <Separator />
+
+            <div className="h-[320px]">
+              <ResponsiveContainer width="100%" height={320}>
+                <LineChart data={chartData} margin={{ left: 8, right: 16 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Line type="monotone" dataKey="p10" stroke="#f59e0b" name="P10 - bearish" />
+                  <Line type="monotone" dataKey="p50" stroke="#0f172a" name="P50 - median" />
+                  <Line type="monotone" dataKey="p90" stroke="#16a34a" name="P90 - bullish" />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 

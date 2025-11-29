@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
-
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Badge } from "./ui/badge";
 import type { TradeRow } from "@shared/types/portfolio";
 
 interface TradesTableProps {
@@ -9,52 +10,67 @@ interface TradesTableProps {
 }
 
 const currency = new Intl.NumberFormat(undefined, { style: "currency", currency: "USD", minimumFractionDigits: 2 });
+const dateFormatter = new Intl.DateTimeFormat(undefined, {
+  month: "short",
+  day: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+});
 
 function TradesTable({ trades, isLoading, action }: TradesTableProps) {
   return (
-    <div className="card">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-semibold text-slate-800">Recent trades</h3>
-        <div className="flex items-center gap-2">
-          {action}
-          <span className="text-xs text-slate-500">{trades.length} fills</span>
+    <Card className="h-full">
+      <CardHeader className="flex-row items-center justify-between">
+        <div>
+          <CardTitle className="text-sm">Recent trades</CardTitle>
+          <p className="text-xs text-slate-500">Latest fills across your strategies</p>
         </div>
-      </div>
-      <div className="overflow-auto">
-        {isLoading ? (
-          <div className="h-24 animate-pulse rounded bg-slate-100" />
-        ) : trades.length === 0 ? (
-          <div className="py-4 text-sm text-slate-500">
-            No trades yet for this period. Upload CSVs or connect your data source.
-          </div>
-        ) : (
-          <table className="min-w-full text-sm">
-            <thead className="text-left text-slate-500">
-              <tr>
-                <th className="py-2 pr-3">Symbol</th>
-                <th className="py-2 pr-3">Side</th>
-                <th className="py-2 pr-3">Qty</th>
-                <th className="py-2 pr-3">Entry</th>
-                <th className="py-2 pr-3">Exit</th>
-                <th className="py-2 pr-3">Date</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {trades.map(trade => (
-                <tr key={trade.id}>
-                  <td className="py-2 pr-3 font-semibold text-slate-800">{trade.symbol}</td>
-                  <td className="py-2 pr-3 capitalize">{trade.side}</td>
-                  <td className="py-2 pr-3">{trade.quantity}</td>
-                  <td className="py-2 pr-3">{currency.format(trade.entryPrice)}</td>
-                  <td className="py-2 pr-3">{currency.format(trade.exitPrice)}</td>
-                  <td className="py-2 pr-3">{new Date(trade.exitTime).toISOString().slice(0, 10)}</td>
+        <div className="flex items-center gap-3 text-xs text-slate-500">
+          {action}
+          <span>{trades.length} fills</span>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="overflow-auto">
+          {isLoading ? (
+            <div className="h-24 animate-pulse rounded-lg bg-slate-100" />
+          ) : trades.length === 0 ? (
+            <div className="py-4 text-sm text-slate-500">
+              No trades yet for this period. Upload CSVs or connect your data source.
+            </div>
+          ) : (
+            <table className="min-w-full text-sm">
+              <thead className="bg-slate-50 text-left text-slate-600">
+                <tr>
+                  <th className="px-3 py-2 font-semibold">Symbol</th>
+                  <th className="px-3 py-2 font-semibold">Side</th>
+                  <th className="px-3 py-2 text-right font-semibold">Qty</th>
+                  <th className="px-3 py-2 text-right font-semibold">Entry</th>
+                  <th className="px-3 py-2 text-right font-semibold">Exit</th>
+                  <th className="px-3 py-2 text-right font-semibold">Exit time</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
-    </div>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {trades.map(trade => (
+                  <tr key={trade.id} className="hover:bg-slate-50/80">
+                    <td className="px-3 py-2 font-semibold text-slate-800">{trade.symbol}</td>
+                    <td className="px-3 py-2">
+                      <Badge variant={trade.side.toLowerCase() === "buy" ? "success" : "destructive"}>
+                        {trade.side}
+                      </Badge>
+                    </td>
+                    <td className="px-3 py-2 text-right">{trade.quantity}</td>
+                    <td className="px-3 py-2 text-right">{currency.format(trade.entryPrice)}</td>
+                    <td className="px-3 py-2 text-right">{currency.format(trade.exitPrice)}</td>
+                    <td className="px-3 py-2 text-right">{dateFormatter.format(new Date(trade.exitTime))}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
