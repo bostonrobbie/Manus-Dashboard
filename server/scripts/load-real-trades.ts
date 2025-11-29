@@ -25,8 +25,13 @@ async function main() {
     console.log(`Loading ${file}...`);
     const result = await ingestTradesCsv({ csv: contents, userId: 1, defaultStrategyName: strategyName });
     console.log(
-      `Inserted ${result.insertedTrades}/${result.rowsParsed} rows (strategies created: ${result.strategiesCreated}) for ${file}`,
+      `Imported ${result.importedCount} rows, skipped ${result.skippedCount} for ${file}${
+        result.errors.length ? ` (errors: ${result.errors.length})` : ""
+      }`,
     );
+    if (result.errors.length) {
+      result.errors.forEach(err => console.warn(` - ${err}`));
+    }
   }
 }
 

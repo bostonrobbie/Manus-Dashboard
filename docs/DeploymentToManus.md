@@ -32,6 +32,12 @@ pnpm --filter client preview
 ## Health Checks
 - Backend: `GET /health` -> `{ "status": "ok", "db": "up" }` when the database responds, returns `503` with `{ "status": "degraded", "db": "down" }` if not.
 
+## Pre-deploy checks
+- `pnpm -C server tsc`
+- `pnpm -C server test`
+- `pnpm -C client tsc`
+- `pnpm -C server smoke`
+
 ## Environment Variables
 - `PORT` (default 3001)
 - `NODE_ENV`

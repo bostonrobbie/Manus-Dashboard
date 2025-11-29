@@ -19,11 +19,10 @@ interface NormalizedTradeRow {
   exitTime: Date;
 }
 
-export interface IngestTradesResult {
-  rowsParsed: number;
-  insertedTrades: number;
-  skippedRows: number;
-  strategiesCreated: number;
+export interface TradeIngestionResult {
+  importedCount: number;
+  skippedCount: number;
+  errors: string[];
 }
 
 export interface IngestTradesOptions {
@@ -33,20 +32,30 @@ export interface IngestTradesOptions {
   defaultStrategyType?: StrategyType;
 }
 
-export async function ingestTradesCsv(options: IngestTradesOptions): Promise<IngestTradesResult> {
-  const db = await getDb();
-  if (!db) {
-    throw new Error("Database not configured");
+export async function ingestTradesCsv(options: IngestTradesOptions): Promise<TradeIngestionResult> {
+  const errors: string[] = [];
+
+  const { headers, records } = parseCsvRecords(options.csv);
+  const missingRequiredColumns = findMissingRequiredColumns(headers);
+  if (missingRequiredColumns.length > 0) {
+    errors.push(`Missing required columns: ${missingRequiredColumns.join(", ")}`);
+    return { importedCount: 0, skippedCount: records.length, errors };
   }
 
-  const records = parseCsvRecords(options.csv);
   const normalizedRows: NormalizedTradeRow[] = [];
 
-  for (const record of records) {
-    const normalized = normalizeRecord(record, options.defaultStrategyName, options.defaultStrategyType);
+  for (const [idx, record] of records.entries()) {
+    const rowNumber = idx + 2; // account for header row
+    const normalized = normalizeRecord(record, rowNumber, errors, options.defaultStrategyName, options.defaultStrategyType);
     if (normalized) {
       normalizedRows.push(normalized);
     }
+  }
+
+  const db = await getDb();
+  if (!db) {
+    errors.push("Database not configured");
+    return { importedCount: 0, skippedCount: records.length, errors };
   }
 
   const existingStrategies = await db
@@ -69,7 +78,6 @@ export async function ingestTradesCsv(options: IngestTradesOptions): Promise<Ing
     }
   }
 
-  let strategiesCreated = 0;
   if (requiredStrategies.size > 0) {
     const inserted = await db
       .insert(schema.strategies)
@@ -83,14 +91,13 @@ export async function ingestTradesCsv(options: IngestTradesOptions): Promise<Ing
       )
       .returning();
 
-    strategiesCreated = inserted.length;
     for (const strat of inserted) {
       strategiesByName.set(strat.name, strat);
       strategiesById.set(strat.id, strat);
     }
   }
 
-  const tradesToInsert = normalizedRows.map(row => {
+  const tradesToInsert = normalizedRows.flatMap(row => {
     const strategyIdFromRow = row.strategyId && strategiesById.has(row.strategyId) ? row.strategyId : undefined;
     const strategyId =
       strategyIdFromRow ??
@@ -98,20 +105,23 @@ export async function ingestTradesCsv(options: IngestTradesOptions): Promise<Ing
       strategiesByName.get(options.defaultStrategyName ?? "Imported")?.id;
 
     if (!strategyId) {
-      throw new Error(`Unable to resolve strategy for trade ${row.symbol}`);
+      errors.push(`Row with symbol ${row.symbol}: unable to resolve strategy`);
+      return [];
     }
 
-    return {
-      userId: options.userId,
-      strategyId,
-      symbol: row.symbol,
-      side: row.side,
-      quantity: row.quantity.toString(),
-      entryPrice: row.entryPrice.toString(),
-      exitPrice: row.exitPrice.toString(),
-      entryTime: row.entryTime,
-      exitTime: row.exitTime,
-    };
+    return [
+      {
+        userId: options.userId,
+        strategyId,
+        symbol: row.symbol,
+        side: row.side,
+        quantity: row.quantity.toString(),
+        entryPrice: row.entryPrice.toString(),
+        exitPrice: row.exitPrice.toString(),
+        entryTime: row.entryTime,
+        exitTime: row.exitTime,
+      },
+    ];
   });
 
   if (tradesToInsert.length > 0) {
@@ -119,18 +129,17 @@ export async function ingestTradesCsv(options: IngestTradesOptions): Promise<Ing
   }
 
   return {
-    rowsParsed: records.length,
-    insertedTrades: tradesToInsert.length,
-    skippedRows: records.length - tradesToInsert.length,
-    strategiesCreated,
+    importedCount: tradesToInsert.length,
+    skippedCount: records.length - tradesToInsert.length,
+    errors,
   };
 }
 
-function parseCsvRecords(csv: string): CsvRecord[] {
+function parseCsvRecords(csv: string): { headers: string[]; records: CsvRecord[] } {
   const rows = parseCsv(csv);
-  if (rows.length === 0) return [];
+  if (rows.length === 0) return { headers: [], records: [] };
 
-  const headers = rows[0];
+  const headers = rows[0].map(header => header.trim());
   const records: CsvRecord[] = [];
   for (let i = 1; i < rows.length; i++) {
     const row = rows[i];
@@ -138,11 +147,11 @@ function parseCsvRecords(csv: string): CsvRecord[] {
     const rec: CsvRecord = {};
     headers.forEach((header, idx) => {
       const key = header.trim().toLowerCase();
-      rec[key] = row[idx] ?? "";
+      rec[key] = (row[idx] ?? "").trim();
     });
     records.push(rec);
   }
-  return records;
+  return { headers, records };
 }
 
 function parseCsv(csv: string): string[][] {
@@ -182,34 +191,40 @@ function parseCsvLine(line: string): string[] {
 
 function normalizeRecord(
   record: CsvRecord,
+  rowNumber: number,
+  errors: string[],
   defaultStrategyName?: string,
   defaultStrategyType?: StrategyType,
 ): NormalizedTradeRow | null {
   const pick = (...keys: string[]) => {
     for (const key of keys) {
       const value = record[key.toLowerCase()];
-      if (value !== undefined && value !== null && String(value).trim() !== "") return String(value).trim();
+      if (value !== undefined && value !== null) {
+        const trimmed = String(value).trim();
+        if (trimmed !== "") return trimmed;
+      }
     }
     return undefined;
   };
 
   const symbol = pick("symbol", "ticker", "asset");
   const sideRaw = pick("side", "position", "direction");
-  const quantity = toNumber(pick("quantity", "qty", "size"));
-  const entryPrice = toNumber(pick("entryPrice", "entry_price", "buyPrice", "openPrice"));
-  const exitPrice = toNumber(pick("exitPrice", "exit_price", "sellPrice", "closePrice"));
+  const quantity = toNumber(pick("quantity", "qty", "size"), "quantity", rowNumber, errors);
+  const entryPrice = toNumber(pick("entryPrice", "entry_price", "buyPrice", "openPrice"), "entry price", rowNumber, errors);
+  const exitPrice = toNumber(pick("exitPrice", "exit_price", "sellPrice", "closePrice"), "exit price", rowNumber, errors);
   const entryTimeStr = pick("entryTime", "entry_time", "entry", "openTime", "open_time");
   const exitTimeStr = pick("exitTime", "exit_time", "exit", "closeTime", "close_time");
   const strategyName = pick("strategy", "strategyName", "system") ?? defaultStrategyName ?? "Imported";
   const strategyTypeRaw = (pick("strategyType", "type") ?? defaultStrategyType) as StrategyType | undefined;
-  const strategyId = toNumber(pick("strategyId", "strategy_id"));
+  const strategyId = toNumber(pick("strategyId", "strategy_id"), "strategy id", rowNumber, errors, true);
 
   if (!symbol || !sideRaw || quantity == null || entryPrice == null || exitPrice == null || !entryTimeStr || !exitTimeStr) {
+    errors.push(`Row ${rowNumber}: missing required field(s)`);
     return null;
   }
 
-  const entryTime = toDate(entryTimeStr);
-  const exitTime = toDate(exitTimeStr);
+  const entryTime = toDate(entryTimeStr, rowNumber, errors, "entry time");
+  const exitTime = toDate(exitTimeStr, rowNumber, errors, "exit time");
   if (!entryTime || !exitTime) return null;
 
   const normalizedSide = normalizeSide(sideRaw);
@@ -235,14 +250,57 @@ function normalizeSide(side: string): string {
   return "long";
 }
 
-function toNumber(value?: string): number | null {
-  if (value == null) return null;
+function toNumber(
+  value: string | undefined,
+  field: string,
+  rowNumber: number,
+  errors: string[],
+  allowUndefined = false,
+): number | null {
+  if (value == null || value === "") {
+    if (allowUndefined) return null;
+    errors.push(`Row ${rowNumber}: ${field} is required`);
+    return null;
+  }
   const num = Number(value);
-  return Number.isFinite(num) ? num : null;
+  if (!Number.isFinite(num)) {
+    errors.push(`Row ${rowNumber}: ${field} must be a valid number`);
+    return null;
+  }
+  return num;
 }
 
-function toDate(value: string): Date | null {
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? null : date;
+function toDate(value: string | undefined, rowNumber: number, errors: string[], field: string): Date | null {
+  if (!value || value.trim() === "") {
+    errors.push(`Row ${rowNumber}: ${field} is required`);
+    return null;
+  }
+  const date = new Date(value.trim());
+  if (Number.isNaN(date.getTime())) {
+    errors.push(`Row ${rowNumber}: ${field} is invalid`);
+    return null;
+  }
+  return new Date(date.toISOString());
 }
 
+function findMissingRequiredColumns(headers: string[]): string[] {
+  const normalized = headers.map(h => h.trim().toLowerCase());
+  const requiredSets: Array<{ label: string; keys: string[] }> = [
+    { label: "symbol", keys: ["symbol", "ticker", "asset"] },
+    { label: "side", keys: ["side", "position", "direction"] },
+    { label: "quantity", keys: ["quantity", "qty", "size"] },
+    { label: "entry price", keys: ["entryprice", "entry_price", "buyprice", "openprice"] },
+    { label: "exit price", keys: ["exitprice", "exit_price", "sellprice", "closeprice"] },
+    { label: "entry time", keys: ["entrytime", "entry_time", "entry", "opentime", "open_time"] },
+    { label: "exit time", keys: ["exittime", "exit_time", "exit", "closetime", "close_time"] },
+  ];
+
+  const missing: string[] = [];
+  for (const requirement of requiredSets) {
+    const hasField = requirement.keys.some(key => normalized.includes(key.toLowerCase()));
+    if (!hasField) {
+      missing.push(requirement.label);
+    }
+  }
+  return missing;
+}
