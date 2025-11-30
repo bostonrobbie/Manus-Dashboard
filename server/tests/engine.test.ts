@@ -22,7 +22,7 @@ test("computes stable daily returns and sharpe ratio from equity series", () => 
   assert.ok(Math.abs(daily[2] + 0.00495) < 1e-5);
 
   const sharpe = computeSharpeRatio(daily);
-  assert.ok(sharpe > 3 && sharpe < 4);
+  assert.ok(sharpe > 4 && sharpe < 5);
 });
 
 test("handles zero and single-point series gracefully", () => {

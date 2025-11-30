@@ -20,6 +20,12 @@ import {
   trades as sampleTrades,
 } from "@server/db/sampleData";
 import { getDb, schema } from "@server/db";
+import {
+  computeReturnMetrics,
+  computeTradeMetrics,
+  safeNumber as metricsSafeNumber,
+  sharpe as sharpeRatio,
+} from "./metrics";
 
 export interface EquityCurveOptions {
   startDate?: string; // derived from time range selector
@@ -63,8 +69,7 @@ export const ENGINE_CONFIG = {
   initialCapital: 100_000,
   tradingDays: 252,
 };
-
-const safeNumber = (value: number): number => (Number.isFinite(value) ? value : 0);
+const safeNumber = metricsSafeNumber;
 
 type TradeRecord = {
   id: number;
@@ -495,24 +500,22 @@ export async function buildDrawdownCurves(
 }
 
 export function computeSharpeRatio(returns: number[]): number {
-  const finiteReturns = returns.filter(r => Number.isFinite(r));
-  if (!Array.isArray(finiteReturns) || finiteReturns.length < 2) return 0;
-  const mean = finiteReturns.reduce((a, b) => a + b, 0) / finiteReturns.length;
-  const variance =
-    finiteReturns.reduce((a, b) => a + (b - mean) * (b - mean), 0) /
-    Math.max(finiteReturns.length - 1, 1);
-  const std = Math.sqrt(Math.max(variance, 1e-12));
-  return std > 0 ? Math.sqrt(ENGINE_CONFIG.tradingDays) * (mean / std) : 0;
+  return sharpeRatio(returns, { periodsPerYear: ENGINE_CONFIG.tradingDays });
 }
 
-export function computeDailyReturns(points: EquityCurvePoint[], initialCapital: number): number[] {
+export function computeDailyReturns(
+  points: EquityCurvePoint[],
+  initialCapital: number,
+  key: keyof EquityCurvePoint = "combined",
+): number[] {
   if (!Array.isArray(points) || points.length === 0) return [];
 
   let prevEquity = initialCapital;
   const returns: number[] = [];
 
   for (const p of points) {
-    const equity = initialCapital + safeNumber(p.combined);
+    const equityValue = Number((p as unknown as Record<string, unknown>)[key] ?? 0);
+    const equity = initialCapital + safeNumber(equityValue);
     const dailyPnL = equity - prevEquity;
     const dailyReturn = prevEquity !== 0 ? dailyPnL / prevEquity : 0;
     returns.push(safeNumber(dailyReturn));
@@ -579,27 +582,33 @@ function buildDrawdownSeries(points: EquityCurvePoint[]): DrawdownPoint[] {
 }
 
 function deriveEquityAnalytics(points: EquityCurvePoint[], initialCapital: number) {
-  const dailyReturns = computeDailyReturns(points, initialCapital);
-  const sharpeRatio = computeSharpeRatio(dailyReturns);
-
+  const dailyReturns = computeDailyReturns(points, initialCapital).filter(r => Number.isFinite(r));
   const equitySeries = points.map(p => initialCapital + safeNumber(p.combined));
   const latestEquity = equitySeries.at(-1) ?? initialCapital;
   const previousEquity = equitySeries.length > 1 ? equitySeries[equitySeries.length - 2] : latestEquity;
 
   const rawDailyPnL = latestEquity - previousEquity;
   const rawDailyReturn = previousEquity !== 0 ? rawDailyPnL / previousEquity : 0;
-  const rawTotalReturn = initialCapital !== 0 ? (latestEquity - initialCapital) / initialCapital : 0;
+  const rawTotalReturn = latestEquity - initialCapital;
 
-  const { maxDrawdown, currentDrawdown, maxDrawdownPct } = computeDrawdownMetrics(points, initialCapital);
+  const { maxDrawdown, currentDrawdown } = computeDrawdownMetrics(points, initialCapital);
+  const returnMetrics = computeReturnMetrics(dailyReturns, {
+    periodsPerYear: ENGINE_CONFIG.tradingDays,
+  });
 
   return {
     dailyPnL: safeNumber(rawDailyPnL),
     dailyReturn: safeNumber(rawDailyReturn),
     totalReturn: safeNumber(rawTotalReturn),
-    sharpeRatio: safeNumber(sharpeRatio),
+    totalReturnPct: safeNumber(returnMetrics.totalReturn * 100),
+    sharpeRatio: safeNumber(returnMetrics.sharpe),
+    sortinoRatio: safeNumber(returnMetrics.sortino),
+    cagr: safeNumber(returnMetrics.cagr),
+    calmar: safeNumber(returnMetrics.calmar),
+    volatility: safeNumber(returnMetrics.volatility),
     maxDrawdown: safeNumber(maxDrawdown),
     currentDrawdown: safeNumber(currentDrawdown),
-    maxDrawdownPct: safeNumber(maxDrawdownPct * 100),
+    maxDrawdownPct: safeNumber(returnMetrics.maxDrawdown.maxDrawdown * 100),
   };
 }
 
@@ -652,6 +661,7 @@ export async function buildStrategyComparison(
     pnl: number;
     notional: number;
     tradeReturns: number[];
+    pnls: number[];
     totalTrades: number;
     wins: number;
     losses: number;
@@ -671,6 +681,7 @@ export async function buildStrategyComparison(
         pnl: 0,
         notional: 0,
         tradeReturns: [],
+        pnls: [],
         totalTrades: 0,
         wins: 0,
         losses: 0,
@@ -683,6 +694,7 @@ export async function buildStrategyComparison(
     agg.pnl += row.pnl;
     agg.notional += row.notional;
     agg.tradeReturns.push(row.retPct);
+    agg.pnls.push(row.pnl);
     agg.totalTrades += 1;
     if (row.pnl > 0) {
       agg.wins += 1;
@@ -696,28 +708,16 @@ export async function buildStrategyComparison(
   const comparisonRows: StrategyComparisonRow[] = [];
 
   for (const agg of map.values()) {
-    const sharpeRatio = computeSharpeRatio(agg.tradeReturns);
-    const winRatePct = agg.totalTrades > 0 ? (agg.wins / agg.totalTrades) * 100 : 0;
-    const profitFactor = agg.grossLoss > 0 ? agg.grossProfit / agg.grossLoss : agg.grossProfit > 0 ? agg.grossProfit : 0;
+    const returnMetrics = computeReturnMetrics(agg.tradeReturns, { periodsPerYear: ENGINE_CONFIG.tradingDays });
+    const tradeMetrics = computeTradeMetrics(agg.pnls.map(pnl => ({ pnl })));
 
     const totalReturn = agg.pnl;
-    const totalReturnPct = agg.notional > 0 ? (agg.pnl / agg.notional) * 100 : 0;
-    let equity = 1;
-    const syntheticPoints: EquityCurvePoint[] = [];
-    agg.tradeReturns.forEach((ret, idx) => {
-      equity *= 1 + ret;
-      syntheticPoints.push({
-        date: String(idx),
-        combined: equity - 1,
-        swing: equity - 1,
-        intraday: equity - 1,
-        spx: 0,
-      });
+    const totalReturnPct = returnMetrics.totalReturn * 100;
+    let sparkEquity = 1;
+    const sparkline = agg.tradeReturns.map((ret, idx) => {
+      sparkEquity *= 1 + ret;
+      return { date: String(idx), value: sparkEquity - 1 };
     });
-
-    const ddMetrics = computeDrawdownMetrics(syntheticPoints, 1);
-    const maxDrawdown = ddMetrics.maxDrawdown;
-    const maxDrawdownPct = ddMetrics.maxDrawdownPct * 100;
 
     comparisonRows.push({
       strategyId: agg.strategyId,
@@ -725,12 +725,19 @@ export async function buildStrategyComparison(
       type: agg.type,
       totalReturn,
       totalReturnPct,
-      maxDrawdown,
-      maxDrawdownPct: safeNumber(maxDrawdownPct),
-      sharpeRatio: safeNumber(sharpeRatio),
-      winRatePct: safeNumber(winRatePct),
+      maxDrawdown: safeNumber(returnMetrics.maxDrawdown.maxDrawdown),
+      maxDrawdownPct: safeNumber(returnMetrics.maxDrawdown.maxDrawdown * 100),
+      sharpeRatio: safeNumber(returnMetrics.sharpe),
+      sortinoRatio: safeNumber(returnMetrics.sortino),
+      cagr: safeNumber(returnMetrics.cagr),
+      calmar: safeNumber(returnMetrics.calmar),
+      winRatePct: safeNumber(tradeMetrics.winRate * 100),
+      lossRatePct: safeNumber(tradeMetrics.lossRate * 100),
       totalTrades: agg.totalTrades,
-      profitFactor: safeNumber(profitFactor),
+      profitFactor: safeNumber(tradeMetrics.profitFactor),
+      expectancy: tradeMetrics.expectancyPerTrade,
+      payoffRatio: tradeMetrics.payoffRatio,
+      sparkline,
     });
   }
 
@@ -775,7 +782,7 @@ export async function buildPortfolioSummary(
     endDate: opts.endDate,
   });
 
-  const { totalReturn, maxDrawdownPct, sharpeRatio } = deriveEquityAnalytics(
+  const { totalReturnPct, maxDrawdownPct, sharpeRatio } = deriveEquityAnalytics(
     curve.points,
     ENGINE_CONFIG.initialCapital,
   );
@@ -788,7 +795,7 @@ export async function buildPortfolioSummary(
   const winRatePct = allTrades === 0 ? 0 : (wins / allTrades) * 100;
 
   return {
-    totalReturnPct: safeNumber(totalReturn * 100),
+    totalReturnPct: safeNumber(totalReturnPct ?? 0),
     maxDrawdownPct: safeNumber(maxDrawdownPct),
     sharpeRatio: safeNumber(sharpeRatio),
     winRatePct: safeNumber(winRatePct),
@@ -810,48 +817,66 @@ export async function buildPortfolioOverview(
   const drawdownPoints = drawdowns.points.length > 0 ? drawdowns.points : buildDrawdownSeries(equityPoints);
   const analytics = deriveEquityAnalytics(equityPoints, initialCapital);
 
-  const maxDrawdown = drawdownPoints.length
-    ? drawdownPoints.reduce((m, p) => Math.min(m, p.combined), 0)
-    : 0;
-  const currentDrawdown = drawdownPoints.at(-1)?.combined ?? 0;
+  const tradeSamples = trades.map(t => ({
+    pnl: tradePnl(t.side, Number(t.entryPrice), Number(t.exitPrice), Number(t.quantity)),
+    initialRisk: (t as any).initialRisk ? Number((t as any).initialRisk) : undefined,
+  }));
+  const tradeMetrics = computeTradeMetrics(tradeSamples);
 
-  let totalTrades = 0;
-  let winningTrades = 0;
-  let losingTrades = 0;
-  let grossProfit = 0;
-  let grossLoss = 0;
+  const equityReturns = computeDailyReturns(equityPoints, initialCapital).filter(r => Number.isFinite(r));
+  const benchmarkReturns = computeDailyReturns(equityPoints, initialCapital, "spx").filter(r => Number.isFinite(r));
+  const returnMetrics = computeReturnMetrics(equityReturns, {
+    periodsPerYear: ENGINE_CONFIG.tradingDays,
+  });
+  const benchmarkMetrics =
+    benchmarkReturns.length > 0
+      ? computeReturnMetrics(benchmarkReturns, { periodsPerYear: ENGINE_CONFIG.tradingDays })
+      : null;
 
-  for (const t of trades) {
-    const pnl = tradePnl(t.side, Number(t.entryPrice), Number(t.exitPrice), Number(t.quantity));
-    totalTrades += 1;
-    if (pnl > 0) {
-      winningTrades += 1;
-      grossProfit += pnl;
-    } else if (pnl < 0) {
-      losingTrades += 1;
-      grossLoss += Math.abs(pnl);
-    }
-  }
-
-  const winRate = totalTrades > 0 ? (winningTrades / totalTrades) * 100 : 0;
-  const profitFactorRaw = grossLoss > 0 ? grossProfit / grossLoss : 0;
-  const profitFactor = Number.isFinite(profitFactorRaw) ? profitFactorRaw : 0;
+  const workspaceMetrics = {
+    totalReturnPct: analytics.totalReturnPct ?? 0,
+    cagrPct: analytics.cagr * 100,
+    volatilityPct: analytics.volatility * 100,
+    sharpe: analytics.sharpeRatio,
+    sortino: analytics.sortinoRatio ?? 0,
+    calmar: analytics.calmar ?? 0,
+    maxDrawdownPct: analytics.maxDrawdownPct,
+    winRatePct: tradeMetrics.winRate * 100,
+    lossRatePct: tradeMetrics.lossRate * 100,
+    avgWin: tradeMetrics.avgWin,
+    avgLoss: tradeMetrics.avgLoss,
+    payoffRatio: tradeMetrics.payoffRatio,
+    profitFactor: safeNumber(tradeMetrics.profitFactor),
+    expectancyPerTrade: tradeMetrics.expectancyPerTrade,
+    alpha: benchmarkMetrics ? returnMetrics.totalReturn - benchmarkMetrics.totalReturn : null,
+  };
 
   return {
     equity: safeNumber(initialCapital + (equityPoints.at(-1)?.combined ?? 0)),
     dailyPnL: analytics.dailyPnL,
     dailyReturn: analytics.dailyReturn,
     totalReturn: analytics.totalReturn,
+    totalReturnPct: analytics.totalReturnPct ?? 0,
     sharpeRatio: analytics.sharpeRatio,
-    maxDrawdown: safeNumber(maxDrawdown),
-    currentDrawdown: safeNumber(currentDrawdown),
-    totalTrades,
-    winningTrades,
-    losingTrades,
-    winRate,
-    profitFactor,
+    sortinoRatio: analytics.sortinoRatio ?? 0,
+    cagr: analytics.cagr,
+    calmar: analytics.calmar ?? 0,
+    volatility: analytics.volatility,
+    maxDrawdown: safeNumber(
+      drawdownPoints.length ? drawdownPoints.reduce((m, p) => Math.min(m, p.combined), 0) : 0,
+    ),
+    currentDrawdown: safeNumber(drawdownPoints.at(-1)?.combined ?? 0),
+    maxDrawdownPct: workspaceMetrics.maxDrawdownPct,
+    totalTrades: tradeSamples.length,
+    winningTrades: tradeSamples.filter(t => t.pnl > 0).length,
+    losingTrades: tradeSamples.filter(t => t.pnl < 0).length,
+    winRate: tradeMetrics.winRate,
+    lossRate: tradeMetrics.lossRate,
+    profitFactor: safeNumber(tradeMetrics.profitFactor),
+    expectancy: tradeMetrics.expectancyPerTrade,
     positions: 0,
     lastUpdated: new Date(),
+    metrics: workspaceMetrics,
   };
 }
 

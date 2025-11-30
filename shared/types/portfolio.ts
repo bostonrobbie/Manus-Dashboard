@@ -8,6 +8,39 @@ export interface TimeRange {
 
 export type StrategyType = "swing" | "intraday";
 
+export interface WorkspaceMetrics {
+  totalReturnPct: number;
+  cagrPct: number;
+  volatilityPct: number;
+  sharpe: number;
+  sortino: number;
+  calmar: number;
+  maxDrawdownPct: number;
+  winRatePct: number;
+  lossRatePct: number;
+  avgWin: number;
+  avgLoss: number;
+  payoffRatio: number;
+  profitFactor: number;
+  expectancyPerTrade: number;
+  alpha: number | null;
+}
+
+export interface StrategyMetrics {
+  totalReturnPct: number;
+  maxDrawdownPct: number;
+  sharpeRatio: number;
+  sortinoRatio?: number;
+  cagr?: number;
+  calmar?: number;
+  winRatePct: number;
+  lossRatePct: number;
+  profitFactor: number;
+  expectancy?: number;
+  payoffRatio?: number;
+  tradeCount: number;
+}
+
 export interface StrategySummary {
   id: number;
   name: string;
@@ -48,9 +81,16 @@ export interface StrategyComparisonRow {
   maxDrawdown: number;
   maxDrawdownPct: number;
   sharpeRatio: number;
+  sortinoRatio?: number;
+  cagr?: number;
+  calmar?: number;
   winRatePct: number;
+  lossRatePct?: number;
   totalTrades: number;
   profitFactor: number;
+  expectancy?: number;
+  payoffRatio?: number;
+  sparkline?: { date: string; value: number }[];
 }
 
 export interface StrategyComparisonResult {
@@ -70,6 +110,7 @@ export interface TradeRow {
   exitPrice: number;
   entryTime: string;
   exitTime: string;
+  initialRisk?: number;
 }
 
 export interface PortfolioOverview {
@@ -77,16 +118,25 @@ export interface PortfolioOverview {
   dailyPnL: number;
   dailyReturn: number;
   totalReturn: number;
+  totalReturnPct?: number;
   sharpeRatio: number;
+  sortinoRatio?: number;
+  cagr?: number;
+  calmar?: number;
+  volatility?: number;
   maxDrawdown: number;
   currentDrawdown: number;
+  maxDrawdownPct?: number;
   totalTrades: number;
   winningTrades: number;
   losingTrades: number;
   winRate: number;
+  lossRate?: number;
   profitFactor: number;
+  expectancy?: number;
   positions: number;
   lastUpdated: Date;
+  metrics?: WorkspaceMetrics;
 }
 
 export interface ExportTradesInput {

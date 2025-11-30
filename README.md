@@ -23,6 +23,8 @@ A Manus-compatible, Antigravity-ready monorepo with a React 19 + Vite frontend a
 - `pnpm test:all` – lint, typecheck, server tests, server build, and client build in sequence.
 - Optional ops checks: `pnpm smoke:test` against a running API.
 
+> Note: ESLint uses the flat config and depends on `@eslint/js`; `pnpm install` from the repo root will install it automatically.
+
 > Manus operators: see [docs/MANUS_INTEGRATION_PLAN.md](docs/MANUS_INTEGRATION_PLAN.md) for the staged auth/data alignment steps before production rollout.
 
 ## Building
