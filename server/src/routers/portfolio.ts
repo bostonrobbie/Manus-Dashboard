@@ -31,21 +31,47 @@ const drawdownPointSchema = z.object({
   intraday: finiteNumber,
   spx: finiteNumber,
 });
+const workspaceMetricsSchema = z.object({
+  totalReturnPct: finiteNumber,
+  cagrPct: finiteNumber,
+  volatilityPct: finiteNumber,
+  sharpe: finiteNumber,
+  sortino: finiteNumber,
+  calmar: finiteNumber,
+  maxDrawdownPct: finiteNumber,
+  winRatePct: finiteNumber,
+  lossRatePct: finiteNumber,
+  avgWin: finiteNumber,
+  avgLoss: finiteNumber,
+  payoffRatio: finiteNumber,
+  profitFactor: finiteNumber,
+  expectancyPerTrade: finiteNumber,
+  alpha: finiteNumber.nullable(),
+});
 const overviewSchema = z.object({
   equity: finiteNumber,
   dailyPnL: finiteNumber,
   dailyReturn: finiteNumber,
   totalReturn: finiteNumber,
+  totalReturnPct: finiteNumber.optional(),
   sharpeRatio: finiteNumber,
+  sortinoRatio: finiteNumber.optional(),
+  cagr: finiteNumber.optional(),
+  calmar: finiteNumber.optional(),
+  volatility: finiteNumber.optional(),
   maxDrawdown: finiteNumber,
   currentDrawdown: finiteNumber,
+  maxDrawdownPct: finiteNumber.optional(),
   totalTrades: z.number().int(),
   winningTrades: z.number().int(),
   losingTrades: z.number().int(),
   winRate: finiteNumber,
+  lossRate: finiteNumber.optional(),
   profitFactor: finiteNumber,
+  expectancy: finiteNumber.optional(),
   positions: z.number().int(),
   lastUpdated: z.date(),
+  metrics: workspaceMetricsSchema.optional(),
 });
 const summarySchema = z.object({
   totalReturnPct: finiteNumber,
@@ -62,9 +88,23 @@ const strategyRowSchema = z.object({
   maxDrawdown: finiteNumber,
   maxDrawdownPct: finiteNumber,
   sharpeRatio: finiteNumber,
+  sortinoRatio: finiteNumber.optional(),
+  cagr: finiteNumber.optional(),
+  calmar: finiteNumber.optional(),
   winRatePct: finiteNumber,
+  lossRatePct: finiteNumber.optional(),
   totalTrades: z.number().int(),
   profitFactor: finiteNumber,
+  expectancy: finiteNumber.optional(),
+  payoffRatio: finiteNumber.optional(),
+  sparkline: z
+    .array(
+      z.object({
+        date: z.string(),
+        value: finiteNumber,
+      }),
+    )
+    .optional(),
 });
 const monteCarloSchema = z.object({
   futureDates: z.array(z.string()),
@@ -91,6 +131,7 @@ const tradeRowSchema = z.object({
   exitPrice: finiteNumber,
   entryTime: z.string(),
   exitTime: z.string(),
+  initialRisk: finiteNumber.optional(),
 });
 const ingestionHeaderIssuesSchema = z
   .object({ missing: z.array(z.string()), unexpected: z.array(z.string()) })
@@ -233,9 +274,15 @@ export const portfolioRouter = router({
             "maxDrawdown",
             "maxDrawdownPct",
             "sharpeRatio",
+            "sortinoRatio",
+            "cagr",
+            "calmar",
             "winRatePct",
+            "lossRatePct",
             "totalTrades",
             "profitFactor",
+            "expectancy",
+            "payoffRatio",
             "strategyId",
             "name",
             "type",

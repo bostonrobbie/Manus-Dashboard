@@ -7,7 +7,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import { Badge } from "../components/ui/badge";
 import MetricCard from "../components/MetricCard";
 
-type SortKey = "name" | "totalReturn" | "totalReturnPct" | "maxDrawdown" | "sharpeRatio";
+type SortKey =
+  | "name"
+  | "totalReturn"
+  | "totalReturnPct"
+  | "maxDrawdown"
+  | "maxDrawdownPct"
+  | "sharpeRatio"
+  | "profitFactor"
+  | "expectancy"
+  | "totalTrades";
 
 type SortOrder = "asc" | "desc";
 
@@ -119,17 +128,23 @@ function StrategiesPage() {
                   <th className="cursor-pointer px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-600" onClick={() => handleSort("name")}>
                     Name
                   </th>
-                  <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">Symbol</th>
-                  <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">Trades</th>
+                  <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">Type</th>
                   <th
                     className="cursor-pointer px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-600"
-                    onClick={() => handleSort("totalReturn")}
+                    onClick={() => handleSort("totalTrades")}
                   >
-                    PnL
+                    Trades
+                  </th>
+                  <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">Curve</th>
+                  <th
+                    className="cursor-pointer px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-600"
+                    onClick={() => handleSort("totalReturnPct")}
+                  >
+                    Total return
                   </th>
                   <th
                     className="cursor-pointer px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-600"
-                    onClick={() => handleSort("maxDrawdown")}
+                    onClick={() => handleSort("maxDrawdownPct")}
                   >
                     Max DD
                   </th>
@@ -139,25 +154,55 @@ function StrategiesPage() {
                   >
                     Sharpe
                   </th>
+                  <th
+                    className="cursor-pointer px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-600"
+                    onClick={() => handleSort("profitFactor")}
+                  >
+                    Profit factor
+                  </th>
+                  <th
+                    className="cursor-pointer px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-600"
+                    onClick={() => handleSort("expectancy")}
+                  >
+                    Expectancy
+                  </th>
                   <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">Win rate</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {strategiesQuery.data.rows.map(row => (
-                  <tr
-                    key={row.strategyId}
-                    className="hover:bg-slate-50"
-                    onClick={() => setSelectedStrategyId(row.strategyId)}
-                  >
-                    <td className="px-3 py-2 font-semibold text-slate-900">{row.name}</td>
-                    <td className="px-3 py-2 text-slate-600">{row.type}</td>
-                    <td className="px-3 py-2 text-slate-600">{row.totalTrades}</td>
-                    <td className="px-3 py-2 text-slate-900">{currency.format(row.totalReturn)}</td>
-                    <td className="px-3 py-2 text-slate-600">{currency.format(row.maxDrawdown)}</td>
-                    <td className="px-3 py-2 text-slate-600">{row.sharpeRatio.toFixed(2)}</td>
-                    <td className="px-3 py-2 text-slate-600">{percent.format(row.winRatePct / 100)}</td>
-                  </tr>
-                ))}
+                {strategiesQuery.data.rows.map(row => {
+                  const sparkline = row.sparkline ?? [];
+                  return (
+                    <tr
+                      key={row.strategyId}
+                      className="hover:bg-slate-50"
+                      onClick={() => setSelectedStrategyId(row.strategyId)}
+                    >
+                      <td className="px-3 py-2 font-semibold text-slate-900">{row.name}</td>
+                      <td className="px-3 py-2 text-slate-600">{row.type}</td>
+                      <td className="px-3 py-2 text-slate-600">{row.totalTrades}</td>
+                      <td className="px-3 py-2 text-slate-600">
+                        {sparkline.length ? (
+                          <div className="h-12 w-32">
+                            <ResponsiveContainer width="100%" height="100%">
+                              <LineChart data={sparkline} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+                                <Line type="monotone" dataKey="value" stroke="#0f172a" dot={false} strokeWidth={1.5} />
+                              </LineChart>
+                            </ResponsiveContainer>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-slate-500">-</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2 text-slate-900">{percent.format(row.totalReturnPct)}</td>
+                      <td className="px-3 py-2 text-slate-600">{percent.format(row.maxDrawdownPct)}</td>
+                      <td className="px-3 py-2 text-slate-600">{row.sharpeRatio.toFixed(2)}</td>
+                      <td className="px-3 py-2 text-slate-600">{row.profitFactor.toFixed(2)}</td>
+                      <td className="px-3 py-2 text-slate-600">{row.expectancy != null ? currency.format(row.expectancy) : "-"}</td>
+                      <td className="px-3 py-2 text-slate-600">{percent.format(row.winRatePct / 100)}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           ) : (
@@ -179,6 +224,15 @@ function StrategiesPage() {
               <MetricCard label="Max drawdown" value={currency.format(selectedStrategy.maxDrawdown)} helper={percent.format(selectedStrategy.maxDrawdownPct)} />
               <MetricCard label="Sharpe" value={selectedStrategy.sharpeRatio.toFixed(2)} />
               <MetricCard label="Win rate" value={percent.format(selectedStrategy.winRatePct / 100)} helper={`${selectedStrategy.totalTrades} trades`} />
+            </div>
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+              <MetricCard label="Profit factor" value={selectedStrategy.profitFactor.toFixed(2)} />
+              <MetricCard
+                label="Expectancy"
+                value={selectedStrategy.expectancy != null ? currency.format(selectedStrategy.expectancy) : "-"}
+                helper={selectedStrategy.payoffRatio != null ? `Payoff ${selectedStrategy.payoffRatio.toFixed(2)}` : undefined}
+              />
+              <MetricCard label="Trades" value={selectedStrategy.totalTrades.toLocaleString()} />
             </div>
             <div className="rounded border border-slate-200 bg-white p-3 text-sm text-slate-700 shadow-sm">{equityChart}</div>
             <div className="rounded border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
