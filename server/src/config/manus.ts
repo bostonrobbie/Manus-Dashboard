@@ -35,6 +35,7 @@ export interface ManusConfig {
   manusReady: boolean;
   modeLabel: ManusMode;
   warnings: string[];
+  maxUploadBytes: number;
 }
 
 let cachedConfig: ManusConfig | null = null;
@@ -63,6 +64,7 @@ export function loadManusConfig(): ManusConfig {
     manusMode ? false : true,
   );
   const authDebugEnabled = toBool(process.env.AUTH_DEBUG_ENABLED, nodeEnv !== "production");
+  const maxUploadBytes = toNumber(process.env.MAX_UPLOAD_BYTES, 5 * 1024 * 1024);
 
   const warnings: string[] = [];
   const missing: string[] = [];
@@ -111,6 +113,7 @@ export function loadManusConfig(): ManusConfig {
     manusReady,
     modeLabel,
     warnings,
+    maxUploadBytes,
   };
 
   return cachedConfig;

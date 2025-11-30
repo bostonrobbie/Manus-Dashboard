@@ -29,14 +29,14 @@ function StrategiesPage() {
     },
     { retry: 1 },
   );
-  const tradesQuery = trpc.portfolio.trades.useQuery({ timeRange }, { retry: 1 });
+  const tradesQuery = trpc.portfolio.trades.useQuery({ timeRange, page: 1, pageSize: 200 }, { retry: 1 });
   const strategyEquityQuery = trpc.portfolio.strategyEquity.useQuery(
     { strategyId: selectedStrategyId ?? 0, timeRange, maxPoints: 120 },
     { enabled: selectedStrategyId != null },
   );
 
   const selectedTrades = useMemo(
-    () => tradesQuery.data?.filter(trade => trade.strategyId === selectedStrategyId) ?? [],
+    () => tradesQuery.data?.rows?.filter(trade => trade.strategyId === selectedStrategyId) ?? [],
     [selectedStrategyId, tradesQuery.data],
   );
 

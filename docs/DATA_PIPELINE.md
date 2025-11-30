@@ -34,6 +34,8 @@ Apply migrations with `pnpm --filter drizzle migrate` before serving traffic.
     ```
 - Uploads are persisted to `upload_logs` with `rowCountTotal`, `rowCountImported`, `rowCountFailed`, `status`, `errorSummary`, and `warningsSummary` for full auditability.
 - Sanity checks reject empty symbols, zero quantities, inverted entry/exit times, and non-finite prices; extreme PnL versus notional is flagged as a warning instead of silently ingesting bad data.
+- Ingestion enforces CSV headers (`symbol`, `side`, `quantity`, `entryPrice`, `exitPrice`, `entryTime`, `exitTime` for trades; `symbol`, `date`, `close` for benchmarks) and returns structured errors when columns are missing or unexpected. Dates and numeric values are normalized and non-finite/absurd values are rejected with per-row warnings.
+- Uploads larger than `MAX_UPLOAD_BYTES` (default 5MB) or files that are not CSV/text are rejected before ingestion to avoid runaway processing.
 
 ## Sample & scripts
 - Sample data is scoped to the mock workspace (`workspaceId=1`) so the dashboard renders without a database.

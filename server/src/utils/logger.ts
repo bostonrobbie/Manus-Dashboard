@@ -13,7 +13,13 @@ function emit(level: LogLevel, message: string, meta?: LogMeta, component?: stri
   };
 
   if (component) payload.component = component;
-  if (meta) Object.assign(payload, meta);
+  if (meta) {
+    for (const [key, value] of Object.entries(meta)) {
+      if (value !== undefined) {
+        payload[key] = value;
+      }
+    }
+  }
 
   const serialized = JSON.stringify(payload);
   if (level === "info") console.log(serialized);

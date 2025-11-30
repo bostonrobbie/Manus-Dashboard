@@ -2,6 +2,7 @@ import { and, eq } from "drizzle-orm";
 
 import { getDb, schema } from "@server/db";
 import type { StrategyType } from "@shared/types/portfolio";
+import type { IngestionHeaderIssues, IngestionResult } from "@shared/types/ingestion";
 import { createUploadLog, updateUploadLog } from "./uploadLogs";
 import { createLogger } from "@server/utils/logger";
 
@@ -23,14 +24,6 @@ interface NormalizedTradeRow {
   exitTime: Date;
 }
 
-export interface TradeIngestionResult {
-  importedCount: number;
-  skippedCount: number;
-  errors: string[];
-  warnings: string[];
-  uploadId?: number;
-}
-
 export interface IngestTradesOptions {
   csv: string;
   userId: number;
@@ -40,7 +33,32 @@ export interface IngestTradesOptions {
   fileName?: string;
 }
 
-export async function ingestTradesCsv(options: IngestTradesOptions): Promise<TradeIngestionResult> {
+const REQUIRED_FIELDS: Array<{ label: string; keys: string[] }> = [
+  { label: "symbol", keys: ["symbol", "ticker", "asset"] },
+  { label: "side", keys: ["side", "position", "direction"] },
+  { label: "quantity", keys: ["quantity", "qty", "size"] },
+  { label: "entry price", keys: ["entryprice", "entry_price", "buyprice", "openprice"] },
+  { label: "exit price", keys: ["exitprice", "exit_price", "sellprice", "closeprice"] },
+  { label: "entry time", keys: ["entrytime", "entry_time", "entry", "opentime", "open_time"] },
+  { label: "exit time", keys: ["exittime", "exit_time", "exit", "closetime", "close_time"] },
+];
+
+const OPTIONAL_FIELDS = [
+  "strategy",
+  "strategyname",
+  "system",
+  "strategytype",
+  "type",
+  "strategyid",
+  "strategy_id",
+];
+const normalizeHeaderKey = (key: string) => key.replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
+
+const ALLOWED_HEADERS = new Set(
+  REQUIRED_FIELDS.flatMap(field => field.keys.map(normalizeHeaderKey)).concat(OPTIONAL_FIELDS.map(normalizeHeaderKey)),
+);
+
+export async function ingestTradesCsv(options: IngestTradesOptions): Promise<IngestionResult> {
   const errors: string[] = [];
   const warnings: string[] = [];
   const { headers, records } = parseCsvRecords(options.csv);
@@ -53,29 +71,37 @@ export async function ingestTradesCsv(options: IngestTradesOptions): Promise<Tra
     uploadType: "trades",
   });
 
-  logger.info("Starting trade ingestion", {
+  logger.info("Trade ingestion start", {
+    eventName: "INGEST_TRADES_START",
     userId: options.userId,
     workspaceId: options.workspaceId,
     totalRows,
     uploadId: uploadLog?.id,
   });
 
-  const missingRequiredColumns = findMissingRequiredColumns(headers);
-  if (missingRequiredColumns.length > 0) {
-    errors.push(`Missing required columns: ${missingRequiredColumns.join(", ")}`);
-    if (uploadLog) {
-      await updateUploadLog(uploadLog.id, {
-        rowCountTotal: totalRows,
-        rowCountFailed: totalRows,
-        status: "failed",
-        errorSummary: summarizeIssues(errors),
-        warningsSummary: summarizeIssues(warnings),
-      });
-    }
-    return { importedCount: 0, skippedCount: totalRows, errors, warnings, uploadId: uploadLog?.id };
+  const headerIssues = validateHeaders(headers);
+  if (headerIssues.missing.length > 0) {
+    errors.push(`Missing required columns: ${headerIssues.missing.join(", ")}`);
+    await persistUploadLog(uploadLog, {
+      rowCountTotal: totalRows,
+      rowCountFailed: totalRows,
+      status: "failed",
+      errorSummary: summarizeIssues(errors),
+      warningsSummary: summarizeIssues(warnings),
+    });
+    return {
+      importedCount: 0,
+      skippedCount: totalRows,
+      failedCount: totalRows,
+      errors,
+      warnings,
+      uploadId: uploadLog?.id,
+      headerIssues,
+    };
   }
 
   const normalizedRows: NormalizedTradeRow[] = [];
+  let failedCount = 0;
 
   for (const [idx, record] of records.entries()) {
     const rowNumber = idx + 2; // account for header row
@@ -95,6 +121,7 @@ export async function ingestTradesCsv(options: IngestTradesOptions): Promise<Tra
       }
     }
     if (rowErrors.length > 0) {
+      failedCount += 1;
       errors.push(...rowErrors);
     }
     if (rowWarnings.length > 0 && !normalized) {
@@ -105,17 +132,16 @@ export async function ingestTradesCsv(options: IngestTradesOptions): Promise<Tra
   const db = await getDb();
   if (!db) {
     errors.push("Database not configured");
-    logger.error("Trade ingestion failed before DB access", { uploadId: uploadLog?.id });
-    if (uploadLog) {
-      await updateUploadLog(uploadLog.id, {
-        rowCountTotal: totalRows,
-        rowCountFailed: totalRows,
-        status: "failed",
-        errorSummary: summarizeIssues(errors),
-        warningsSummary: summarizeIssues(warnings),
-      });
-    }
-    return { importedCount: 0, skippedCount: totalRows, errors, warnings, uploadId: uploadLog?.id };
+    failedCount = totalRows;
+    logger.error("Trade ingestion failed before DB access", { eventName: "INGEST_TRADES_FAILED", uploadId: uploadLog?.id });
+    await persistUploadLog(uploadLog, {
+      rowCountTotal: totalRows,
+      rowCountFailed: totalRows,
+      status: "failed",
+      errorSummary: summarizeIssues(errors),
+      warningsSummary: summarizeIssues(warnings),
+    });
+    return { importedCount: 0, skippedCount: totalRows, failedCount, errors, warnings, uploadId: uploadLog?.id };
   }
 
   const existingStrategies = await db
@@ -171,6 +197,7 @@ export async function ingestTradesCsv(options: IngestTradesOptions): Promise<Tra
       strategiesByName.get(options.defaultStrategyName ?? "Imported")?.id;
 
     if (!strategyId) {
+      failedCount += 1;
       errors.push(`Row with symbol ${row.symbol}: unable to resolve strategy`);
       return [];
     }
@@ -199,30 +226,34 @@ export async function ingestTradesCsv(options: IngestTradesOptions): Promise<Tra
   const skippedCount = totalRows - tradesToInsert.length;
   const status = tradesToInsert.length === 0 ? "failed" : errors.length > 0 ? "partial" : "success";
 
-  if (uploadLog) {
-    await updateUploadLog(uploadLog.id, {
-      rowCountTotal: totalRows,
-      rowCountImported: tradesToInsert.length,
-      rowCountFailed: skippedCount,
-      status,
-      errorSummary: summarizeIssues(errors),
-      warningsSummary: summarizeIssues(warnings),
-    });
-  }
+  await persistUploadLog(uploadLog, {
+    rowCountTotal: totalRows,
+    rowCountImported: tradesToInsert.length,
+    rowCountFailed: failedCount || skippedCount,
+    status,
+    errorSummary: summarizeIssues(errors),
+    warningsSummary: summarizeIssues(warnings),
+  });
 
-  logger.info("Finished trade ingestion", {
+  logger.info("Trade ingestion end", {
+    eventName: "INGEST_TRADES_END",
     uploadId: uploadLog?.id,
     imported: tradesToInsert.length,
     skipped: skippedCount,
+    failedCount,
     status,
+    workspaceId: options.workspaceId,
+    userId: options.userId,
   });
 
   return {
     importedCount: tradesToInsert.length,
     skippedCount,
+    failedCount: failedCount || skippedCount,
     errors,
     warnings,
     uploadId: uploadLog?.id,
+    headerIssues,
   };
 }
 
@@ -237,7 +268,7 @@ function parseCsvRecords(csv: string): { headers: string[]; records: CsvRecord[]
     if (!row.some(cell => cell.trim() !== "")) continue;
     const rec: CsvRecord = {};
     headers.forEach((header, idx) => {
-      const key = header.trim().toLowerCase();
+      const key = normalizeHeaderKey(header);
       rec[key] = (row[idx] ?? "").trim();
     });
     records.push(rec);
@@ -289,7 +320,8 @@ function normalizeRecord(
 ): NormalizedTradeRow | null {
   const pick = (...keys: string[]) => {
     for (const key of keys) {
-      const value = record[key.toLowerCase()];
+      const normalizedKey = normalizeHeaderKey(key);
+      const value = record[normalizedKey];
       if (value !== undefined && value !== null) {
         const trimmed = String(value).trim();
         if (trimmed !== "") return trimmed;
@@ -301,7 +333,12 @@ function normalizeRecord(
   const symbol = pick("symbol", "ticker", "asset");
   const sideRaw = pick("side", "position", "direction");
   const quantity = toNumber(pick("quantity", "qty", "size"), "quantity", rowNumber, errors);
-  const entryPrice = toNumber(pick("entryPrice", "entry_price", "buyPrice", "openPrice"), "entry price", rowNumber, errors);
+  const entryPrice = toNumber(
+    pick("entryPrice", "entry_price", "buyPrice", "openPrice"),
+    "entry price",
+    rowNumber,
+    errors,
+  );
   const exitPrice = toNumber(pick("exitPrice", "exit_price", "sellPrice", "closePrice"), "exit price", rowNumber, errors);
   const entryTimeStr = pick("entryTime", "entry_time", "entry", "openTime", "open_time");
   const exitTimeStr = pick("exitTime", "exit_time", "exit", "closeTime", "close_time");
@@ -319,7 +356,8 @@ function normalizeRecord(
   if (!entryTime || !exitTime) return null;
 
   const normalizedSide = normalizeSide(sideRaw);
-  const normalizedType: StrategyType | undefined = strategyTypeRaw === "intraday" ? "intraday" : strategyTypeRaw === "swing" ? "swing" : undefined;
+  const normalizedType: StrategyType | undefined =
+    strategyTypeRaw === "intraday" ? "intraday" : strategyTypeRaw === "swing" ? "swing" : undefined;
 
   return {
     strategyName,
@@ -358,6 +396,10 @@ function toNumber(
     errors.push(`Row ${rowNumber}: ${field} must be a valid number`);
     return null;
   }
+  if (Math.abs(num) > 1_000_000_000) {
+    errors.push(`Row ${rowNumber}: ${field} is out of supported range`);
+    return null;
+  }
   return num;
 }
 
@@ -366,34 +408,28 @@ function toDate(value: string | undefined, rowNumber: number, errors: string[], 
     errors.push(`Row ${rowNumber}: ${field} is required`);
     return null;
   }
-  const date = new Date(value.trim());
-  if (Number.isNaN(date.getTime())) {
+  const parsed = Date.parse(value.trim());
+  if (Number.isNaN(parsed)) {
     errors.push(`Row ${rowNumber}: ${field} is invalid`);
     return null;
   }
+  const date = new Date(parsed);
   return new Date(date.toISOString());
 }
 
-function findMissingRequiredColumns(headers: string[]): string[] {
-  const normalized = headers.map(h => h.trim().toLowerCase());
-  const requiredSets: Array<{ label: string; keys: string[] }> = [
-    { label: "symbol", keys: ["symbol", "ticker", "asset"] },
-    { label: "side", keys: ["side", "position", "direction"] },
-    { label: "quantity", keys: ["quantity", "qty", "size"] },
-    { label: "entry price", keys: ["entryprice", "entry_price", "buyprice", "openprice"] },
-    { label: "exit price", keys: ["exitprice", "exit_price", "sellprice", "closeprice"] },
-    { label: "entry time", keys: ["entrytime", "entry_time", "entry", "opentime", "open_time"] },
-    { label: "exit time", keys: ["exittime", "exit_time", "exit", "closetime", "close_time"] },
-  ];
-
+function validateHeaders(headers: string[]): IngestionHeaderIssues {
+  const normalized = headers.map(h => normalizeHeaderKey(h)).filter(Boolean);
   const missing: string[] = [];
-  for (const requirement of requiredSets) {
-    const hasField = requirement.keys.some(key => normalized.includes(key.toLowerCase()));
+  for (const requirement of REQUIRED_FIELDS) {
+    const hasField = requirement.keys.some(key => normalized.includes(normalizeHeaderKey(key)));
     if (!hasField) {
       missing.push(requirement.label);
     }
   }
-  return missing;
+
+  const unexpected = normalized.filter(header => !ALLOWED_HEADERS.has(header));
+
+  return { missing, unexpected };
 }
 
 function validateTradeRow(
@@ -420,6 +456,10 @@ function validateTradeRow(
     return false;
   }
 
+  if (Math.abs(row.entryPrice) > 10_000_000 || Math.abs(row.exitPrice) > 10_000_000) {
+    warnings.push(`Row ${rowNumber}: price values appear extreme`);
+  }
+
   const entryYear = row.entryTime.getUTCFullYear();
   const exitYear = row.exitTime.getUTCFullYear();
   if (entryYear < 2000 || exitYear < 2000) {
@@ -443,4 +483,13 @@ function summarizeIssues(list: string[]): string | null {
   if (!list.length) return null;
   const unique = Array.from(new Set(list));
   return unique.slice(0, 3).join(" | ");
+}
+
+async function persistUploadLog(
+  uploadLog: Awaited<ReturnType<typeof createUploadLog>>,
+  update: Parameters<typeof updateUploadLog>[1],
+) {
+  if (uploadLog) {
+    await updateUploadLog(uploadLog.id, update);
+  }
 }

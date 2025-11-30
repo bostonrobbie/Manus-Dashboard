@@ -12,6 +12,7 @@
     "preview": "pnpm --filter client run preview",
     "migrate": "pnpm --filter drizzle run migrate",
     "db:seed:demo": "tsx server/scripts/seed-demo-data.ts",
+    "db:seed:large": "tsx server/scripts/load-large-dataset.ts",
     "smoke:test": "pnpm --filter server run smoke:test"
   },
   "devDependencies": {

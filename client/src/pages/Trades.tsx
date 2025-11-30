@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { trpc } from "../lib/trpc";
 import { useDashboardState } from "../providers/DashboardProvider";
@@ -15,7 +15,21 @@ function TradesPage() {
   const [strategyFilter, setStrategyFilter] = useState<number | "all">("all");
   const [sideFilter, setSideFilter] = useState<string>("all");
 
-  const tradesQuery = trpc.portfolio.trades.useQuery({ timeRange }, { retry: 1 });
+  useEffect(() => {
+    setPage(1);
+  }, [timeRange]);
+
+  const tradesQuery = trpc.portfolio.trades.useQuery(
+    {
+      timeRange,
+      page,
+      pageSize: PAGE_SIZE,
+      symbol: symbolFilter.trim() || undefined,
+      strategyId: strategyFilter === "all" ? undefined : strategyFilter,
+      side: sideFilter === "all" ? undefined : sideFilter,
+    },
+    { retry: 1, keepPreviousData: true },
+  );
   const strategiesQuery = trpc.strategies.list.useQuery(undefined, { retry: 1 });
 
   const strategyLookup = useMemo(() => {
@@ -24,17 +38,9 @@ function TradesPage() {
     return map;
   }, [strategiesQuery.data]);
 
-  const filteredTrades = useMemo(() => {
-    const trades = tradesQuery.data ?? [];
-    return trades
-      .filter(trade => (symbolFilter ? trade.symbol.toLowerCase().includes(symbolFilter.toLowerCase()) : true))
-      .filter(trade => (strategyFilter === "all" ? true : trade.strategyId === strategyFilter))
-      .filter(trade => (sideFilter === "all" ? true : trade.side.toLowerCase() === sideFilter));
-  }, [tradesQuery.data, symbolFilter, strategyFilter, sideFilter]);
-
-  const totalPages = Math.max(1, Math.ceil(filteredTrades.length / PAGE_SIZE));
-  const startIndex = (page - 1) * PAGE_SIZE;
-  const pageTrades = filteredTrades.slice(startIndex, startIndex + PAGE_SIZE);
+  const trades = tradesQuery.data?.rows ?? [];
+  const total = tradesQuery.data?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   const currency = useMemo(
     () =>
@@ -121,12 +127,12 @@ function TradesPage() {
       <Card>
         <CardHeader>
           <CardTitle className="text-sm">Trade blotter</CardTitle>
-          <p className="text-xs text-slate-500">{filteredTrades.length} trades</p>
+          <p className="text-xs text-slate-500">{total} trades</p>
         </CardHeader>
         <CardContent className="overflow-x-auto">
           {tradesQuery.isLoading ? (
             <div className="h-24 animate-pulse rounded bg-slate-100" />
-          ) : pageTrades.length ? (
+          ) : trades.length ? (
             <table className="min-w-full divide-y divide-slate-200 text-sm">
               <thead className="bg-slate-50">
                 <tr>
@@ -141,7 +147,7 @@ function TradesPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {pageTrades.map(trade => (
+                {trades.map(trade => (
                   <tr key={trade.id} className="hover:bg-slate-50">
                     <td className="px-3 py-2 text-slate-600">{trade.exitTime.split("T")[0]}</td>
                     <td className="px-3 py-2 font-semibold text-slate-900">{trade.symbol}</td>
