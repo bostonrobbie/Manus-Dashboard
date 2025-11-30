@@ -1,9 +1,15 @@
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+
 import DashboardLayout from "./components/DashboardLayout";
-import Navigation from "./components/Navigation";
 import { Button } from "./components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./components/ui/card";
 import { useAuthState } from "./hooks/useAuthState";
-import DashboardNew from "./pages/DashboardNew";
+import OverviewPage from "./pages/Overview";
+import SettingsPage from "./pages/Settings";
+import StrategiesPage from "./pages/Strategies";
+import TradesPage from "./pages/Trades";
+import UploadsPage from "./pages/Uploads";
+import { DashboardProvider } from "./providers/DashboardProvider";
 
 function App() {
   const { viewer, isLoading, isError, refetch } = useAuthState();
@@ -64,10 +70,20 @@ function App() {
   }
 
   return (
-    <DashboardLayout user={viewer.user} mode={viewer.mode} mock={viewer.mock}>
-      <Navigation />
-      <DashboardNew />
-    </DashboardLayout>
+    <BrowserRouter>
+      <DashboardProvider user={viewer.user}>
+        <DashboardLayout user={viewer.user} mode={viewer.mode} mock={viewer.mock}>
+          <Routes>
+            <Route path="/" element={<OverviewPage />} />
+            <Route path="/strategies" element={<StrategiesPage />} />
+            <Route path="/trades" element={<TradesPage />} />
+            <Route path="/uploads" element={<UploadsPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </DashboardLayout>
+      </DashboardProvider>
+    </BrowserRouter>
   );
 }
 

@@ -6,6 +6,7 @@ import SuperJSON from "superjson";
 import App from "./App";
 import "./index.css";
 import { trpc } from "./lib/trpc";
+import { getWorkspaceHeaderValue } from "./lib/workspaceHeaders";
 
 const queryClient = new QueryClient();
 
@@ -26,7 +27,7 @@ const trpcClient = trpc.createClient({
         const manusHeader = import.meta.env.VITE_MANUS_AUTH_HEADER?.trim();
         const manusToken = import.meta.env.VITE_MANUS_AUTH_TOKEN?.trim();
         const workspaceHeader = import.meta.env.VITE_MANUS_WORKSPACE_HEADER?.trim();
-        const workspaceId = import.meta.env.VITE_MANUS_WORKSPACE_ID?.trim();
+        const workspaceId = getWorkspaceHeaderValue() ?? import.meta.env.VITE_MANUS_WORKSPACE_ID?.trim();
 
         if (manusHeader && manusToken) headers[manusHeader] = manusToken;
         if (workspaceHeader && workspaceId) headers[workspaceHeader] = workspaceId;
