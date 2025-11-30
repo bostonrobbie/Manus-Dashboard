@@ -12,6 +12,7 @@ import {
 } from "@server/engine/portfolio-engine";
 import { authedProcedure, router } from "@server/trpc/router";
 import { ingestTradesCsv } from "@server/services/tradeIngestion";
+import { ingestBenchmarksCsv } from "@server/services/benchmarkIngestion";
 import { TIME_RANGE_PRESETS, deriveDateRangeFromTimeRange } from "@server/utils/timeRange";
 
 const finiteNumber = z.number().finite();
@@ -84,6 +85,7 @@ const tradeIngestionResultSchema = z.object({
   warnings: z.array(z.string()),
   uploadId: z.number().int().optional(),
 });
+const benchmarkIngestionResultSchema = tradeIngestionResultSchema;
 
 const timeRangeInput = z
   .object({
@@ -295,6 +297,32 @@ export const portfolioRouter = router({
         throw new TRPCError({
           code: "BAD_REQUEST",
           message: error instanceof Error ? error.message : "Failed to ingest trades",
+        });
+      }
+    }),
+  uploadBenchmarksCsv: authedProcedure
+    .input(
+      z.object({
+        csv: z.string(),
+        fileName: z.string().optional(),
+        symbol: z.string().optional(),
+      }),
+    )
+    .output(benchmarkIngestionResultSchema)
+    .mutation(async ({ ctx, input }) => {
+      try {
+        const result = await ingestBenchmarksCsv({
+          csv: input.csv,
+          userId: ctx.user.id,
+          workspaceId: ctx.user.workspaceId ?? 1,
+          fileName: input.fileName,
+          defaultSymbol: input.symbol,
+        });
+        return benchmarkIngestionResultSchema.parse(result);
+      } catch (error) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: error instanceof Error ? error.message : "Failed to ingest benchmarks",
         });
       }
     }),

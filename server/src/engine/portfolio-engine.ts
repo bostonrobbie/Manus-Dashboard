@@ -1,4 +1,4 @@
-import { and, between, eq, gte, inArray, lte } from "drizzle-orm";
+import { and, between, eq, gte, inArray, isNull, lte } from "drizzle-orm";
 import {
   DrawdownPoint,
   DrawdownResponse,
@@ -208,7 +208,7 @@ export async function loadTrades(scope: UserScope, opts: TradeLoadOptions = {}):
       exitTime: Date | string;
     };
 
-    const predicates = [eq(schema.trades.userId, userId)];
+    const predicates = [eq(schema.trades.userId, userId), isNull(schema.trades.deletedAt)];
     if (workspaceId != null) {
       predicates.push(eq(schema.trades.workspaceId, workspaceId));
     }
@@ -280,7 +280,7 @@ async function loadBenchmarks(scope: UserScope, startDate?: string, endDate?: st
   if (db) {
     type BenchmarkRecord = { date: string; close: unknown };
 
-    const predicates: any[] = [];
+    const predicates: any[] = [isNull(schema.benchmarks.deletedAt)];
     if (workspaceId != null) {
       predicates.push(eq(schema.benchmarks.workspaceId, workspaceId));
     }

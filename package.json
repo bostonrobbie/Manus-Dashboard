@@ -11,6 +11,7 @@
     "start": "pnpm --filter server run start:prod",
     "preview": "pnpm --filter client run preview",
     "migrate": "pnpm --filter drizzle run migrate",
+    "db:seed:demo": "tsx server/scripts/seed-demo-data.ts",
     "smoke:test": "pnpm --filter server run smoke:test"
   },
   "devDependencies": {

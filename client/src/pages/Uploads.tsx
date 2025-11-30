@@ -14,6 +14,8 @@ function UploadsPage() {
   const [fileName, setFileName] = useState("trades.csv");
   const [strategyName, setStrategyName] = useState("");
   const [strategyType, setStrategyType] = useState<"swing" | "intraday" | "">("");
+  const [benchmarkSymbol, setBenchmarkSymbol] = useState("");
+  const [uploadType, setUploadType] = useState<UploadType>("trades");
   const [filterType, setFilterType] = useState<UploadType | "">("");
   const [filterStatus, setFilterStatus] = useState<UploadStatus | "">("");
   const [expandedId, setExpandedId] = useState<number | null>(null);
@@ -33,6 +35,13 @@ function UploadsPage() {
     },
   });
 
+  const benchmarkUpload = trpc.portfolio.uploadBenchmarksCsv.useMutation({
+    onSuccess: async data => {
+      await utils.uploads.list.invalidate();
+      setExpandedId(data.uploadId ?? null);
+    },
+  });
+
   const handleFile = async (file: File) => {
     const text = await file.text();
     setCsvText(text);
@@ -41,12 +50,20 @@ function UploadsPage() {
 
   const handleSubmit = () => {
     if (!csvText.trim()) return;
-    uploadMutation.mutate({
-      csv: csvText,
-      fileName,
-      strategyName: strategyName || undefined,
-      strategyType: strategyType || undefined,
-    });
+    if (uploadType === "benchmarks") {
+      benchmarkUpload.mutate({
+        csv: csvText,
+        fileName,
+        symbol: benchmarkSymbol || undefined,
+      });
+    } else {
+      uploadMutation.mutate({
+        csv: csvText,
+        fileName,
+        strategyName: strategyName || undefined,
+        strategyType: strategyType || undefined,
+      });
+    }
   };
 
   const statusBadge = (status: UploadStatus) => {
@@ -55,11 +72,12 @@ function UploadsPage() {
     return <Badge variant={variant}>{label}</Badge>;
   };
 
-  const hint = useMemo(
-    () =>
-      "Uploads respect the current workspace and user auth. CSV headers should include symbol, side, quantity, entryPrice, exitPrice, entryTime, exitTime.",
-    [],
-  );
+  const hint = useMemo(() => {
+    if (uploadType === "benchmarks") {
+      return "Benchmarks: symbol,date,close (workspace scoped). See DATA_PIPELINE for exact format.";
+    }
+    return "Trades: symbol, side, quantity, entryPrice, exitPrice, entryTime, exitTime.";
+  }, [uploadType]);
 
   return (
     <div className="space-y-4">
@@ -71,10 +89,29 @@ function UploadsPage() {
       <Card>
         <CardHeader>
           <CardTitle className="text-sm">Upload CSV</CardTitle>
-          <p className="text-xs text-slate-500">Trades are validated with sanity checks and linked to your workspace.</p>
+          <p className="text-xs text-slate-500">
+            Trades and benchmarks are validated with sanity checks and linked to your workspace. See DATA_PIPELINE for column
+            formats.
+          </p>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+            <div className="flex flex-col gap-1 text-sm">
+              <label className="text-xs uppercase tracking-wide text-slate-500">Upload type</label>
+              <select
+                className="rounded-md border border-slate-200 px-3 py-2 text-sm"
+                value={uploadType}
+                onChange={event => {
+                  const next = event.target.value as UploadType;
+                  setUploadType(next);
+                  setFileName(next === "benchmarks" ? "benchmarks.csv" : "trades.csv");
+                }}
+              >
+                <option value="trades">Trades</option>
+                <option value="benchmarks">Benchmarks</option>
+              </select>
+              <p className="text-xs text-slate-500">Attach to workspace {workspaceId ?? "?"}.</p>
+            </div>
             <div className="flex flex-col gap-1 text-sm">
               <label className="text-xs uppercase tracking-wide text-slate-500">Choose file</label>
               <input
@@ -87,48 +124,76 @@ function UploadsPage() {
               />
               <p className="text-xs text-slate-500">or paste CSV below</p>
             </div>
-            <div className="flex flex-col gap-1 text-sm">
-              <label className="text-xs uppercase tracking-wide text-slate-500">Default strategy name</label>
-              <input
-                className="rounded-md border border-slate-200 px-3 py-2 text-sm"
-                placeholder="Optional"
-                value={strategyName}
-                onChange={event => setStrategyName(event.target.value)}
-              />
-            </div>
-            <div className="flex flex-col gap-1 text-sm">
-              <label className="text-xs uppercase tracking-wide text-slate-500">Strategy type</label>
-              <select
-                className="rounded-md border border-slate-200 px-3 py-2 text-sm"
-                value={strategyType}
-                onChange={event => setStrategyType(event.target.value as "swing" | "intraday" | "")}
-              >
-                <option value="">Infer from CSV</option>
-                <option value="swing">Swing</option>
-                <option value="intraday">Intraday</option>
-              </select>
-            </div>
+            {uploadType === "trades" ? (
+              <>
+                <div className="flex flex-col gap-1 text-sm">
+                  <label className="text-xs uppercase tracking-wide text-slate-500">Default strategy name</label>
+                  <input
+                    className="rounded-md border border-slate-200 px-3 py-2 text-sm"
+                    placeholder="Optional"
+                    value={strategyName}
+                    onChange={event => setStrategyName(event.target.value)}
+                  />
+                </div>
+                <div className="flex flex-col gap-1 text-sm">
+                  <label className="text-xs uppercase tracking-wide text-slate-500">Strategy type</label>
+                  <select
+                    className="rounded-md border border-slate-200 px-3 py-2 text-sm"
+                    value={strategyType}
+                    onChange={event => setStrategyType(event.target.value as "swing" | "intraday" | "")}
+                  >
+                    <option value="">Infer from CSV</option>
+                    <option value="swing">Swing</option>
+                    <option value="intraday">Intraday</option>
+                  </select>
+                </div>
+              </>
+            ) : (
+              <div className="flex flex-col gap-1 text-sm">
+                <label className="text-xs uppercase tracking-wide text-slate-500">Benchmark symbol (optional override)</label>
+                <input
+                  className="rounded-md border border-slate-200 px-3 py-2 text-sm"
+                  placeholder="Defaults to column symbol"
+                  value={benchmarkSymbol}
+                  onChange={event => setBenchmarkSymbol(event.target.value)}
+                />
+              </div>
+            )}
           </div>
 
           <textarea
             className="h-40 w-full rounded-md border border-slate-200 p-3 font-mono text-xs"
-            placeholder="symbol,side,quantity,entryPrice,exitPrice,entryTime,exitTime"
+            placeholder={
+              uploadType === "benchmarks"
+                ? "symbol,date,close"
+                : "symbol,side,quantity,entryPrice,exitPrice,entryTime,exitTime"
+            }
             value={csvText}
             onChange={event => setCsvText(event.target.value)}
           />
           <div className="flex items-center justify-between text-sm text-slate-600">
             <span>{hint}</span>
-            <Button size="sm" onClick={handleSubmit} disabled={uploadMutation.isPending}>
-              {uploadMutation.isPending ? "Uploading..." : "Upload"}
+            <Button
+              size="sm"
+              onClick={handleSubmit}
+              disabled={uploadMutation.isPending || benchmarkUpload.isPending}
+            >
+              {uploadMutation.isPending || benchmarkUpload.isPending ? "Uploading..." : "Upload"}
             </Button>
           </div>
-          {uploadMutation.isError ? (
-            <div className="rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-800">{uploadMutation.error?.message}</div>
+          {uploadMutation.isError || benchmarkUpload.isError ? (
+            <div className="rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-800">
+              {uploadMutation.error?.message || benchmarkUpload.error?.message}
+            </div>
           ) : null}
-          {uploadMutation.isSuccess ? (
+          {uploadMutation.isSuccess || benchmarkUpload.isSuccess ? (
             <div className="rounded-md bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
-              Imported {uploadMutation.data.importedCount} rows, skipped {uploadMutation.data.skippedCount}.
-              {uploadMutation.data.warnings.length ? ` Warnings: ${uploadMutation.data.warnings.join("; ")}` : null}
+              Imported {uploadMutation.data?.importedCount ?? benchmarkUpload.data?.importedCount} rows, skipped
+              {" "}
+              {uploadMutation.data?.skippedCount ?? benchmarkUpload.data?.skippedCount}.
+              {(uploadMutation.data?.warnings ?? benchmarkUpload.data?.warnings ?? []).length
+                ? ` Warnings: ${(uploadMutation.data?.warnings ?? benchmarkUpload.data?.warnings ?? []).join("; ")}`
+                : null}
             </div>
           ) : null}
         </CardContent>
