@@ -15,6 +15,8 @@ interface NormalizedTradeRow {
   strategyName: string;
   strategyType?: StrategyType;
   strategyId?: number;
+  externalId?: string;
+  naturalKey: string;
   symbol: string;
   side: string;
   quantity: number;
@@ -51,6 +53,8 @@ const OPTIONAL_FIELDS = [
   "type",
   "strategyid",
   "strategy_id",
+  "external_id",
+  "trade_id",
 ];
 const normalizeHeaderKey = (key: string) => key.replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
 
@@ -189,6 +193,9 @@ export async function ingestTradesCsv(options: IngestTradesOptions): Promise<Ing
     }
   }
 
+  let insertedCount = 0;
+  let dedupedCount = 0;
+
   const tradesToInsert = normalizedRows.flatMap(row => {
     const strategyIdFromRow = row.strategyId && strategiesById.has(row.strategyId) ? row.strategyId : undefined;
     const strategyId =
@@ -214,21 +221,33 @@ export async function ingestTradesCsv(options: IngestTradesOptions): Promise<Ing
         exitPrice: row.exitPrice.toString(),
         entryTime: row.entryTime,
         exitTime: row.exitTime,
+        externalId: row.externalId,
+        naturalKey: row.naturalKey,
         uploadId: uploadLog?.id,
       },
     ];
   });
 
   if (tradesToInsert.length > 0) {
-    await db.insert(schema.trades).values(tradesToInsert);
+    const inserted = await db
+      .insert(schema.trades)
+      .values(tradesToInsert)
+      .onConflictDoNothing({ target: [schema.trades.workspaceId, schema.trades.naturalKey] })
+      .returning({ id: schema.trades.id });
+
+    dedupedCount = tradesToInsert.length - inserted.length;
+    insertedCount = inserted.length;
+    if (dedupedCount > 0) {
+      warnings.push(`${dedupedCount} trades skipped due to duplicate natural keys`);
+    }
   }
 
-  const skippedCount = totalRows - tradesToInsert.length;
-  const status = tradesToInsert.length === 0 ? "failed" : errors.length > 0 ? "partial" : "success";
+  const skippedCount = totalRows - insertedCount;
+  const status = insertedCount === 0 ? "failed" : errors.length > 0 ? "partial" : "success";
 
   await persistUploadLog(uploadLog, {
     rowCountTotal: totalRows,
-    rowCountImported: tradesToInsert.length,
+    rowCountImported: insertedCount,
     rowCountFailed: failedCount || skippedCount,
     status,
     errorSummary: summarizeIssues(errors),
@@ -238,7 +257,7 @@ export async function ingestTradesCsv(options: IngestTradesOptions): Promise<Ing
   logger.info("Trade ingestion end", {
     eventName: "INGEST_TRADES_END",
     uploadId: uploadLog?.id,
-    imported: tradesToInsert.length,
+    imported: insertedCount,
     skipped: skippedCount,
     failedCount,
     status,
@@ -247,7 +266,7 @@ export async function ingestTradesCsv(options: IngestTradesOptions): Promise<Ing
   });
 
   return {
-    importedCount: tradesToInsert.length,
+    importedCount: insertedCount,
     skippedCount,
     failedCount: failedCount || skippedCount,
     errors,
@@ -345,6 +364,7 @@ function normalizeRecord(
   const strategyName = pick("strategy", "strategyName", "system") ?? defaultStrategyName ?? "Imported";
   const strategyTypeRaw = (pick("strategyType", "type") ?? defaultStrategyType) as StrategyType | undefined;
   const strategyId = toNumber(pick("strategyId", "strategy_id"), "strategy id", rowNumber, errors, true);
+  const externalId = pick("external_id", "trade_id", "id");
 
   if (!symbol || !sideRaw || quantity == null || entryPrice == null || exitPrice == null || !entryTimeStr || !exitTimeStr) {
     errors.push(`Row ${rowNumber}: missing required field(s)`);
@@ -359,10 +379,23 @@ function normalizeRecord(
   const normalizedType: StrategyType | undefined =
     strategyTypeRaw === "intraday" ? "intraday" : strategyTypeRaw === "swing" ? "swing" : undefined;
 
+  const naturalKey = [
+    (strategyId ?? strategyName ?? "").toString().toLowerCase(),
+    symbol.toUpperCase(),
+    normalizedSide,
+    quantity.toFixed(4),
+    entryPrice.toFixed(4),
+    exitPrice.toFixed(4),
+    entryTime.toISOString(),
+    exitTime.toISOString(),
+  ].join("|");
+
   return {
     strategyName,
     strategyType: normalizedType,
     strategyId: strategyId ?? undefined,
+    externalId: externalId || undefined,
+    naturalKey,
     symbol,
     side: normalizedSide,
     quantity,
