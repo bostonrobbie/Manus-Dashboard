@@ -25,6 +25,7 @@ export interface EquityCurveOptions {
   startDate?: string; // derived from time range selector
   endDate?: string; // derived from time range selector
   maxPoints?: number;
+  strategyIds?: number[];
 }
 
 export interface UserScope {
@@ -311,10 +312,10 @@ export async function buildAggregatedEquityCurve(
   scope: UserScope,
   opts: EquityCurveOptions = {},
 ): Promise<EquityCurveResponse> {
-  const { startDate, endDate, maxPoints } = opts;
+  const { startDate, endDate, maxPoints, strategyIds } = opts;
   const [strategies, trades, benchmarkRows] = await Promise.all([
     loadStrategies(scope),
-    loadTrades(scope, { startDate, endDate }),
+    loadTrades(scope, { startDate, endDate, strategyIds }),
     loadBenchmarks(scope, startDate, endDate),
   ]);
 

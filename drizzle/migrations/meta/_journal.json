@@ -15,6 +15,13 @@
       "when": 1764184924665,
       "tag": "0001_manus_multitenant",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1764184924666,
+      "tag": "0002_upload_audit",
+      "breakpoints": true
     }
   ]
 }

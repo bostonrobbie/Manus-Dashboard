@@ -14,6 +14,8 @@ function OverviewPage() {
   const overviewQuery = trpc.portfolio.overview.useQuery({ timeRange }, { retry: 1 });
   const summaryQuery = trpc.analytics.summary.useQuery({ timeRange }, { retry: 1 });
   const equityQuery = trpc.portfolio.equityCurves.useQuery({ maxPoints: 90, timeRange }, { retry: 1 });
+  const drawdownQuery = trpc.portfolio.drawdowns.useQuery({ maxPoints: 90, timeRange }, { retry: 1 });
+  const rangeMetricsQuery = trpc.analytics.rangeMetrics.useQuery({ timeRange }, { retry: 1 });
   const comparisonQuery = trpc.portfolio.strategyComparison.useQuery(
     {
       page: 1,
@@ -29,6 +31,8 @@ function OverviewPage() {
   const overview = overviewQuery.data;
   const summary = summaryQuery.data;
   const equity = equityQuery.data?.points ?? [];
+  const drawdowns = drawdownQuery.data?.points ?? [];
+  const rangeMetrics = rangeMetricsQuery.data;
   const comparison = comparisonQuery.data;
 
   const currency = useMemo(
@@ -74,6 +78,28 @@ function OverviewPage() {
     </div>
   );
 
+  const drawdownChart = (
+    <div className="h-48">
+      {drawdownQuery.isLoading ? (
+        <div className="h-full animate-pulse rounded bg-slate-100" />
+      ) : drawdowns.length ? (
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={drawdowns} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+            <XAxis dataKey="date" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
+            <YAxis tickFormatter={val => currency.format(val as number)} tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
+            <Tooltip formatter={value => currency.format(Number(value))} />
+            <Line type="monotone" dataKey="combined" stroke="#f97316" strokeWidth={2} dot={false} />
+          </LineChart>
+        </ResponsiveContainer>
+      ) : (
+        <div className="flex h-full items-center justify-center rounded border border-dashed border-slate-200 bg-slate-50 text-sm text-slate-600">
+          No drawdown history available for this window.
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <div className="space-y-4">
       <div className="flex items-baseline justify-between">
@@ -113,12 +139,42 @@ function OverviewPage() {
         />
       </div>
 
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
+        <MetricCard
+          label="PnL in range"
+          value={rangeMetrics ? currency.format(rangeMetrics.pnl) : undefined}
+          helper={rangeMetrics ? percent.format(rangeMetrics.pnlPct / 100) : undefined}
+          isLoading={rangeMetricsQuery.isLoading}
+        />
+        <MetricCard
+          label="Trades in range"
+          value={rangeMetrics?.tradeCount?.toLocaleString()}
+          helper={rangeMetrics ? `${rangeMetrics.winRate.toFixed(1)}% win rate` : undefined}
+          isLoading={rangeMetricsQuery.isLoading}
+        />
+        <MetricCard
+          label="Max drawdown (range)"
+          value={rangeMetrics ? currency.format(rangeMetrics.maxDrawdown) : undefined}
+          helper={rangeMetrics ? percent.format(rangeMetrics.maxDrawdownPct / 100) : undefined}
+          isLoading={rangeMetricsQuery.isLoading}
+        />
+        <MetricCard label="Time window" value={timeRange?.preset ?? "Custom"} helper="Synced with Manus scope" />
+      </div>
+
       <Card>
         <CardHeader>
           <CardTitle className="text-sm">Equity curve</CardTitle>
           <p className="text-xs text-slate-500">Respects workspace and global time range.</p>
         </CardHeader>
         <CardContent>{equityChart}</CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm">Drawdown</CardTitle>
+          <p className="text-xs text-slate-500">Depth of pullbacks during the selected time range.</p>
+        </CardHeader>
+        <CardContent>{drawdownChart}</CardContent>
       </Card>
 
       <Card>
