@@ -17,9 +17,16 @@ A Manus-compatible, Antigravity-ready monorepo with a React 19 + Vite frontend a
 4. Run the backend: `pnpm --filter server dev`.
 5. Run the frontend: `pnpm --filter client dev`.
 
+> Manus operators: see [docs/MANUS_INTEGRATION_PLAN.md](docs/MANUS_INTEGRATION_PLAN.md) for the staged auth/data alignment steps before production rollout.
+
 ## Building
 - `pnpm run build` builds all workspaces.
 - `pnpm --filter server start` starts the compiled API (port defaults to 4000).
 
 ## Health
 `GET /health` returns `{ "status": "ok" }` and can be used for Manus readiness checks.
+
+## Manus Integration Track
+- High-level migration and compatibility work is tracked in [docs/MANUS_INTEGRATION_PLAN.md](docs/MANUS_INTEGRATION_PLAN.md).
+- Deployment prerequisites and commands are in [docs/DeploymentToManus.md](docs/DeploymentToManus.md).
+- Architecture and portfolio engine details are in `docs/` (see `Architecture.md` and `PortfolioEngine.md`).
