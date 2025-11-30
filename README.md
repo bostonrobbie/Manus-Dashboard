@@ -21,13 +21,13 @@ A Manus-compatible, Antigravity-ready monorepo with a React 19 + Vite frontend a
 
 ## Building
 - `pnpm run build` builds all workspaces.
-- `pnpm --filter server start` starts the compiled API (port defaults to 4000).
+- `pnpm start` builds then starts the compiled API (port defaults to 3001).
 
 ## Health
-`GET /health` returns `{ status, db, mode, manusReady, mockUser, timestamp }` and can be used for Manus readiness checks. Manus mode reports `manusReady=false` if the JWT secret/public key is missing.
+`GET /health` returns `{ status, mode, manusReady, mockUser, warnings }` and can be used for Manus readiness checks. `GET /health/full` probes the database, workspaces table, upload logs, and Manus auth readiness; failures return `503` with details.
 
 ## Auth & data modes
-- **Manus mode** (`MANUS_MODE=true`): expects `MANUS_AUTH_HEADER`/`MANUS_WORKSPACE_HEADER` (or a bearer token validated via `MANUS_JWT_SECRET`/`MANUS_PUBLIC_KEY_URL`). Requests without auth return `UNAUTHORIZED`.
+- **Manus mode** (`MANUS_MODE=true`): expects `MANUS_AUTH_HEADER_USER`/`MANUS_AUTH_HEADER_WORKSPACE` (or a bearer token validated via `MANUS_JWT_SECRET`/`MANUS_PUBLIC_KEY_URL`). Requests without auth return `UNAUTHORIZED`.
 - **Local/mock mode** (`MOCK_USER_ENABLED=true`): injects a deterministic mock user (`id=1`, `workspaceId=1`) so the dashboard stays usable without Manus headers. Frontend helpers `VITE_MANUS_AUTH_HEADER`/`VITE_MANUS_AUTH_TOKEN` can be set to mirror Manus headers during local QA.
 
 ## Manus Integration Track

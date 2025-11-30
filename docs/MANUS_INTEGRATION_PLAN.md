@@ -45,7 +45,8 @@ This plan describes how to adapt the canonical `Manus-Dashboard` repository so M
 ## Operationalization
 - Environment variables:
   - `DATABASE_URL`
-  - `MANUS_AUTH_HEADER` (name of inbound header)
+  - `MANUS_AUTH_HEADER_USER` (name of inbound user header)
+  - `MANUS_AUTH_HEADER_WORKSPACE` (name of inbound workspace header)
   - `MANUS_PUBLIC_KEY_URL` or `MANUS_JWT_SECRET`
   - `MANUS_BASE_URL` for linking out to Manus
   - `MOCK_USER_ENABLED` for local dev fallback

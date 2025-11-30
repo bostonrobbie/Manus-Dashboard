@@ -15,6 +15,9 @@ function SettingsPage() {
     <Badge variant={ok ? "success" : "warning"}>{label}</Badge>
   );
 
+  const full = health.full;
+  const detailList = full?.details ? Object.entries(full.details).filter(([, value]) => Boolean(value)) : [];
+
   return (
     <div className="space-y-4">
       <div>
@@ -29,13 +32,33 @@ function SettingsPage() {
         <CardContent className="space-y-3">
           <div className="flex flex-wrap gap-2 text-sm">
             {statusBadge(health.label, health.status === "ok")}
-            {statusBadge(`DB: ${health.db}`, health.db === "up")}
+            {statusBadge(`DB: ${full?.db ?? "unknown"}`, full?.db === "ok")}
+            {statusBadge(`Workspaces: ${full?.workspaces ?? "unknown"}`, full?.workspaces === "ok")}
+            {statusBadge(`Uploads: ${full?.uploads ?? "unknown"}`, full?.uploads === "ok")}
+            {statusBadge(`Auth: ${full?.auth ?? "n/a"}`, full?.auth === "ok")}
             <Badge variant="secondary">Mode: {health.mode ?? "unknown"}</Badge>
             {health.mockUser ? <Badge variant="warning">Mock user enabled</Badge> : null}
           </div>
-          {health.status !== "ok" ? (
+          {health.warnings.length > 0 ? (
             <div className="rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-800">
-              Check Manus auth headers and database connectivity. Manus mode requires a JWT secret or public key URL.
+              <p className="font-semibold">Warnings</p>
+              <ul className="mt-1 list-disc space-y-1 pl-4">
+                {health.warnings.map(warn => (
+                  <li key={warn}>{warn}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+          {detailList && detailList.length > 0 ? (
+            <div className="rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-800">
+              <p className="font-semibold">Signals</p>
+              <ul className="mt-1 list-disc space-y-1 pl-4">
+                {detailList.map(([key, value]) => (
+                  <li key={key}>
+                    {key}: {value}
+                  </li>
+                ))}
+              </ul>
             </div>
           ) : null}
         </CardContent>

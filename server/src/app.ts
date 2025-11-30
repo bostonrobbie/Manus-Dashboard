@@ -1,62 +1,28 @@
 import express from "express";
 import cors from "cors";
 import * as trpcExpress from "@trpc/server/adapters/express";
-import { sql } from "drizzle-orm";
-import { getDb } from "./db";
+
 import { createContext } from "./trpc/context";
 import { appRouter } from "./routers";
-import { env } from "./utils/env";
+import { runBasicHealthCheck, runFullHealthCheck } from "./health";
+import { createLogger } from "./utils/logger";
 
-type MinimalDb = { execute: (query: any) => Promise<any> } | null;
-
-export async function runHealthCheck(getDbImpl: () => Promise<MinimalDb> = getDb) {
-  const HEALTH_TIMEOUT_MS = 3000;
-  let timer: NodeJS.Timeout | undefined;
-  const manusReady = env.manusMode && Boolean(env.manusJwtSecret || env.manusPublicKeyUrl);
-  const healthyMode = manusReady || !env.manusMode ? "ok" : "degraded";
-  const timeoutPromise = new Promise((_, reject) => {
-    timer = setTimeout(() => reject(new Error("health check timed out")), HEALTH_TIMEOUT_MS);
-  });
-
-  try {
-    const db = await getDbImpl();
-    if (!db) throw new Error("database not configured");
-
-    await Promise.race([db.execute(sql`select 1`), timeoutPromise]);
-    const payload = {
-      status: healthyMode,
-      db: "up" as const,
-      mode: env.manusMode ? "MANUS" : "LOCAL_DEV",
-      manusReady,
-      mockUser: env.mockUserEnabled,
-      timestamp: new Date().toISOString(),
-    };
-    return { status: payload.status === "ok" ? 200 : 202, body: payload };
-  } catch (error) {
-    console.warn("[health] degraded", { error: (error as Error).message });
-    return {
-      status: 503,
-      body: {
-        status: "degraded" as const,
-        db: "down" as const,
-        mode: env.manusMode ? "MANUS" : "LOCAL_DEV",
-        manusReady,
-        mockUser: env.mockUserEnabled,
-        timestamp: new Date().toISOString(),
-      },
-    };
-  } finally {
-    if (timer) clearTimeout(timer);
-  }
-}
-
-export function createServer(getDbImpl: () => Promise<MinimalDb> = getDb) {
+export function createServer() {
   const app = express();
+  const logger = createLogger("app");
   app.use(cors());
   app.use(express.json());
 
   app.get("/health", async (_req, res) => {
-    const result = await runHealthCheck(getDbImpl);
+    const result = await runBasicHealthCheck();
+    return res.status(result.status).json(result.body);
+  });
+
+  app.get("/health/full", async (_req, res) => {
+    const result = await runFullHealthCheck();
+    if (result.status !== 200) {
+      logger.warn("Full health check reported issues", { status: result.status, details: result.body.details });
+    }
     return res.status(result.status).json(result.body);
   });
 

@@ -26,4 +26,4 @@ Apply migrations with `pnpm --filter drizzle migrate` before serving traffic.
 
 ## Operational notes
 - Health checks (`/health`) surface `mode`, `manusReady`, and `mockUser` to confirm whether Manus headers are expected.
-- Keep `MANUS_AUTH_HEADER`/`MANUS_WORKSPACE_HEADER` aligned between reverse proxies and the API; the frontend can mirror them via `VITE_MANUS_*` vars for local QA.
+- Keep `MANUS_AUTH_HEADER_USER`/`MANUS_AUTH_HEADER_WORKSPACE` aligned between reverse proxies and the API; the frontend can mirror them via `VITE_MANUS_*` vars for local QA.

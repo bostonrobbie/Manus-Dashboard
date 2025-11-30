@@ -8,9 +8,10 @@
     "build": "pnpm -r run build",
     "build:client": "pnpm --filter client run build",
     "build:server": "pnpm --filter server run build",
-    "start": "pnpm --filter server run start",
+    "start": "pnpm --filter server run start:prod",
     "preview": "pnpm --filter client run preview",
-    "migrate": "pnpm --filter drizzle run migrate"
+    "migrate": "pnpm --filter drizzle run migrate",
+    "smoke:test": "pnpm --filter server run smoke:test"
   },
   "devDependencies": {
     "dotenv": "^16.4.5",

@@ -3,6 +3,9 @@ import { and, eq } from "drizzle-orm";
 import { getDb, schema } from "@server/db";
 import type { StrategyType } from "@shared/types/portfolio";
 import { createUploadLog, updateUploadLog } from "./uploadLogs";
+import { createLogger } from "@server/utils/logger";
+
+const logger = createLogger("ingestion");
 
 type CsvRecord = Record<string, string>;
 type StrategyRecord = { id: number; name: string; type: StrategyType | null; workspaceId?: number };
@@ -50,6 +53,13 @@ export async function ingestTradesCsv(options: IngestTradesOptions): Promise<Tra
     uploadType: "trades",
   });
 
+  logger.info("Starting trade ingestion", {
+    userId: options.userId,
+    workspaceId: options.workspaceId,
+    totalRows,
+    uploadId: uploadLog?.id,
+  });
+
   const missingRequiredColumns = findMissingRequiredColumns(headers);
   if (missingRequiredColumns.length > 0) {
     errors.push(`Missing required columns: ${missingRequiredColumns.join(", ")}`);
@@ -95,6 +105,7 @@ export async function ingestTradesCsv(options: IngestTradesOptions): Promise<Tra
   const db = await getDb();
   if (!db) {
     errors.push("Database not configured");
+    logger.error("Trade ingestion failed before DB access", { uploadId: uploadLog?.id });
     if (uploadLog) {
       await updateUploadLog(uploadLog.id, {
         rowCountTotal: totalRows,
@@ -197,6 +208,13 @@ export async function ingestTradesCsv(options: IngestTradesOptions): Promise<Tra
       warningsSummary: summarizeIssues(warnings),
     });
   }
+
+  logger.info("Finished trade ingestion", {
+    uploadId: uploadLog?.id,
+    imported: tradesToInsert.length,
+    skipped: skippedCount,
+    status,
+  });
 
   return {
     importedCount: tradesToInsert.length,

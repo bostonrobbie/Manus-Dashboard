@@ -7,7 +7,7 @@ import {
   runMonteCarloSimulation,
 } from "../src/engine/portfolio-engine";
 import type { EquityCurvePoint } from "@shared/types/portfolio";
-import { runHealthCheck } from "../src/app";
+import { runFullHealthCheck } from "../src/health";
 
 test("computes stable daily returns and sharpe ratio from equity series", () => {
   const points: EquityCurvePoint[] = [
@@ -52,16 +52,25 @@ test("monte carlo output stays bounded and aligned", async () => {
 });
 
 test("health endpoint reports ok and degraded states", async () => {
-  const healthy = await runHealthCheck(async () => ({ execute: async () => true }));
-  assert.equal(healthy.body.db, "up");
+  const healthyDb = {
+    execute: async () => true,
+    select: () => ({
+      from: () => ({
+        limit: () => Promise.resolve([]),
+      }),
+    }),
+  } as any;
+
+  const healthy = await runFullHealthCheck(async () => healthyDb);
+  assert.equal(healthy.body.db, "ok");
   assert.equal(healthy.body.status, "ok");
   assert.equal(healthy.body.mode, "LOCAL_DEV");
   assert.ok(typeof healthy.body.timestamp === "string");
 
-  const degraded = await runHealthCheck(async () => {
+  const degraded = await runFullHealthCheck(async () => {
     throw new Error("db down");
   });
   assert.equal(degraded.status, 503);
-  assert.equal(degraded.body.status, "degraded");
-  assert.equal(degraded.body.db, "down");
+  assert.equal(degraded.body.status, "error");
+  assert.equal(degraded.body.db, "error");
 });
