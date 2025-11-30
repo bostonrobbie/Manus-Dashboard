@@ -34,6 +34,20 @@ export interface TradeSample {
   initialRisk?: number | null;
 }
 
+export interface RiskGuidanceInput {
+  expectancyPerTrade: number;
+  maxDrawdownPct: number;
+  targetMaxDrawdownPct?: number;
+  startingEquity?: number;
+}
+
+export interface RiskGuidanceResult {
+  recommendedRiskPerTradePct: number;
+  recommendedRiskPerTradeAmount: number;
+  maxLosingTradesBeforeTargetDD: number;
+  conservative: boolean;
+}
+
 export function totalReturn(returns: number[]): number {
   if (!Array.isArray(returns) || returns.length === 0) return 0;
   return returns.reduce((acc, r) => acc * (1 + safeNumber(r)), 1) - 1;
@@ -212,4 +226,30 @@ export function clampRatio(value: number) {
   const lower = -1_000_000;
   const upper = 1_000_000;
   return Math.min(Math.max(value, lower), upper);
+}
+
+export function computeRiskGuidance(input: RiskGuidanceInput): RiskGuidanceResult {
+  const startingEquity = input.startingEquity ?? 10_000;
+  const targetMaxDrawdownPct =
+    input.targetMaxDrawdownPct != null && Number.isFinite(input.targetMaxDrawdownPct)
+      ? Math.max(Math.min(input.targetMaxDrawdownPct, 0.9), 0.01)
+      : Math.max(Math.min(Math.abs(input.maxDrawdownPct) || 0.1, 0.5), 0.05);
+
+  const expectancy = safeNumber(input.expectancyPerTrade);
+  const baseRiskPct = expectancy > 0 ? Math.min(expectancy / 5, 0.02) : 0.0025;
+  const conservative = expectancy <= 0 || input.maxDrawdownPct <= 0;
+  const recommendedRiskPerTradePct = conservative ? Math.min(baseRiskPct, 0.005) : baseRiskPct;
+  const recommendedRiskPerTradeAmount = startingEquity * recommendedRiskPerTradePct;
+
+  const maxLossBudget = startingEquity * targetMaxDrawdownPct;
+  const maxLosingTradesBeforeTargetDD = recommendedRiskPerTradeAmount > 0
+    ? Math.max(Math.floor(maxLossBudget / recommendedRiskPerTradeAmount), 0)
+    : 0;
+
+  return {
+    recommendedRiskPerTradePct,
+    recommendedRiskPerTradeAmount,
+    maxLosingTradesBeforeTargetDD,
+    conservative,
+  };
 }

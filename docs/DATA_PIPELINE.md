@@ -36,6 +36,7 @@ Apply migrations with `pnpm --filter drizzle migrate` before serving traffic.
 - Sanity checks reject empty symbols, zero quantities, inverted entry/exit times, and non-finite prices; extreme PnL versus notional is flagged as a warning instead of silently ingesting bad data.
 - Ingestion enforces CSV headers (`symbol`, `side`, `quantity`, `entryPrice`, `exitPrice`, `entryTime`, `exitTime` for trades; `symbol`, `date`, `close` for benchmarks) and returns structured errors when columns are missing or unexpected. Dates and numeric values are normalized and non-finite/absurd values are rejected with per-row warnings.
 - Uploads larger than `MAX_UPLOAD_BYTES` (default 5MB) or files that are not CSV/text are rejected before ingestion to avoid runaway processing.
+- Deduplication: ingestion derives a stable `naturalKey` (or uses upstream `external_id` when present) and inserts with conflict handling on `(workspace_id, natural_key)` so reprocessing a file will not create duplicate trades.
 
 ## Sample & scripts
 - Sample data is scoped to the mock workspace (`workspaceId=1`) so the dashboard renders without a database.

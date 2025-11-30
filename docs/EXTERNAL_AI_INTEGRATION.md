@@ -35,6 +35,7 @@ pnpm test:all
 - Schema & tables: `drizzle/schema.ts`
 - Migrations: `drizzle/migrations/`
 - Upload log audit trail: `upload_logs` table (enum `upload_type` contains `trades`, `benchmarks`, `equity`)
+- Trade uniqueness: trades are de-duplicated per workspace using either `external_id` (preferred from upstream systems) or a derived `natural_key` built from symbol/side/quantity/prices/timestamps to keep ingestion idempotent.
 
 ## Running migrations
 Use the provided Drizzle script (wraps `drizzle-kit`):

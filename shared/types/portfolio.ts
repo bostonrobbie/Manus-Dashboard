@@ -26,6 +26,20 @@ export interface WorkspaceMetrics {
   alpha: number | null;
 }
 
+export interface RiskGuidanceInput {
+  expectancyPerTrade: number;
+  maxDrawdownPct: number;
+  targetMaxDrawdownPct: number;
+  startingEquity: number;
+}
+
+export interface RiskGuidanceResult {
+  recommendedRiskPerTradePct: number;
+  recommendedRiskPerTradeAmount: number;
+  maxLosingTradesBeforeTargetDD: number;
+  conservative?: boolean;
+}
+
 export interface StrategyMetrics {
   totalReturnPct: number;
   maxDrawdownPct: number;
@@ -58,6 +72,30 @@ export interface EquityCurvePoint {
 
 export interface EquityCurveResponse {
   points: EquityCurvePoint[];
+}
+
+export interface EdgeBucketBySymbol {
+  symbol: string;
+  pnl: number;
+  trades: number;
+}
+
+export interface EdgeBucketByHour {
+  hour: number;
+  pnl: number;
+  trades: number;
+}
+
+export interface EdgeBucketByDow {
+  dow: number;
+  pnl: number;
+  trades: number;
+}
+
+export interface WorkspaceEdge {
+  bySymbol: EdgeBucketBySymbol[];
+  byHour: EdgeBucketByHour[];
+  byDow: EdgeBucketByDow[];
 }
 
 export interface DrawdownPoint {
@@ -137,6 +175,7 @@ export interface PortfolioOverview {
   positions: number;
   lastUpdated: Date;
   metrics?: WorkspaceMetrics;
+  edge?: WorkspaceEdge;
 }
 
 export interface ExportTradesInput {
@@ -168,4 +207,28 @@ export interface PortfolioSummary {
   maxDrawdownPct: number;
   sharpeRatio: number;
   winRatePct: number;
+}
+
+export interface ComparisonPayload {
+  strategies: Array<{
+    strategyId: number;
+    name: string;
+    metrics: StrategyMetrics;
+    equityCurve: { date: string; value: number }[];
+  }>;
+}
+
+export interface WorkspaceReportMeta {
+  workspaceId: number;
+  workspaceName?: string;
+  period: TimeRange;
+  generatedAt: string;
+  version?: string;
+}
+
+export interface WorkspaceReport {
+  meta: WorkspaceReportMeta;
+  workspaceMetrics: WorkspaceMetrics;
+  strategyMetrics: { strategyId: number; name: string; metrics: StrategyMetrics }[];
+  edge: WorkspaceEdge;
 }

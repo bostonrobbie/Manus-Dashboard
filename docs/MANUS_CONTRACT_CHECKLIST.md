@@ -54,4 +54,5 @@ Frontend helpers for local/manual testing: `VITE_MANUS_AUTH_HEADER`, `VITE_MANUS
 - **Contract surface**: `pnpm start` on `PORT` with Manus headers (`MANUS_AUTH_HEADER_USER`, `MANUS_AUTH_HEADER_WORKSPACE`) and JWT inputs. Health at `/health` and `/health/full`.
 - **Logging & health**: structured JSON logs tagged with mode/component; health endpoints emit warnings when Manus secrets or DB are missing and return `503` on deep failures.
 - **Smoke test**: `pnpm smoke:test` exercises health and `workspaces.list` with Manus headers; fails fast on non-200 responses.
+- **Trade uniqueness**: trades are scoped by workspace and deduped on either `external_id` (preferred from upstream systems) or deterministic `natural_key`; ingestion uses conflict handling so reprocessing a CSV will not create duplicates.
 - **Future improvements**: wire Manus link-outs into the UI when `MANUS_BASE_URL` is provided, add optional latency/queue metrics to health responses, and extend smoke tests to cover uploads with fixture CSVs.

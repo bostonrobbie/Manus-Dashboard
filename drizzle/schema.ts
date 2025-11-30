@@ -71,6 +71,8 @@ export const trades = pgTable(
     exitPrice: numeric("exit_price", { precision: 18, scale: 4 }).notNull(),
     entryTime: timestamp("entry_time", { withTimezone: true }).notNull(),
     exitTime: timestamp("exit_time", { withTimezone: true }).notNull(),
+    externalId: varchar("external_id", { length: 128 }),
+    naturalKey: varchar("natural_key", { length: 512 }),
     uploadId: integer("upload_id"),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
@@ -83,6 +85,8 @@ export const trades = pgTable(
     deletedIdx: index("trades_deleted_idx").on(table.deletedAt),
     symbolIdx: index("trades_symbol_idx").on(table.symbol),
     exitIdx: index("trades_exit_time_idx").on(table.exitTime),
+    externalUnique: uniqueIndex("trades_workspace_external_unique").on(table.workspaceId, table.externalId),
+    naturalKeyUnique: uniqueIndex("trades_workspace_natural_key_unique").on(table.workspaceId, table.naturalKey),
   })
 );
 
