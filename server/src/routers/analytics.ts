@@ -3,6 +3,7 @@ import { z } from "zod";
 import { router, authedProcedure } from "@server/trpc/router";
 import { buildPortfolioOverview, buildPortfolioSummary, ENGINE_CONFIG } from "@server/engine/portfolio-engine";
 import { TIME_RANGE_PRESETS, deriveDateRangeFromTimeRange } from "@server/utils/timeRange";
+import { requireWorkspaceAccess } from "@server/auth/workspaceAccess";
 
 const timeRangeInput = z
   .object({
@@ -22,8 +23,9 @@ export const analyticsRouter = router({
         .optional(),
     )
     .query(async ({ ctx, input }) => {
+      const { workspace } = await requireWorkspaceAccess(ctx.user, "read");
       const range = deriveDateRangeFromTimeRange(input?.timeRange);
-      const scope = { userId: ctx.user.id, workspaceId: ctx.user.workspaceId };
+      const scope = { userId: ctx.user.id, workspaceId: workspace?.id ?? ctx.user.workspaceId };
       return buildPortfolioSummary(scope, range);
     }),
   rangeMetrics: authedProcedure
@@ -35,8 +37,9 @@ export const analyticsRouter = router({
         .optional(),
     )
     .query(async ({ ctx, input }) => {
+      const { workspace } = await requireWorkspaceAccess(ctx.user, "read");
       const range = deriveDateRangeFromTimeRange(input?.timeRange);
-      const scope = { userId: ctx.user.id, workspaceId: ctx.user.workspaceId };
+      const scope = { userId: ctx.user.id, workspaceId: workspace?.id ?? ctx.user.workspaceId };
       const [overview, summary] = await Promise.all([
         buildPortfolioOverview(scope, range),
         buildPortfolioSummary(scope, range),

@@ -22,10 +22,28 @@ export const workspaces = pgTable(
     id: serial("id").primaryKey(),
     externalId: varchar("external_id", { length: 128 }).notNull(),
     name: varchar("name", { length: 255 }),
+    ownerUserId: integer("owner_user_id"),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   table => ({
     externalIdx: uniqueIndex("workspaces_external_idx").on(table.externalId),
+    ownerIdx: index("workspaces_owner_idx").on(table.ownerUserId),
+  }),
+);
+
+export const workspaceMembers = pgTable(
+  "workspace_members",
+  {
+    id: serial("id").primaryKey(),
+    workspaceId: integer("workspace_id").notNull(),
+    userId: integer("user_id").notNull(),
+    role: varchar("role", { length: 32 }).notNull().default("viewer"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  table => ({
+    workspaceIdx: index("workspace_members_workspace_idx").on(table.workspaceId),
+    userIdx: index("workspace_members_user_idx").on(table.userId),
+    uniqueWorkspaceUser: uniqueIndex("workspace_members_workspace_user_idx").on(table.workspaceId, table.userId),
   }),
 );
 
@@ -135,9 +153,28 @@ export const uploadLogs = pgTable(
   }),
 );
 
+export const auditLogs = pgTable(
+  "audit_logs",
+  {
+    id: serial("id").primaryKey(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    userId: integer("user_id").notNull(),
+    workspaceId: integer("workspace_id").notNull(),
+    action: varchar("action", { length: 128 }).notNull(),
+    entityType: varchar("entity_type", { length: 128 }).notNull(),
+    entityId: varchar("entity_id", { length: 128 }),
+    summary: text("summary"),
+  },
+  table => ({
+    workspaceTimeIdx: index("audit_logs_workspace_time_idx").on(table.workspaceId, table.createdAt),
+  }),
+);
+
 export type User = typeof users.$inferSelect;
 export type Workspace = typeof workspaces.$inferSelect;
+export type WorkspaceMember = typeof workspaceMembers.$inferSelect;
 export type Strategy = typeof strategies.$inferSelect;
 export type Trade = typeof trades.$inferSelect;
 export type Benchmark = typeof benchmarks.$inferSelect;
 export type UploadLog = typeof uploadLogs.$inferSelect;
+export type AuditLog = typeof auditLogs.$inferSelect;

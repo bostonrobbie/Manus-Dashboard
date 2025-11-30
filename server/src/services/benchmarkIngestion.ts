@@ -4,6 +4,7 @@ import { getDb, schema, type Database } from "@server/db";
 import type { IngestionHeaderIssues, IngestionResult } from "@shared/types/ingestion";
 import { createUploadLog, updateUploadLog } from "./uploadLogs";
 import { createLogger } from "@server/utils/logger";
+import { logAudit } from "@server/services/audit";
 
 const logger = createLogger("benchmark-ingestion");
 
@@ -155,6 +156,15 @@ export async function ingestBenchmarksCsv(options: IngestBenchmarksOptions): Pro
     status,
     workspaceId: options.workspaceId,
     userId: options.userId,
+  });
+
+  await logAudit({
+    action: "upload_benchmarks",
+    userId: options.userId,
+    workspaceId: options.workspaceId,
+    entityType: "upload",
+    entityId: uploadLog?.id,
+    summary: `Benchmarks upload ${status}: imported ${importedCount}/${totalRows}`,
   });
 
   return { importedCount, skippedCount, failedCount: failedCount || skippedCount, errors, warnings, uploadId: uploadLog?.id, headerIssues };

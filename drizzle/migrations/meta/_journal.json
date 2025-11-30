@@ -43,6 +43,20 @@
       "when": 1764184924669,
       "tag": "0005_trade_perf_indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1764184924670,
+      "tag": "0006_trade_dedupe",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1764184924671,
+      "tag": "0007_workspace_rbac_audit",
+      "breakpoints": true
     }
   ]
 }

@@ -5,6 +5,7 @@ import { authedProcedure, router } from "@server/trpc/router";
 import { getUploadLogById, listUploadLogs } from "@server/services/uploadLogs";
 import { TIME_RANGE_PRESETS, deriveDateRangeFromTimeRange } from "@server/utils/timeRange";
 import type { UploadLogRow } from "@shared/types/uploads";
+import { requireWorkspaceAccess } from "@server/auth/workspaceAccess";
 
 const uploadStatus = z.enum(["pending", "success", "partial", "failed"]);
 const uploadType = z.enum(["trades", "benchmarks", "equity"]);
@@ -29,6 +30,10 @@ export const uploadsRouter = router({
         .optional(),
     )
     .query(async ({ ctx, input }) => {
+      const { workspaceId } = await (async () => {
+        const access = await requireWorkspaceAccess(ctx.user, "read");
+        return { workspaceId: access.workspace?.id ?? ctx.user.workspaceId };
+      })();
       const params = {
         page: input?.page ?? 1,
         pageSize: input?.pageSize ?? 10,
@@ -40,7 +45,7 @@ export const uploadsRouter = router({
 
       const result = await listUploadLogs({
         userId: ctx.user.id,
-        workspaceId: ctx.user.workspaceId,
+        workspaceId,
         page: params.page,
         pageSize: params.pageSize,
         uploadType: params.uploadType,
@@ -58,7 +63,11 @@ export const uploadsRouter = router({
   detail: authedProcedure
     .input(z.object({ id: z.number().int() }))
     .query(async ({ ctx, input }) => {
-      const log = await getUploadLogById({ id: input.id, userId: ctx.user.id, workspaceId: ctx.user.workspaceId });
+      const { workspaceId } = await (async () => {
+        const access = await requireWorkspaceAccess(ctx.user, "read");
+        return { workspaceId: access.workspace?.id ?? ctx.user.workspaceId };
+      })();
+      const log = await getUploadLogById({ id: input.id, userId: ctx.user.id, workspaceId });
       if (!log) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Upload not found" });
       }

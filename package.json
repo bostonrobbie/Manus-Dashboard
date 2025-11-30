@@ -16,11 +16,13 @@
     "migrate": "pnpm --filter drizzle run migrate",
     "db:seed:demo": "tsx server/scripts/seed-demo-data.ts",
     "db:seed:large": "tsx server/scripts/load-large-dataset.ts",
-    "smoke:test": "pnpm --filter server run smoke:test"
+    "smoke:test": "pnpm --filter server run smoke:test",
+    "e2e": "pnpm exec playwright test"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^8.5.0",
     "@typescript-eslint/parser": "^8.5.0",
+    "@playwright/test": "^1.47.0",
     "@eslint/js": "^9.9.0",
     "dotenv": "^16.4.5",
     "drizzle-orm": "^0.44.7",

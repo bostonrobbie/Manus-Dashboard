@@ -52,9 +52,19 @@ export function loadManusConfig(): ManusConfig {
   const manusPublicKeyUrl = process.env.MANUS_PUBLIC_KEY_URL?.trim();
   const manusReady = Boolean(manusJwtSecret || manusPublicKeyUrl);
   const manusAuthHeaderUser =
-    (process.env.MANUS_AUTH_HEADER_USER ?? process.env.MANUS_AUTH_HEADER ?? "x-manus-user-json").toLowerCase();
+    (
+      process.env.MANUS_USER_HEADER ??
+      process.env.MANUS_AUTH_HEADER_USER ??
+      process.env.MANUS_AUTH_HEADER ??
+      "x-manus-user-json"
+    ).toLowerCase();
   const manusAuthHeaderWorkspace =
-    (process.env.MANUS_AUTH_HEADER_WORKSPACE ?? process.env.MANUS_WORKSPACE_HEADER ?? "x-manus-workspace-id").toLowerCase();
+    (
+      process.env.MANUS_WORKSPACE_HEADER ??
+      process.env.MANUS_AUTH_HEADER_WORKSPACE ??
+      process.env.MANUS_WORKSPACE_HEADER ??
+      "x-manus-workspace-id"
+    ).toLowerCase();
   const manusAuthHeaderRoles = process.env.MANUS_AUTH_HEADER_ROLES?.toLowerCase();
   const manusAuthHeaderOrg = process.env.MANUS_AUTH_HEADER_ORG?.toLowerCase();
   const mockUserEnabled = toBool(process.env.MOCK_USER_ENABLED, true);
