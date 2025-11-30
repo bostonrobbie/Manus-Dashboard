@@ -141,3 +141,24 @@ test("auth debug endpoint returns headers when enabled", async () => {
   assert.strictEqual(debug.rawHeaders?.["x-demo"], "demo");
   assert.ok(!("authorization" in (debug.rawHeaders ?? {})));
 });
+
+test("auth debug endpoint is disabled when flag is false", async () => {
+  process.env = {
+    ...originalEnv,
+    AUTH_DEBUG_ENABLED: "false",
+    NODE_ENV: "production",
+  };
+  resetModules();
+
+  const { resolveAuth } = await import("../src/auth/context");
+  const { authRouter } = await import("../src/routers/auth");
+
+  const req = { headers: { "x-demo": "demo" } } as any;
+  const auth = resolveAuth(req);
+
+  const caller = authRouter.createCaller({ req, res: {} as any, auth, user: auth.user });
+  const debug = await caller.debug();
+
+  assert.strictEqual(debug.enabled, false);
+  assert.ok(!debug.rawHeaders);
+});

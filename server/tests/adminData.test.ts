@@ -205,3 +205,21 @@ test("soft delete filters respect symbol", async () => {
     assert.ok(!adapter.trades[1].deletedAt);
   });
 });
+
+test("soft delete filters reject invalid workspace or dates", async () => {
+  const adapter = new MemoryAdminAdapter();
+
+  await withAdapter(adapter, async () => {
+    const caller = adminDataRouter.createCaller({ user: adminUser, auth: { mode: "manus", user: adminUser } } as any);
+
+    await assert.rejects(() => caller.softDeleteTradesByFilter({ workspaceId: 0 }), /Number must be greater than 0/);
+    await assert.rejects(
+      () => caller.softDeleteTradesByFilter({ workspaceId: 1, startDate: "2024-02-02", endDate: "2024-01-01" }),
+      /startDate must be before or equal to endDate/,
+    );
+    await assert.rejects(
+      () => caller.softDeleteBenchmarksByFilter({ workspaceId: 1, startDate: "bad-date" }),
+      /Invalid/,
+    );
+  });
+});

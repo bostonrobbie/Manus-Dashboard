@@ -20,3 +20,5 @@ and quick maintenance tools for soft deleting trades or benchmarks.
 - Soft deletions are idempotent and logged (the originating upload record is annotated in `warnings_summary`).
 - Re-ingesting data for the same workspace will create fresh rows; previously deleted rows remain for audit history but stay
   excluded from analytics.
+- Every action must be scoped to a specific workspace. Admin callers are not permitted to operate across workspaces, and tests
+  should be updated whenever adminData behavior changes to confirm workspace IDs are always required and enforced.
