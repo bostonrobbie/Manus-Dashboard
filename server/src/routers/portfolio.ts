@@ -8,12 +8,14 @@ import {
   buildStrategyComparison,
   runMonteCarloSimulation,
   loadTrades,
+  loadTradesPage,
   generateTradesCsv,
 } from "@server/engine/portfolio-engine";
 import { authedProcedure, router } from "@server/trpc/router";
 import { ingestTradesCsv } from "@server/services/tradeIngestion";
 import { ingestBenchmarksCsv } from "@server/services/benchmarkIngestion";
 import { TIME_RANGE_PRESETS, deriveDateRangeFromTimeRange } from "@server/utils/timeRange";
+import { env } from "@server/utils/env";
 
 const finiteNumber = z.number().finite();
 const equityPointSchema = z.object({
@@ -78,14 +80,34 @@ const exportTradesResponseSchema = z.object({
   mimeType: z.string(),
   content: z.string(),
 });
+const tradeRowSchema = z.object({
+  id: z.number().int(),
+  userId: z.number().int().optional(),
+  workspaceId: z.number().int().optional(),
+  strategyId: z.number().int(),
+  symbol: z.string(),
+  side: z.string(),
+  quantity: finiteNumber,
+  entryPrice: finiteNumber,
+  exitPrice: finiteNumber,
+  entryTime: z.string(),
+  exitTime: z.string(),
+});
+const ingestionHeaderIssuesSchema = z
+  .object({ missing: z.array(z.string()), unexpected: z.array(z.string()) })
+  .optional();
 const tradeIngestionResultSchema = z.object({
   importedCount: z.number().int(),
   skippedCount: z.number().int(),
+  failedCount: z.number().int(),
   errors: z.array(z.string()),
   warnings: z.array(z.string()),
   uploadId: z.number().int().optional(),
+  headerIssues: ingestionHeaderIssuesSchema,
 });
 const benchmarkIngestionResultSchema = tradeIngestionResultSchema;
+
+const MAX_UPLOAD_BYTES = env.maxUploadBytes ?? 5 * 1024 * 1024;
 
 const timeRangeInput = z
   .object({
@@ -94,6 +116,36 @@ const timeRangeInput = z
     endDate: z.string().optional(),
   })
   .optional();
+
+export function enforceUploadGuards(csv: string, fileName?: string) {
+  const sizeBytes = Buffer.byteLength(csv, "utf8");
+  if (sizeBytes > MAX_UPLOAD_BYTES) {
+    throw new TRPCError({
+      code: "PAYLOAD_TOO_LARGE",
+      message: `File exceeds maximum size of ${formatBytes(MAX_UPLOAD_BYTES)}`,
+    });
+  }
+
+  if (fileName) {
+    const lower = fileName.toLowerCase();
+    if (!(lower.endsWith(".csv") || lower.endsWith(".txt"))) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "Only CSV uploads are allowed",
+      });
+    }
+  }
+
+  if (!csv.trim()) {
+    throw new TRPCError({ code: "BAD_REQUEST", message: "CSV content is empty" });
+  }
+}
+
+function formatBytes(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 102.4) / 10} KB`;
+  return `${Math.round(bytes / 104857.6) / 10} MB`;
+}
 
 export const portfolioRouter = router({
   overview: authedProcedure
@@ -231,13 +283,33 @@ export const portfolioRouter = router({
       z
         .object({
           timeRange: timeRangeInput,
+          page: z.number().int().min(1).default(1),
+          pageSize: z.number().int().min(1).max(500).default(50),
+          symbol: z.string().trim().min(1).max(24).optional(),
+          strategyId: z.number().int().optional(),
+          side: z.enum(["long", "short"]).optional(),
         })
         .optional(),
     )
     .query(async ({ ctx, input }) => {
       const range = deriveDateRangeFromTimeRange(input?.timeRange);
       const scope = { userId: ctx.user.id, workspaceId: ctx.user.workspaceId };
-      return loadTrades(scope, range);
+      const page = input?.page ?? 1;
+      const pageSize = input?.pageSize ?? 50;
+      const result = await loadTradesPage(scope, {
+        ...range,
+        page,
+        pageSize,
+        symbol: input?.symbol?.toUpperCase(),
+        side: input?.side,
+        strategyIds: input?.strategyId ? [input.strategyId] : undefined,
+      });
+      return {
+        rows: result.rows.map(row => tradeRowSchema.parse(row)),
+        total: result.total,
+        page,
+        pageSize,
+      };
     }),
   exportTradesCsv: authedProcedure
     .input(
@@ -284,6 +356,7 @@ export const portfolioRouter = router({
     .output(tradeIngestionResultSchema)
     .mutation(async ({ ctx, input }) => {
       try {
+        enforceUploadGuards(input.csv, input.fileName);
         const result = await ingestTradesCsv({
           csv: input.csv,
           userId: ctx.user.id,
@@ -294,6 +367,7 @@ export const portfolioRouter = router({
         });
         return tradeIngestionResultSchema.parse(result);
       } catch (error) {
+        if (error instanceof TRPCError) throw error;
         throw new TRPCError({
           code: "BAD_REQUEST",
           message: error instanceof Error ? error.message : "Failed to ingest trades",
@@ -311,6 +385,7 @@ export const portfolioRouter = router({
     .output(benchmarkIngestionResultSchema)
     .mutation(async ({ ctx, input }) => {
       try {
+        enforceUploadGuards(input.csv, input.fileName);
         const result = await ingestBenchmarksCsv({
           csv: input.csv,
           userId: ctx.user.id,
@@ -320,6 +395,7 @@ export const portfolioRouter = router({
         });
         return benchmarkIngestionResultSchema.parse(result);
       } catch (error) {
+        if (error instanceof TRPCError) throw error;
         throw new TRPCError({
           code: "BAD_REQUEST",
           message: error instanceof Error ? error.message : "Failed to ingest benchmarks",

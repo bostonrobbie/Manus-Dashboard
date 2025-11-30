@@ -22,3 +22,10 @@ and quick maintenance tools for soft deleting trades or benchmarks.
   excluded from analytics.
 - Every action must be scoped to a specific workspace. Admin callers are not permitted to operate across workspaces, and tests
   should be updated whenever adminData behavior changes to confirm workspace IDs are always required and enforced.
+
+## Log event names
+
+- Ingestion: `INGEST_TRADES_START` / `INGEST_TRADES_END` / `INGEST_TRADES_FAILED`, `INGEST_BENCHMARKS_START` / `INGEST_BENCHMARKS_END` / `INGEST_BENCHMARKS_FAILED`.
+- Admin deletes: `ADMIN_SOFT_DELETE_UPLOAD`, `ADMIN_SOFT_DELETE_TRADES`, `ADMIN_SOFT_DELETE_BENCHMARKS`.
+- Load testing script: `LOAD_DATASET_*` events mark start/end and timing checkpoints from `server/scripts/load-large-dataset.ts`.
+- Events are emitted through the server logger (JSON payload with `eventName`, `workspaceId`, and counts) so operators can grep the server logs for specific maintenance or ingestion runs.

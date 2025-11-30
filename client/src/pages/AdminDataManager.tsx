@@ -40,6 +40,10 @@ function AdminDataManagerPage() {
       ]);
       setNotice(result?.note ?? "Soft delete completed");
     },
+    onError: error => setNotice(error.message || "Failed to soft delete by upload"),
+    onSettled: () => {
+      void utils.adminData.listUploadsForWorkspace.invalidate();
+    },
   });
 
   const softDeleteTrades = trpc.adminData.softDeleteTradesByFilter.useMutation({
@@ -51,6 +55,10 @@ function AdminDataManagerPage() {
       ]);
       setNotice(`Soft deleted ${res.count} trades for workspace ${activeWorkspaceId ?? "?"}`);
     },
+    onError: error => setNotice(error.message || "Failed to soft delete trades"),
+    onSettled: () => {
+      void utils.adminData.listUploadsForWorkspace.invalidate();
+    },
   });
 
   const softDeleteBenchmarks = trpc.adminData.softDeleteBenchmarksByFilter.useMutation({
@@ -61,6 +69,10 @@ function AdminDataManagerPage() {
         utils.portfolio.overview.invalidate(),
       ]);
       setNotice(`Soft deleted ${res.count} benchmarks for workspace ${activeWorkspaceId ?? "?"}`);
+    },
+    onError: error => setNotice(error.message || "Failed to soft delete benchmarks"),
+    onSettled: () => {
+      void utils.adminData.listUploadsForWorkspace.invalidate();
     },
   });
 
@@ -81,6 +93,10 @@ function AdminDataManagerPage() {
       </Card>
     );
   }
+
+  const workspaceLoadError = workspacesQuery.isError
+    ? workspacesQuery.error?.message || "Unable to load workspaces"
+    : null;
 
   return (
     <div className="space-y-4">
@@ -106,6 +122,10 @@ function AdminDataManagerPage() {
         <CardContent>
           {workspacesQuery.isLoading ? (
             <div className="h-24 animate-pulse rounded bg-slate-100" />
+          ) : workspaceLoadError ? (
+            <div className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800">
+              {workspaceLoadError}
+            </div>
           ) : workspacesQuery.data?.length ? (
             <table className="min-w-full divide-y divide-slate-200 text-sm">
               <thead className="bg-slate-50">
@@ -171,6 +191,10 @@ function AdminDataManagerPage() {
                 </div>
                 {uploadsQuery.isLoading ? (
                   <div className="h-24 animate-pulse rounded bg-slate-100" />
+                ) : uploadsQuery.isError ? (
+                  <div className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-800">
+                    {uploadsQuery.error?.message || "Unable to load uploads for this workspace."}
+                  </div>
                 ) : uploadsQuery.data?.rows?.length ? (
                   <table className="min-w-full divide-y divide-slate-200 text-sm">
                     <thead className="bg-slate-50">
@@ -208,6 +232,7 @@ function AdminDataManagerPage() {
                               variant="destructive"
                               disabled={softDeleteByUpload.isPending}
                               onClick={() => {
+                                if (softDeleteByUpload.isPending) return;
                                 if (!window.confirm("Soft delete all rows created by this upload?")) return;
                                 softDeleteByUpload.mutate({ uploadId: row.id });
                               }}
@@ -271,6 +296,7 @@ function AdminDataManagerPage() {
                     disabled={softDeleteTrades.isPending}
                     onClick={() => {
                       if (!activeWorkspaceId) return;
+                      if (softDeleteTrades.isPending) return;
                       if (!window.confirm("Soft delete matching trades?")) return;
                       softDeleteTrades.mutate({
                         workspaceId: activeWorkspaceId,
@@ -330,6 +356,7 @@ function AdminDataManagerPage() {
                     disabled={softDeleteBenchmarks.isPending}
                     onClick={() => {
                       if (!activeWorkspaceId) return;
+                      if (softDeleteBenchmarks.isPending) return;
                       if (!window.confirm("Soft delete matching benchmarks?")) return;
                       softDeleteBenchmarks.mutate({
                         workspaceId: activeWorkspaceId,

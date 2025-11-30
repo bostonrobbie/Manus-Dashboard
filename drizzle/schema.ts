@@ -81,6 +81,8 @@ export const trades = pgTable(
     workspaceIdx: index("trades_workspace_idx").on(table.workspaceId),
     uploadIdx: index("trades_upload_idx").on(table.uploadId),
     deletedIdx: index("trades_deleted_idx").on(table.deletedAt),
+    symbolIdx: index("trades_symbol_idx").on(table.symbol),
+    exitIdx: index("trades_exit_time_idx").on(table.exitTime),
   })
 );
 

@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
 import type { UploadStatus, UploadType } from "@shared/types/uploads";
+import type { IngestionResult } from "@shared/types/ingestion";
 
 function UploadsPage() {
   const { workspaceId, timeRange } = useDashboardState();
@@ -19,6 +20,7 @@ function UploadsPage() {
   const [filterType, setFilterType] = useState<UploadType | "">("");
   const [filterStatus, setFilterStatus] = useState<UploadStatus | "">("");
   const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [feedback, setFeedback] = useState<{ variant: "success" | "warning" | "error"; message: string } | null>(null);
 
   const uploadsQuery = trpc.uploads.list.useQuery({
     page: 1,
@@ -32,6 +34,14 @@ function UploadsPage() {
     onSuccess: async data => {
       await utils.uploads.list.invalidate();
       setExpandedId(data.uploadId ?? null);
+      setFeedback({
+        variant: data.importedCount > 0 && data.failedCount === 0 ? "success" : data.importedCount > 0 ? "warning" : "error",
+        message: describeIngestionResult(data),
+      });
+    },
+    onError: async error => {
+      setFeedback({ variant: "error", message: describeUploadError(error.message, error?.data?.code) });
+      await utils.uploads.list.invalidate();
     },
   });
 
@@ -39,6 +49,14 @@ function UploadsPage() {
     onSuccess: async data => {
       await utils.uploads.list.invalidate();
       setExpandedId(data.uploadId ?? null);
+      setFeedback({
+        variant: data.importedCount > 0 && data.failedCount === 0 ? "success" : data.importedCount > 0 ? "warning" : "error",
+        message: describeIngestionResult(data),
+      });
+    },
+    onError: async error => {
+      setFeedback({ variant: "error", message: describeUploadError(error.message, error?.data?.code) });
+      await utils.uploads.list.invalidate();
     },
   });
 
@@ -49,6 +67,7 @@ function UploadsPage() {
   };
 
   const handleSubmit = () => {
+    setFeedback(null);
     if (!csvText.trim()) return;
     if (uploadType === "benchmarks") {
       benchmarkUpload.mutate({
@@ -61,10 +80,12 @@ function UploadsPage() {
         csv: csvText,
         fileName,
         strategyName: strategyName || undefined,
-        strategyType: strategyType || undefined,
-      });
+          strategyType: strategyType || undefined,
+        });
     }
   };
+
+  const activeMutation = uploadMutation.isPending || benchmarkUpload.isPending;
 
   const statusBadge = (status: UploadStatus) => {
     const variant = status === "success" ? "success" : status === "partial" ? "warning" : status === "pending" ? "secondary" : "destructive";
@@ -176,24 +197,22 @@ function UploadsPage() {
             <Button
               size="sm"
               onClick={handleSubmit}
-              disabled={uploadMutation.isPending || benchmarkUpload.isPending}
+              disabled={activeMutation}
             >
-              {uploadMutation.isPending || benchmarkUpload.isPending ? "Uploading..." : "Upload"}
+              {activeMutation ? "Uploading..." : "Upload"}
             </Button>
           </div>
-          {uploadMutation.isError || benchmarkUpload.isError ? (
-            <div className="rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-800">
-              {uploadMutation.error?.message || benchmarkUpload.error?.message}
-            </div>
-          ) : null}
-          {uploadMutation.isSuccess || benchmarkUpload.isSuccess ? (
-            <div className="rounded-md bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
-              Imported {uploadMutation.data?.importedCount ?? benchmarkUpload.data?.importedCount} rows, skipped
-              {" "}
-              {uploadMutation.data?.skippedCount ?? benchmarkUpload.data?.skippedCount}.
-              {(uploadMutation.data?.warnings ?? benchmarkUpload.data?.warnings ?? []).length
-                ? ` Warnings: ${(uploadMutation.data?.warnings ?? benchmarkUpload.data?.warnings ?? []).join("; ")}`
-                : null}
+          {feedback ? (
+            <div
+              className={`rounded-md px-3 py-2 text-xs ${
+                feedback.variant === "success"
+                  ? "bg-emerald-50 text-emerald-800"
+                  : feedback.variant === "warning"
+                    ? "bg-amber-50 text-amber-800"
+                    : "bg-rose-50 text-rose-800"
+              }`}
+            >
+              {feedback.message}
             </div>
           ) : null}
         </CardContent>
@@ -299,3 +318,30 @@ function UploadsPage() {
 }
 
 export default UploadsPage;
+
+function describeIngestionResult(result: IngestionResult) {
+  const parts: string[] = [];
+  parts.push(
+    `Imported ${result.importedCount} rows; ${result.failedCount} failed; ${result.skippedCount} skipped.`,
+  );
+  if (result.headerIssues) {
+    const missing = result.headerIssues.missing.length ? `Missing: ${result.headerIssues.missing.join(", ")}.` : "";
+    const unexpected = result.headerIssues.unexpected.length
+      ? `Unexpected: ${result.headerIssues.unexpected.join(", ")}.`
+      : "";
+    parts.push([missing, unexpected].filter(Boolean).join(" "));
+  }
+  if (result.errors.length) {
+    parts.push(`Errors: ${result.errors.slice(0, 3).join("; ")}`);
+  }
+  if (result.warnings.length) {
+    parts.push(`Warnings: ${result.warnings.slice(0, 3).join("; ")}`);
+  }
+  return parts.filter(Boolean).join(" ");
+}
+
+function describeUploadError(message?: string, code?: string) {
+  if (code === "PAYLOAD_TOO_LARGE") return "File is too large for the server to process.";
+  if (message?.toLowerCase().includes("csv")) return message;
+  return message || "Upload failed. Please try again.";
+}

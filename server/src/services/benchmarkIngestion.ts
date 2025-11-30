@@ -1,18 +1,11 @@
 import { eq } from "drizzle-orm";
 
 import { getDb, schema } from "@server/db";
+import type { IngestionHeaderIssues, IngestionResult } from "@shared/types/ingestion";
 import { createUploadLog, updateUploadLog } from "./uploadLogs";
 import { createLogger } from "@server/utils/logger";
 
 const logger = createLogger("benchmark-ingestion");
-
-export interface BenchmarkIngestionResult {
-  importedCount: number;
-  skippedCount: number;
-  errors: string[];
-  warnings: string[];
-  uploadId?: number;
-}
 
 export interface IngestBenchmarksOptions {
   csv: string;
@@ -30,7 +23,19 @@ interface NormalizedBenchmarkRow {
 
 type CsvRecord = Record<string, string>;
 
-export async function ingestBenchmarksCsv(options: IngestBenchmarksOptions): Promise<BenchmarkIngestionResult> {
+const REQUIRED_FIELDS: Array<{ label: string; keys: string[] }> = [
+  { label: "symbol", keys: ["symbol", "ticker"] },
+  { label: "date", keys: ["date", "asof", "day"] },
+  { label: "close", keys: ["close", "price", "value"] },
+];
+
+const OPTIONAL_FIELDS: string[] = [];
+const normalizeHeaderKey = (key: string) => key.replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
+const ALLOWED_HEADERS = new Set(
+  REQUIRED_FIELDS.flatMap(field => field.keys.map(normalizeHeaderKey)).concat(OPTIONAL_FIELDS.map(normalizeHeaderKey)),
+);
+
+export async function ingestBenchmarksCsv(options: IngestBenchmarksOptions): Promise<IngestionResult> {
   const errors: string[] = [];
   const warnings: string[] = [];
   const { headers, records } = parseCsvRecords(options.csv);
@@ -43,22 +48,37 @@ export async function ingestBenchmarksCsv(options: IngestBenchmarksOptions): Pro
     uploadType: "benchmarks",
   });
 
-  const missingRequiredColumns = findMissingRequiredColumns(headers);
-  if (missingRequiredColumns.length > 0) {
-    errors.push(`Missing required columns: ${missingRequiredColumns.join(", ")}`);
-    if (uploadLog) {
-      await updateUploadLog(uploadLog.id, {
-        rowCountTotal: totalRows,
-        rowCountFailed: totalRows,
-        status: "failed",
-        errorSummary: summarizeIssues(errors),
-        warningsSummary: summarizeIssues(warnings),
-      });
-    }
-    return { importedCount: 0, skippedCount: totalRows, errors, warnings, uploadId: uploadLog?.id };
+  logger.info("Benchmark ingestion start", {
+    eventName: "INGEST_BENCHMARKS_START",
+    userId: options.userId,
+    workspaceId: options.workspaceId,
+    totalRows,
+    uploadId: uploadLog?.id,
+  });
+
+  const headerIssues = validateHeaders(headers);
+  if (headerIssues.missing.length > 0) {
+    errors.push(`Missing required columns: ${headerIssues.missing.join(", ")}`);
+    await persistUploadLog(uploadLog, {
+      rowCountTotal: totalRows,
+      rowCountFailed: totalRows,
+      status: "failed",
+      errorSummary: summarizeIssues(errors),
+      warningsSummary: summarizeIssues(warnings),
+    });
+    return {
+      importedCount: 0,
+      skippedCount: totalRows,
+      failedCount: totalRows,
+      errors,
+      warnings,
+      uploadId: uploadLog?.id,
+      headerIssues,
+    };
   }
 
   const normalized: NormalizedBenchmarkRow[] = [];
+  let failedCount = 0;
   for (const [idx, record] of records.entries()) {
     const rowNumber = idx + 2;
     const rowErrors: string[] = [];
@@ -68,31 +88,35 @@ export async function ingestBenchmarksCsv(options: IngestBenchmarksOptions): Pro
       normalized.push(row);
       warnings.push(...rowWarnings);
     }
-    if (rowErrors.length) errors.push(...rowErrors);
+    if (rowErrors.length) {
+      failedCount += 1;
+      errors.push(...rowErrors);
+    }
     if (rowWarnings.length && !row) warnings.push(...rowWarnings);
   }
 
   const db = await getDb();
   if (!db) {
     errors.push("Database not configured");
-    if (uploadLog) {
-      await updateUploadLog(uploadLog.id, {
-        rowCountTotal: totalRows,
-        rowCountFailed: totalRows,
-        status: "failed",
-        errorSummary: summarizeIssues(errors),
-        warningsSummary: summarizeIssues(warnings),
-      });
-    }
-    return { importedCount: 0, skippedCount: totalRows, errors, warnings, uploadId: uploadLog?.id };
+    failedCount = totalRows;
+    logger.error("Benchmark ingestion failed before DB access", {
+      eventName: "INGEST_BENCHMARKS_FAILED",
+      uploadId: uploadLog?.id,
+    });
+    await persistUploadLog(uploadLog, {
+      rowCountTotal: totalRows,
+      rowCountFailed: totalRows,
+      status: "failed",
+      errorSummary: summarizeIssues(errors),
+      warningsSummary: summarizeIssues(warnings),
+    });
+    return { importedCount: 0, skippedCount: totalRows, failedCount, errors, warnings, uploadId: uploadLog?.id };
   }
 
   let importedCount = 0;
   if (normalized.length > 0) {
     await db.transaction(async tx => {
-      await tx
-        .delete(schema.benchmarks)
-        .where(eq(schema.benchmarks.workspaceId, options.workspaceId));
+      await tx.delete(schema.benchmarks).where(eq(schema.benchmarks.workspaceId, options.workspaceId));
 
       await tx.insert(schema.benchmarks).values(
         normalized.map(row => ({
@@ -110,25 +134,27 @@ export async function ingestBenchmarksCsv(options: IngestBenchmarksOptions): Pro
   const skippedCount = totalRows - importedCount;
   const status = importedCount === 0 ? "failed" : errors.length > 0 ? "partial" : "success";
 
-  if (uploadLog) {
-    await updateUploadLog(uploadLog.id, {
-      rowCountTotal: totalRows,
-      rowCountImported: importedCount,
-      rowCountFailed: skippedCount,
-      status,
-      errorSummary: summarizeIssues(errors),
-      warningsSummary: summarizeIssues(warnings),
-    });
-  }
+  await persistUploadLog(uploadLog, {
+    rowCountTotal: totalRows,
+    rowCountImported: importedCount,
+    rowCountFailed: failedCount || skippedCount,
+    status,
+    errorSummary: summarizeIssues(errors),
+    warningsSummary: summarizeIssues(warnings),
+  });
 
   logger.info("Benchmark ingestion complete", {
+    eventName: "INGEST_BENCHMARKS_END",
     uploadId: uploadLog?.id,
     imported: importedCount,
     skipped: skippedCount,
+    failedCount,
     status,
+    workspaceId: options.workspaceId,
+    userId: options.userId,
   });
 
-  return { importedCount, skippedCount, errors, warnings, uploadId: uploadLog?.id };
+  return { importedCount, skippedCount, failedCount: failedCount || skippedCount, errors, warnings, uploadId: uploadLog?.id, headerIssues };
 }
 
 function parseCsvRecords(csv: string): { headers: string[]; records: CsvRecord[] } {
@@ -141,7 +167,7 @@ function parseCsvRecords(csv: string): { headers: string[]; records: CsvRecord[]
     if (!row.some(cell => cell.trim() !== "")) continue;
     const rec: CsvRecord = {};
     headers.forEach((header, idx) => {
-      rec[header.trim().toLowerCase()] = (row[idx] ?? "").trim();
+      rec[normalizeHeaderKey(header)] = (row[idx] ?? "").trim();
     });
     records.push(rec);
   }
@@ -181,7 +207,7 @@ function normalizeRecord(
 ): NormalizedBenchmarkRow | null {
   const pick = (...keys: string[]) => {
     for (const key of keys) {
-      const val = record[key.toLowerCase()];
+      const val = record[normalizeHeaderKey(key)];
       if (val !== undefined && val !== null && String(val).trim() !== "") return String(val).trim();
     }
     return undefined;
@@ -222,23 +248,28 @@ function validateRow(row: NormalizedBenchmarkRow, rowNumber: number, errors: str
   return true;
 }
 
-function findMissingRequiredColumns(headers: string[]): string[] {
-  const normalized = headers.map(h => h.trim().toLowerCase());
-  const required = [
-    { label: "symbol", keys: ["symbol", "ticker"] },
-    { label: "date", keys: ["date", "asof", "day"] },
-    { label: "close", keys: ["close", "price", "value"] },
-  ];
+function validateHeaders(headers: string[]): IngestionHeaderIssues {
+  const normalized = headers.map(h => normalizeHeaderKey(h)).filter(Boolean);
   const missing: string[] = [];
-  for (const item of required) {
-    const hasField = item.keys.some(key => normalized.includes(key));
-    if (!hasField) missing.push(item.label);
+  for (const requirement of REQUIRED_FIELDS) {
+    const hasField = requirement.keys.some(key => normalized.includes(normalizeHeaderKey(key)));
+    if (!hasField) missing.push(requirement.label);
   }
-  return missing;
+  const unexpected = normalized.filter(header => !ALLOWED_HEADERS.has(header));
+  return { missing, unexpected };
 }
 
 function summarizeIssues(list: string[]): string | null {
   if (!list.length) return null;
   const unique = Array.from(new Set(list));
   return unique.slice(0, 3).join(" | ");
+}
+
+async function persistUploadLog(
+  uploadLog: Awaited<ReturnType<typeof createUploadLog>>,
+  update: Parameters<typeof updateUploadLog>[1],
+) {
+  if (uploadLog) {
+    await updateUploadLog(uploadLog.id, update);
+  }
 }

@@ -1,4 +1,4 @@
-import { and, between, eq, gte, inArray, isNull, lte } from "drizzle-orm";
+import { and, between, desc, eq, gte, inArray, isNull, lte, sql } from "drizzle-orm";
 import {
   DrawdownPoint,
   DrawdownResponse,
@@ -50,6 +50,13 @@ export interface TradeLoadOptions {
   startDate?: string; // derived from time range selector
   endDate?: string; // derived from time range selector
   strategyIds?: number[];
+  symbol?: string;
+  side?: string;
+}
+
+interface PaginatedTradeLoadOptions extends TradeLoadOptions {
+  page: number;
+  pageSize: number;
 }
 
 export const ENGINE_CONFIG = {
@@ -58,6 +65,21 @@ export const ENGINE_CONFIG = {
 };
 
 const safeNumber = (value: number): number => (Number.isFinite(value) ? value : 0);
+
+type TradeRecord = {
+  id: number;
+  strategyId: number;
+  userId: number;
+  workspaceId: number;
+  symbol: string;
+  side: string;
+  quantity: unknown;
+  entryPrice: unknown;
+  exitPrice: unknown;
+  entryTime: Date | string;
+  exitTime: Date | string;
+  deletedAt?: Date | string | null;
+};
 
 function tradePnl(side: string, entry: number, exit: number, qty: number): number {
   const normalizedSide = side.toLowerCase();
@@ -190,40 +212,10 @@ export async function loadStrategies(scope: UserScope): Promise<StrategySummary[
 }
 
 export async function loadTrades(scope: UserScope, opts: TradeLoadOptions = {}): Promise<TradeRow[]> {
-  const { userId, workspaceId } = scope;
-  const { startDate, endDate, strategyIds } = opts;
   const db = await getDb();
+  const predicates = buildTradePredicates(scope, opts);
   if (db) {
-    type TradeRecord = {
-      id: number;
-      strategyId: number;
-      userId: number;
-      workspaceId: number;
-      symbol: string;
-      side: string;
-      quantity: unknown;
-      entryPrice: unknown;
-      exitPrice: unknown;
-      entryTime: Date | string;
-      exitTime: Date | string;
-      deletedAt?: Date | string | null;
-    };
-
-    const predicates = [eq(schema.trades.userId, userId), isNull(schema.trades.deletedAt)];
-    if (workspaceId != null) {
-      predicates.push(eq(schema.trades.workspaceId, workspaceId));
-    }
-    if (startDate) {
-      predicates.push(gte(schema.trades.exitTime, new Date(`${startDate}T00:00:00.000Z`)));
-    }
-    if (endDate) {
-      predicates.push(lte(schema.trades.exitTime, new Date(`${endDate}T23:59:59.999Z`)));
-    }
-    if (strategyIds && strategyIds.length > 0) {
-      predicates.push(inArray(schema.trades.strategyId, strategyIds));
-    }
-
-    const rows: TradeRecord[] = await db
+    const baseQuery = db
       .select({
         id: schema.trades.id,
         strategyId: schema.trades.strategyId,
@@ -241,39 +233,127 @@ export async function loadTrades(scope: UserScope, opts: TradeLoadOptions = {}):
       .from(schema.trades)
       .where(and(...predicates));
 
+    const rows: TradeRecord[] = typeof (baseQuery as any).orderBy === "function"
+      ? await (baseQuery as any).orderBy(desc(schema.trades.exitTime))
+      : await baseQuery;
+
     const activeRows = rows.filter(trade => !trade.deletedAt);
-
     if (activeRows.length > 0) {
-      const mapped = activeRows.map((trade): TradeRow => ({
-        id: trade.id,
-        strategyId: trade.strategyId,
-        userId: trade.userId,
-        workspaceId: trade.workspaceId,
-        symbol: trade.symbol,
-        side: trade.side,
-        quantity: Number(trade.quantity),
-        entryPrice: Number(trade.entryPrice),
-        exitPrice: Number(trade.exitPrice),
-        entryTime: new Date(trade.entryTime).toISOString(),
-        exitTime: new Date(trade.exitTime).toISOString(),
-      }));
-
-      return mapped.filter(trade => {
-        const exitDate = trade.exitTime.slice(0, 10);
-        if (startDate && exitDate < startDate) return false;
-        if (endDate && exitDate > endDate) return false;
-        if (strategyIds && strategyIds.length > 0 && !strategyIds.includes(trade.strategyId)) return false;
-        return true;
-      });
+      const mapped = mapTradeRows(activeRows);
+      return applyTradeFilters(mapped, opts);
     }
+    return [];
   }
+
+  return filterSampleTrades(scope, opts);
+}
+
+export async function loadTradesPage(scope: UserScope, opts: PaginatedTradeLoadOptions): Promise<{ rows: TradeRow[]; total: number }> {
+  const page = Math.max(1, opts.page);
+  const pageSize = Math.min(Math.max(1, opts.pageSize), 500);
+  const db = await getDb();
+  const predicates = buildTradePredicates(scope, opts);
+
+  if (!db) {
+    const allRows = filterSampleTrades(scope, opts);
+    const start = (page - 1) * pageSize;
+    return { rows: allRows.slice(start, start + pageSize), total: allRows.length };
+  }
+
+  const rows: TradeRecord[] = await db
+    .select({
+      id: schema.trades.id,
+      strategyId: schema.trades.strategyId,
+      userId: schema.trades.userId,
+      workspaceId: schema.trades.workspaceId,
+      symbol: schema.trades.symbol,
+      side: schema.trades.side,
+      quantity: schema.trades.quantity,
+      entryPrice: schema.trades.entryPrice,
+      exitPrice: schema.trades.exitPrice,
+      entryTime: schema.trades.entryTime,
+      exitTime: schema.trades.exitTime,
+      deletedAt: schema.trades.deletedAt,
+    })
+    .from(schema.trades)
+    .where(and(...predicates))
+    .orderBy(desc(schema.trades.exitTime))
+    .limit(pageSize)
+    .offset((page - 1) * pageSize);
+
+  const [{ count }] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(schema.trades)
+    .where(and(...predicates));
+
+  return { rows: mapTradeRows(rows.filter(trade => !trade.deletedAt)), total: Number(count) };
+}
+
+function buildTradePredicates(scope: UserScope, opts: TradeLoadOptions) {
+  const predicates = [eq(schema.trades.userId, scope.userId), isNull(schema.trades.deletedAt)];
+  if (scope.workspaceId != null) {
+    predicates.push(eq(schema.trades.workspaceId, scope.workspaceId));
+  }
+  if (opts.startDate) {
+    predicates.push(gte(schema.trades.exitTime, new Date(`${opts.startDate}T00:00:00.000Z`)));
+  }
+  if (opts.endDate) {
+    predicates.push(lte(schema.trades.exitTime, new Date(`${opts.endDate}T23:59:59.999Z`)));
+  }
+  if (opts.strategyIds && opts.strategyIds.length > 0) {
+    predicates.push(inArray(schema.trades.strategyId, opts.strategyIds));
+  }
+  if (opts.symbol) {
+    predicates.push(eq(schema.trades.symbol, opts.symbol));
+  }
+  if (opts.side) {
+    predicates.push(eq(schema.trades.side, opts.side));
+  }
+  return predicates;
+}
+
+function mapTradeRows(rows: TradeRecord[]): TradeRow[] {
+  return rows.map((trade): TradeRow => ({
+    id: trade.id,
+    strategyId: trade.strategyId,
+    userId: trade.userId,
+    workspaceId: trade.workspaceId,
+    symbol: trade.symbol,
+    side: trade.side,
+    quantity: Number(trade.quantity),
+    entryPrice: Number(trade.entryPrice),
+    exitPrice: Number(trade.exitPrice),
+    entryTime: new Date(trade.entryTime).toISOString(),
+    exitTime: new Date(trade.exitTime).toISOString(),
+  }));
+}
+
+function applyTradeFilters(rows: TradeRow[], opts: TradeLoadOptions): TradeRow[] {
+  if (!opts.startDate && !opts.endDate && !opts.strategyIds?.length && !opts.symbol && !opts.side) {
+    return rows;
+  }
+
+  return rows.filter(row => {
+    const exitDate = row.exitTime.slice(0, 10);
+    if (opts.startDate && exitDate < opts.startDate) return false;
+    if (opts.endDate && exitDate > opts.endDate) return false;
+    if (opts.strategyIds && opts.strategyIds.length > 0 && !opts.strategyIds.includes(row.strategyId)) return false;
+    if (opts.symbol && row.symbol !== opts.symbol) return false;
+    if (opts.side && row.side !== opts.side) return false;
+    return true;
+  });
+}
+
+function filterSampleTrades(scope: UserScope, opts: TradeLoadOptions): TradeRow[] {
   return sampleTrades
-    .filter(t => t.userId === userId && (workspaceId == null || t.workspaceId === workspaceId))
+    .filter(t => t.userId === scope.userId && (scope.workspaceId == null || t.workspaceId === scope.workspaceId))
     .filter(t => {
       const exitDate = t.exitTime.slice(0, 10);
-      if (startDate && exitDate < startDate) return false;
-      if (endDate && exitDate > endDate) return false;
-      if (strategyIds && strategyIds.length > 0 && !strategyIds.includes(t.strategyId)) return false;
+      if (opts.startDate && exitDate < opts.startDate) return false;
+      if (opts.endDate && exitDate > opts.endDate) return false;
+      if (opts.strategyIds && opts.strategyIds.length > 0 && !opts.strategyIds.includes(t.strategyId)) return false;
+      if (opts.symbol && t.symbol !== opts.symbol) return false;
+      if (opts.side && t.side !== opts.side) return false;
       return true;
     });
 }

@@ -1,8 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { TRPCError } from "@trpc/server";
+
 import { schema } from "@server/db";
 import { ingestTradesCsv } from "@server/services/tradeIngestion";
+import { enforceUploadGuards } from "@server/routers/portfolio";
 import * as dbModule from "@server/db";
 
 function createMockDb() {
@@ -80,6 +83,7 @@ test("ingestTradesCsv imports valid rows", async () => {
 
     assert.equal(result.importedCount, 2);
     assert.equal(result.skippedCount, 0);
+    assert.equal(result.failedCount, 0);
     assert.deepEqual(result.errors, []);
     assert.deepEqual(result.warnings, []);
     assert.equal(mockDb.trades.length, 2);
@@ -102,7 +106,9 @@ test("ingestTradesCsv reports missing required columns", async () => {
 
     assert.equal(result.importedCount, 0);
     assert.equal(result.skippedCount, 1);
+    assert.equal(result.failedCount, 1);
     assert.ok(result.errors.some(err => err.toLowerCase().includes("missing required columns")));
+    assert.ok(result.headerIssues?.missing.includes("entry price"));
     assert.equal(mockDb.uploadLogs[0].status, "failed");
     assert.equal(mockDb.uploadLogs[0].rowCountFailed, 1);
   });
@@ -122,10 +128,39 @@ test("ingestTradesCsv skips invalid numeric or empty rows", async () => {
 
     assert.equal(result.importedCount, 1);
     assert.equal(result.skippedCount, 1); // one invalid row
+    assert.equal(result.failedCount, 1);
     assert.equal(mockDb.trades.length, 1);
     assert.ok(result.errors.some(err => err.includes("Row 2")));
     assert.equal(result.importedCount + result.skippedCount, 2);
     assert.equal(mockDb.uploadLogs[0].status, "partial");
     assert.ok(mockDb.uploadLogs[0].errorSummary);
   });
+});
+
+test("ingestTradesCsv flags invalid dates", async () => {
+  const mockDb = createMockDb();
+  const csv = [
+    "symbol,side,quantity,entryPrice,exitPrice,entryTime,exitTime",
+    "AAPL,long,10,100,110,not-a-date,2024-01-02T00:00:00Z",
+  ].join("\n");
+
+  await withMockDb(mockDb, async () => {
+    const result = await ingestTradesCsv({ csv, userId: 1, workspaceId: 1 });
+
+    assert.equal(result.importedCount, 0);
+    assert.equal(result.failedCount, 1);
+    assert.ok(result.errors.some(err => err.toLowerCase().includes("invalid")));
+    assert.equal(mockDb.uploadLogs[0].status, "failed");
+  });
+});
+
+test("enforceUploadGuards rejects oversized files", () => {
+  const oversizedCsv = "a".repeat(5 * 1024 * 1024 + 2);
+  try {
+    enforceUploadGuards(oversizedCsv, "trades.csv");
+    assert.fail("Expected guard to throw");
+  } catch (error) {
+    assert.ok(error instanceof TRPCError);
+    assert.equal((error as TRPCError).code, "PAYLOAD_TOO_LARGE");
+  }
 });

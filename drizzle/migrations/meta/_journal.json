@@ -36,6 +36,13 @@
       "when": 1764184924668,
       "tag": "0004_upload_soft_delete_links",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1764184924669,
+      "tag": "0005_trade_perf_indexes",
+      "breakpoints": true
     }
   ]
 }

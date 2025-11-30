@@ -29,7 +29,7 @@ function DashboardNew() {
     timeRange,
   });
   const strategiesQuery = trpc.strategies.list.useQuery(undefined, { retry: 1 });
-  const tradesQuery = trpc.portfolio.trades.useQuery({ timeRange }, { retry: 1 });
+  const tradesQuery = trpc.portfolio.trades.useQuery({ timeRange, page: 1, pageSize: 50 }, { retry: 1 });
   const monteCarloQuery = trpc.portfolio.monteCarloSimulation.useQuery(
     { ...monteCarloParams, timeRange },
     { retry: 1 },
@@ -63,7 +63,7 @@ function DashboardNew() {
   const drawdowns = drawdownQuery.data;
   const comparison = comparisonQuery.data;
   const strategies = strategiesQuery.data;
-  const trades = tradesQuery.data as TradeRow[] | undefined;
+  const trades = tradesQuery.data?.rows as TradeRow[] | undefined;
   const monteCarlo = monteCarloQuery.data;
 
   const renderError = (message: string, retry?: () => void) => (

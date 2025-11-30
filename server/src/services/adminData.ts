@@ -182,6 +182,7 @@ function createDbAdapter(db: Database): AdminDataAdapter {
       await db.update(schema.uploadLogs).set({ warningsSummary: summary }).where(eq(schema.uploadLogs.id, uploadId));
 
       logger.info("Soft delete by upload", {
+        eventName: "ADMIN_SOFT_DELETE_UPLOAD",
         uploadId,
         workspaceId: uploadLog.workspaceId,
         type: uploadLog.uploadType,
@@ -219,6 +220,7 @@ function createDbAdapter(db: Database): AdminDataAdapter {
         .returning({ id: schema.trades.id });
 
       logger.info("Soft delete trades by filter", {
+        eventName: "ADMIN_SOFT_DELETE_TRADES",
         workspaceId: params.workspaceId,
         symbol: params.symbol,
         startDate: params.startDate,
@@ -255,6 +257,7 @@ function createDbAdapter(db: Database): AdminDataAdapter {
         .returning({ id: schema.benchmarks.id });
 
       logger.info("Soft delete benchmarks by filter", {
+        eventName: "ADMIN_SOFT_DELETE_BENCHMARKS",
         workspaceId: params.workspaceId,
         symbol: params.symbol,
         startDate: params.startDate,

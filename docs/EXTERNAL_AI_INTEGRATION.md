@@ -48,6 +48,12 @@ A simple seed script lives at `server/scripts/seed-demo-data.ts` and loads one w
 pnpm db:seed:demo
 ```
 
+For load testing or performance sanity checks, you can generate a larger synthetic workspace (~100k trades + benchmarks) with:
+```bash
+pnpm db:seed:large
+```
+This leverages the ingestion pipeline and logs `LOAD_DATASET_*` events with basic timing metrics. Adjust `LOAD_TRADE_COUNT`, `WORKSPACE_ID`, or `USER_ID` env vars to tune the run. It is optional and intended for performance profiling, not routine setup.
+
 ## Read-only analysis for agents
 - Agents can connect to Postgres using `DATABASE_URL` in read-only mode (e.g., `postgres://user:password@host:5432/db?sslmode=require&options=...`).
 - The most relevant tables for analytics are `workspaces`, `strategies`, `trades`, `benchmarks`, and `upload_logs`.
