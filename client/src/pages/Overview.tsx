@@ -158,7 +158,7 @@ function OverviewPage() {
       <div className="flex items-baseline justify-between">
         <div>
           <h2 className="text-lg font-semibold text-slate-900">Overview</h2>
-          <p className="text-sm text-slate-600">Workspace-aware snapshot for operators and traders.</p>
+          <p className="text-sm text-slate-600">Workspace overview of equity, drawdowns, and risk signals.</p>
         </div>
         {overviewQuery.isError || summaryQuery.isError ? (
           <div className="rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-800">Failed to load latest stats.</div>
@@ -166,12 +166,6 @@ function OverviewPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
-        <MetricCard
-          label="Current equity"
-          value={overview ? currency.format(overview.equity) : undefined}
-          helper="Workspace scoped"
-          isLoading={overviewQuery.isLoading}
-        />
         <MetricCard
           label="Total return"
           value={metrics ? percent.format(metrics.totalReturnPct / 100) : summary ? percent.format(summary.totalReturnPct) : undefined}
@@ -190,21 +184,15 @@ function OverviewPage() {
           helper={metrics ? `Sortino ${metrics.sortino.toFixed(2)}` : undefined}
           isLoading={overviewQuery.isLoading}
         />
-      </div>
-
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
-        <MetricCard
-          label="Win rate"
-          value={metrics ? percent.format(metrics.winRatePct / 100) : overview ? percent.format(overview.winRate) : undefined}
-          helper={overview ? `${overview.totalTrades} trades` : undefined}
-          isLoading={overviewQuery.isLoading}
-        />
         <MetricCard
           label="Profit factor"
           value={metrics ? metrics.profitFactor.toFixed(2) : overview ? overview.profitFactor.toFixed(2) : undefined}
           helper={metrics ? `Payoff ${metrics.payoffRatio.toFixed(2)}` : undefined}
           isLoading={overviewQuery.isLoading}
         />
+      </div>
+
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
         <MetricCard
           label="Expectancy / trade"
           value={
@@ -217,7 +205,24 @@ function OverviewPage() {
           helper={metrics ? `${percent.format(metrics.lossRatePct / 100)} loss rate` : undefined}
           isLoading={overviewQuery.isLoading}
         />
-        <MetricCard label="Time window" value={timeRange?.preset ?? "Custom"} helper="Synced with Manus scope" />
+        <MetricCard
+          label="Win rate"
+          value={metrics ? percent.format(metrics.winRatePct / 100) : overview ? percent.format(overview.winRate) : undefined}
+          helper={overview ? `${overview.totalTrades} trades` : undefined}
+          isLoading={overviewQuery.isLoading}
+        />
+        <MetricCard
+          label="Trade count"
+          value={overview?.totalTrades?.toLocaleString()}
+          helper={overview ? `${overview.winningTrades} wins / ${overview.losingTrades} losses` : undefined}
+          isLoading={overviewQuery.isLoading}
+        />
+        <MetricCard
+          label="Current equity"
+          value={overview ? currency.format(overview.equity) : undefined}
+          helper="Workspace scoped"
+          isLoading={overviewQuery.isLoading}
+        />
       </div>
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-4">

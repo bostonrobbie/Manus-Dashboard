@@ -131,7 +131,7 @@ function TradesPage() {
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <div>
           <h2 className="text-lg font-semibold text-slate-900">Trades</h2>
-          <p className="text-sm text-slate-600">Filtered and paginated by current workspace and time range.</p>
+          <p className="text-sm text-slate-600">What happened trade by trade for this workspace and time range.</p>
         </div>
         {tradesQuery.isError ? (
           <div className="rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-800">Unable to load trades.</div>
@@ -148,20 +148,20 @@ function TradesPage() {
           ) : (
             <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
               <div className="rounded border border-slate-200 bg-white p-3 text-sm shadow-sm">
-                <div className="text-xs uppercase tracking-wide text-slate-500">Win rate</div>
-                <div className="text-lg font-semibold text-slate-900">{tradeStats.winRate.toFixed(1)}%</div>
-              </div>
-              <div className="rounded border border-slate-200 bg-white p-3 text-sm shadow-sm">
-                <div className="text-xs uppercase tracking-wide text-slate-500">Avg R</div>
-                <div className="text-lg font-semibold text-slate-900">{tradeStats.avgR != null ? tradeStats.avgR.toFixed(2) : "-"}</div>
-              </div>
-              <div className="rounded border border-slate-200 bg-white p-3 text-sm shadow-sm">
                 <div className="text-xs uppercase tracking-wide text-slate-500">Profit factor</div>
                 <div className="text-lg font-semibold text-slate-900">{tradeStats.profitFactor.toFixed(2)}</div>
               </div>
               <div className="rounded border border-slate-200 bg-white p-3 text-sm shadow-sm">
                 <div className="text-xs uppercase tracking-wide text-slate-500">Expectancy</div>
                 <div className="text-lg font-semibold text-slate-900">{currency.format(tradeStats.expectancy)}</div>
+              </div>
+              <div className="rounded border border-slate-200 bg-white p-3 text-sm shadow-sm">
+                <div className="text-xs uppercase tracking-wide text-slate-500">Win rate</div>
+                <div className="text-lg font-semibold text-slate-900">{tradeStats.winRate.toFixed(1)}%</div>
+              </div>
+              <div className="rounded border border-slate-200 bg-white p-3 text-sm shadow-sm">
+                <div className="text-xs uppercase tracking-wide text-slate-500">Avg R</div>
+                <div className="text-lg font-semibold text-slate-900">{tradeStats.avgR != null ? tradeStats.avgR.toFixed(2) : "-"}</div>
               </div>
             </div>
           )}

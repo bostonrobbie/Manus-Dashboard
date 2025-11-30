@@ -80,8 +80,8 @@ function UploadsPage() {
         csv: csvText,
         fileName,
         strategyName: strategyName || undefined,
-          strategyType: strategyType || undefined,
-        });
+        strategyType: strategyType || undefined,
+      });
     }
   };
 
@@ -103,7 +103,7 @@ function UploadsPage() {
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="text-lg font-semibold text-slate-900">Uploads / Data</h2>
+        <h2 className="text-lg font-semibold text-slate-900">Uploads</h2>
         <p className="text-sm text-slate-600">Workspace {workspaceId ?? "?"} audit trail for every ingest.</p>
       </div>
 
@@ -111,8 +111,7 @@ function UploadsPage() {
         <CardHeader>
           <CardTitle className="text-sm">Upload CSV</CardTitle>
           <p className="text-xs text-slate-500">
-            Trades and benchmarks are validated with sanity checks and linked to your workspace. See DATA_PIPELINE for column
-            formats.
+            Trades and benchmarks are validated with sanity checks and linked to your workspace. See DATA_PIPELINE for column formats.
           </p>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -199,7 +198,11 @@ function UploadsPage() {
               onClick={handleSubmit}
               disabled={activeMutation}
             >
-              {activeMutation ? "Uploading..." : "Upload"}
+              {activeMutation
+                ? "Uploading..."
+                : uploadType === "benchmarks"
+                  ? "Upload benchmarks"
+                  : "Upload trades"}
             </Button>
           </div>
           {feedback ? (

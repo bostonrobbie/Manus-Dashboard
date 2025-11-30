@@ -2,6 +2,14 @@
 
 A Manus-compatible, Antigravity-ready monorepo with a React 19 + Vite frontend and an Express + tRPC backend. The portfolio engine provides deterministic analytics backed by Drizzle ORM and PostgreSQL, with sample data available when no database is configured.
 
+## Repository map
+- `client/` – React UI (tRPC hooks, Recharts charts)
+- `server/` – Express + tRPC API and analytics engine
+- `drizzle/` – Database schema and migrations
+- `docs/` – Architecture, domain, Manus integration, and UX guides (see `DOMAIN_MODEL.md`, `ARCHITECTURE.md`, `DEPLOY_ON_MANUS.md`, `MANUS_CONTRACT_CHECKLIST.md`, `DATA_PIPELINE.md`)
+- `e2e/` – Playwright smoke navigation
+- `scripts/` – Operational helpers and seeds
+
 ## Workspaces
 - `client/` – Vite-powered dashboard UI (active frontend)
 - `server/` – Express + tRPC API
