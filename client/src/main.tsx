@@ -21,6 +21,17 @@ const trpcClient = trpc.createClient({
     httpBatchLink({
       url: `${getBaseUrl()}/trpc`,
       transformer: SuperJSON,
+      headers() {
+        const headers: Record<string, string> = {};
+        const manusHeader = import.meta.env.VITE_MANUS_AUTH_HEADER?.trim();
+        const manusToken = import.meta.env.VITE_MANUS_AUTH_TOKEN?.trim();
+        const workspaceHeader = import.meta.env.VITE_MANUS_WORKSPACE_HEADER?.trim();
+        const workspaceId = import.meta.env.VITE_MANUS_WORKSPACE_ID?.trim();
+
+        if (manusHeader && manusToken) headers[manusHeader] = manusToken;
+        if (workspaceHeader && workspaceId) headers[workspaceHeader] = workspaceId;
+        return headers;
+      },
     }),
   ],
 });

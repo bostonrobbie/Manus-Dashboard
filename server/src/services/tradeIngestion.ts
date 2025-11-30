@@ -1,10 +1,10 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 
 import { getDb, schema } from "@server/db";
 import type { StrategyType } from "@shared/types/portfolio";
 
 type CsvRecord = Record<string, string>;
-type StrategyRecord = { id: number; name: string; type: StrategyType | null };
+type StrategyRecord = { id: number; name: string; type: StrategyType | null; workspaceId?: number };
 
 interface NormalizedTradeRow {
   strategyName: string;
@@ -28,6 +28,7 @@ export interface TradeIngestionResult {
 export interface IngestTradesOptions {
   csv: string;
   userId: number;
+  workspaceId: number;
   defaultStrategyName?: string;
   defaultStrategyType?: StrategyType;
 }
@@ -59,9 +60,14 @@ export async function ingestTradesCsv(options: IngestTradesOptions): Promise<Tra
   }
 
   const existingStrategies = await db
-    .select({ id: schema.strategies.id, name: schema.strategies.name, type: schema.strategies.type })
+    .select({
+      id: schema.strategies.id,
+      name: schema.strategies.name,
+      type: schema.strategies.type,
+      workspaceId: schema.strategies.workspaceId,
+    })
     .from(schema.strategies)
-    .where(eq(schema.strategies.userId, options.userId));
+    .where(and(eq(schema.strategies.userId, options.userId), eq(schema.strategies.workspaceId, options.workspaceId)));
   const strategiesByName = new Map<string, StrategyRecord>(
     existingStrategies.map((s: StrategyRecord): [string, StrategyRecord] => [s.name, s]),
   );
@@ -84,6 +90,7 @@ export async function ingestTradesCsv(options: IngestTradesOptions): Promise<Tra
       .values(
         Array.from(requiredStrategies.entries()).map(([name, type]) => ({
           userId: options.userId,
+          workspaceId: options.workspaceId,
           name,
           type,
           description: "Imported from CSV",
@@ -112,6 +119,7 @@ export async function ingestTradesCsv(options: IngestTradesOptions): Promise<Tra
     return [
       {
         userId: options.userId,
+        workspaceId: options.workspaceId,
         strategyId,
         symbol: row.symbol,
         side: row.side,

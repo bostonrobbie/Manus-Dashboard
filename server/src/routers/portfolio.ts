@@ -102,7 +102,8 @@ export const portfolioRouter = router({
     )
     .query(async ({ ctx, input }) => {
       const range = deriveDateRangeFromTimeRange(input?.timeRange);
-      return overviewSchema.parse(await buildPortfolioOverview(ctx.userId, range));
+      const scope = { userId: ctx.user.id, workspaceId: ctx.user.workspaceId };
+      return overviewSchema.parse(await buildPortfolioOverview(scope, range));
     }),
   equityCurves: authedProcedure
     .input(
@@ -117,7 +118,8 @@ export const portfolioRouter = router({
     )
     .query(async ({ ctx, input }) => {
       const range = deriveDateRangeFromTimeRange(input?.timeRange);
-      const res = await buildAggregatedEquityCurve(ctx.userId, {
+      const scope = { userId: ctx.user.id, workspaceId: ctx.user.workspaceId };
+      const res = await buildAggregatedEquityCurve(scope, {
         startDate: input?.startDate ?? range.startDate,
         endDate: input?.endDate ?? range.endDate,
         maxPoints: input?.maxPoints,
@@ -137,7 +139,8 @@ export const portfolioRouter = router({
     )
     .query(async ({ ctx, input }) => {
       const range = deriveDateRangeFromTimeRange(input?.timeRange);
-      const res = await buildDrawdownCurves(ctx.userId, {
+      const scope = { userId: ctx.user.id, workspaceId: ctx.user.workspaceId };
+      const res = await buildDrawdownCurves(scope, {
         startDate: input?.startDate ?? range.startDate,
         endDate: input?.endDate ?? range.endDate,
         maxPoints: input?.maxPoints,
@@ -174,9 +177,11 @@ export const portfolioRouter = router({
     )
     .query(async ({ ctx, input }) => {
       const range = deriveDateRangeFromTimeRange(input.timeRange);
+      const scope = { userId: ctx.user.id, workspaceId: ctx.user.workspaceId };
       const result = await buildStrategyComparison({
         ...input,
-        userId: ctx.userId,
+        userId: scope.userId,
+        workspaceId: scope.workspaceId,
         startDate: input.startDate ?? range.startDate,
         endDate: input.endDate ?? range.endDate,
       });
@@ -195,7 +200,8 @@ export const portfolioRouter = router({
     )
     .query(async ({ ctx, input }) => {
       const range = deriveDateRangeFromTimeRange(input?.timeRange);
-      return summarySchema.parse(await buildPortfolioSummary(ctx.userId, range));
+      const scope = { userId: ctx.user.id, workspaceId: ctx.user.workspaceId };
+      return summarySchema.parse(await buildPortfolioSummary(scope, range));
     }),
   trades: authedProcedure
     .input(
@@ -207,7 +213,8 @@ export const portfolioRouter = router({
     )
     .query(async ({ ctx, input }) => {
       const range = deriveDateRangeFromTimeRange(input?.timeRange);
-      return loadTrades(ctx.userId, range);
+      const scope = { userId: ctx.user.id, workspaceId: ctx.user.workspaceId };
+      return loadTrades(scope, range);
     }),
   exportTradesCsv: authedProcedure
     .input(
@@ -223,7 +230,8 @@ export const portfolioRouter = router({
       try {
         const range = deriveDateRangeFromTimeRange(input.timeRange);
         const csvString = await generateTradesCsv({
-          userId: ctx.userId,
+          userId: ctx.user.id,
+          workspaceId: ctx.user.workspaceId,
           strategyIds: input.strategyIds,
           startDate: input.startDate ?? range.startDate,
           endDate: input.endDate ?? range.endDate,
@@ -254,7 +262,8 @@ export const portfolioRouter = router({
       try {
         const result = await ingestTradesCsv({
           csv: input.csv,
-          userId: ctx.userId,
+          userId: ctx.user.id,
+          workspaceId: ctx.user.workspaceId ?? 1,
           defaultStrategyName: input.strategyName,
           defaultStrategyType: input.strategyType,
         });
@@ -277,7 +286,8 @@ export const portfolioRouter = router({
     .query(async ({ ctx, input }) =>
       monteCarloSchema.parse(
         await runMonteCarloSimulation({
-          userId: ctx.userId,
+          userId: ctx.user.id,
+          workspaceId: ctx.user.workspaceId,
           days: input.days,
           simulations: input.simulations,
           ...deriveDateRangeFromTimeRange(input.timeRange),

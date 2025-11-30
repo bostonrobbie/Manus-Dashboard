@@ -61,6 +61,7 @@ export interface StrategyComparisonResult {
 export interface TradeRow {
   id: number;
   userId?: number;
+  workspaceId?: number;
   strategyId: number;
   symbol: string;
   side: string;
@@ -90,6 +91,7 @@ export interface PortfolioOverview {
 
 export interface ExportTradesInput {
   userId: number;
+  workspaceId?: number;
   strategyIds?: number[];
   startDate?: string; // derived from time range selector unless explicitly set
   endDate?: string; // derived from time range selector unless explicitly set

@@ -6,12 +6,19 @@ type DbState = "unknown" | "up" | "down";
 interface HealthResponse {
   status?: string;
   db?: string;
+  mode?: string;
+  manusReady?: boolean;
+  mockUser?: boolean;
+  timestamp?: string;
 }
 
 export interface HealthStatus {
   status: HealthState;
   db: DbState;
   lastCheckedAt?: string;
+  mode?: string;
+  manusReady?: boolean;
+  mockUser?: boolean;
 }
 
 export function useHealthStatus(intervalMs: number = 60_000) {
@@ -33,7 +40,10 @@ export function useHealthStatus(intervalMs: number = 60_000) {
         const next: HealthStatus = {
           status: res.ok && data.status === "ok" && data.db === "up" ? "ok" : "degraded",
           db: data.db === "up" ? "up" : "down",
-          lastCheckedAt: new Date().toISOString(),
+          lastCheckedAt: data.timestamp ?? new Date().toISOString(),
+          mode: data.mode,
+          manusReady: data.manusReady,
+          mockUser: data.mockUser,
         };
 
         setHealth(next);
@@ -57,7 +67,12 @@ export function useHealthStatus(intervalMs: number = 60_000) {
 
   const label = useMemo(() => {
     if (health.status === "checking") return "System: Checking...";
-    if (health.status === "ok" && health.db === "up") return "System: OK";
+    if (health.status === "ok" && health.db === "up") {
+      return health.mode ? `System: ${health.mode}` : "System: OK";
+    }
+    if (health.mode === "MANUS" && health.manusReady === false) {
+      return "System: Manus auth missing";
+    }
     return "System: Degraded";
   }, [health]);
 

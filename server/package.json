@@ -20,6 +20,7 @@
     "dotenv": "^16.4.5",
     "drizzle-orm": "^0.44.7",
     "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
     "pg": "^8.11.5",
     "tsconfig-paths": "file:./tsconfig-paths",
     "zod": "^3.23.8"
@@ -27,6 +28,7 @@
   "devDependencies": {
     "@types/cors": "^2.8.19",
     "@types/express": "^4.17.21",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^20.12.10",
     "@types/pg": "^8.15.6",
     "ts-node": "^10.9.2",

@@ -98,13 +98,14 @@ test("time ranges filter portfolio analytics", async () => {
   const mockDb = createMockDb();
 
   await withMockDb(mockDb, async () => {
-    const fullCurve = await buildAggregatedEquityCurve(1, {});
-    const recentCurve = await buildAggregatedEquityCurve(1, { startDate: "2024-07-01", endDate: "2024-08-31" });
+    const scope = { userId: 1, workspaceId: 1 };
+    const fullCurve = await buildAggregatedEquityCurve(scope, {});
+    const recentCurve = await buildAggregatedEquityCurve(scope, { startDate: "2024-07-01", endDate: "2024-08-31" });
 
     assert.ok(fullCurve.points.length > recentCurve.points.length, "recent curve should be downsampled by range");
 
-    const fullOverview = await buildPortfolioOverview(1, {});
-    const recentOverview = await buildPortfolioOverview(1, { startDate: "2024-07-01", endDate: "2024-08-31" });
+    const fullOverview = await buildPortfolioOverview(scope, {});
+    const recentOverview = await buildPortfolioOverview(scope, { startDate: "2024-07-01", endDate: "2024-08-31" });
 
     assert.equal(fullOverview.totalTrades, mockDb.trades.length);
     assert.equal(recentOverview.totalTrades, 2, "only recent trades counted");
