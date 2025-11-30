@@ -20,6 +20,18 @@ const adminProcedure = authedProcedure.use(({ ctx, next }) => {
 
 const uploadStatus = z.enum(["pending", "success", "partial", "failed"]);
 const uploadType = z.enum(["trades", "benchmarks", "equity"]);
+const workspaceIdSchema = z.number().int().positive();
+const dateSchema = z
+  .string()
+  .trim()
+  .regex(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/)
+  .describe("Date in YYYY-MM-DD format");
+const symbolSchema = z
+  .string()
+  .trim()
+  .min(1, "Symbol is required")
+  .max(32, "Symbol is too long")
+  .regex(/^[\w\-\.]+$/, "Symbol may only include letters, numbers, dashes, underscores, or dots");
 
 export const adminDataRouter = router({
   listWorkspaces: adminProcedure.query(async () => {
@@ -33,7 +45,7 @@ export const adminDataRouter = router({
   listUploadsForWorkspace: adminProcedure
     .input(
       z.object({
-        workspaceId: z.number().int(),
+        workspaceId: workspaceIdSchema,
         page: z.number().int().positive().default(1),
         pageSize: z.number().int().positive().max(100).default(25),
         uploadType: uploadType.optional(),
@@ -64,14 +76,20 @@ export const adminDataRouter = router({
   softDeleteTradesByFilter: adminProcedure
     .input(
       z.object({
-        workspaceId: z.number().int(),
-        symbol: z.string().optional(),
-        startDate: z.string().optional(),
-        endDate: z.string().optional(),
+        workspaceId: workspaceIdSchema,
+        symbol: symbolSchema.optional(),
+        startDate: dateSchema.optional(),
+        endDate: dateSchema.optional(),
       }),
     )
     .mutation(async ({ input }) => {
       try {
+        if (input.startDate && input.endDate && input.startDate > input.endDate) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "startDate must be before or equal to endDate",
+          });
+        }
         const count = await softDeleteTrades(input);
         return { count };
       } catch (error) {
@@ -82,14 +100,20 @@ export const adminDataRouter = router({
   softDeleteBenchmarksByFilter: adminProcedure
     .input(
       z.object({
-        workspaceId: z.number().int(),
-        symbol: z.string().optional(),
-        startDate: z.string().optional(),
-        endDate: z.string().optional(),
+        workspaceId: workspaceIdSchema,
+        symbol: symbolSchema.optional(),
+        startDate: dateSchema.optional(),
+        endDate: dateSchema.optional(),
       }),
     )
     .mutation(async ({ input }) => {
       try {
+        if (input.startDate && input.endDate && input.startDate > input.endDate) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "startDate must be before or equal to endDate",
+          });
+        }
         const count = await softDeleteBenchmarks(input);
         return { count };
       } catch (error) {
