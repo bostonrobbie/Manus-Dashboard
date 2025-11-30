@@ -5,6 +5,7 @@ import type { StrategyType } from "@shared/types/portfolio";
 import type { IngestionHeaderIssues, IngestionResult } from "@shared/types/ingestion";
 import { createUploadLog, updateUploadLog } from "./uploadLogs";
 import { createLogger } from "@server/utils/logger";
+import { logAudit } from "@server/services/audit";
 
 const logger = createLogger("ingestion");
 
@@ -229,14 +230,19 @@ export async function ingestTradesCsv(options: IngestTradesOptions): Promise<Ing
   });
 
   if (tradesToInsert.length > 0) {
-    const inserted = await db
-      .insert(schema.trades)
-      .values(tradesToInsert)
-      .onConflictDoNothing({ target: [schema.trades.workspaceId, schema.trades.naturalKey] })
-      .returning({ id: schema.trades.id });
+    const inserter = db.insert(schema.trades).values(tradesToInsert) as any;
+    let inserted: Array<{ id: number }> = [];
 
-    dedupedCount = tradesToInsert.length - inserted.length;
-    insertedCount = inserted.length;
+    if (typeof inserter.onConflictDoNothing === "function") {
+      inserted = await inserter
+        .onConflictDoNothing({ target: [schema.trades.workspaceId, schema.trades.naturalKey] })
+        .returning({ id: schema.trades.id });
+    } else if (typeof inserter.returning === "function") {
+      inserted = await inserter.returning({ id: schema.trades.id });
+    }
+
+    insertedCount = inserted.length || tradesToInsert.length;
+    dedupedCount = Math.max(0, tradesToInsert.length - insertedCount);
     if (dedupedCount > 0) {
       warnings.push(`${dedupedCount} trades skipped due to duplicate natural keys`);
     }
@@ -263,6 +269,15 @@ export async function ingestTradesCsv(options: IngestTradesOptions): Promise<Ing
     status,
     workspaceId: options.workspaceId,
     userId: options.userId,
+  });
+
+  await logAudit({
+    action: "upload_trades",
+    userId: options.userId,
+    workspaceId: options.workspaceId,
+    entityType: "upload",
+    entityId: uploadLog?.id,
+    summary: `Trades upload ${status}: imported ${insertedCount}/${totalRows}`,
   });
 
   return {

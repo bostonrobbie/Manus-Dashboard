@@ -1,7 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
-import { isAdmin } from "@server/auth/roles";
 import {
   listUploadsForWorkspace,
   listWorkspaceSummaries,
@@ -10,13 +9,8 @@ import {
   softDeleteUpload,
 } from "@server/services/adminData";
 import { authedProcedure, router } from "@server/trpc/router";
-
-const adminProcedure = authedProcedure.use(({ ctx, next }) => {
-  if (!isAdmin(ctx.user)) {
-    throw new TRPCError({ code: "UNAUTHORIZED", message: "Admin privileges required" });
-  }
-  return next();
-});
+import { requireWorkspaceAccess, listAccessibleWorkspaceIds } from "@server/auth/workspaceAccess";
+import { isAdmin } from "@server/auth/roles";
 
 const uploadStatus = z.enum(["pending", "success", "partial", "failed"]);
 const uploadType = z.enum(["trades", "benchmarks", "equity"]);
@@ -34,15 +28,21 @@ const symbolSchema = z
   .regex(/^[\w.-]+$/, "Symbol may only include letters, numbers, dashes, underscores, or dots");
 
 export const adminDataRouter = router({
-  listWorkspaces: adminProcedure.query(async () => {
+  listWorkspaces: authedProcedure.query(async ({ ctx }) => {
+    if (!isAdmin(ctx.user)) {
+      throw new TRPCError({ code: "UNAUTHORIZED", message: "Admin privileges required" });
+    }
     try {
-      return await listWorkspaceSummaries();
+      const ids = await listAccessibleWorkspaceIds(ctx.user);
+      if (ids.size === 0) return [];
+      const summaries = await listWorkspaceSummaries();
+      return summaries.filter(summary => ids.has(summary.id));
     } catch (error) {
       throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: (error as Error).message });
     }
   }),
 
-  listUploadsForWorkspace: adminProcedure
+  listUploadsForWorkspace: authedProcedure
     .input(
       z.object({
         workspaceId: workspaceIdSchema,
@@ -52,19 +52,27 @@ export const adminDataRouter = router({
         status: uploadStatus.optional(),
       }),
     )
-    .query(async ({ input }) => {
+    .query(async ({ ctx, input }) => {
+      if (!isAdmin(ctx.user)) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "Admin privileges required" });
+      }
       try {
+        await requireWorkspaceAccess(ctx.user, "read", input.workspaceId);
         return await listUploadsForWorkspace(input);
       } catch (error) {
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: (error as Error).message });
       }
     }),
 
-  softDeleteByUpload: adminProcedure
+  softDeleteByUpload: authedProcedure
     .input(z.object({ uploadId: z.number().int() }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
+      if (!isAdmin(ctx.user)) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "Admin privileges required" });
+      }
       try {
-        return await softDeleteUpload(input.uploadId);
+        await requireWorkspaceAccess(ctx.user, "write");
+        return await softDeleteUpload(input.uploadId, ctx.user.id);
       } catch (error) {
         if ((error as Error).message?.toLowerCase().includes("not found")) {
           throw new TRPCError({ code: "NOT_FOUND", message: "Upload not found" });
@@ -73,7 +81,7 @@ export const adminDataRouter = router({
       }
     }),
 
-  softDeleteTradesByFilter: adminProcedure
+  softDeleteTradesByFilter: authedProcedure
     .input(
       z.object({
         workspaceId: workspaceIdSchema,
@@ -82,22 +90,26 @@ export const adminDataRouter = router({
         endDate: dateSchema.optional(),
       }),
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
+      if (!isAdmin(ctx.user)) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "Admin privileges required" });
+      }
       try {
+        await requireWorkspaceAccess(ctx.user, "write", input.workspaceId);
         if (input.startDate && input.endDate && input.startDate > input.endDate) {
           throw new TRPCError({
             code: "BAD_REQUEST",
             message: "startDate must be before or equal to endDate",
           });
         }
-        const count = await softDeleteTrades(input);
+        const count = await softDeleteTrades({ ...input, actorUserId: ctx.user.id });
         return { count };
       } catch (error) {
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: (error as Error).message });
       }
     }),
 
-  softDeleteBenchmarksByFilter: adminProcedure
+  softDeleteBenchmarksByFilter: authedProcedure
     .input(
       z.object({
         workspaceId: workspaceIdSchema,
@@ -106,15 +118,19 @@ export const adminDataRouter = router({
         endDate: dateSchema.optional(),
       }),
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
+      if (!isAdmin(ctx.user)) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "Admin privileges required" });
+      }
       try {
+        await requireWorkspaceAccess(ctx.user, "write", input.workspaceId);
         if (input.startDate && input.endDate && input.startDate > input.endDate) {
           throw new TRPCError({
             code: "BAD_REQUEST",
             message: "startDate must be before or equal to endDate",
           });
         }
-        const count = await softDeleteBenchmarks(input);
+        const count = await softDeleteBenchmarks({ ...input, actorUserId: ctx.user.id });
         return { count };
       } catch (error) {
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: (error as Error).message });

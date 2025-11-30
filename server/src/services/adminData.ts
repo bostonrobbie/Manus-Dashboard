@@ -4,6 +4,7 @@ import { getDb, schema, type Database } from "@server/db";
 import { createLogger } from "@server/utils/logger";
 import type { AdminUploadList, AdminWorkspaceSummary, SoftDeleteResult } from "@shared/types/admin";
 import type { UploadLogRow, UploadStatus, UploadType } from "@shared/types/uploads";
+import { logAudit } from "@server/services/audit";
 
 const logger = createLogger("admin-data");
 
@@ -29,18 +30,20 @@ export interface AdminDataAdapter {
     uploadType?: UploadType;
     status?: UploadStatus;
   }): Promise<AdminUploadList>;
-  softDeleteByUpload(uploadId: number): Promise<SoftDeleteResult>;
+  softDeleteByUpload(uploadId: number, actorUserId?: number): Promise<SoftDeleteResult>;
   softDeleteTradesByFilter(params: {
     workspaceId: number;
     symbol?: string;
     startDate?: string;
     endDate?: string;
+    actorUserId?: number;
   }): Promise<number>;
   softDeleteBenchmarksByFilter(params: {
     workspaceId: number;
     symbol?: string;
     startDate?: string;
     endDate?: string;
+    actorUserId?: number;
   }): Promise<number>;
 }
 
@@ -75,9 +78,9 @@ export async function listUploadsForWorkspace(params: {
   return adapter.listUploadsForWorkspace(params);
 }
 
-export async function softDeleteUpload(uploadId: number): Promise<SoftDeleteResult> {
+export async function softDeleteUpload(uploadId: number, actorUserId?: number): Promise<SoftDeleteResult> {
   const adapter = await getAdapter();
-  return adapter.softDeleteByUpload(uploadId);
+  return adapter.softDeleteByUpload(uploadId, actorUserId);
 }
 
 export async function softDeleteTrades(params: {
@@ -85,6 +88,7 @@ export async function softDeleteTrades(params: {
   symbol?: string;
   startDate?: string;
   endDate?: string;
+  actorUserId?: number;
 }): Promise<number> {
   const adapter = await getAdapter();
   return adapter.softDeleteTradesByFilter(params);
@@ -95,6 +99,7 @@ export async function softDeleteBenchmarks(params: {
   symbol?: string;
   startDate?: string;
   endDate?: string;
+  actorUserId?: number;
 }): Promise<number> {
   const adapter = await getAdapter();
   return adapter.softDeleteBenchmarksByFilter(params);
@@ -140,7 +145,7 @@ function createDbAdapter(db: Database): AdminDataAdapter {
       return { rows, total: filtered.length } satisfies AdminUploadList;
     },
 
-    async softDeleteByUpload(uploadId) {
+    async softDeleteByUpload(uploadId, actorUserId) {
       const [uploadLog] = await db.select().from(schema.uploadLogs).where(eq(schema.uploadLogs.id, uploadId));
 
       if (!uploadLog) {
@@ -194,6 +199,15 @@ function createDbAdapter(db: Database): AdminDataAdapter {
         benchmarksDeleted,
       });
 
+      await logAudit({
+        userId: actorUserId ?? uploadLog.userId ?? 0,
+        workspaceId: uploadLog.workspaceId,
+        action: "soft_delete_upload",
+        entityType: "upload",
+        entityId: uploadId,
+        summary: note,
+      });
+
       return { tradesDeleted, benchmarksDeleted, note } satisfies SoftDeleteResult;
     },
 
@@ -232,6 +246,14 @@ function createDbAdapter(db: Database): AdminDataAdapter {
         count: updated.length,
       });
 
+      await logAudit({
+        userId: params.actorUserId ?? 0,
+        workspaceId: params.workspaceId,
+        action: "soft_delete_trades",
+        entityType: "workspace",
+        summary: `Soft deleted ${updated.length} trades for workspace ${params.workspaceId}`,
+      });
+
       return updated.length;
     },
 
@@ -267,6 +289,14 @@ function createDbAdapter(db: Database): AdminDataAdapter {
         startDate: params.startDate,
         endDate: params.endDate,
         count: updated.length,
+      });
+
+      await logAudit({
+        userId: params.actorUserId ?? 0,
+        workspaceId: params.workspaceId,
+        action: "soft_delete_benchmarks",
+        entityType: "workspace",
+        summary: `Soft deleted ${updated.length} benchmarks for workspace ${params.workspaceId}`,
       });
 
       return updated.length;

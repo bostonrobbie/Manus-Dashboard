@@ -31,11 +31,17 @@ export function resolveAuth(req: Request): AuthContext {
     return { mode: "manus", user: manusResult.user, mock: false, fallbackUsed: false, strict: env.manusAuthStrict };
   }
 
-  if (manusMode && !env.manusAuthStrict && env.manusAllowMockOnAuthFailure) {
-    return { mode: "manus", user: MANUS_FALLBACK_USER, mock: true, fallbackUsed: true, strict: env.manusAuthStrict };
+  if (manusMode) {
+    if (!env.manusAuthStrict && env.manusAllowMockOnAuthFailure) {
+      return { mode: "manus", user: MANUS_FALLBACK_USER, mock: true, fallbackUsed: true, strict: env.manusAuthStrict };
+    }
+
+    if (env.manusAuthStrict) {
+      return { mode: "manus", user: null, mock: false, fallbackUsed: false, strict: env.manusAuthStrict };
+    }
   }
 
-  if (env.mockUserEnabled) {
+  if (!manusMode && env.mockUserEnabled) {
     return {
       mode: manusMode ? "manus" : "local",
       user: MOCK_AUTH_USER,

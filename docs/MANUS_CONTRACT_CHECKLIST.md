@@ -14,6 +14,14 @@ This document summarizes the deployment contract Manus operators should rely on 
 
 Frontend helpers for local/manual testing: `VITE_MANUS_AUTH_HEADER`, `VITE_MANUS_AUTH_TOKEN`, `VITE_MANUS_WORKSPACE_HEADER`, `VITE_MANUS_WORKSPACE_ID`.
 
+Manus must map the authenticated Google profile into `MANUS_USER_HEADER` and the active workspace into `MANUS_WORKSPACE_HEADER`. Expected shape:
+
+```json
+{ "id": 42, "email": "user@manus.dev", "name": "User Name", "workspaceId": 7, "roles": ["admin"] }
+```
+
+Set `MANUS_AUTH_STRICT=true` in Manus environments so requests without these headers fail; disable `MOCK_USER_ENABLED`/`MANUS_ALLOW_MOCK_ON_AUTH_FAILURE` in production once headers are verified.
+
 ## Start command and port
 - Start: `pnpm start` from repo root (builds server then runs `dist/server/src/index.js`).
 - Port: `PORT` env (default `3001`), bound to `0.0.0.0`.

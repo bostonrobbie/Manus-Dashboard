@@ -1,7 +1,9 @@
 # Data Pipeline & Multi-Tenancy
 
 ## Schema
-- `workspaces` table tracks Manus tenants (`external_id`, `name`).
+- `workspaces` table tracks Manus tenants (`external_id`, `name`, `owner_user_id`).
+- `workspace_members` table maps users to workspaces with per-tenant roles (`viewer`, `editor`, `admin`).
+- `audit_logs` captures user actions across workspaces for uploads and soft deletes.
 - `users`, `strategies`, `trades`, and `benchmarks` all include `workspace_id` to enforce isolation.
 - Migrations backfill a default workspace (`external_id=local-dev`, id `1`) so mock mode remains compatible.
 
@@ -9,7 +11,7 @@ Apply migrations with `pnpm --filter drizzle migrate` before serving traffic.
 
 ## Auth scoping
 - Every tRPC call now receives `ctx.user { id, email, workspaceId }`.
-- Routers require authentication and filter queries by `userId` **and** `workspaceId` when available.
+- Routers now enforce workspace membership: viewers can read their workspace, while editors/admins/owners can mutate uploads, trades, benchmarks, and settings for their workspace only.
 - In Manus mode, missing auth returns `UNAUTHORIZED`; in local mode a mock user (id 1/workspace 1) is injected when `MOCK_USER_ENABLED=true`.
 
 ## CSV ingestion & exports
@@ -32,7 +34,7 @@ Apply migrations with `pnpm --filter drizzle migrate` before serving traffic.
     SPY,2024-05-01,502.11
     SPY,2024-05-02,503.44
     ```
-- Uploads are persisted to `upload_logs` with `rowCountTotal`, `rowCountImported`, `rowCountFailed`, `status`, `errorSummary`, and `warningsSummary` for full auditability.
+- Uploads are persisted to `upload_logs` with `rowCountTotal`, `rowCountImported`, `rowCountFailed`, `status`, `errorSummary`, and `warningsSummary` for full auditability. Key ingestion and admin delete actions are mirrored into `audit_logs` with workspace/user context and short summaries (no sensitive payloads).
 - Sanity checks reject empty symbols, zero quantities, inverted entry/exit times, and non-finite prices; extreme PnL versus notional is flagged as a warning instead of silently ingesting bad data.
 - Ingestion enforces CSV headers (`symbol`, `side`, `quantity`, `entryPrice`, `exitPrice`, `entryTime`, `exitTime` for trades; `symbol`, `date`, `close` for benchmarks) and returns structured errors when columns are missing or unexpected. Dates and numeric values are normalized and non-finite/absurd values are rejected with per-row warnings.
 - Uploads larger than `MAX_UPLOAD_BYTES` (default 5MB) or files that are not CSV/text are rejected before ingestion to avoid runaway processing.

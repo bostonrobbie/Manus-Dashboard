@@ -22,6 +22,20 @@ This guide describes how to run the dashboard in Manus environments and how to k
 | `VITE_MANUS_AUTH_HEADER` / `VITE_MANUS_AUTH_TOKEN` | Frontend-only helpers to inject headers during local testing. |
 | `VITE_MANUS_WORKSPACE_HEADER` / `VITE_MANUS_WORKSPACE_ID` | Frontend workspace header helpers for local testing. |
 
+Manus is responsible for mapping its authenticated Google user into `MANUS_USER_HEADER` (default `x-manus-user-json`) and the active workspace into `MANUS_WORKSPACE_HEADER` (default `x-manus-workspace-id`). The header payload should match:
+
+```json
+{
+  "id": 42,
+  "email": "user@manus.dev",
+  "name": "User Name",
+  "workspaceId": 7,
+  "roles": ["admin"]
+}
+```
+
+In MANUS mode with `MANUS_AUTH_STRICT=true`, requests without these headers fail closed. LOCAL_DEV can continue to use mock users via `MOCK_USER_ENABLED=true` or `MANUS_ALLOW_MOCK_ON_AUTH_FAILURE=true`; disable those flags in production Manus deployments.
+
 ## Health checks
 `GET /health` returns a shallow heartbeat with mode, Manus readiness, `db`/`workspaces`/`uploads` signals, and the current build version/commit when available.
 
