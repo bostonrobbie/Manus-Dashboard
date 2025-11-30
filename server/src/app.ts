@@ -5,12 +5,15 @@ import { sql } from "drizzle-orm";
 import { getDb } from "./db";
 import { createContext } from "./trpc/context";
 import { appRouter } from "./routers";
+import { env } from "./utils/env";
 
 type MinimalDb = { execute: (query: any) => Promise<any> } | null;
 
 export async function runHealthCheck(getDbImpl: () => Promise<MinimalDb> = getDb) {
   const HEALTH_TIMEOUT_MS = 3000;
   let timer: NodeJS.Timeout | undefined;
+  const manusReady = env.manusMode && Boolean(env.manusJwtSecret || env.manusPublicKeyUrl);
+  const healthyMode = manusReady || !env.manusMode ? "ok" : "degraded";
   const timeoutPromise = new Promise((_, reject) => {
     timer = setTimeout(() => reject(new Error("health check timed out")), HEALTH_TIMEOUT_MS);
   });
@@ -20,10 +23,28 @@ export async function runHealthCheck(getDbImpl: () => Promise<MinimalDb> = getDb
     if (!db) throw new Error("database not configured");
 
     await Promise.race([db.execute(sql`select 1`), timeoutPromise]);
-    return { status: 200, body: { status: "ok", db: "up" as const } };
+    const payload = {
+      status: healthyMode,
+      db: "up" as const,
+      mode: env.manusMode ? "MANUS" : "LOCAL_DEV",
+      manusReady,
+      mockUser: env.mockUserEnabled,
+      timestamp: new Date().toISOString(),
+    };
+    return { status: payload.status === "ok" ? 200 : 202, body: payload };
   } catch (error) {
     console.warn("[health] degraded", { error: (error as Error).message });
-    return { status: 503, body: { status: "degraded", db: "down" as const } };
+    return {
+      status: 503,
+      body: {
+        status: "degraded" as const,
+        db: "down" as const,
+        mode: env.manusMode ? "MANUS" : "LOCAL_DEV",
+        manusReady,
+        mockUser: env.mockUserEnabled,
+        timestamp: new Date().toISOString(),
+      },
+    };
   } finally {
     if (timer) clearTimeout(timer);
   }

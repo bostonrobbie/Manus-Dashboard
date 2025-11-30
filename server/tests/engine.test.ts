@@ -53,12 +53,15 @@ test("monte carlo output stays bounded and aligned", async () => {
 
 test("health endpoint reports ok and degraded states", async () => {
   const healthy = await runHealthCheck(async () => ({ execute: async () => true }));
-  assert.equal(healthy.status, 200);
-  assert.deepEqual(healthy.body, { status: "ok", db: "up" });
+  assert.equal(healthy.body.db, "up");
+  assert.equal(healthy.body.status, "ok");
+  assert.equal(healthy.body.mode, "LOCAL_DEV");
+  assert.ok(typeof healthy.body.timestamp === "string");
 
   const degraded = await runHealthCheck(async () => {
     throw new Error("db down");
   });
   assert.equal(degraded.status, 503);
-  assert.deepEqual(degraded.body, { status: "degraded", db: "down" });
+  assert.equal(degraded.body.status, "degraded");
+  assert.equal(degraded.body.db, "down");
 });

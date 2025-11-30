@@ -23,7 +23,12 @@ async function main() {
     const strategyName = path.parse(file).name;
 
     console.log(`Loading ${file}...`);
-    const result = await ingestTradesCsv({ csv: contents, userId: 1, defaultStrategyName: strategyName });
+    const result = await ingestTradesCsv({
+      csv: contents,
+      userId: 1,
+      workspaceId: 1,
+      defaultStrategyName: strategyName,
+    });
     console.log(
       `Imported ${result.importedCount} rows, skipped ${result.skippedCount} for ${file}${
         result.errors.length ? ` (errors: ${result.errors.length})` : ""

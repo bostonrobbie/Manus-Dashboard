@@ -23,6 +23,7 @@ export const analyticsRouter = router({
     )
     .query(async ({ ctx, input }) => {
       const range = deriveDateRangeFromTimeRange(input?.timeRange);
-      return buildPortfolioSummary(ctx.userId, range);
+      const scope = { userId: ctx.user.id, workspaceId: ctx.user.workspaceId };
+      return buildPortfolioSummary(scope, range);
     }),
 });

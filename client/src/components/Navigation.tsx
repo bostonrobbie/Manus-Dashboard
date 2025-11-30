@@ -1,4 +1,4 @@
-const items = ["Overview", "Strategies", "Trades", "Benchmarks"];
+const items = ["Overview", "Strategies", "Trades", "Uploads", "Settings"];
 
 function Navigation() {
   return (
