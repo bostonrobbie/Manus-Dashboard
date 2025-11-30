@@ -25,7 +25,7 @@ function SettingsPage() {
     <div className="space-y-4">
       <div>
         <h2 className="text-lg font-semibold text-slate-900">Settings & Health</h2>
-        <p className="text-sm text-slate-600">Operational view for Manus deployments and local dev.</p>
+        <p className="text-sm text-slate-600">System configuration and status for operators.</p>
       </div>
 
       <Card>

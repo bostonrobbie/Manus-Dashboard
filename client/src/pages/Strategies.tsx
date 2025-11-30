@@ -107,7 +107,7 @@ function StrategiesPage() {
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <div>
           <h2 className="text-lg font-semibold text-slate-900">Strategies</h2>
-          <p className="text-sm text-slate-600">Per-strategy returns, drawdowns, and participation.</p>
+          <p className="text-sm text-slate-600">Which edges are working across this workspace.</p>
         </div>
         {strategiesQuery.isError ? (
           <div className="rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-800">Failed to load strategies.</div>
@@ -223,15 +223,15 @@ function StrategiesPage() {
               <MetricCard label="Return" value={currency.format(selectedStrategy.totalReturn)} helper={percent.format(selectedStrategy.totalReturnPct)} />
               <MetricCard label="Max drawdown" value={currency.format(selectedStrategy.maxDrawdown)} helper={percent.format(selectedStrategy.maxDrawdownPct)} />
               <MetricCard label="Sharpe" value={selectedStrategy.sharpeRatio.toFixed(2)} />
-              <MetricCard label="Win rate" value={percent.format(selectedStrategy.winRatePct / 100)} helper={`${selectedStrategy.totalTrades} trades`} />
+              <MetricCard label="Profit factor" value={selectedStrategy.profitFactor.toFixed(2)} />
             </div>
             <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
-              <MetricCard label="Profit factor" value={selectedStrategy.profitFactor.toFixed(2)} />
               <MetricCard
                 label="Expectancy"
                 value={selectedStrategy.expectancy != null ? currency.format(selectedStrategy.expectancy) : "-"}
                 helper={selectedStrategy.payoffRatio != null ? `Payoff ${selectedStrategy.payoffRatio.toFixed(2)}` : undefined}
               />
+              <MetricCard label="Win rate" value={percent.format(selectedStrategy.winRatePct / 100)} helper={`${selectedStrategy.totalTrades} trades`} />
               <MetricCard label="Trades" value={selectedStrategy.totalTrades.toLocaleString()} />
             </div>
             <div className="rounded border border-slate-200 bg-white p-3 text-sm text-slate-700 shadow-sm">{equityChart}</div>
