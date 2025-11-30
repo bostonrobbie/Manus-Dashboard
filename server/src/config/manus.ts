@@ -23,6 +23,8 @@ export interface ManusConfig {
   manusMode: boolean;
   manusAuthHeaderUser: string;
   manusAuthHeaderWorkspace: string;
+  manusAuthHeaderRoles?: string;
+  manusAuthHeaderOrg?: string;
   manusJwtSecret?: string;
   manusPublicKeyUrl?: string;
   manusBaseUrl?: string;
@@ -40,17 +42,22 @@ let cachedConfig: ManusConfig | null = null;
 export function loadManusConfig(): ManusConfig {
   if (cachedConfig) return cachedConfig;
 
-  const manusMode = toBool(process.env.MANUS_MODE, false);
+  const manusModeRaw = process.env.MANUS_MODE;
+  const manusMode = manusModeRaw
+    ? manusModeRaw.toLowerCase() === "manus" || toBool(manusModeRaw, false)
+    : false;
   const nodeEnv = process.env.NODE_ENV ?? "development";
   const manusJwtSecret = process.env.MANUS_JWT_SECRET?.trim();
   const manusPublicKeyUrl = process.env.MANUS_PUBLIC_KEY_URL?.trim();
   const manusReady = Boolean(manusJwtSecret || manusPublicKeyUrl);
   const manusAuthHeaderUser =
-    (process.env.MANUS_AUTH_HEADER_USER ?? process.env.MANUS_AUTH_HEADER ?? "x-manus-user").toLowerCase();
+    (process.env.MANUS_AUTH_HEADER_USER ?? process.env.MANUS_AUTH_HEADER ?? "x-manus-user-json").toLowerCase();
   const manusAuthHeaderWorkspace =
-    (process.env.MANUS_AUTH_HEADER_WORKSPACE ?? process.env.MANUS_WORKSPACE_HEADER ?? "x-manus-workspace").toLowerCase();
+    (process.env.MANUS_AUTH_HEADER_WORKSPACE ?? process.env.MANUS_WORKSPACE_HEADER ?? "x-manus-workspace-id").toLowerCase();
+  const manusAuthHeaderRoles = process.env.MANUS_AUTH_HEADER_ROLES?.toLowerCase();
+  const manusAuthHeaderOrg = process.env.MANUS_AUTH_HEADER_ORG?.toLowerCase();
   const mockUserEnabled = toBool(process.env.MOCK_USER_ENABLED, true);
-  const manusAuthStrict = toBool(process.env.MANUS_AUTH_STRICT, false);
+  const manusAuthStrict = toBool(process.env.MANUS_AUTH_STRICT, manusMode ? true : false);
   const manusAllowMockOnAuthFailure = toBool(
     process.env.MANUS_ALLOW_MOCK_ON_AUTH_FAILURE,
     manusMode ? false : true,
@@ -66,6 +73,8 @@ export function loadManusConfig(): ManusConfig {
     if (!manusAuthHeaderWorkspace) missing.push("MANUS_AUTH_HEADER_WORKSPACE");
     if (!manusReady) missing.push("MANUS_JWT_SECRET or MANUS_PUBLIC_KEY_URL");
     if (mockUserEnabled) warnings.push("MOCK_USER_ENABLED=true while MANUS_MODE is enabled");
+    if (manusAllowMockOnAuthFailure)
+      warnings.push("MANUS_ALLOW_MOCK_ON_AUTH_FAILURE=true while MANUS_MODE is enabled");
   }
 
   if (missing.length > 0) {
@@ -90,6 +99,8 @@ export function loadManusConfig(): ManusConfig {
     manusMode,
     manusAuthHeaderUser,
     manusAuthHeaderWorkspace,
+    manusAuthHeaderRoles,
+    manusAuthHeaderOrg,
     manusJwtSecret,
     manusPublicKeyUrl,
     manusBaseUrl: process.env.MANUS_BASE_URL?.trim(),

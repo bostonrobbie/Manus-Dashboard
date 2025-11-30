@@ -95,7 +95,7 @@ function SettingsPage() {
           <div className="rounded border border-slate-200 bg-slate-50 p-3">
             <p className="text-xs uppercase tracking-wide text-slate-500">Manus mode</p>
             <p className="font-semibold text-slate-900">{health.mode ?? "unknown"}</p>
-            <p className="text-xs text-slate-500">Headers: {import.meta.env.VITE_MANUS_AUTH_HEADER ?? "x-manus-user"}</p>
+            <p className="text-xs text-slate-500">Headers: {import.meta.env.VITE_MANUS_AUTH_HEADER ?? "x-manus-user-json"}</p>
           </div>
         </CardContent>
       </Card>

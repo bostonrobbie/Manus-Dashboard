@@ -33,8 +33,8 @@ test("parses Manus headers into a user", async () => {
     ...originalEnv,
     MANUS_MODE: "true",
     DATABASE_URL: "postgres://example",
-    MANUS_AUTH_HEADER_USER: "x-manus-user",
-    MANUS_AUTH_HEADER_WORKSPACE: "x-manus-workspace",
+    MANUS_AUTH_HEADER_USER: "x-manus-user-json",
+    MANUS_AUTH_HEADER_WORKSPACE: "x-manus-workspace-id",
     MOCK_USER_ENABLED: "false",
     MANUS_ALLOW_MOCK_ON_AUTH_FAILURE: "false",
     MANUS_AUTH_STRICT: "true",
@@ -47,8 +47,9 @@ test("parses Manus headers into a user", async () => {
 
   const req = {
     headers: {
-      "x-manus-user": "123:test@example.com",
-      "x-manus-workspace": "42",
+      "x-manus-user-json":
+        '{"parsedUser":{"sub":"user:123","email":"test@example.com","workspace_id":"42","roles":["admin","analyst"]}}',
+      "x-manus-workspace-id": "42",
     },
   } as any;
 
@@ -62,6 +63,7 @@ test("parses Manus headers into a user", async () => {
   assert.strictEqual(auth.user?.id, 123);
   assert.strictEqual(auth.user?.email, "test@example.com");
   assert.strictEqual(auth.user?.workspaceId, 42);
+  assert.deepStrictEqual(auth.user?.roles, ["admin", "analyst"]);
   assert.strictEqual(auth.fallbackUsed, false);
 });
 
