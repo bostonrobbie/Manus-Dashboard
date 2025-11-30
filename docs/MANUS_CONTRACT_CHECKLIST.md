@@ -9,6 +9,8 @@ This document summarizes the deployment contract Manus operators should rely on 
 - `MANUS_AUTH_HEADER_WORKSPACE`: header carrying the Manus workspace/tenant (default `x-manus-workspace`).
 - One of `MANUS_JWT_SECRET` or `MANUS_PUBLIC_KEY_URL`: token verification inputs.
 - Optional: `MANUS_BASE_URL` for link-outs, `MOCK_USER_ENABLED` (default `true`) for local dev.
+- Optional: `MANUS_AUTH_STRICT` (default `false`) and `MANUS_ALLOW_MOCK_ON_AUTH_FAILURE` (default `true` outside MANUS_MODE) to control Manus fallback behavior.
+- Optional: `AUTH_DEBUG_ENABLED=true` to expose the auth debug surface in production.
 
 Frontend helpers for local/manual testing: `VITE_MANUS_AUTH_HEADER`, `VITE_MANUS_AUTH_TOKEN`, `VITE_MANUS_WORKSPACE_HEADER`, `VITE_MANUS_WORKSPACE_ID`.
 
@@ -37,6 +39,16 @@ Frontend helpers for local/manual testing: `VITE_MANUS_AUTH_HEADER`, `VITE_MANUS
 - Open the Settings page to confirm `Mode`, `DB`, `Workspaces`, `Uploads`, and `Auth` badges are green.
 - Upload a small CSV and confirm an upload log row appears for the active workspace.
 - Navigate Overview/Strategies to validate workspace-scoped analytics render.
+
+## Auth debug & header discovery
+- Enable `AUTH_DEBUG_ENABLED` (or run outside production) to allow the `auth.debug` tRPC endpoint and Settings panel.
+- Visit **Settings / Health** and inspect the Auth debug card:
+  - Shows Manus mode, strict flag, configured header names, parsed user, and any `x-*` headers detected (sensitive values masked).
+  - Use this to align Manus-provided headers with `MANUS_AUTH_HEADER_USER` and `MANUS_AUTH_HEADER_WORKSPACE`.
+- Fallback flags:
+  - `MANUS_AUTH_STRICT=true` forces `UNAUTHORIZED` when Manus headers are missing.
+  - `MANUS_ALLOW_MOCK_ON_AUTH_FAILURE=true` injects a deterministic Manus mock user (`mock@manus.local`) when headers are missing and strict mode is off.
+  - Recommended: local/test => strict off + mock on; production => strict on + mock off once headers are verified via the debug panel.
 
 ## Summary
 - **Contract surface**: `pnpm start` on `PORT` with Manus headers (`MANUS_AUTH_HEADER_USER`, `MANUS_AUTH_HEADER_WORKSPACE`) and JWT inputs. Health at `/health` and `/health/full`.

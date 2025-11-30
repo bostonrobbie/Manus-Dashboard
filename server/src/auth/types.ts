@@ -7,4 +7,6 @@ export interface AuthContext {
   mode: AuthMode;
   user: AuthUser | null;
   mock: boolean;
+  fallbackUsed: boolean;
+  strict: boolean;
 }

@@ -18,6 +18,7 @@ export const trpcErrorFormatter = ({ shape, error }: { shape: any; error: TRPCEr
       ...shape.data,
       code: error.code,
       auth: isAuthError,
+      reason: (error.cause as any)?.reason,
     },
   };
 };
@@ -31,7 +32,12 @@ export const publicProcedure = t.procedure;
 
 const enforceUser = t.middleware(({ ctx, next }) => {
   if (!ctx.user) {
-    throw new TRPCError({ code: "UNAUTHORIZED", message: "Authentication required" });
+    const reason = ctx.auth.mode === "manus" && ctx.auth.strict ? "manus-auth-strict" : "unauthenticated";
+    throw new TRPCError({
+      code: "UNAUTHORIZED",
+      message: ctx.auth.mode === "manus" && ctx.auth.strict ? "Manus authentication required (strict mode)" : "Authentication required",
+      cause: { reason },
+    });
   }
   return next({ ctx: { ...ctx, user: ctx.user } });
 });

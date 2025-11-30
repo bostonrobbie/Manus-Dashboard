@@ -13,4 +13,6 @@ export interface ViewerState {
   user: SharedAuthUser | null;
   mode: AuthSource;
   mock: boolean;
+  fallbackUsed: boolean;
+  strict: boolean;
 }

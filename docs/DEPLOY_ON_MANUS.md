@@ -16,6 +16,9 @@ This guide describes how to run the dashboard in Manus environments and how to k
 | `MANUS_JWT_SECRET` / `MANUS_PUBLIC_KEY_URL` | Token verification for Manus bearer tokens. One is required when `MANUS_MODE=true`.|
 | `MANUS_BASE_URL` | Optional link-out target for Manus. |
 | `MOCK_USER_ENABLED` | Allow the mock user fallback when Manus headers are missing (defaults to `true`). |
+| `MANUS_AUTH_STRICT` | Enforce Manus auth headers and fail requests when missing (default `false`). |
+| `MANUS_ALLOW_MOCK_ON_AUTH_FAILURE` | When Manus headers are missing and strict mode is off, fall back to a deterministic Manus mock user (default `true` in local/dev, `false` in MANUS_MODE). |
+| `AUTH_DEBUG_ENABLED` | Enable the `auth.debug` endpoint and Settings debug panel in production. Defaults to `true` outside production. |
 | `VITE_MANUS_AUTH_HEADER` / `VITE_MANUS_AUTH_TOKEN` | Frontend-only helpers to inject headers during local testing. |
 | `VITE_MANUS_WORKSPACE_HEADER` / `VITE_MANUS_WORKSPACE_ID` | Frontend workspace header helpers for local testing. |
 
@@ -35,3 +38,11 @@ When running behind Manus, ensure the reverse proxy forwards `MANUS_AUTH_HEADER_
 
 ## Smoke test
 After deploy, run `pnpm smoke:test` to hit `/health`, `/health/full`, and `workspaces.list` through tRPC using configured Manus headers. Set `SMOKE_ALLOW_DEGRADED=true` only for local environments without a database.
+
+## Auth debug & fallback quickstart
+- Enable debug (`AUTH_DEBUG_ENABLED=true` or any non-production `NODE_ENV`) and open **Settings / Health** to see the new Auth debug panel.
+- The panel shows Manus mode, strict toggle, configured header names, parsed user, and any detected `x-*` headers (secrets masked). Use this to line up Manus reverse-proxy headers with `MANUS_AUTH_HEADER_USER` and `MANUS_AUTH_HEADER_WORKSPACE`.
+- Fallbacks:
+  - `MANUS_AUTH_STRICT=true`: requests without Manus headers fail with `UNAUTHORIZED`.
+  - `MANUS_ALLOW_MOCK_ON_AUTH_FAILURE=true`: when Manus mode is on but headers are missing, the API injects a deterministic Manus mock user (`mock@manus.local`). Recommended for local/testing alongside `MANUS_AUTH_STRICT=false`.
+  - Production recommendation: `MANUS_AUTH_STRICT=true`, `MANUS_ALLOW_MOCK_ON_AUTH_FAILURE=false` once headers are verified via the debug panel.

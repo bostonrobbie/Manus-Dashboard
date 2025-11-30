@@ -27,6 +27,9 @@ export interface ManusConfig {
   manusPublicKeyUrl?: string;
   manusBaseUrl?: string;
   mockUserEnabled: boolean;
+  manusAuthStrict: boolean;
+  manusAllowMockOnAuthFailure: boolean;
+  authDebugEnabled: boolean;
   manusReady: boolean;
   modeLabel: ManusMode;
   warnings: string[];
@@ -38,6 +41,7 @@ export function loadManusConfig(): ManusConfig {
   if (cachedConfig) return cachedConfig;
 
   const manusMode = toBool(process.env.MANUS_MODE, false);
+  const nodeEnv = process.env.NODE_ENV ?? "development";
   const manusJwtSecret = process.env.MANUS_JWT_SECRET?.trim();
   const manusPublicKeyUrl = process.env.MANUS_PUBLIC_KEY_URL?.trim();
   const manusReady = Boolean(manusJwtSecret || manusPublicKeyUrl);
@@ -46,6 +50,12 @@ export function loadManusConfig(): ManusConfig {
   const manusAuthHeaderWorkspace =
     (process.env.MANUS_AUTH_HEADER_WORKSPACE ?? process.env.MANUS_WORKSPACE_HEADER ?? "x-manus-workspace").toLowerCase();
   const mockUserEnabled = toBool(process.env.MOCK_USER_ENABLED, true);
+  const manusAuthStrict = toBool(process.env.MANUS_AUTH_STRICT, false);
+  const manusAllowMockOnAuthFailure = toBool(
+    process.env.MANUS_ALLOW_MOCK_ON_AUTH_FAILURE,
+    manusMode ? false : true,
+  );
+  const authDebugEnabled = toBool(process.env.AUTH_DEBUG_ENABLED, nodeEnv !== "production");
 
   const warnings: string[] = [];
   const missing: string[] = [];
@@ -84,6 +94,9 @@ export function loadManusConfig(): ManusConfig {
     manusPublicKeyUrl,
     manusBaseUrl: process.env.MANUS_BASE_URL?.trim(),
     mockUserEnabled,
+    manusAuthStrict,
+    manusAllowMockOnAuthFailure,
+    authDebugEnabled,
     manusReady,
     modeLabel,
     warnings,

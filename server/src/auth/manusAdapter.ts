@@ -6,6 +6,8 @@ import { createLogger } from "@server/utils/logger";
 import type { AuthUser } from "./types";
 
 const logger = createLogger("auth");
+const MAX_FAILURE_LOGS = 10;
+let manusFailureLogCount = 0;
 
 type ManusClaims = {
   sub?: string | number;
@@ -53,11 +55,14 @@ const coerceUserFromSerialized = (raw: string): Partial<AuthUser> | null => {
     // not json
   }
 
-  try {
-    const decoded = Buffer.from(raw, "base64").toString("utf-8");
-    return coerceUserFromSerialized(decoded);
-  } catch {
-    // ignore
+  const isLikelyBase64 = /^[A-Za-z0-9+/=]+$/;
+  if (isLikelyBase64.test(raw)) {
+    try {
+      const decoded = Buffer.from(raw, "base64").toString("utf-8");
+      return coerceUserFromSerialized(decoded);
+    } catch {
+      // ignore
+    }
   }
 
   const parts = raw.split(":");
@@ -71,14 +76,41 @@ const coerceUserFromSerialized = (raw: string): Partial<AuthUser> | null => {
   return null;
 };
 
-export function parseManusUser(req: Request): AuthUser | null {
+export interface ManusParseResult {
+  user: AuthUser | null;
+  authHeaderPresent: boolean;
+  workspaceHeaderPresent: boolean;
+  headerNames: string[];
+}
+
+const recordFailure = (headerNames: string[], authHeaderPresent: boolean, workspaceHeaderPresent: boolean) => {
+  if (!env.manusMode) return;
+  if (manusFailureLogCount >= MAX_FAILURE_LOGS) return;
+
+  manusFailureLogCount += 1;
+  logger.warn("Unable to resolve Manus user from headers", {
+    mode: "MANUS",
+    authHeaderPresent,
+    workspaceHeaderPresent,
+    configuredUserHeader: env.manusAuthHeaderUser,
+    configuredWorkspaceHeader: env.manusAuthHeaderWorkspace,
+    headerNames: headerNames.filter(name => name.startsWith("x-")),
+  });
+};
+
+export function parseManusUser(req: Request): ManusParseResult {
+  const headerNames = Object.keys(req.headers ?? {});
   const headerValue =
     req.headers[env.manusAuthHeaderUser] ?? req.headers[env.manusAuthHeaderUser.toLowerCase()];
   const workspaceHeader =
     req.headers[env.manusAuthHeaderWorkspace] ?? req.headers[env.manusAuthHeaderWorkspace.toLowerCase()];
   const rawHeader = Array.isArray(headerValue) ? headerValue[0] : headerValue;
   const rawWorkspace = Array.isArray(workspaceHeader) ? workspaceHeader[0] : workspaceHeader;
-  if (!rawHeader) return null;
+
+  if (!rawHeader) {
+    recordFailure(headerNames, Boolean(rawHeader), Boolean(rawWorkspace));
+    return { user: null, authHeaderPresent: false, workspaceHeaderPresent: Boolean(rawWorkspace), headerNames };
+  }
 
   const headerString = String(rawHeader);
   const workspaceId = parseWorkspaceId(rawWorkspace as string | undefined);
@@ -91,42 +123,62 @@ export function parseManusUser(req: Request): AuthUser | null {
         parseUserId(decoded.sub) ??
         parseUserId((decoded as any).userId as any) ??
         parseUserId((decoded as any).uid as any);
-      if (id == null) return null;
+      if (id == null) {
+        recordFailure(headerNames, true, Boolean(rawWorkspace));
+        return { user: null, authHeaderPresent: true, workspaceHeaderPresent: Boolean(rawWorkspace), headerNames };
+      }
       return {
-        id,
-        email: decoded.email ?? "unknown@manus",
-        name: decoded.name,
-        workspaceId: parseWorkspaceId(decoded.workspaceId) ?? workspaceId,
-        roles: Array.isArray(decoded.roles) ? decoded.roles : undefined,
-        source: "manus",
+        user: {
+          id,
+          email: decoded.email ?? "unknown@manus",
+          name: decoded.name,
+          workspaceId: parseWorkspaceId(decoded.workspaceId) ?? workspaceId,
+          roles: Array.isArray(decoded.roles) ? decoded.roles : undefined,
+          source: "manus",
+        },
+        authHeaderPresent: true,
+        workspaceHeaderPresent: Boolean(rawWorkspace),
+        headerNames,
       };
     } catch (error) {
       logger.warn("Unable to verify Manus token", { error: (error as Error).message });
-      return null;
+      recordFailure(headerNames, true, Boolean(rawWorkspace));
+      return { user: null, authHeaderPresent: true, workspaceHeaderPresent: Boolean(rawWorkspace), headerNames };
     }
   }
 
   const serialized = coerceUserFromSerialized(headerString);
   if (serialized?.id != null && serialized.email) {
     return {
-      id: serialized.id,
-      email: serialized.email,
-      name: serialized.name,
-      workspaceId: serialized.workspaceId ?? workspaceId,
-      roles: serialized.roles,
-      source: "manus",
+      user: {
+        id: serialized.id,
+        email: serialized.email,
+        name: serialized.name,
+        workspaceId: serialized.workspaceId ?? workspaceId,
+        roles: serialized.roles,
+        source: "manus",
+      },
+      authHeaderPresent: true,
+      workspaceHeaderPresent: Boolean(rawWorkspace),
+      headerNames,
     };
   }
 
   const fallbackId = parseUserId(headerString);
   if (fallbackId != null) {
     return {
-      id: fallbackId,
-      email: "unknown@manus",
-      workspaceId,
-      source: "manus",
+      user: {
+        id: fallbackId,
+        email: "unknown@manus",
+        workspaceId,
+        source: "manus",
+      },
+      authHeaderPresent: true,
+      workspaceHeaderPresent: Boolean(rawWorkspace),
+      headerNames,
     };
   }
 
-  return null;
+  recordFailure(headerNames, true, Boolean(rawWorkspace));
+  return { user: null, authHeaderPresent: true, workspaceHeaderPresent: Boolean(rawWorkspace), headerNames };
 }

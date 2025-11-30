@@ -14,19 +14,44 @@ export const MOCK_AUTH_USER: AuthUser = {
   source: "local",
 };
 
-export function resolveAuth(req: Request): AuthContext {
-  const manusUser = parseManusUser(req);
-  const manusMode = env.manusMode || Boolean(manusUser);
+export const MANUS_FALLBACK_USER: AuthUser = {
+  id: -1,
+  email: "mock@manus.local",
+  name: "Manus Mock",
+  workspaceId: -1,
+  roles: ["mock"],
+  source: "manus",
+};
 
-  if (manusUser) {
-    return { mode: "manus", user: manusUser, mock: false };
+export function resolveAuth(req: Request): AuthContext {
+  const manusResult = parseManusUser(req);
+  const manusMode = env.manusMode || Boolean(manusResult.user);
+
+  if (manusResult.user) {
+    return { mode: "manus", user: manusResult.user, mock: false, fallbackUsed: false, strict: env.manusAuthStrict };
+  }
+
+  if (manusMode && !env.manusAuthStrict && env.manusAllowMockOnAuthFailure) {
+    return { mode: "manus", user: MANUS_FALLBACK_USER, mock: true, fallbackUsed: true, strict: env.manusAuthStrict };
   }
 
   if (env.mockUserEnabled) {
-    return { mode: manusMode ? "manus" : "local", user: MOCK_AUTH_USER, mock: true };
+    return {
+      mode: manusMode ? "manus" : "local",
+      user: MOCK_AUTH_USER,
+      mock: true,
+      fallbackUsed: false,
+      strict: env.manusAuthStrict,
+    };
   }
 
-  return { mode: manusMode ? "manus" : "local", user: null, mock: false };
+  return {
+    mode: manusMode ? "manus" : "local",
+    user: null,
+    mock: false,
+    fallbackUsed: false,
+    strict: env.manusAuthStrict,
+  };
 }
 
 export async function createContext(opts: CreateExpressContextOptions) {
