@@ -5,6 +5,7 @@ import { portfolioRouter } from "./portfolio";
 import { strategiesRouter } from "./strategies";
 import { workspacesRouter } from "./workspaces";
 import { uploadsRouter } from "./uploads";
+import { adminDataRouter } from "./adminData";
 
 export const appRouter = router({
   auth: authRouter,
@@ -13,6 +14,7 @@ export const appRouter = router({
   strategies: strategiesRouter,
   workspaces: workspacesRouter,
   uploads: uploadsRouter,
+  adminData: adminDataRouter,
 });
 
 export type AppRouter = typeof appRouter;

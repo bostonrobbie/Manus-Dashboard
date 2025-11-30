@@ -2,6 +2,7 @@ import { PropsWithChildren, createContext, useContext, useEffect, useMemo, useSt
 import { useQueryClient } from "@tanstack/react-query";
 
 import type { SharedAuthUser } from "@shared/types/auth";
+import { isAdminUser } from "@shared/utils/auth";
 import type { WorkspaceSummary } from "@shared/types/workspace";
 import { DEFAULT_TIME_RANGE, TimeRange } from "../lib/timeRange";
 import { trpc } from "../lib/trpc";
@@ -15,6 +16,8 @@ interface DashboardState {
   workspaces: WorkspaceSummary[];
   workspacesLoading: boolean;
   workspacesError: boolean;
+  user: SharedAuthUser;
+  isAdmin: boolean;
 }
 
 const DashboardContext = createContext<DashboardState | undefined>(undefined);
@@ -44,6 +47,7 @@ export function DashboardProvider({ children, user }: PropsWithChildren<{ user: 
 
   const [workspaceId, setWorkspaceId] = useState<number | undefined>(initialWorkspaceId);
   const [timeRange, setTimeRange] = useState<TimeRange>(DEFAULT_TIME_RANGE);
+  const isAdmin = useMemo(() => isAdminUser(user), [user]);
 
   useEffect(() => {
     setWorkspaceHeaderValue(workspaceId);
@@ -65,8 +69,10 @@ export function DashboardProvider({ children, user }: PropsWithChildren<{ user: 
       workspaces,
       workspacesLoading: workspacesQuery.isLoading,
       workspacesError: Boolean(workspacesQuery.isError),
+      user,
+      isAdmin,
     }),
-    [timeRange, workspaceId, workspaces, workspacesQuery.isLoading, workspacesQuery.isError],
+    [timeRange, workspaceId, workspaces, workspacesQuery.isLoading, workspacesQuery.isError, user, isAdmin],
   );
 
   return <DashboardContext.Provider value={value}>{children}</DashboardContext.Provider>;

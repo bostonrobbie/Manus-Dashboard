@@ -17,7 +17,8 @@ interface DashboardLayoutProps extends PropsWithChildren {
 
 function DashboardLayout({ children, user, mode, mock }: DashboardLayoutProps) {
   const { status, db, label, mode: healthMode } = useHealthStatus();
-  const { timeRange, setTimeRange, workspaceId, setWorkspaceId, workspaces, workspacesLoading } = useDashboardState();
+  const { timeRange, setTimeRange, workspaceId, setWorkspaceId, workspaces, workspacesLoading, isAdmin } =
+    useDashboardState();
 
   const persona = useMemo(() => {
     const workspaceLabel = workspaceId != null ? `Workspace ${workspaceId}` : "No workspace";
@@ -42,7 +43,7 @@ function DashboardLayout({ children, user, mode, mock }: DashboardLayoutProps) {
           </div>
           <Separator />
           <div className="px-3 py-4">
-            <Navigation />
+            <Navigation isAdmin={isAdmin} />
           </div>
           <Separator />
           <div className="px-6 py-4 text-xs text-slate-600">
@@ -73,7 +74,7 @@ function DashboardLayout({ children, user, mode, mock }: DashboardLayoutProps) {
               <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                 <div className="flex items-center gap-3">
                   <div className="md:hidden">
-                    <Navigation orientation="horizontal" />
+                    <Navigation orientation="horizontal" isAdmin={isAdmin} />
                   </div>
                   <WorkspaceSelector
                     value={workspaceId}

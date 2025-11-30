@@ -206,6 +206,7 @@ export async function loadTrades(scope: UserScope, opts: TradeLoadOptions = {}):
       exitPrice: unknown;
       entryTime: Date | string;
       exitTime: Date | string;
+      deletedAt?: Date | string | null;
     };
 
     const predicates = [eq(schema.trades.userId, userId), isNull(schema.trades.deletedAt)];
@@ -235,12 +236,15 @@ export async function loadTrades(scope: UserScope, opts: TradeLoadOptions = {}):
         exitPrice: schema.trades.exitPrice,
         entryTime: schema.trades.entryTime,
         exitTime: schema.trades.exitTime,
+        deletedAt: schema.trades.deletedAt,
       })
       .from(schema.trades)
       .where(and(...predicates));
 
-    if (rows.length > 0) {
-      const mapped = rows.map((trade): TradeRow => ({
+    const activeRows = rows.filter(trade => !trade.deletedAt);
+
+    if (activeRows.length > 0) {
+      const mapped = activeRows.map((trade): TradeRow => ({
         id: trade.id,
         strategyId: trade.strategyId,
         userId: trade.userId,
@@ -278,7 +282,7 @@ async function loadBenchmarks(scope: UserScope, startDate?: string, endDate?: st
   const { workspaceId } = scope;
   const db = await getDb();
   if (db) {
-    type BenchmarkRecord = { date: string; close: unknown };
+    type BenchmarkRecord = { date: string; close: unknown; deletedAt?: Date | string | null };
 
     const predicates: any[] = [isNull(schema.benchmarks.deletedAt)];
     if (workspaceId != null) {
@@ -293,11 +297,13 @@ async function loadBenchmarks(scope: UserScope, startDate?: string, endDate?: st
     }
 
     const rows: BenchmarkRecord[] = await db
-      .select({ date: schema.benchmarks.date, close: schema.benchmarks.close })
+      .select({ date: schema.benchmarks.date, close: schema.benchmarks.close, deletedAt: schema.benchmarks.deletedAt })
       .from(schema.benchmarks)
       .where(predicates.length ? and(...predicates) : undefined);
 
-    return rows.map((row): { date: string; close: number } => ({ date: row.date, close: Number(row.close) }));
+    return rows
+      .filter(row => !row.deletedAt)
+      .map((row): { date: string; close: number } => ({ date: row.date, close: Number(row.close) }));
   }
 
   return sampleBenchmarks.filter(row => {

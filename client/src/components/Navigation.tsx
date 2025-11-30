@@ -1,18 +1,29 @@
+import { useMemo } from "react";
 import { NavLink } from "react-router-dom";
 
 import { cn } from "../lib/utils";
 
-const items = [
-  { label: "Overview", to: "/" },
-  { label: "Strategies", to: "/strategies" },
-  { label: "Trades", to: "/trades" },
-  { label: "Uploads / Data", to: "/uploads" },
-  { label: "Settings / Health", to: "/settings" },
-];
+interface NavigationProps {
+  orientation?: "vertical" | "horizontal";
+  isAdmin?: boolean;
+}
 
-function Navigation({ orientation = "vertical" }: { orientation?: "vertical" | "horizontal" }) {
+function Navigation({ orientation = "vertical", isAdmin }: NavigationProps) {
+  const items = useMemo(
+    () =>
+      [
+        { label: "Overview", to: "/" },
+        { label: "Strategies", to: "/strategies" },
+        { label: "Trades", to: "/trades" },
+        { label: "Uploads / Data", to: "/uploads" },
+        ...(isAdmin ? [{ label: "Admin Data", to: "/admin" }] : []),
+        { label: "Settings / Health", to: "/settings" },
+      ],
+    [isAdmin],
+  );
+
   return (
-    <nav className={cn("text-sm text-slate-700", orientation === "vertical" ? "space-y-1" : "flex gap-2")}> 
+    <nav className={cn("text-sm text-slate-700", orientation === "vertical" ? "space-y-1" : "flex gap-2")}>
       {items.map(item => (
         <NavLink
           key={item.to}
