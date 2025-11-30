@@ -8,6 +8,7 @@ import * as dbModule from "@server/db";
 function createMockDb() {
   const strategies: any[] = [];
   const trades: any[] = [];
+  const uploadLogs: any[] = [];
 
   const db = {
     select: () => ({
@@ -17,15 +18,21 @@ function createMockDb() {
     }),
     insert: (table: unknown) => ({
       values: (vals: any[]) => {
+        const normalizedVals = Array.isArray(vals) ? vals : [vals];
         if (table === schema.trades) {
-          trades.push(...vals);
+          trades.push(...normalizedVals);
           return { returning: async () => [] };
         }
         return {
           returning: async () => {
             if (table === schema.strategies) {
-              const inserted = vals.map((v, idx) => ({ ...v, id: strategies.length + idx + 1 }));
+              const inserted = normalizedVals.map((v, idx) => ({ ...v, id: strategies.length + idx + 1 }));
               strategies.push(...inserted);
+              return inserted;
+            }
+            if (table === schema.uploadLogs) {
+              const inserted = normalizedVals.map((v, idx) => ({ ...v, id: uploadLogs.length + idx + 1 }));
+              uploadLogs.push(...inserted);
               return inserted;
             }
             return [];
@@ -33,9 +40,22 @@ function createMockDb() {
         };
       },
     }),
+    update: (table: unknown) => ({
+      set: (vals: any) => ({
+        where: () => ({
+          returning: async () => {
+            if (table === schema.uploadLogs && uploadLogs.length > 0) {
+              Object.assign(uploadLogs[uploadLogs.length - 1], vals);
+              return [uploadLogs[uploadLogs.length - 1]];
+            }
+            return [];
+          },
+        }),
+      }),
+    }),
   } as unknown as Awaited<ReturnType<typeof dbModule.getDb>>;
 
-  return { db, strategies, trades };
+  return { db, strategies, trades, uploadLogs };
 }
 
 function withMockDb(mockDb: Awaited<ReturnType<typeof createMockDb>>, fn: () => Promise<void>) {
@@ -56,13 +76,17 @@ test("ingestTradesCsv imports valid rows", async () => {
   ].join("\n");
 
   await withMockDb(mockDb, async () => {
-    const result = await ingestTradesCsv({ csv, userId: 1, workspaceId: 1 });
+    const result = await ingestTradesCsv({ csv, userId: 1, workspaceId: 1, fileName: "sample.csv" });
 
     assert.equal(result.importedCount, 2);
     assert.equal(result.skippedCount, 0);
     assert.deepEqual(result.errors, []);
+    assert.deepEqual(result.warnings, []);
     assert.equal(mockDb.trades.length, 2);
     assert.ok(mockDb.strategies.length >= 1, "strategy created");
+    assert.equal(mockDb.uploadLogs.length, 1);
+    assert.equal(mockDb.uploadLogs[0].status, "success");
+    assert.equal(mockDb.uploadLogs[0].rowCountImported, 2);
   });
 });
 
@@ -79,6 +103,8 @@ test("ingestTradesCsv reports missing required columns", async () => {
     assert.equal(result.importedCount, 0);
     assert.equal(result.skippedCount, 1);
     assert.ok(result.errors.some(err => err.toLowerCase().includes("missing required columns")));
+    assert.equal(mockDb.uploadLogs[0].status, "failed");
+    assert.equal(mockDb.uploadLogs[0].rowCountFailed, 1);
   });
 });
 
@@ -99,5 +125,7 @@ test("ingestTradesCsv skips invalid numeric or empty rows", async () => {
     assert.equal(mockDb.trades.length, 1);
     assert.ok(result.errors.some(err => err.includes("Row 2")));
     assert.equal(result.importedCount + result.skippedCount, 2);
+    assert.equal(mockDb.uploadLogs[0].status, "partial");
+    assert.ok(mockDb.uploadLogs[0].errorSummary);
   });
 });

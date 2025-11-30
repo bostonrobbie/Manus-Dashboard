@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 import { trpc } from "../lib/trpc";
 import { useDashboardState } from "../providers/DashboardProvider";
@@ -29,6 +30,10 @@ function StrategiesPage() {
     { retry: 1 },
   );
   const tradesQuery = trpc.portfolio.trades.useQuery({ timeRange }, { retry: 1 });
+  const strategyEquityQuery = trpc.portfolio.strategyEquity.useQuery(
+    { strategyId: selectedStrategyId ?? 0, timeRange, maxPoints: 120 },
+    { enabled: selectedStrategyId != null },
+  );
 
   const selectedTrades = useMemo(
     () => tradesQuery.data?.filter(trade => trade.strategyId === selectedStrategyId) ?? [],
@@ -66,6 +71,28 @@ function StrategiesPage() {
   );
 
   const selectedStrategy = strategiesQuery.data?.rows.find(row => row.strategyId === selectedStrategyId);
+  const strategyEquityPoints = strategyEquityQuery.data?.points ?? [];
+  const equityChart = (
+    <div className="h-64">
+      {strategyEquityQuery.isFetching ? (
+        <div className="h-full animate-pulse rounded bg-slate-100" />
+      ) : strategyEquityPoints.length ? (
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={strategyEquityPoints} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+            <XAxis dataKey="date" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
+            <YAxis tickFormatter={val => currency.format(val as number)} tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
+            <Tooltip formatter={value => currency.format(Number(value))} />
+            <Line type="monotone" dataKey="combined" stroke="#0f172a" strokeWidth={2} dot={false} />
+          </LineChart>
+        </ResponsiveContainer>
+      ) : (
+        <div className="flex h-full items-center justify-center rounded border border-dashed border-slate-200 bg-slate-50 text-sm text-slate-600">
+          Select a strategy to view its equity curve.
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <div className="space-y-4">
@@ -113,6 +140,7 @@ function StrategiesPage() {
                   >
                     Sharpe
                   </th>
+                  <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">Win rate</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -128,6 +156,7 @@ function StrategiesPage() {
                     <td className="px-3 py-2 text-slate-900">{currency.format(row.totalReturn)}</td>
                     <td className="px-3 py-2 text-slate-600">{currency.format(row.maxDrawdown)}</td>
                     <td className="px-3 py-2 text-slate-600">{row.sharpeRatio.toFixed(2)}</td>
+                    <td className="px-3 py-2 text-slate-600">{percent.format(row.winRatePct / 100)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -152,6 +181,7 @@ function StrategiesPage() {
               <MetricCard label="Sharpe" value={selectedStrategy.sharpeRatio.toFixed(2)} />
               <MetricCard label="Win rate" value={percent.format(selectedStrategy.winRatePct / 100)} helper={`${selectedStrategy.totalTrades} trades`} />
             </div>
+            <div className="rounded border border-slate-200 bg-white p-3 text-sm text-slate-700 shadow-sm">{equityChart}</div>
             <div className="rounded border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
               {selectedTrades.length ? (
                 <ul className="divide-y divide-slate-200">

@@ -2,6 +2,7 @@ import { and, eq } from "drizzle-orm";
 
 import { getDb, schema } from "@server/db";
 import type { StrategyType } from "@shared/types/portfolio";
+import { createUploadLog, updateUploadLog } from "./uploadLogs";
 
 type CsvRecord = Record<string, string>;
 type StrategyRecord = { id: number; name: string; type: StrategyType | null; workspaceId?: number };
@@ -23,6 +24,8 @@ export interface TradeIngestionResult {
   importedCount: number;
   skippedCount: number;
   errors: string[];
+  warnings: string[];
+  uploadId?: number;
 }
 
 export interface IngestTradesOptions {
@@ -31,32 +34,77 @@ export interface IngestTradesOptions {
   workspaceId: number;
   defaultStrategyName?: string;
   defaultStrategyType?: StrategyType;
+  fileName?: string;
 }
 
 export async function ingestTradesCsv(options: IngestTradesOptions): Promise<TradeIngestionResult> {
   const errors: string[] = [];
-
+  const warnings: string[] = [];
   const { headers, records } = parseCsvRecords(options.csv);
+  const totalRows = records.length;
+
+  const uploadLog = await createUploadLog({
+    userId: options.userId,
+    workspaceId: options.workspaceId,
+    fileName: options.fileName ?? "trades.csv",
+    uploadType: "trades",
+  });
+
   const missingRequiredColumns = findMissingRequiredColumns(headers);
   if (missingRequiredColumns.length > 0) {
     errors.push(`Missing required columns: ${missingRequiredColumns.join(", ")}`);
-    return { importedCount: 0, skippedCount: records.length, errors };
+    if (uploadLog) {
+      await updateUploadLog(uploadLog.id, {
+        rowCountTotal: totalRows,
+        rowCountFailed: totalRows,
+        status: "failed",
+        errorSummary: summarizeIssues(errors),
+        warningsSummary: summarizeIssues(warnings),
+      });
+    }
+    return { importedCount: 0, skippedCount: totalRows, errors, warnings, uploadId: uploadLog?.id };
   }
 
   const normalizedRows: NormalizedTradeRow[] = [];
 
   for (const [idx, record] of records.entries()) {
     const rowNumber = idx + 2; // account for header row
-    const normalized = normalizeRecord(record, rowNumber, errors, options.defaultStrategyName, options.defaultStrategyType);
+    const rowErrors: string[] = [];
+    const rowWarnings: string[] = [];
+    const normalized = normalizeRecord(
+      record,
+      rowNumber,
+      rowErrors,
+      options.defaultStrategyName,
+      options.defaultStrategyType,
+    );
     if (normalized) {
-      normalizedRows.push(normalized);
+      if (validateTradeRow(normalized, rowNumber, rowErrors, rowWarnings)) {
+        normalizedRows.push(normalized);
+        warnings.push(...rowWarnings);
+      }
+    }
+    if (rowErrors.length > 0) {
+      errors.push(...rowErrors);
+    }
+    if (rowWarnings.length > 0 && !normalized) {
+      warnings.push(...rowWarnings);
     }
   }
 
   const db = await getDb();
   if (!db) {
     errors.push("Database not configured");
-    return { importedCount: 0, skippedCount: records.length, errors };
+    if (uploadLog) {
+      await updateUploadLog(uploadLog.id, {
+        rowCountTotal: totalRows,
+        rowCountFailed: totalRows,
+        status: "failed",
+        errorSummary: summarizeIssues(errors),
+        warningsSummary: summarizeIssues(warnings),
+      });
+    }
+    return { importedCount: 0, skippedCount: totalRows, errors, warnings, uploadId: uploadLog?.id };
   }
 
   const existingStrategies = await db
@@ -136,10 +184,26 @@ export async function ingestTradesCsv(options: IngestTradesOptions): Promise<Tra
     await db.insert(schema.trades).values(tradesToInsert);
   }
 
+  const skippedCount = totalRows - tradesToInsert.length;
+  const status = tradesToInsert.length === 0 ? "failed" : errors.length > 0 ? "partial" : "success";
+
+  if (uploadLog) {
+    await updateUploadLog(uploadLog.id, {
+      rowCountTotal: totalRows,
+      rowCountImported: tradesToInsert.length,
+      rowCountFailed: skippedCount,
+      status,
+      errorSummary: summarizeIssues(errors),
+      warningsSummary: summarizeIssues(warnings),
+    });
+  }
+
   return {
     importedCount: tradesToInsert.length,
-    skippedCount: records.length - tradesToInsert.length,
+    skippedCount,
     errors,
+    warnings,
+    uploadId: uploadLog?.id,
   };
 }
 
@@ -311,4 +375,53 @@ function findMissingRequiredColumns(headers: string[]): string[] {
     }
   }
   return missing;
+}
+
+function validateTradeRow(
+  row: NormalizedTradeRow,
+  rowNumber: number,
+  errors: string[],
+  warnings: string[],
+): boolean {
+  if (!row.symbol || row.symbol.trim().length === 0) {
+    errors.push(`Row ${rowNumber}: symbol is required`);
+    return false;
+  }
+  if (/\s/.test(row.symbol)) {
+    warnings.push(`Row ${rowNumber}: symbol contains whitespace`);
+  }
+
+  if (row.quantity === 0) {
+    errors.push(`Row ${rowNumber}: quantity cannot be zero`);
+    return false;
+  }
+
+  if (!Number.isFinite(row.entryPrice) || !Number.isFinite(row.exitPrice)) {
+    errors.push(`Row ${rowNumber}: prices must be finite numbers`);
+    return false;
+  }
+
+  const entryYear = row.entryTime.getUTCFullYear();
+  const exitYear = row.exitTime.getUTCFullYear();
+  if (entryYear < 2000 || exitYear < 2000) {
+    warnings.push(`Row ${rowNumber}: date appears far in the past`);
+  }
+  if (row.exitTime.getTime() < row.entryTime.getTime()) {
+    errors.push(`Row ${rowNumber}: exit time precedes entry time`);
+    return false;
+  }
+
+  const notional = Math.abs(row.entryPrice * row.quantity);
+  const pnl = row.side === "short" ? (row.entryPrice - row.exitPrice) * row.quantity : (row.exitPrice - row.entryPrice) * row.quantity;
+  if (Number.isFinite(notional) && notional > 0 && Math.abs(pnl) > notional * 10) {
+    warnings.push(`Row ${rowNumber}: pnl ${pnl.toFixed(2)} is extreme vs notional`);
+  }
+
+  return true;
+}
+
+function summarizeIssues(list: string[]): string | null {
+  if (!list.length) return null;
+  const unique = Array.from(new Set(list));
+  return unique.slice(0, 3).join(" | ");
 }

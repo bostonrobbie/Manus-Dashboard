@@ -81,6 +81,8 @@ const tradeIngestionResultSchema = z.object({
   importedCount: z.number().int(),
   skippedCount: z.number().int(),
   errors: z.array(z.string()),
+  warnings: z.array(z.string()),
+  uploadId: z.number().int().optional(),
 });
 
 const timeRangeInput = z
@@ -146,6 +148,25 @@ export const portfolioRouter = router({
         maxPoints: input?.maxPoints,
       });
       return { points: res.points.map(p => drawdownPointSchema.parse(p)) };
+    }),
+  strategyEquity: authedProcedure
+    .input(
+      z.object({
+        strategyId: z.number().int(),
+        timeRange: timeRangeInput,
+        maxPoints: z.number().int().positive().optional(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const range = deriveDateRangeFromTimeRange(input.timeRange);
+      const scope = { userId: ctx.user.id, workspaceId: ctx.user.workspaceId };
+      const res = await buildAggregatedEquityCurve(scope, {
+        startDate: range.startDate,
+        endDate: range.endDate,
+        maxPoints: input.maxPoints,
+        strategyIds: [input.strategyId],
+      });
+      return { points: res.points.map(p => equityPointSchema.parse(p)) };
     }),
   strategyComparison: authedProcedure
     .input(
@@ -253,6 +274,7 @@ export const portfolioRouter = router({
     .input(
       z.object({
         csv: z.string(),
+        fileName: z.string().optional(),
         strategyName: z.string().optional(),
         strategyType: z.enum(["swing", "intraday"]).optional(),
       }),
@@ -266,6 +288,7 @@ export const portfolioRouter = router({
           workspaceId: ctx.user.workspaceId ?? 1,
           defaultStrategyName: input.strategyName,
           defaultStrategyType: input.strategyType,
+          fileName: input.fileName,
         });
         return tradeIngestionResultSchema.parse(result);
       } catch (error) {
