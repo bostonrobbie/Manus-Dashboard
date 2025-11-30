@@ -25,7 +25,7 @@ function DashboardLayout({ children, user, mode, mock }: DashboardLayoutProps) {
   }, [user.email, workspaceId]);
 
   const badgeVariant = (() => {
-    if (status === "ok" && db === "up") return "success" as const;
+    if (status === "ok" && (db === "up" || db === "unknown")) return "success" as const;
     if (status === "checking") return "secondary" as const;
     return "warning" as const;
   })();

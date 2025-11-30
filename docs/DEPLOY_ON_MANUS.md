@@ -9,36 +9,29 @@ This guide describes how to run the dashboard in Manus environments and how to k
 ## Environment variables
 | Variable | Purpose |
 | --- | --- |
-| `DATABASE_URL` | PostgreSQL connection string used by Drizzle. |
+| `DATABASE_URL` | PostgreSQL connection string used by Drizzle. Required when `MANUS_MODE=true`. |
 | `MANUS_MODE` | Enable Manus auth enforcement. Defaults to `false`. |
-| `MANUS_AUTH_HEADER` | Header name that carries Manus user context (default `x-manus-user`). Accepts JSON/base64 JSON or a bearer token. |
-| `MANUS_WORKSPACE_HEADER` | Header name for workspace/tenant (default `x-manus-workspace`). |
-| `MANUS_JWT_SECRET` / `MANUS_PUBLIC_KEY_URL` | Token verification for Manus bearer tokens. Provide one when `MANUS_MODE=true`. |
+| `MANUS_AUTH_HEADER_USER` | Header name that carries Manus user context (default `x-manus-user`). Accepts JSON/base64 JSON or a bearer token. |
+| `MANUS_AUTH_HEADER_WORKSPACE` | Header name for workspace/tenant (default `x-manus-workspace`). |
+| `MANUS_JWT_SECRET` / `MANUS_PUBLIC_KEY_URL` | Token verification for Manus bearer tokens. One is required when `MANUS_MODE=true`.|
 | `MANUS_BASE_URL` | Optional link-out target for Manus. |
 | `MOCK_USER_ENABLED` | Allow the mock user fallback when Manus headers are missing (defaults to `true`). |
 | `VITE_MANUS_AUTH_HEADER` / `VITE_MANUS_AUTH_TOKEN` | Frontend-only helpers to inject headers during local testing. |
 | `VITE_MANUS_WORKSPACE_HEADER` / `VITE_MANUS_WORKSPACE_ID` | Frontend workspace header helpers for local testing. |
 
 ## Health checks
-`GET /health` returns:
+`GET /health` returns a shallow heartbeat with mode and Manus readiness.
 
-```json
-{
-  "status": "ok|degraded",
-  "db": "up|down",
-  "mode": "MANUS|LOCAL_DEV",
-  "manusReady": true,
-  "mockUser": true,
-  "timestamp": "2024-01-01T00:00:00.000Z"
-}
-```
-
-Treat `manusReady=false` as a warning when `MANUS_MODE=true` (missing JWT secret/public key).
+`GET /health/full` runs database and table probes and returns structured JSON including `db`, `workspaces`, `uploads`, and `auth` statuses. Failures return HTTP 503 and include details for operators.
 
 ## Running the stack
 1. Install deps: `pnpm install`.
 2. Apply migrations: `pnpm --filter drizzle migrate`.
-3. Start API: `pnpm --filter server dev` (or `start` after `build`).
-4. Start frontend: `pnpm --filter client dev`.
+3. Start API (prod contract): `pnpm start` (builds server and starts on `PORT`, default `3001`).
+4. Start API (dev): `pnpm --filter server dev`.
+5. Start frontend: `pnpm --filter client dev`.
 
-When running behind Manus, ensure the reverse proxy forwards `MANUS_AUTH_HEADER` and `MANUS_WORKSPACE_HEADER` to the API. The frontend can mirror those headers via the `VITE_*` variables for local smoke tests.
+When running behind Manus, ensure the reverse proxy forwards `MANUS_AUTH_HEADER_USER` and `MANUS_AUTH_HEADER_WORKSPACE` to the API. The frontend can mirror those headers via the `VITE_*` variables for local smoke tests.
+
+## Smoke test
+After deploy, run `pnpm smoke:test` to hit `/health`, `/health/full`, and `workspaces.list` through tRPC using configured Manus headers. Set `SMOKE_ALLOW_DEGRADED=true` only for local environments without a database.

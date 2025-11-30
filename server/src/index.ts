@@ -1,14 +1,25 @@
 import { env } from "./utils/env";
+import { createLogger } from "./utils/logger";
 import { createServer } from "./app";
 
+const logger = createLogger("bootstrap");
 const app = createServer();
 
 const port = env.port;
-const host = "0.0.0.0";
-const modeLabel = env.manusMode ? "MANUS" : "LOCAL_DEV";
+const host = env.host;
+
+logger.info("Starting Manus dashboard server", {
+  mode: env.modeLabel,
+  mockUserEnabled: env.mockUserEnabled,
+  manusReady: env.manusReady,
+  headers: {
+    user: env.manusAuthHeaderUser,
+    workspace: env.manusAuthHeaderWorkspace,
+  },
+});
 
 app.listen(port, host, () => {
-  console.log(`[server] listening on http://${host}:${port} (${modeLabel}, mockUser=${env.mockUserEnabled})`);
+  logger.info("Server listening", { url: `http://${host}:${port}`, mode: env.modeLabel });
 });
 
 export type { AppRouter } from "./routers";

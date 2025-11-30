@@ -2,7 +2,10 @@ import type { Request } from "express";
 import jwt from "jsonwebtoken";
 
 import { env } from "@server/utils/env";
+import { createLogger } from "@server/utils/logger";
 import type { AuthUser } from "./types";
+
+const logger = createLogger("auth");
 
 type ManusClaims = {
   sub?: string | number;
@@ -69,8 +72,10 @@ const coerceUserFromSerialized = (raw: string): Partial<AuthUser> | null => {
 };
 
 export function parseManusUser(req: Request): AuthUser | null {
-  const headerValue = req.headers[env.manusAuthHeader] ?? req.headers[env.manusAuthHeader.toLowerCase()];
-  const workspaceHeader = req.headers[env.manusWorkspaceHeader] ?? req.headers[env.manusWorkspaceHeader.toLowerCase()];
+  const headerValue =
+    req.headers[env.manusAuthHeaderUser] ?? req.headers[env.manusAuthHeaderUser.toLowerCase()];
+  const workspaceHeader =
+    req.headers[env.manusAuthHeaderWorkspace] ?? req.headers[env.manusAuthHeaderWorkspace.toLowerCase()];
   const rawHeader = Array.isArray(headerValue) ? headerValue[0] : headerValue;
   const rawWorkspace = Array.isArray(workspaceHeader) ? workspaceHeader[0] : workspaceHeader;
   if (!rawHeader) return null;
@@ -96,7 +101,7 @@ export function parseManusUser(req: Request): AuthUser | null {
         source: "manus",
       };
     } catch (error) {
-      console.warn("[auth] Unable to verify Manus token", { error: (error as Error).message });
+      logger.warn("Unable to verify Manus token", { error: (error as Error).message });
       return null;
     }
   }

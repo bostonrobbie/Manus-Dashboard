@@ -7,6 +7,7 @@ import App from "./App";
 import "./index.css";
 import { trpc } from "./lib/trpc";
 import { getWorkspaceHeaderValue } from "./lib/workspaceHeaders";
+import { AppErrorBoundary } from "./components/AppErrorBoundary";
 
 const queryClient = new QueryClient();
 
@@ -41,8 +42,10 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <trpc.Provider client={trpcClient} queryClient={queryClient}>
       <QueryClientProvider client={queryClient}>
-        <App />
+        <AppErrorBoundary>
+          <App />
+        </AppErrorBoundary>
       </QueryClientProvider>
     </trpc.Provider>
-  </React.StrictMode>
+  </React.StrictMode>,
 );
