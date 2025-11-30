@@ -4,10 +4,12 @@ import { useHealthStatus } from "../hooks/useHealthStatus";
 import { useDashboardState } from "../providers/DashboardProvider";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
+import { trpc } from "../lib/trpc";
 
 function SettingsPage() {
   const health = useHealthStatus();
   const { workspaces, workspaceId } = useDashboardState();
+  const authDebug = trpc.auth.debug.useQuery(undefined, { retry: 0 });
 
   const baseApi = useMemo(() => import.meta.env.VITE_API_URL?.trim() ?? window.location.origin, []);
 
@@ -114,6 +116,69 @@ function SettingsPage() {
           </p>
         </CardContent>
       </Card>
+
+      {authDebug.data?.enabled ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm">Auth debug (operators only)</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm text-slate-700">
+            <p className="text-xs text-slate-500">
+              Use this to confirm Manus header names and the parsed user. Values are masked for sensitive headers.
+            </p>
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+              <div className="rounded border border-slate-200 bg-slate-50 p-3">
+                <p className="text-xs uppercase tracking-wide text-slate-500">Mode</p>
+                <p className="font-semibold text-slate-900">{authDebug.data?.mode}</p>
+                <p className="text-xs text-slate-500">Strict: {authDebug.data?.strict ? "on" : "off"}</p>
+                {authDebug.data?.fallbackUsed ? (
+                  <Badge variant="warning" className="mt-2">
+                    Auth fallback used
+                  </Badge>
+                ) : null}
+              </div>
+              <div className="rounded border border-slate-200 bg-slate-50 p-3">
+                <p className="text-xs uppercase tracking-wide text-slate-500">Configured headers</p>
+                <ul className="mt-1 space-y-1">
+                  <li>User: {authDebug.data?.configAuthHeaders.user}</li>
+                  <li>Workspace: {authDebug.data?.configAuthHeaders.workspace}</li>
+                </ul>
+              </div>
+              <div className="rounded border border-slate-200 bg-slate-50 p-3">
+                <p className="text-xs uppercase tracking-wide text-slate-500">Parsed user</p>
+                {authDebug.data?.parsedUser ? (
+                  <ul className="mt-1 space-y-1">
+                    <li>ID: {authDebug.data?.parsedUser.id}</li>
+                    <li>Email: {authDebug.data?.parsedUser.email}</li>
+                    {authDebug.data?.parsedUser.workspaceId ? (
+                      <li>Workspace: {authDebug.data?.parsedUser.workspaceId}</li>
+                    ) : null}
+                  </ul>
+                ) : (
+                  <p className="mt-1 text-slate-600">No user parsed from headers.</p>
+                )}
+              </div>
+            </div>
+            <div className="rounded border border-slate-200 bg-slate-50 p-3">
+              <p className="text-xs uppercase tracking-wide text-slate-500">Request headers (filtered)</p>
+              {authDebug.data?.rawHeaders ? (
+                <ul className="mt-1 space-y-1 font-mono text-xs">
+                  {Object.entries(authDebug.data.rawHeaders)
+                    .filter(([name]) => name.startsWith("x-"))
+                    .map(([name, value]) => (
+                      <li key={name}>
+                        {name}: {Array.isArray(value) ? value.join(",") : String(value)}
+                      </li>
+                    ))}
+                  <li className="text-slate-500">Non x-* headers are omitted unless non-sensitive.</li>
+                </ul>
+              ) : (
+                <p className="mt-1 text-slate-600">No headers detected.</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
     </div>
   );
 }
