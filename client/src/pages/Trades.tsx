@@ -13,7 +13,7 @@ function TradesPage() {
   const [page, setPage] = useState(1);
   const [symbolFilter, setSymbolFilter] = useState("");
   const [strategyFilter, setStrategyFilter] = useState<number | "all">("all");
-  const [sideFilter, setSideFilter] = useState<string>("all");
+  const [sideFilter, setSideFilter] = useState<"all" | "long" | "short">("all");
 
   useEffect(() => {
     setPage(1);
@@ -28,7 +28,7 @@ function TradesPage() {
       strategyId: strategyFilter === "all" ? undefined : strategyFilter,
       side: sideFilter === "all" ? undefined : sideFilter,
     },
-    { retry: 1, keepPreviousData: true },
+    { retry: 1 },
   );
   const strategiesQuery = trpc.strategies.list.useQuery(undefined, { retry: 1 });
 
@@ -107,7 +107,8 @@ function TradesPage() {
               className="rounded-md border border-slate-200 px-3 py-2 text-sm"
               value={sideFilter}
               onChange={event => {
-                setSideFilter(event.target.value);
+                const value = event.target.value as "all" | "long" | "short";
+                setSideFilter(value);
                 setPage(1);
               }}
             >

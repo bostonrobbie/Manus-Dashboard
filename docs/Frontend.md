@@ -2,7 +2,7 @@
 
 - **Stack**: React 19, Vite, TailwindCSS, @tanstack/react-query, and tRPC client bindings.
 - **Entry**: `client/src/main.tsx` wires the tRPC client, React Query, and renders `<App />`.
-- **Routing/Layout**: The dashboard is a single-page experience composed by `DashboardLayout` plus the `DashboardNew` page.
+- **Routing/Layout**: The dashboard is a single-page experience composed by `DashboardLayout` plus the Overview, Strategies, Trades, Uploads, Settings/Health, and Admin Data pages.
 - **Data Fetching**: All data is fetched through tRPC hooks defined in `client/src/lib/trpc.ts` and generated from the server `AppRouter` type.
 - **Components**:
   - `RollingMetrics` shows portfolio KPIs.

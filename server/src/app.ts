@@ -6,10 +6,12 @@ import { createContext } from "./trpc/context";
 import { appRouter } from "./routers";
 import { runBasicHealthCheck, runFullHealthCheck } from "./health";
 import { createLogger } from "./utils/logger";
+import { getVersionInfo } from "./version";
 
 export function createServer() {
   const app = express();
   const logger = createLogger("app");
+  const versionInfo = getVersionInfo();
   app.use(cors());
   app.use(express.json());
 
@@ -24,6 +26,10 @@ export function createServer() {
       logger.warn("Full health check reported issues", { status: result.status, details: result.body.details });
     }
     return res.status(result.status).json(result.body);
+  });
+
+  app.get("/version", (_req, res) => {
+    return res.json(versionInfo);
   });
 
   app.use(

@@ -23,9 +23,9 @@ This guide describes how to run the dashboard in Manus environments and how to k
 | `VITE_MANUS_WORKSPACE_HEADER` / `VITE_MANUS_WORKSPACE_ID` | Frontend workspace header helpers for local testing. |
 
 ## Health checks
-`GET /health` returns a shallow heartbeat with mode and Manus readiness.
+`GET /health` returns a shallow heartbeat with mode, Manus readiness, `db`/`workspaces`/`uploads` signals, and the current build version/commit when available.
 
-`GET /health/full` runs database and table probes and returns structured JSON including `db`, `workspaces`, `uploads`, and `auth` statuses. Failures return HTTP 503 and include details for operators.
+`GET /health/full` runs database and table probes and returns structured JSON including `db`, `workspaces`, `uploads`, and `auth` statuses. Failures return HTTP 503 and include details for operators. `GET /version` returns `{ version, commit }` and can be scraped by deployment tooling.
 
 ## Running the stack
 1. Install deps: `pnpm install`.

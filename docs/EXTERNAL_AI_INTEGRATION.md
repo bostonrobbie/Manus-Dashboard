@@ -17,6 +17,14 @@ This guide explains how external agents (Manus-hosted, Antigravity, or local too
    pnpm db:seed:demo
    ```
 
+Run linting and type checks from the repo root before submitting changes:
+
+```bash
+pnpm lint
+pnpm typecheck
+pnpm test:all
+```
+
 ## Minimal environment variables
 - `DATABASE_URL` – Postgres connection string (required for any DB interaction)
 - `MANUS_MODE` – `true` to enforce Manus headers/auth, `false` for local dev
@@ -63,3 +71,8 @@ This leverages the ingestion pipeline and logs `LOAD_DATASET_*` events with basi
 - Health checks live at `/health` and `/health/full` to ensure DB + Manus headers are wired.
 - Mock mode (`MOCK_USER_ENABLED=true`) injects a deterministic user/workspace for offline use.
 - All ingestion and admin routes expect `workspaceId` to be present; ensure your headers or mock mode provide it.
+
+## Logging events
+- Ingestion emits `INGEST_TRADES_START` / `INGEST_TRADES_END` / `INGEST_TRADES_FAILED` and `INGEST_BENCHMARKS_START` / `INGEST_BENCHMARKS_END` / `INGEST_BENCHMARKS_FAILED` with `workspaceId`, `userId`, and upload identifiers.
+- Admin operations emit `ADMIN_SOFT_DELETE_UPLOAD`, `ADMIN_SOFT_DELETE_TRADES`, and `ADMIN_SOFT_DELETE_BENCHMARKS` with the acting user/workspace.
+- Load/perf scripts emit `LOAD_DATASET_*` markers when using `pnpm db:seed:large`.

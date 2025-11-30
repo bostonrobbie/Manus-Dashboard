@@ -7,8 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import { Badge } from "../components/ui/badge";
 import MetricCard from "../components/MetricCard";
 
-const sortableColumns = ["name", "totalReturn", "totalReturnPct", "maxDrawdown", "sharpeRatio"] as const;
-type SortKey = (typeof sortableColumns)[number];
+type SortKey = "name" | "totalReturn" | "totalReturnPct" | "maxDrawdown" | "sharpeRatio";
 
 type SortOrder = "asc" | "desc";
 

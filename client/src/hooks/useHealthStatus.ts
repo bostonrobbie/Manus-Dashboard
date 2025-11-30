@@ -10,12 +10,14 @@ interface HealthResponse {
   mockUser?: boolean;
   timestamp?: string;
   warnings?: string[];
+  db?: "ok" | "error" | "unknown";
+  workspaces?: "ok" | "error" | "unknown";
+  uploads?: "ok" | "error" | "unknown";
+  version?: string;
+  commit?: string;
 }
 
 interface FullHealthResponse extends HealthResponse {
-  db?: "ok" | "error";
-  workspaces?: "ok" | "error";
-  uploads?: "ok" | "error";
   auth?: "ok" | "warning" | "error";
   details?: Record<string, string | undefined>;
 }
@@ -29,6 +31,8 @@ export interface HealthStatus {
   mockUser?: boolean;
   warnings: string[];
   full?: FullHealthResponse;
+  version?: string;
+  commit?: string;
 }
 
 export function useHealthStatus(intervalMs: number = 60_000) {
@@ -58,7 +62,13 @@ export function useHealthStatus(intervalMs: number = 60_000) {
 
         if (cancelled) return;
 
-        const dbState: DbState = fullData ? (fullData.db === "ok" ? "up" : "down") : "unknown";
+        const dbSignal = fullData?.db ?? basicData.db;
+        const dbState: DbState = (() => {
+          if (!dbSignal) return "unknown";
+          if (dbSignal === "ok") return "up";
+          if (dbSignal === "unknown") return "unknown";
+          return "down";
+        })();
         const warnings = [...(basicData.warnings ?? []), ...(fullData?.warnings ?? [])];
 
         const status: HealthState = (() => {
@@ -78,6 +88,8 @@ export function useHealthStatus(intervalMs: number = 60_000) {
           mockUser: basicData.mockUser,
           warnings,
           full: fullData,
+          version: basicData.version ?? fullData?.version,
+          commit: basicData.commit ?? fullData?.commit,
         };
 
         setHealth(next);

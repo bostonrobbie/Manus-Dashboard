@@ -1,18 +1,21 @@
 import * as React from "react";
 import { cn } from "../../lib/utils";
 
-type ButtonVariant = "default" | "outline" | "ghost";
+type ButtonVariant = "default" | "outline" | "ghost" | "secondary" | "destructive";
 type ButtonSize = "sm" | "md" | "lg";
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
   size?: ButtonSize;
+  asChild?: boolean;
 }
 
 const variantClasses: Record<ButtonVariant, string> = {
   default: "bg-slate-900 text-white hover:bg-slate-800 border border-slate-900",
   outline: "border border-slate-200 text-slate-900 hover:bg-slate-50",
   ghost: "text-slate-700 hover:bg-slate-100",
+  secondary: "bg-slate-100 text-slate-900 border border-slate-200 hover:bg-slate-200",
+  destructive: "bg-rose-600 text-white hover:bg-rose-500 border border-rose-700",
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
@@ -22,7 +25,7 @@ const sizeClasses: Record<ButtonSize, string> = {
 };
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant = "default", size = "md", ...props }, ref) => (
+  ({ className, variant = "default", size = "md", asChild, ...props }, ref) => (
     <button
       ref={ref}
       className={cn(

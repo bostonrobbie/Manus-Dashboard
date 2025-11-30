@@ -5,7 +5,7 @@ import { useDashboardState } from "../providers/DashboardProvider";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
-import type { UploadStatus, UploadType } from "@shared/types/uploads";
+import type { UploadLogRow, UploadStatus, UploadType } from "@shared/types/uploads";
 import type { IngestionResult } from "@shared/types/ingestion";
 
 function UploadsPage() {
@@ -266,7 +266,7 @@ function UploadsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {uploadsQuery.data.rows.map(row => {
+                {uploadsQuery.data.rows.map((row: UploadLogRow) => {
                   const isExpanded = expandedId === row.id;
                   return (
                     <Fragment key={row.id}>
