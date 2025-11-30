@@ -187,6 +187,7 @@ export async function ingestTradesCsv(options: IngestTradesOptions): Promise<Tra
         exitPrice: row.exitPrice.toString(),
         entryTime: row.entryTime,
         exitTime: row.exitTime,
+        uploadId: uploadLog?.id,
       },
     ];
   });

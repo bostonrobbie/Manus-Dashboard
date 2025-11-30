@@ -100,6 +100,7 @@ export async function ingestBenchmarksCsv(options: IngestBenchmarksOptions): Pro
           symbol: row.symbol,
           date: row.date,
           close: row.close.toString(),
+          uploadId: uploadLog?.id,
         })),
       );
       importedCount = normalized.length;

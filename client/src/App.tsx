@@ -9,7 +9,9 @@ import SettingsPage from "./pages/Settings";
 import StrategiesPage from "./pages/Strategies";
 import TradesPage from "./pages/Trades";
 import UploadsPage from "./pages/Uploads";
+import AdminDataManagerPage from "./pages/AdminDataManager";
 import { DashboardProvider } from "./providers/DashboardProvider";
+import { isAdminUser } from "@shared/utils/auth";
 
 function App() {
   const { viewer, isLoading, isError, refetch, errorReason } = useAuthState();
@@ -87,6 +89,8 @@ function App() {
     );
   }
 
+  const isAdmin = isAdminUser(viewer.user);
+
   return (
     <BrowserRouter>
       <DashboardProvider user={viewer.user}>
@@ -96,6 +100,7 @@ function App() {
             <Route path="/strategies" element={<StrategiesPage />} />
             <Route path="/trades" element={<TradesPage />} />
             <Route path="/uploads" element={<UploadsPage />} />
+            <Route path="/admin" element={isAdmin ? <AdminDataManagerPage /> : <Navigate to="/" replace />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

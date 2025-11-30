@@ -71,6 +71,7 @@ export const trades = pgTable(
     exitPrice: numeric("exit_price", { precision: 18, scale: 4 }).notNull(),
     entryTime: timestamp("entry_time", { withTimezone: true }).notNull(),
     exitTime: timestamp("exit_time", { withTimezone: true }).notNull(),
+    uploadId: integer("upload_id"),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
@@ -78,6 +79,7 @@ export const trades = pgTable(
     userIdx: index("trades_user_idx").on(table.userId),
     strategyIdx: index("trades_strategy_idx").on(table.strategyId),
     workspaceIdx: index("trades_workspace_idx").on(table.workspaceId),
+    uploadIdx: index("trades_upload_idx").on(table.uploadId),
     deletedIdx: index("trades_deleted_idx").on(table.deletedAt),
   })
 );
@@ -90,6 +92,7 @@ export const benchmarks = pgTable(
     workspaceId: integer("workspace_id").notNull().default(1),
     date: varchar("date", { length: 16 }).notNull(),
     close: numeric("close", { precision: 18, scale: 4 }).notNull(),
+    uploadId: integer("upload_id"),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
@@ -97,6 +100,7 @@ export const benchmarks = pgTable(
     dateIdx: index("benchmarks_date_idx").on(table.date),
     workspaceIdx: index("benchmarks_workspace_idx").on(table.workspaceId),
     symbolIdx: index("benchmarks_symbol_idx").on(table.symbol),
+    uploadIdx: index("benchmarks_upload_idx").on(table.uploadId),
     deletedIdx: index("benchmarks_deleted_idx").on(table.deletedAt),
   })
 );
