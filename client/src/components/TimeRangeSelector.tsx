@@ -1,5 +1,6 @@
-import { Button } from "./ui/button";
+import { cn } from "../lib/utils";
 import type { TimeRange } from "../lib/timeRange";
+import { Button } from "./ui/button";
 
 const PRESETS: { label: string; value: TimeRange["preset"] }[] = [
   { label: "1M", value: "1M" },
@@ -13,11 +14,12 @@ const PRESETS: { label: string; value: TimeRange["preset"] }[] = [
 interface TimeRangeSelectorProps {
   value: TimeRange;
   onChange: (range: TimeRange) => void;
+  className?: string;
 }
 
-function TimeRangeSelector({ value, onChange }: TimeRangeSelectorProps) {
+function TimeRangeSelector({ value, onChange, className }: TimeRangeSelectorProps) {
   return (
-    <div className="flex flex-col gap-2">
+    <div className={cn("flex flex-col gap-2", className)}>
       <span className="text-xs font-medium uppercase tracking-wide text-slate-500">Time range</span>
       <div className="flex flex-wrap gap-2">
         {PRESETS.map(preset => (
