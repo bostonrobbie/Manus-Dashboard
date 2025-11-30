@@ -12,6 +12,7 @@ function SettingsPage() {
   const authDebug = trpc.auth.debug.useQuery(undefined, { retry: 0 });
 
   const baseApi = useMemo(() => import.meta.env.VITE_API_URL?.trim() ?? window.location.origin, []);
+  const authDetails = authDebug.data && "mode" in authDebug.data ? authDebug.data : null;
 
   const statusBadge = (label: string, ok: boolean) => (
     <Badge variant={ok ? "success" : "warning"}>{label}</Badge>
@@ -70,7 +71,7 @@ function SettingsPage() {
         <CardHeader>
           <CardTitle className="text-sm">Configuration</CardTitle>
         </CardHeader>
-        <CardContent className="grid grid-cols-1 gap-3 md:grid-cols-3 text-sm text-slate-700">
+        <CardContent className="grid grid-cols-1 gap-3 md:grid-cols-4 text-sm text-slate-700">
           <div className="rounded border border-slate-200 bg-slate-50 p-3">
             <p className="text-xs uppercase tracking-wide text-slate-500">API base</p>
             <p className="font-semibold text-slate-900">{baseApi}</p>
@@ -97,6 +98,11 @@ function SettingsPage() {
             <p className="font-semibold text-slate-900">{health.mode ?? "unknown"}</p>
             <p className="text-xs text-slate-500">Headers: {import.meta.env.VITE_MANUS_AUTH_HEADER ?? "x-manus-user-json"}</p>
           </div>
+          <div className="rounded border border-slate-200 bg-slate-50 p-3">
+            <p className="text-xs uppercase tracking-wide text-slate-500">Build</p>
+            <p className="font-semibold text-slate-900">Version {health.version ?? "unknown"}</p>
+            <p className="text-xs text-slate-500">Commit: {health.commit ?? "not provided"}</p>
+          </div>
         </CardContent>
       </Card>
 
@@ -107,9 +113,10 @@ function SettingsPage() {
         <CardContent className="space-y-2 text-sm text-slate-700">
           <p className="text-xs uppercase tracking-wide text-slate-500">Local commands</p>
           <ul className="space-y-1">
-            <li className="rounded border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-xs">pnpm --filter server test</li>
-            <li className="rounded border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-xs">pnpm --filter client build</li>
-            <li className="rounded border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-xs">pnpm --filter drizzle migrate</li>
+            <li className="rounded border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-xs">pnpm lint</li>
+            <li className="rounded border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-xs">pnpm typecheck</li>
+            <li className="rounded border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-xs">pnpm test:all</li>
+            <li className="rounded border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-xs">pnpm smoke:test</li>
           </ul>
           <p className="text-xs text-slate-500">
             See DEPLOY_ON_MANUS.md for Manus mode env vars and DATA_PIPELINE.md for workspace-scoped ingestion guidance.
@@ -117,7 +124,7 @@ function SettingsPage() {
         </CardContent>
       </Card>
 
-      {authDebug.data?.enabled ? (
+      {authDetails ? (
         <Card>
           <CardHeader>
             <CardTitle className="text-sm">Auth debug (operators only)</CardTitle>
@@ -129,9 +136,9 @@ function SettingsPage() {
             <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
               <div className="rounded border border-slate-200 bg-slate-50 p-3">
                 <p className="text-xs uppercase tracking-wide text-slate-500">Mode</p>
-                <p className="font-semibold text-slate-900">{authDebug.data?.mode}</p>
-                <p className="text-xs text-slate-500">Strict: {authDebug.data?.strict ? "on" : "off"}</p>
-                {authDebug.data?.fallbackUsed ? (
+                <p className="font-semibold text-slate-900">{authDetails.mode}</p>
+                <p className="text-xs text-slate-500">Strict: {authDetails.strict ? "on" : "off"}</p>
+                {authDetails.fallbackUsed ? (
                   <Badge variant="warning" className="mt-2">
                     Auth fallback used
                   </Badge>
@@ -140,18 +147,18 @@ function SettingsPage() {
               <div className="rounded border border-slate-200 bg-slate-50 p-3">
                 <p className="text-xs uppercase tracking-wide text-slate-500">Configured headers</p>
                 <ul className="mt-1 space-y-1">
-                  <li>User: {authDebug.data?.configAuthHeaders.user}</li>
-                  <li>Workspace: {authDebug.data?.configAuthHeaders.workspace}</li>
+                  <li>User: {authDetails.configAuthHeaders.user}</li>
+                  <li>Workspace: {authDetails.configAuthHeaders.workspace}</li>
                 </ul>
               </div>
               <div className="rounded border border-slate-200 bg-slate-50 p-3">
                 <p className="text-xs uppercase tracking-wide text-slate-500">Parsed user</p>
-                {authDebug.data?.parsedUser ? (
+                {authDetails.parsedUser ? (
                   <ul className="mt-1 space-y-1">
-                    <li>ID: {authDebug.data?.parsedUser.id}</li>
-                    <li>Email: {authDebug.data?.parsedUser.email}</li>
-                    {authDebug.data?.parsedUser.workspaceId ? (
-                      <li>Workspace: {authDebug.data?.parsedUser.workspaceId}</li>
+                    <li>ID: {authDetails.parsedUser.id}</li>
+                    <li>Email: {authDetails.parsedUser.email}</li>
+                    {authDetails.parsedUser.workspaceId ? (
+                      <li>Workspace: {authDetails.parsedUser.workspaceId}</li>
                     ) : null}
                   </ul>
                 ) : (
@@ -161,9 +168,9 @@ function SettingsPage() {
             </div>
             <div className="rounded border border-slate-200 bg-slate-50 p-3">
               <p className="text-xs uppercase tracking-wide text-slate-500">Request headers (filtered)</p>
-              {authDebug.data?.rawHeaders ? (
+              {authDetails.rawHeaders ? (
                 <ul className="mt-1 space-y-1 font-mono text-xs">
-                  {Object.entries(authDebug.data.rawHeaders)
+                  {Object.entries(authDetails.rawHeaders)
                     .filter(([name]) => name.startsWith("x-"))
                     .map(([name, value]) => (
                       <li key={name}>

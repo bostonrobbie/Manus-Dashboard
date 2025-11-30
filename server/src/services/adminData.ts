@@ -7,6 +7,10 @@ import type { UploadLogRow, UploadStatus, UploadType } from "@shared/types/uploa
 
 const logger = createLogger("admin-data");
 
+type WorkspaceRow = typeof schema.workspaces.$inferSelect;
+type TradeRow = typeof schema.trades.$inferSelect;
+type BenchmarkRow = typeof schema.benchmarks.$inferSelect;
+
 const toTimestamp = (value: Date | string | null | undefined): number => {
   if (!value) return 0;
   if (typeof value === "string") {
@@ -99,10 +103,10 @@ export async function softDeleteBenchmarks(params: {
 function createDbAdapter(db: Database): AdminDataAdapter {
   return {
     async listWorkspaceSummaries() {
-      const workspaces = await db.select().from(schema.workspaces);
-      const trades = await db.select().from(schema.trades);
-      const benchmarks = await db.select().from(schema.benchmarks);
-      const uploads = await db.select().from(schema.uploadLogs);
+      const workspaces: WorkspaceRow[] = await db.select().from(schema.workspaces);
+      const trades: TradeRow[] = await db.select().from(schema.trades);
+      const benchmarks: BenchmarkRow[] = await db.select().from(schema.benchmarks);
+      const uploads: UploadLogRow[] = await db.select().from(schema.uploadLogs);
 
       return workspaces.map(workspace => {
         const tradeCount = trades.filter(t => t.workspaceId === workspace.id && !t.deletedAt).length;
@@ -123,7 +127,7 @@ function createDbAdapter(db: Database): AdminDataAdapter {
     },
 
     async listUploadsForWorkspace(params) {
-      const uploads = await db.select().from(schema.uploadLogs);
+      const uploads: UploadLogRow[] = await db.select().from(schema.uploadLogs);
       const filtered = uploads
         .filter(u => u.workspaceId === params.workspaceId)
         .filter(u => (params.uploadType ? u.uploadType === params.uploadType : true))
@@ -148,7 +152,7 @@ function createDbAdapter(db: Database): AdminDataAdapter {
       let benchmarksDeleted = 0;
 
       if (uploadLog.uploadType === "trades") {
-        const trades = await db.select().from(schema.trades);
+        const trades: TradeRow[] = await db.select().from(schema.trades);
         const targetIds = trades
           .filter(t => t.uploadId === uploadId && t.workspaceId === uploadLog.workspaceId && !t.deletedAt)
           .map(t => t.id);
@@ -163,7 +167,7 @@ function createDbAdapter(db: Database): AdminDataAdapter {
       }
 
       if (uploadLog.uploadType === "benchmarks") {
-        const benchmarks = await db.select().from(schema.benchmarks);
+        const benchmarks: BenchmarkRow[] = await db.select().from(schema.benchmarks);
         const targetIds = benchmarks
           .filter(b => b.uploadId === uploadId && b.workspaceId === uploadLog.workspaceId && !b.deletedAt)
           .map(b => b.id);
@@ -194,7 +198,7 @@ function createDbAdapter(db: Database): AdminDataAdapter {
     },
 
     async softDeleteTradesByFilter(params) {
-      const trades = await db.select().from(schema.trades);
+      const trades: TradeRow[] = await db.select().from(schema.trades);
       const start = params.startDate ? new Date(`${params.startDate}T00:00:00.000Z`) : null;
       const end = params.endDate ? new Date(`${params.endDate}T23:59:59.999Z`) : null;
 
@@ -232,7 +236,7 @@ function createDbAdapter(db: Database): AdminDataAdapter {
     },
 
     async softDeleteBenchmarksByFilter(params) {
-      const benchmarks = await db.select().from(schema.benchmarks);
+      const benchmarks: BenchmarkRow[] = await db.select().from(schema.benchmarks);
       const start = params.startDate ?? null;
       const end = params.endDate ?? null;
 

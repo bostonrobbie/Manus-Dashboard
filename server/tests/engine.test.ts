@@ -66,6 +66,9 @@ test("health endpoint reports ok and degraded states", async () => {
   assert.equal(healthy.body.status, "ok");
   assert.equal(healthy.body.mode, "LOCAL_DEV");
   assert.ok(typeof healthy.body.timestamp === "string");
+  assert.ok(typeof healthy.body.version === "string");
+  assert.ok(healthy.body.workspaces === "ok");
+  assert.ok(healthy.body.uploads === "ok");
 
   const degraded = await runFullHealthCheck(async () => {
     throw new Error("db down");
@@ -73,4 +76,6 @@ test("health endpoint reports ok and degraded states", async () => {
   assert.equal(degraded.status, 503);
   assert.equal(degraded.body.status, "error");
   assert.equal(degraded.body.db, "error");
+  assert.equal(degraded.body.workspaces, "error");
+  assert.equal(degraded.body.uploads, "error");
 });

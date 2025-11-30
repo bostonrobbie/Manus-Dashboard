@@ -4,6 +4,7 @@ import { z } from "zod";
 import { authedProcedure, router } from "@server/trpc/router";
 import { getUploadLogById, listUploadLogs } from "@server/services/uploadLogs";
 import { TIME_RANGE_PRESETS, deriveDateRangeFromTimeRange } from "@server/utils/timeRange";
+import type { UploadLogRow } from "@shared/types/uploads";
 
 const uploadStatus = z.enum(["pending", "success", "partial", "failed"]);
 const uploadType = z.enum(["trades", "benchmarks", "equity"]);
@@ -46,7 +47,7 @@ export const uploadsRouter = router({
         status: params.status,
       });
 
-      const filteredRows = result.rows.filter(row => {
+      const filteredRows = result.rows.filter((row: UploadLogRow) => {
         if (startDate && row.startedAt && row.startedAt < new Date(`${startDate}T00:00:00.000Z`)) return false;
         if (endDate && row.startedAt && row.startedAt > new Date(`${endDate}T23:59:59.999Z`)) return false;
         return true;

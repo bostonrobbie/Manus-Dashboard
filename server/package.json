@@ -10,6 +10,8 @@
     "start": "node -r tsconfig-paths/register dist/server/src/index.js",
     "start:prod": "pnpm run build && node -r tsconfig-paths/register dist/server/src/index.js",
     "tsc": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "pnpm exec eslint src --ext .ts",
     "test": "node --test -r ts-node/register -r tsconfig-paths/register tests/**/*.test.ts",
     "migrate": "tsx ../scripts/migrate.ts",
     "load:trades": "tsx ./scripts/load-real-trades.ts",

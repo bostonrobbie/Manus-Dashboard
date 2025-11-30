@@ -19,7 +19,7 @@ interface Margin {
 
 export interface ResponsiveContainerProps {
   width?: string | number;
-  height?: number;
+  height?: string | number;
   children: ReactElement<any>;
 }
 
@@ -61,6 +61,8 @@ export interface LineProps {
   stroke?: string;
   name?: string;
   type?: string;
+  strokeWidth?: number;
+  dot?: boolean;
 }
 
 export function Line(_props: LineProps) {
@@ -70,6 +72,8 @@ export function Line(_props: LineProps) {
 
 export interface CartesianGridProps {
   strokeDasharray?: string;
+  vertical?: boolean;
+  stroke?: string;
 }
 
 export function CartesianGrid(_props: CartesianGridProps) {
@@ -79,6 +83,10 @@ export function CartesianGrid(_props: CartesianGridProps) {
 
 export interface AxisProps {
   dataKey?: string;
+  tick?: { fontSize?: number } | boolean;
+  tickLine?: boolean;
+  axisLine?: boolean;
+  tickFormatter?: (value: any) => string;
 }
 
 export function XAxis(_props: AxisProps) {
@@ -91,7 +99,11 @@ export function YAxis(_props: AxisProps) {
 }
 (YAxis as any).role = "YAxis";
 
-export function Tooltip() {
+export interface TooltipProps {
+  formatter?: (value: any) => string;
+}
+
+export function Tooltip(_props: TooltipProps = {}) {
   return null;
 }
 (Tooltip as any).role = "Tooltip";

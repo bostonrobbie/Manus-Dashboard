@@ -31,7 +31,7 @@ const symbolSchema = z
   .trim()
   .min(1, "Symbol is required")
   .max(32, "Symbol is too long")
-  .regex(/^[\w\-\.]+$/, "Symbol may only include letters, numbers, dashes, underscores, or dots");
+  .regex(/^[\w.-]+$/, "Symbol may only include letters, numbers, dashes, underscores, or dots");
 
 export const adminDataRouter = router({
   listWorkspaces: adminProcedure.query(async () => {

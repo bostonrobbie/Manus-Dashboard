@@ -17,6 +17,12 @@ A Manus-compatible, Antigravity-ready monorepo with a React 19 + Vite frontend a
 4. Run the backend: `pnpm --filter server dev`.
 5. Run the frontend: `pnpm --filter client dev`.
 
+## Development commands
+- `pnpm lint` – ESLint across client/server/shared packages.
+- `pnpm typecheck` – TypeScript across all workspaces without emitting build output.
+- `pnpm test:all` – lint, typecheck, server tests, server build, and client build in sequence.
+- Optional ops checks: `pnpm smoke:test` against a running API.
+
 > Manus operators: see [docs/MANUS_INTEGRATION_PLAN.md](docs/MANUS_INTEGRATION_PLAN.md) for the staged auth/data alignment steps before production rollout.
 
 ## Building
@@ -24,7 +30,7 @@ A Manus-compatible, Antigravity-ready monorepo with a React 19 + Vite frontend a
 - `pnpm start` builds then starts the compiled API (port defaults to 3001).
 
 ## Health
-`GET /health` returns `{ status, mode, manusReady, mockUser, warnings }` and can be used for Manus readiness checks. `GET /health/full` probes the database, workspaces table, upload logs, and Manus auth readiness; failures return `503` with details.
+`GET /health` returns `{ status, mode, manusReady, mockUser, db, workspaces, uploads, version, warnings }` and can be used for Manus readiness checks. `GET /health/full` probes the database, workspaces table, upload logs, and Manus auth readiness; failures return `503` with details. `GET /version` returns `{ version, commit }` derived from the repo version and optional `BUILD_COMMIT`.
 
 ## Auth & data modes
 - **Manus mode** (`MANUS_MODE=true`): expects `MANUS_AUTH_HEADER_USER`/`MANUS_AUTH_HEADER_WORKSPACE` (or a bearer token validated via `MANUS_JWT_SECRET`/`MANUS_PUBLIC_KEY_URL`). Requests without auth return `UNAUTHORIZED`.

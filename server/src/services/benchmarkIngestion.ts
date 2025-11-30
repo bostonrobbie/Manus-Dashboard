@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 
-import { getDb, schema } from "@server/db";
+import { getDb, schema, type Database } from "@server/db";
 import type { IngestionHeaderIssues, IngestionResult } from "@shared/types/ingestion";
 import { createUploadLog, updateUploadLog } from "./uploadLogs";
 import { createLogger } from "@server/utils/logger";
@@ -115,10 +115,13 @@ export async function ingestBenchmarksCsv(options: IngestBenchmarksOptions): Pro
 
   let importedCount = 0;
   if (normalized.length > 0) {
-    await db.transaction(async tx => {
-      await tx.delete(schema.benchmarks).where(eq(schema.benchmarks.workspaceId, options.workspaceId));
+    await db.transaction(async (tx: unknown) => {
+      const transactionalDb = tx as Database;
+      await transactionalDb
+        .delete(schema.benchmarks)
+        .where(eq(schema.benchmarks.workspaceId, options.workspaceId));
 
-      await tx.insert(schema.benchmarks).values(
+      await transactionalDb.insert(schema.benchmarks).values(
         normalized.map(row => ({
           workspaceId: options.workspaceId,
           symbol: row.symbol,

@@ -19,8 +19,8 @@ Frontend helpers for local/manual testing: `VITE_MANUS_AUTH_HEADER`, `VITE_MANUS
 - Port: `PORT` env (default `3001`), bound to `0.0.0.0`.
 
 ## Health endpoints
-- `GET /health`: lightweight heartbeat; returns `status`, `mode`, `manusReady`, `mockUser`, `warnings`.
-- `GET /health/full`: deep probe; returns `db`, `workspaces`, `uploads`, `auth`, `warnings`, and `details`. Responds with `503` when any signal is unhealthy.
+- `GET /health`: lightweight heartbeat; returns `status`, `mode`, `manusReady`, `mockUser`, `db`, `workspaces`, `uploads`, `warnings`, plus `version`/`commit` when available.
+- `GET /health/full`: deep probe; returns `db`, `workspaces`, `uploads`, `auth`, `warnings`, and `details`. Responds with `503` when any signal is unhealthy. `GET /version` returns `{ version, commit }`.
 
 ## Smoke test
 - Command: `pnpm smoke:test`

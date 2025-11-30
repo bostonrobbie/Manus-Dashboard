@@ -7,7 +7,6 @@ import {
   buildPortfolioSummary,
   buildStrategyComparison,
   runMonteCarloSimulation,
-  loadTrades,
   loadTradesPage,
   generateTradesCsv,
 } from "@server/engine/portfolio-engine";
