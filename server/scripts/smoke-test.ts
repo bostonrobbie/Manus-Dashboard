@@ -23,9 +23,9 @@ async function fetchJson(url: string) {
 
 async function main() {
   const baseUrl = (process.env.SMOKE_BASE_URL ?? `http://localhost:${config.port}`).replace(/\/$/, "");
-  const userHeaderName = process.env.MANUS_AUTH_HEADER_USER ?? process.env.MANUS_AUTH_HEADER ?? "x-manus-user";
+  const userHeaderName = process.env.MANUS_AUTH_HEADER_USER ?? process.env.MANUS_AUTH_HEADER ?? "x-manus-user-json";
   const workspaceHeaderName =
-    process.env.MANUS_AUTH_HEADER_WORKSPACE ?? process.env.MANUS_WORKSPACE_HEADER ?? "x-manus-workspace";
+    process.env.MANUS_AUTH_HEADER_WORKSPACE ?? process.env.MANUS_WORKSPACE_HEADER ?? "x-manus-workspace-id";
   const userHeaderValue = process.env.SMOKE_AUTH_HEADER_VALUE ?? process.env.VITE_MANUS_AUTH_TOKEN ?? "user:1";
   const workspaceHeaderValue = process.env.SMOKE_WORKSPACE_HEADER_VALUE ?? process.env.SMOKE_WORKSPACE_ID ?? "1";
 

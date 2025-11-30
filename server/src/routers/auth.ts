@@ -39,6 +39,8 @@ export const authRouter = router({
       configAuthHeaders: {
         user: env.manusAuthHeaderUser,
         workspace: env.manusAuthHeaderWorkspace,
+        roles: env.manusAuthHeaderRoles,
+        org: env.manusAuthHeaderOrg,
       },
       fallbackUsed: ctx.auth.fallbackUsed,
       strict: ctx.auth.strict,

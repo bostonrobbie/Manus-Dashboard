@@ -5,12 +5,12 @@ This document summarizes the deployment contract Manus operators should rely on 
 ## Required env (Manus mode)
 - `DATABASE_URL`: PostgreSQL connection string.
 - `MANUS_MODE=true`: enable Manus enforcement.
-- `MANUS_AUTH_HEADER_USER`: header carrying the Manus user context (default `x-manus-user`).
-- `MANUS_AUTH_HEADER_WORKSPACE`: header carrying the Manus workspace/tenant (default `x-manus-workspace`).
+- `MANUS_AUTH_HEADER_USER`: header carrying the Manus user context (default `x-manus-user-json`).
+- `MANUS_AUTH_HEADER_WORKSPACE`: header carrying the Manus workspace/tenant (default `x-manus-workspace-id`).
 - One of `MANUS_JWT_SECRET` or `MANUS_PUBLIC_KEY_URL`: token verification inputs.
 - Optional: `MANUS_BASE_URL` for link-outs, `MOCK_USER_ENABLED` (default `true`) for local dev.
-- Optional: `MANUS_AUTH_STRICT` (default `false`) and `MANUS_ALLOW_MOCK_ON_AUTH_FAILURE` (default `true` outside MANUS_MODE) to control Manus fallback behavior.
-- Optional: `AUTH_DEBUG_ENABLED=true` to expose the auth debug surface in production.
+- Optional: `MANUS_AUTH_STRICT` (default `true` in MANUS mode, `false` locally) and `MANUS_ALLOW_MOCK_ON_AUTH_FAILURE` (default `false` in MANUS mode, `true` in LOCAL_DEV) to control Manus fallback behavior.
+- Optional: `AUTH_DEBUG_ENABLED=true` to expose the auth debug surface in production (recommend leaving `false`).
 
 Frontend helpers for local/manual testing: `VITE_MANUS_AUTH_HEADER`, `VITE_MANUS_AUTH_TOKEN`, `VITE_MANUS_WORKSPACE_HEADER`, `VITE_MANUS_WORKSPACE_ID`.
 
@@ -48,7 +48,7 @@ Frontend helpers for local/manual testing: `VITE_MANUS_AUTH_HEADER`, `VITE_MANUS
 - Fallback flags:
   - `MANUS_AUTH_STRICT=true` forces `UNAUTHORIZED` when Manus headers are missing.
   - `MANUS_ALLOW_MOCK_ON_AUTH_FAILURE=true` injects a deterministic Manus mock user (`mock@manus.local`) when headers are missing and strict mode is off.
-  - Recommended: local/test => strict off + mock on; production => strict on + mock off once headers are verified via the debug panel.
+  - Recommended: local/test => strict off + mock on; production => strict on + mock off once headers are verified via the debug panel. AUTH_DEBUG_ENABLED should stay `false` except during short troubleshooting windows.
 
 ## Summary
 - **Contract surface**: `pnpm start` on `PORT` with Manus headers (`MANUS_AUTH_HEADER_USER`, `MANUS_AUTH_HEADER_WORKSPACE`) and JWT inputs. Health at `/health` and `/health/full`.
