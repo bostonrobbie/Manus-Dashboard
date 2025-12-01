@@ -1,9 +1,10 @@
 import { z } from "zod";
 
 import { router, authedProcedure } from "@server/trpc/router";
-import { buildPortfolioOverview, buildPortfolioSummary, ENGINE_CONFIG } from "@server/engine/portfolio-engine";
-import { TIME_RANGE_PRESETS, deriveDateRangeFromTimeRange } from "@server/utils/timeRange";
+import { ENGINE_CONFIG } from "@server/engine/portfolio-engine";
+import { TIME_RANGE_PRESETS } from "@server/utils/timeRange";
 import { requireWorkspaceAccess } from "@server/auth/workspaceAccess";
+import { getWorkspaceOverview, getWorkspaceSummaryMetrics } from "@server/services/tradePipeline";
 
 const timeRangeInput = z
   .object({
@@ -24,9 +25,11 @@ export const analyticsRouter = router({
     )
     .query(async ({ ctx, input }) => {
       const { workspace } = await requireWorkspaceAccess(ctx.user, "read");
-      const range = deriveDateRangeFromTimeRange(input?.timeRange);
-      const scope = { userId: ctx.user.id, workspaceId: workspace?.id ?? ctx.user.workspaceId };
-      return buildPortfolioSummary(scope, range);
+      const workspaceId = workspace?.id ?? ctx.user.workspaceId;
+      if (!workspaceId) {
+        throw new Error("Workspace is required for analytics");
+      }
+      return getWorkspaceSummaryMetrics({ userId: ctx.user.id, workspaceId, timeRange: input?.timeRange });
     }),
   rangeMetrics: authedProcedure
     .input(
@@ -38,11 +41,13 @@ export const analyticsRouter = router({
     )
     .query(async ({ ctx, input }) => {
       const { workspace } = await requireWorkspaceAccess(ctx.user, "read");
-      const range = deriveDateRangeFromTimeRange(input?.timeRange);
-      const scope = { userId: ctx.user.id, workspaceId: workspace?.id ?? ctx.user.workspaceId };
+      const workspaceId = workspace?.id ?? ctx.user.workspaceId;
+      if (!workspaceId) {
+        throw new Error("Workspace is required for analytics");
+      }
       const [overview, summary] = await Promise.all([
-        buildPortfolioOverview(scope, range),
-        buildPortfolioSummary(scope, range),
+        getWorkspaceOverview({ userId: ctx.user.id, workspaceId, timeRange: input?.timeRange }),
+        getWorkspaceSummaryMetrics({ userId: ctx.user.id, workspaceId, timeRange: input?.timeRange }),
       ]);
 
       const pnl = overview.equity - ENGINE_CONFIG.initialCapital;

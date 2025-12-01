@@ -8,8 +8,10 @@ import { appRouter } from "./routers";
 import { runBasicHealthCheck, runFullHealthCheck } from "./health";
 import { createLogger } from "./utils/logger";
 import { getVersionInfo } from "./version";
-import { ingestWebhookTrade } from "./services/tradeIngestion";
+import { z } from "zod";
+
 import { getDb, schema } from "./db";
+import { ingestTradeFromWebhook } from "./services/tradePipeline";
 
 export function createServer() {
   const app = express();
@@ -36,6 +38,32 @@ export function createServer() {
   });
 
   app.post("/webhooks/tradingview", async (req, res) => {
+    const webhookPayloadSchema = z.object({
+      workspace_key: z.union([z.string(), z.number()]).optional(),
+      workspace_id: z.union([z.string(), z.number()]).optional(),
+      workspaceId: z.union([z.string(), z.number()]).optional(),
+      strategy_key: z.union([z.string(), z.number()]).optional(),
+      strategy_id: z.union([z.string(), z.number()]).optional(),
+      strategyId: z.union([z.string(), z.number()]).optional(),
+      strategy_type: z.enum(["intraday", "swing"]).optional(),
+      symbol: z.string().min(1),
+      side: z.enum(["long", "short", "buy", "sell"]),
+      quantity: z.coerce.number(),
+      execution_price: z.coerce.number().optional(),
+      price: z.coerce.number().optional(),
+      close: z.coerce.number().optional(),
+      timestamp: z.union([z.string(), z.number()]).optional(),
+      time: z.union([z.string(), z.number()]).optional(),
+      ts: z.union([z.string(), z.number()]).optional(),
+      external_id: z.string().optional(),
+      id: z.string().optional(),
+      notes: z.string().optional(),
+      comment: z.string().optional(),
+      alert_name: z.string().optional(),
+      alertName: z.string().optional(),
+      fileName: z.string().optional(),
+    });
+
     const configuredSecret = process.env.TRADINGVIEW_WEBHOOK_SECRET;
     if (!configuredSecret) {
       logger.warn("TradingView webhook secret not configured");
@@ -47,11 +75,17 @@ export function createServer() {
       return res.status(401).json({ status: "unauthorized" });
     }
 
-    const payload = req.body ?? {};
+    const parseResult = webhookPayloadSchema.safeParse(req.body ?? {});
+    if (!parseResult.success) {
+      const message = parseResult.error.issues.map(issue => issue.message).join("; ") || "Invalid payload";
+      logger.warn("TradingView webhook validation failed", { message });
+      return res.status(400).json({ status: "error", message });
+    }
+
+    const payload = parseResult.data;
     const workspaceKey = payload.workspace_key ?? payload.workspace_id ?? payload.workspaceId;
     const strategyKey = payload.strategy_key ?? payload.strategy_id ?? payload.strategyId;
-    const strategyType =
-      payload.strategy_type === "intraday" ? "intraday" : payload.strategy_type === "swing" ? "swing" : undefined;
+    const strategyType = payload.strategy_type;
 
     const db = await getDb();
     if (!db) {
@@ -86,34 +120,41 @@ export function createServer() {
 
     const userId = workspaceRow.ownerUserId ?? 1;
 
-    const result = await ingestWebhookTrade({
+    const executionPrice = payload.execution_price ?? payload.price ?? payload.close;
+    const timestamp = payload.timestamp ?? payload.time ?? payload.ts;
+    if (executionPrice == null || timestamp == null) {
+      return res
+        .status(400)
+        .json({ status: "error", message: "execution_price and timestamp are required for ingestion" });
+    }
+
+    const resolvedWorkspaceKey = workspaceKey ?? workspaceRow.externalId ?? workspaceRow.id;
+    const result = await ingestTradeFromWebhook({
       userId,
       workspaceId: workspaceRow.id,
       uploadLabel: payload.alert_name ?? payload.alertName ?? payload.fileName,
-      trade: {
-        strategyId: typeof strategyKey === "number" ? strategyKey : undefined,
-        strategyName: typeof strategyKey === "string" ? strategyKey : undefined,
+      payload: {
+        workspaceKey: resolvedWorkspaceKey,
+        strategyKey,
         strategyType,
         symbol: payload.symbol,
         side: payload.side,
         quantity: Number(payload.quantity),
-        executionPrice: Number(payload.execution_price ?? payload.price ?? payload.close),
-        timestamp: payload.timestamp ?? payload.time ?? payload.ts ?? Date.now(),
+        executionPrice: Number(executionPrice),
+        timestamp,
         externalId: payload.external_id ?? payload.id,
-        notes: payload.comment ?? payload.notes,
+        note: payload.comment ?? payload.notes,
       },
     });
 
-    if (!result.inserted) {
-      return res.status(400).json({ status: "error", errors: result.errors ?? ["Unable to ingest trade"] });
-    }
-
-    return res.json({
-      status: "ok",
+    const statusCode = result.status === "skipped" ? 400 : 200;
+    return res.status(statusCode).json({
+      status: result.status,
       uploadId: result.uploadId,
       naturalKey: result.naturalKey,
-      strategyId: result.strategyId,
+      strategyId: strategyKey,
       externalId: result.externalId,
+      message: result.message,
     });
   });
 
