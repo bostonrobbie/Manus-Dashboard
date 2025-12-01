@@ -15,6 +15,7 @@ function TradesPage() {
   const [symbolFilter, setSymbolFilter] = useState("");
   const [strategyFilter, setStrategyFilter] = useState<number | "all">("all");
   const [sideFilter, setSideFilter] = useState<"all" | "long" | "short">("all");
+  const [autoRefresh, setAutoRefresh] = useState(false);
 
   useEffect(() => {
     setPage(1);
@@ -30,8 +31,14 @@ function TradesPage() {
     [timeRange, symbolFilter, strategyFilter, sideFilter],
   );
 
-  const tradesQuery = trpc.portfolio.trades.useQuery({ ...tradeFilters, page, pageSize: PAGE_SIZE }, { retry: 1 });
-  const tradesSummaryQuery = trpc.portfolio.trades.useQuery({ ...tradeFilters, page: 1, pageSize: 500 }, { retry: 1 });
+  const tradesQuery = trpc.portfolio.trades.useQuery({ ...tradeFilters, page, pageSize: PAGE_SIZE }, {
+    retry: 1,
+    refetchInterval: autoRefresh ? 15000 : false,
+  });
+  const tradesSummaryQuery = trpc.portfolio.trades.useQuery({ ...tradeFilters, page: 1, pageSize: 500 }, {
+    retry: 1,
+    refetchInterval: autoRefresh ? 15000 : false,
+  });
   const strategiesQuery = trpc.strategies.list.useQuery(undefined, { retry: 1 });
 
   const strategyLookup = useMemo(() => {
@@ -40,7 +47,10 @@ function TradesPage() {
     return map;
   }, [strategiesQuery.data]);
 
-  const trades = tradesQuery.data?.rows ?? [];
+  const trades = useMemo(() => {
+    const rows = tradesQuery.data?.rows ?? [];
+    return [...rows].sort((a, b) => b.exitTime.localeCompare(a.exitTime));
+  }, [tradesQuery.data]);
   const total = tradesQuery.data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
@@ -130,12 +140,18 @@ function TradesPage() {
     <div className="space-y-4">
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-slate-900">Trades</h2>
-          <p className="text-sm text-slate-600">What happened trade by trade for this workspace and time range.</p>
+          <h2 className="text-lg font-semibold text-slate-900">Trade log</h2>
+          <p className="text-sm text-slate-600">Chronological feed of trades for this workspace and time range.</p>
         </div>
-        {tradesQuery.isError ? (
-          <div className="rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-800">Unable to load trades.</div>
-        ) : null}
+        <div className="flex items-center gap-3">
+          <label className="flex items-center gap-2 text-xs text-slate-600">
+            <input type="checkbox" checked={autoRefresh} onChange={event => setAutoRefresh(event.target.checked)} />
+            Auto refresh
+          </label>
+          {tradesQuery.isError ? (
+            <div className="rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-800">Unable to load trades.</div>
+          ) : null}
+        </div>
       </div>
 
       <Card>

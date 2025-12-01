@@ -8,6 +8,7 @@ import OverviewPage from "./pages/Overview";
 import SettingsPage from "./pages/Settings";
 import StrategiesPage from "./pages/Strategies";
 import TradesPage from "./pages/Trades";
+import PortfoliosPage from "./pages/Portfolios";
 import UploadsPage from "./pages/Uploads";
 import AdminDataManagerPage from "./pages/AdminDataManager";
 import { DashboardProvider } from "./providers/DashboardProvider";
@@ -98,6 +99,7 @@ function App() {
           <Routes>
             <Route path="/" element={<OverviewPage />} />
             <Route path="/strategies" element={<StrategiesPage />} />
+            <Route path="/portfolios" element={<PortfoliosPage />} />
             <Route path="/trades" element={<TradesPage />} />
             <Route path="/uploads" element={<UploadsPage />} />
             <Route path="/admin" element={isAdmin ? <AdminDataManagerPage /> : <Navigate to="/" replace />} />

@@ -157,8 +157,10 @@ function OverviewPage() {
     <div className="space-y-4">
       <div className="flex items-baseline justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-slate-900">Overview</h2>
-          <p className="text-sm text-slate-600">Workspace overview of equity, drawdowns, and risk signals.</p>
+          <h2 className="text-lg font-semibold text-slate-900">Overall performance</h2>
+          <p className="text-sm text-slate-600">
+            All trades in this workspace combined for the selected time range: equity, drawdowns, and risk signals.
+          </p>
         </div>
         {overviewQuery.isError || summaryQuery.isError ? (
           <div className="rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-800">Failed to load latest stats.</div>
