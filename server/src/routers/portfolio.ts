@@ -1,8 +1,13 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import {
+  ENGINE_CONFIG,
   buildAggregatedEquityCurve,
   buildDrawdownCurves,
+  computeDailyReturns,
+  computeSharpeRatio,
+  loadStrategies,
+  loadTrades,
   runMonteCarloSimulation,
 } from "@server/engine/portfolio-engine";
 import { authedProcedure, router } from "@server/trpc/router";
@@ -11,6 +16,7 @@ import { TIME_RANGE_PRESETS, deriveDateRangeFromTimeRange } from "@server/utils/
 import { env } from "@server/utils/env";
 import { requireWorkspaceAccess } from "@server/auth/workspaceAccess";
 import type { AuthUser } from "@server/auth/types";
+import { createLogger } from "@server/utils/logger";
 import {
   getCustomPortfolioAnalytics,
   getStrategyAnalytics,
@@ -20,6 +26,7 @@ import {
   getWorkspaceTrades,
   ingestTradesFromCsv,
 } from "@server/services/tradePipeline";
+import type { EquityCurvePoint, TimeRange } from "@shared/types/portfolio";
 
 const finiteNumber = z.number().finite();
 const equityPointSchema = z.object({
@@ -161,6 +168,49 @@ const customPortfolioContributionSchema = z.object({
   tradeCount: z.number().int(),
 });
 
+const dateRangeSchema = z
+  .object({
+    startDate: z.string().optional(),
+    endDate: z.string().optional(),
+  })
+  .optional();
+
+const overviewPointSchema = z.object({ date: z.string(), equity: finiteNumber });
+const overviewHealthSchema = z.object({
+  hasTrades: z.boolean(),
+  firstTradeDate: z.string().nullable(),
+  lastTradeDate: z.string().nullable(),
+});
+
+const homeOverviewSchema = z.object({
+  portfolioEquity: z.array(overviewPointSchema),
+  todayPnl: finiteNumber,
+  mtdPnl: finiteNumber,
+  ytdPnl: finiteNumber,
+  maxDrawdown: finiteNumber,
+  openRisk: finiteNumber.nullable(),
+  accountValue: finiteNumber.nullable(),
+  dataHealth: overviewHealthSchema,
+});
+
+const strategyEquityPointSchema = z.object({ date: z.string(), equity: finiteNumber });
+const strategyStatsSchema = z.object({
+  sharpe: finiteNumber.nullable(),
+  maxDrawdown: finiteNumber,
+  winRate: finiteNumber.nullable(),
+  tradeCount: z.number().int(),
+  startDate: z.string().nullable(),
+  endDate: z.string().nullable(),
+});
+
+const strategySummarySchema = z.object({
+  strategyId: z.string(),
+  name: z.string(),
+  instrument: z.string().nullable(),
+  equityCurve: z.array(strategyEquityPointSchema),
+  stats: strategyStatsSchema,
+});
+
 const MAX_UPLOAD_BYTES = env.maxUploadBytes ?? 5 * 1024 * 1024;
 
 const timeRangeInput = z
@@ -210,7 +260,254 @@ function formatBytes(bytes: number) {
   return `${Math.round(bytes / 104857.6) / 10} MB`;
 }
 
+const portfolioLogger = createLogger("portfolio-router");
+const DEFAULT_LOOKBACK_DAYS = 90;
+const STARTING_BALANCE = 10_000;
+
+type TradeForOverview = {
+  side: string;
+  entryPrice: unknown;
+  exitPrice: unknown;
+  quantity: unknown;
+  exitTime: string;
+};
+
+const toIsoDate = (date: Date) => date.toISOString().slice(0, 10);
+
+const previousIsoDay = (isoDate: string) => {
+  const date = new Date(`${isoDate}T00:00:00.000Z`);
+  date.setUTCDate(date.getUTCDate() - 1);
+  return toIsoDate(date);
+};
+
+const resolveDateRange = (input?: { startDate?: string; endDate?: string; timeRange?: TimeRange }) => {
+  const derived = input?.timeRange ? deriveDateRangeFromTimeRange(input.timeRange) : {};
+  const today = new Date();
+  const endDate = input?.endDate ?? (derived as any).endDate ?? toIsoDate(today);
+  if (input?.startDate) {
+    const start = input.startDate > endDate ? endDate : input.startDate;
+    return { startDate: start, endDate };
+  }
+
+  const start = new Date(`${endDate}T00:00:00.000Z`);
+  start.setUTCDate(start.getUTCDate() - DEFAULT_LOOKBACK_DAYS + 1);
+  const startDate = (derived as any).startDate ?? toIsoDate(start);
+  return { startDate, endDate };
+};
+
+const tradePnl = (side: string, entry: number, exit: number, qty: number) => {
+  const normalizedSide = side.toLowerCase();
+  return normalizedSide === "short" || normalizedSide === "sell" ? (entry - exit) * qty : (exit - entry) * qty;
+};
+
+const buildCumulativePnlSeries = (
+  trades: TradeForOverview[],
+  range: { startDate?: string; endDate?: string },
+): { date: string; cumulative: number }[] => {
+  const pnlByDate = new Map<string, number>();
+
+  for (const trade of trades) {
+    const exitDate = trade.exitTime.slice(0, 10);
+    if (range.startDate && exitDate < range.startDate) continue;
+    if (range.endDate && exitDate > range.endDate) continue;
+    const pnl = tradePnl(trade.side, Number(trade.entryPrice), Number(trade.exitPrice), Number(trade.quantity));
+    pnlByDate.set(exitDate, (pnlByDate.get(exitDate) ?? 0) + pnl);
+  }
+
+  const dates = Array.from(pnlByDate.keys()).sort();
+  const cumulative: { date: string; cumulative: number }[] = [];
+  let total = 0;
+
+  for (const d of dates) {
+    total += pnlByDate.get(d) ?? 0;
+    cumulative.push({ date: d, cumulative: total });
+  }
+
+  return cumulative;
+};
+
+const valueOnOrBefore = (series: { date: string; cumulative: number }[], targetDate: string) => {
+  let value = 0;
+  for (const point of series) {
+    if (point.date > targetDate) break;
+    value = point.cumulative;
+  }
+  return value;
+};
+
+const computeMaxDrawdownFromSeries = (series: { date: string; cumulative: number }[]) => {
+  let peak = STARTING_BALANCE;
+  let maxDrawdown = 0;
+
+  for (const point of series) {
+    const equity = STARTING_BALANCE + point.cumulative;
+    peak = Math.max(peak, equity);
+    const drawdown = equity - peak;
+    if (drawdown < maxDrawdown) {
+      maxDrawdown = drawdown;
+    }
+  }
+
+  return maxDrawdown;
+};
+
 export const portfolioRouter = router({
+  getOverview: authedProcedure
+    .input(
+      z
+        .object({
+          dateRange: dateRangeSchema,
+          timeRange: timeRangeInput,
+        })
+        .optional(),
+    )
+    .output(homeOverviewSchema)
+    .query(async ({ ctx, input }) => {
+      const { workspaceId } = await resolveScope(ctx, "read");
+      const range = resolveDateRange({ ...input?.dateRange, timeRange: input?.timeRange });
+      try {
+        const trades = await loadTrades({ userId: ctx.user.id, workspaceId });
+        const tradesInRange = trades.filter(trade => {
+          const exitDate = trade.exitTime.slice(0, 10);
+          if (range.startDate && exitDate < range.startDate) return false;
+          if (range.endDate && exitDate > range.endDate) return false;
+          return true;
+        });
+
+        const equityCurve = await buildAggregatedEquityCurve(
+          { userId: ctx.user.id, workspaceId },
+          { startDate: range.startDate, endDate: range.endDate },
+        );
+
+        const pnlSeries = buildCumulativePnlSeries(tradesInRange, range);
+        const effectiveEnd = range.endDate ?? toIsoDate(new Date());
+        const equityPoints = equityCurve.points.map(point => ({
+          date: point.date,
+          equity: STARTING_BALANCE + point.combined,
+        }));
+
+        const latestEquity = equityPoints.at(-1)?.equity ?? (trades.length ? STARTING_BALANCE : null);
+        const todayPnl = valueOnOrBefore(pnlSeries, effectiveEnd) - valueOnOrBefore(pnlSeries, previousIsoDay(effectiveEnd));
+        const monthStart = `${effectiveEnd.slice(0, 8)}01`;
+        const mtdPnl = valueOnOrBefore(pnlSeries, effectiveEnd) - valueOnOrBefore(pnlSeries, previousIsoDay(monthStart));
+        const yearStart = `${effectiveEnd.slice(0, 4)}-01-01`;
+        const ytdPnl = valueOnOrBefore(pnlSeries, effectiveEnd) - valueOnOrBefore(pnlSeries, previousIsoDay(yearStart));
+        const maxDrawdown = computeMaxDrawdownFromSeries(pnlSeries);
+
+        const firstTrade = trades.length ? trades.reduce((min, t) => (t.exitTime < min ? t.exitTime : min), trades[0].exitTime) : null;
+        const lastTrade = trades.length ? trades.reduce((max, t) => (t.exitTime > max ? t.exitTime : max), trades[0].exitTime) : null;
+
+        return homeOverviewSchema.parse({
+          portfolioEquity: equityPoints,
+          todayPnl,
+          mtdPnl,
+          ytdPnl,
+          maxDrawdown,
+          openRisk: null,
+          accountValue: latestEquity,
+          dataHealth: {
+            hasTrades: trades.length > 0,
+            firstTradeDate: firstTrade ? firstTrade.slice(0, 10) : null,
+            lastTradeDate: lastTrade ? lastTrade.slice(0, 10) : null,
+          },
+        });
+      } catch (error) {
+        portfolioLogger.error("Home dashboard getOverview failed", {
+          procedure: "getOverview",
+          userId: ctx.user.id,
+          workspaceId,
+          range,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Unable to load portfolio overview" });
+      }
+    }),
+  getStrategySummaries: authedProcedure
+    .input(
+      z
+        .object({
+          dateRange: dateRangeSchema,
+          timeRange: timeRangeInput,
+        })
+        .optional(),
+    )
+    .output(z.array(strategySummarySchema))
+    .query(async ({ ctx, input }) => {
+      const { workspaceId } = await resolveScope(ctx, "read");
+      const range = resolveDateRange({ ...input?.dateRange, timeRange: input?.timeRange });
+      try {
+        const [strategies, trades] = await Promise.all([
+          loadStrategies({ userId: ctx.user.id, workspaceId }),
+          loadTrades({ userId: ctx.user.id, workspaceId }),
+        ]);
+
+        const tradesInRange = trades.filter(trade => {
+          const exitDate = trade.exitTime.slice(0, 10);
+          if (range.startDate && exitDate < range.startDate) return false;
+          if (range.endDate && exitDate > range.endDate) return false;
+          return true;
+        });
+
+        return strategies.map(strategy => {
+          const strategyTrades = tradesInRange.filter(t => t.strategyId === strategy.id);
+          const equitySeries = buildCumulativePnlSeries(strategyTrades, range);
+
+          const equityCurve = equitySeries.map(point => ({
+            date: point.date,
+            equity: STARTING_BALANCE + point.cumulative,
+          }));
+
+          const equityPointsForStats: EquityCurvePoint[] = equitySeries.map(point => ({
+            date: point.date,
+            combined: point.cumulative,
+            swing: point.cumulative,
+            intraday: 0,
+            spx: 0,
+          }));
+
+          const returns = computeDailyReturns(equityPointsForStats, ENGINE_CONFIG.initialCapital);
+          const sharpe = returns.length ? computeSharpeRatio(returns.filter(r => Number.isFinite(r))) : 0;
+          const maxDrawdown = computeMaxDrawdownFromSeries(equitySeries);
+
+          const wins = strategyTrades.filter(trade =>
+            tradePnl(trade.side, Number(trade.entryPrice), Number(trade.exitPrice), Number(trade.quantity)) > 0,
+          ).length;
+          const tradeCount = strategyTrades.length;
+          const winRate = tradeCount ? (wins / tradeCount) * 100 : null;
+
+          const firstTrade = strategyTrades.length
+            ? strategyTrades.reduce((min, t) => (t.exitTime < min ? t.exitTime : min), strategyTrades[0].exitTime)
+            : null;
+          const lastTrade = strategyTrades.length
+            ? strategyTrades.reduce((max, t) => (t.exitTime > max ? t.exitTime : max), strategyTrades[0].exitTime)
+            : null;
+
+          return strategySummarySchema.parse({
+            strategyId: String(strategy.id),
+            name: strategy.name,
+            instrument: strategy.type ?? null,
+            equityCurve,
+            stats: {
+              sharpe: strategyTrades.length ? sharpe : null,
+              maxDrawdown,
+              winRate,
+              tradeCount,
+              startDate: firstTrade ? firstTrade.slice(0, 10) : null,
+              endDate: lastTrade ? lastTrade.slice(0, 10) : null,
+            },
+          });
+        });
+      } catch (error) {
+        portfolioLogger.error("Home dashboard getStrategySummaries failed", {
+          procedure: "getStrategySummaries",
+          userId: ctx.user.id,
+          workspaceId,
+          range,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Unable to load strategy summaries" });
+      }
+    }),
   overview: authedProcedure
     .input(
       z
