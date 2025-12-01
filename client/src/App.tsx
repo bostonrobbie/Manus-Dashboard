@@ -4,6 +4,7 @@ import DashboardLayout from "./components/DashboardLayout";
 import { Button } from "./components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./components/ui/card";
 import { useAuthState } from "./hooks/useAuthState";
+import HomeDashboardPage from "./pages/HomeDashboardPage";
 import OverviewPage from "./pages/Overview";
 import SettingsPage from "./pages/Settings";
 import StrategiesPage from "./pages/Strategies";
@@ -94,10 +95,11 @@ function App() {
 
   return (
     <BrowserRouter>
-      <DashboardProvider user={viewer.user}>
-        <DashboardLayout user={viewer.user} mode={viewer.mode} mock={viewer.mock}>
-          <Routes>
-            <Route path="/" element={<OverviewPage />} />
+          <DashboardProvider user={viewer.user}>
+            <DashboardLayout user={viewer.user} mode={viewer.mode} mock={viewer.mock}>
+              <Routes>
+                <Route path="/" element={<HomeDashboardPage />} />
+                <Route path="/overview" element={<OverviewPage />} />
             <Route path="/strategies" element={<StrategiesPage />} />
             <Route path="/portfolios" element={<PortfoliosPage />} />
             <Route path="/trades" element={<TradesPage />} />

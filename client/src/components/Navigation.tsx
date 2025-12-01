@@ -12,7 +12,8 @@ function Navigation({ orientation = "vertical", isAdmin }: NavigationProps) {
   const items = useMemo(
     () =>
       [
-        { label: "Overall Performance", to: "/" },
+        { label: "Home Dashboard", to: "/" },
+        { label: "Performance Overview", to: "/overview" },
         { label: "Strategy Performance", to: "/strategies" },
         { label: "Custom Portfolios", to: "/portfolios" },
         { label: "Trade Log", to: "/trades" },
