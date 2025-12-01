@@ -1,20 +1,18 @@
-# Home dashboard upgrade
+# Home dashboard upgrade notes
 
-This repository now includes a configurable Home dashboard experience that surfaces portfolio KPIs, equity charts, and strategy stats in a consistent layout.
+This iteration tightens observability on the home dashboard by adding explicit error handling and client-side logging hooks.
 
-## Layout config
-- Configuration lives in `client/src/config/dashboardLayoutConfig.ts`.
-- Each section declares an `id`, `title`, `componentKey`, `defaultOrder`, and `defaultSize` to drive the render order and sizing.
-- To rearrange sections, edit the `dashboardSections` array and adjust `defaultOrder` or `visibleByDefault`.
-- A TODO is in place to add user-specific layouts with drag-and-drop in a later phase.
+## Client logging
+- The new `client/src/lib/clientLogger.ts` exports `logClientError(source, error, extra?)`.
+- The logger currently writes to `console.error` with a normalized payload to keep failures visible during debugging.
+- Future iterations can post the payload to a backend `/client-log` endpoint if available.
 
-## Components
-- `PortfolioEquityChart` renders a normalized equity curve with a top-left stats panel.
-- `StatsPanel` is a reusable KPI block that can display Sharpe, drawdown, win rate, or trade counts.
-- `StrategyStatsTable` lists strategy-level performance metrics.
-- `StrategyEquityGrid` shows small multiples of per-strategy equity curves.
+## Home dashboard error handling
+- `HomeDashboardPage` now renders a clear retry card when any of the core tRPC queries fail.
+- Errors are logged via `logClientError("HomeDashboardPage", error, { hasOverview })` so we can trace failing calls in the browser console.
+- The retry button refetches overview, equity curves, and strategy comparison queries together to keep the view consistent.
 
-## New page
-- `client/src/pages/HomeDashboardPage.tsx` consumes existing tRPC analytics endpoints to display portfolio summary, equity, strategy stats, and simple alerts.
-- The page uses the shared `dashboardSections` config and a component map, so updates to the layout only require changing the config file.
-- Navigation now points to the Home dashboard by default, while the previous performance overview remains available at `/overview`.
+## QA matrix
+- **Network interruption:** Simulate offline mode; the dashboard surfaces the retry card and logs the failure.
+- **Partial data load:** If one query fails while others succeed, the page still shows the retry card and does not attempt to render partial UI.
+- **Recovered service:** After the API is reachable again, clicking retry rehydrates the dashboard without a full page reload.

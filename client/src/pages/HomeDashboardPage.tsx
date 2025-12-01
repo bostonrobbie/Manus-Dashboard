@@ -8,6 +8,7 @@ import { StrategyStatsTable } from "../components/dashboard/StrategyStatsTable";
 import MetricCard from "../components/MetricCard";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { dashboardSections } from "../config/dashboardLayoutConfig";
+import { logClientError } from "../lib/clientLogger";
 import { trpc } from "../lib/trpc";
 import { useDashboardState } from "../providers/DashboardProvider";
 
@@ -144,6 +145,37 @@ export default function HomeDashboardPage() {
   }, [strategyQuery.data?.rows]);
 
   const sections = dashboardSections.filter(section => section.visibleByDefault).sort((a, b) => a.defaultOrder - b.defaultOrder);
+
+  if (overviewQuery.error || equityQuery.error || strategyQuery.error) {
+    const error = overviewQuery.error ?? equityQuery.error ?? strategyQuery.error;
+    const message = (error as { message?: string } | null)?.message ?? "Unexpected error";
+    logClientError("HomeDashboardPage", error, { hasOverview: Boolean(overviewQuery.data) });
+
+    return (
+      <div className="space-y-4">
+        <div>
+          <h2 className="text-lg font-semibold text-slate-900">Home dashboard</h2>
+          <p className="text-sm text-slate-600">We hit an error loading your workspace data. Retry below.</p>
+        </div>
+        <Card>
+          <CardContent className="space-y-3 py-6">
+            <div className="rounded-md bg-amber-50 px-4 py-3 text-sm text-amber-800">{message}</div>
+            <button
+              type="button"
+              className="inline-flex items-center rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50"
+              onClick={() => {
+                overviewQuery.refetch();
+                equityQuery.refetch();
+                strategyQuery.refetch();
+              }}
+            >
+              Retry loading dashboard
+            </button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
