@@ -37,11 +37,13 @@ export interface EquityCurveOptions {
 
 export interface UserScope {
   userId: number;
+  ownerId?: number;
   workspaceId?: number;
 }
 
 export interface StrategyComparisonInput {
   userId: number;
+  ownerId?: number;
   workspaceId?: number;
   page: number;
   pageSize: number;
@@ -76,6 +78,7 @@ type TradeRecord = {
   id: number;
   strategyId: number;
   userId: number;
+  ownerId?: number;
   workspaceId: number;
   symbol: string;
   side: string;
@@ -213,16 +216,17 @@ function rebaseEquitySeries(points: EquityCurvePoint[]) {
 }
 
 export async function loadStrategies(scope: UserScope): Promise<StrategySummary[]> {
-  const { userId, workspaceId } = scope;
+  const { userId, ownerId, workspaceId } = scope;
   const db = await getDb();
+  const owner = ownerId ?? userId;
   if (db) {
-    const predicates = [eq(schema.strategies.userId, userId)];
+    const predicates = [eq(schema.strategies.ownerId, owner)];
     if (workspaceId != null) {
       predicates.push(eq(schema.strategies.workspaceId, workspaceId));
     }
 
     const rows = await db
-      .select()
+      .select({ id: schema.strategies.id, name: schema.strategies.name, type: schema.strategies.type, description: schema.strategies.description })
       .from(schema.strategies)
       .where(predicates.length > 1 ? and(...predicates) : predicates[0]);
     if (rows.length > 0) {
@@ -235,7 +239,7 @@ export async function loadStrategies(scope: UserScope): Promise<StrategySummary[
     }
   }
   return sampleStrategies.filter(
-    s => s.userId === userId && (workspaceId == null || s.workspaceId === workspaceId),
+    s => s.ownerId === owner && (workspaceId == null || s.workspaceId === workspaceId),
   );
 }
 
@@ -248,6 +252,7 @@ export async function loadTrades(scope: UserScope, opts: TradeLoadOptions = {}):
         id: schema.trades.id,
         strategyId: schema.trades.strategyId,
         userId: schema.trades.userId,
+        ownerId: schema.trades.ownerId,
         workspaceId: schema.trades.workspaceId,
         symbol: schema.trades.symbol,
         side: schema.trades.side,
@@ -293,6 +298,7 @@ export async function loadTradesPage(scope: UserScope, opts: PaginatedTradeLoadO
       id: schema.trades.id,
       strategyId: schema.trades.strategyId,
       userId: schema.trades.userId,
+      ownerId: schema.trades.ownerId,
       workspaceId: schema.trades.workspaceId,
       symbol: schema.trades.symbol,
       side: schema.trades.side,
@@ -318,7 +324,8 @@ export async function loadTradesPage(scope: UserScope, opts: PaginatedTradeLoadO
 }
 
 function buildTradePredicates(scope: UserScope, opts: TradeLoadOptions) {
-  const predicates = [eq(schema.trades.userId, scope.userId), isNull(schema.trades.deletedAt)];
+  const ownerId = scope.ownerId ?? scope.userId;
+  const predicates = [eq(schema.trades.ownerId, ownerId), isNull(schema.trades.deletedAt)];
   if (scope.workspaceId != null) {
     predicates.push(eq(schema.trades.workspaceId, scope.workspaceId));
   }
@@ -345,6 +352,7 @@ function mapTradeRows(rows: TradeRecord[]): TradeRow[] {
     id: trade.id,
     strategyId: trade.strategyId,
     userId: trade.userId,
+    ownerId: trade.ownerId ?? trade.userId,
     workspaceId: trade.workspaceId,
     symbol: trade.symbol,
     side: trade.side,
@@ -373,8 +381,9 @@ function applyTradeFilters(rows: TradeRow[], opts: TradeLoadOptions): TradeRow[]
 }
 
 function filterSampleTrades(scope: UserScope, opts: TradeLoadOptions): TradeRow[] {
+  const ownerId = scope.ownerId ?? scope.userId;
   return sampleTrades
-    .filter(t => t.userId === scope.userId && (scope.workspaceId == null || t.workspaceId === scope.workspaceId))
+    .filter(t => t.ownerId === ownerId && (scope.workspaceId == null || t.workspaceId === scope.workspaceId))
     .filter(t => {
       const exitDate = t.exitTime.slice(0, 10);
       if (opts.startDate && exitDate < opts.startDate) return false;
@@ -388,11 +397,12 @@ function filterSampleTrades(scope: UserScope, opts: TradeLoadOptions): TradeRow[
 
 async function loadBenchmarks(scope: UserScope, startDate?: string, endDate?: string) {
   const { workspaceId } = scope;
+  const ownerId = scope.ownerId ?? scope.userId;
   const db = await getDb();
   if (db) {
-    type BenchmarkRecord = { date: string; close: unknown; deletedAt?: Date | string | null };
+    type BenchmarkRecord = { date: string; close: unknown; deletedAt?: Date | string | null; ownerId?: number };
 
-    const predicates: any[] = [isNull(schema.benchmarks.deletedAt)];
+    const predicates: any[] = [isNull(schema.benchmarks.deletedAt), eq(schema.benchmarks.ownerId, ownerId)];
     if (workspaceId != null) {
       predicates.push(eq(schema.benchmarks.workspaceId, workspaceId));
     }
@@ -405,7 +415,12 @@ async function loadBenchmarks(scope: UserScope, startDate?: string, endDate?: st
     }
 
     const rows: BenchmarkRecord[] = await db
-      .select({ date: schema.benchmarks.date, close: schema.benchmarks.close, deletedAt: schema.benchmarks.deletedAt })
+      .select({
+        date: schema.benchmarks.date,
+        close: schema.benchmarks.close,
+        deletedAt: schema.benchmarks.deletedAt,
+        ownerId: schema.benchmarks.ownerId,
+      })
       .from(schema.benchmarks)
       .where(predicates.length ? and(...predicates) : undefined);
 
@@ -415,6 +430,7 @@ async function loadBenchmarks(scope: UserScope, startDate?: string, endDate?: st
   }
 
   return sampleBenchmarks.filter(row => {
+    if (row.ownerId !== ownerId) return false;
     if (workspaceId != null && row.workspaceId !== workspaceId) return false;
     if (startDate && row.date < startDate) return false;
     if (endDate && row.date > endDate) return false;
@@ -809,13 +825,11 @@ export async function buildStrategyComparison(
 ): Promise<StrategyComparisonResult> {
   const db = await getDb();
   const useDb = Boolean(db);
-  const scope: UserScope = { userId: input.userId, workspaceId: input.workspaceId };
+  const scope: UserScope = { userId: input.userId, ownerId: input.ownerId ?? input.userId, workspaceId: input.workspaceId };
   const trades = useDb
     ? await loadTrades(scope, { startDate: input.startDate, endDate: input.endDate })
     : sampleTrades
-        .filter(
-          t => t.userId === input.userId && (input.workspaceId == null || t.workspaceId === input.workspaceId),
-        )
+        .filter(t => t.ownerId === (input.ownerId ?? input.userId) && (input.workspaceId == null || t.workspaceId === input.workspaceId))
         .filter(t => {
           const exitDate = t.exitTime.slice(0, 10);
           if (input.startDate && exitDate < input.startDate) return false;
@@ -1073,7 +1087,7 @@ export async function buildPortfolioOverview(
 }
 
 export async function generateTradesCsv(input: ExportTradesInput): Promise<string> {
-  const trades = await loadTrades({ userId: input.userId, workspaceId: input.workspaceId }, {
+  const trades = await loadTrades({ userId: input.userId, ownerId: input.ownerId ?? input.userId, workspaceId: input.workspaceId }, {
     startDate: input.startDate,
     endDate: input.endDate,
     strategyIds: input.strategyIds,

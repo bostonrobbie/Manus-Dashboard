@@ -1,6 +1,6 @@
 # Home dashboard upgrade notes
 
-This iteration tightens observability on the home dashboard by adding explicit error handling and client-side logging hooks.
+This iteration tightens observability on the home dashboard by adding explicit error handling, client-side logging hooks, and owner-scoped API access so multi-tenant data stays isolated.
 
 ## Client logging
 - The new `client/src/lib/clientLogger.ts` exports `logClientError(source, error, extra?)`.
@@ -16,6 +16,7 @@ This iteration tightens observability on the home dashboard by adding explicit e
 - `portfolio.getOverview`: returns normalized portfolio equity (base 10,000), `todayPnl`, `mtdPnl`, `ytdPnl`, `maxDrawdown`, `openRisk`/`accountValue` (nullable), and `dataHealth` (hasTrades + first/last trade dates). Empty workspaces return zeroed PnL, empty equity arrays, and `hasTrades=false`.
 - `portfolio.getStrategySummaries`: per-strategy normalized equity curves plus stats `{ sharpe, maxDrawdown, winRate, tradeCount, startDate, endDate }`. Strategies without trades return empty curves and zero/nullable stats instead of throwing.
 - `system.status`: lightweight health probe returning `{ db: "ok" | "error", portfolioOverview: "ok" | "error", timestamp }` based on a trivial DB query and a short portfolio probe.
+- All portfolio endpoints require authentication and scope database queries by `ownerId = ctx.user.id`; admin-only routes enforce `role` of OWNER/ADMIN.
 
 ### Response shapes
 - `portfolio.getOverview`

@@ -6,6 +6,7 @@ import { getUploadLogById, listUploadLogs } from "@server/services/uploadLogs";
 import { TIME_RANGE_PRESETS, deriveDateRangeFromTimeRange } from "@server/utils/timeRange";
 import type { UploadLogRow } from "@shared/types/uploads";
 import { requireWorkspaceAccess } from "@server/auth/workspaceAccess";
+import { requireUser } from "@server/trpc/authHelpers";
 
 const uploadStatus = z.enum(["pending", "success", "partial", "failed"]);
 const uploadType = z.enum(["trades", "benchmarks", "equity"]);
@@ -30,9 +31,10 @@ export const uploadsRouter = router({
         .optional(),
     )
     .query(async ({ ctx, input }) => {
+      const user = requireUser(ctx as any);
       const { workspaceId } = await (async () => {
-        const access = await requireWorkspaceAccess(ctx.user, "read");
-        return { workspaceId: access.workspace?.id ?? ctx.user.workspaceId };
+        const access = await requireWorkspaceAccess(user, "read");
+        return { workspaceId: access.workspace?.id ?? user.workspaceId };
       })();
       const params = {
         page: input?.page ?? 1,
@@ -44,7 +46,7 @@ export const uploadsRouter = router({
       const { startDate, endDate } = deriveDateRangeFromTimeRange(params.timeRange);
 
       const result = await listUploadLogs({
-        userId: ctx.user.id,
+        userId: user.id,
         workspaceId,
         page: params.page,
         pageSize: params.pageSize,
@@ -63,11 +65,12 @@ export const uploadsRouter = router({
   detail: authedProcedure
     .input(z.object({ id: z.number().int() }))
     .query(async ({ ctx, input }) => {
+      const user = requireUser(ctx as any);
       const { workspaceId } = await (async () => {
-        const access = await requireWorkspaceAccess(ctx.user, "read");
-        return { workspaceId: access.workspace?.id ?? ctx.user.workspaceId };
+        const access = await requireWorkspaceAccess(user, "read");
+        return { workspaceId: access.workspace?.id ?? user.workspaceId };
       })();
-      const log = await getUploadLogById({ id: input.id, userId: ctx.user.id, workspaceId });
+      const log = await getUploadLogById({ id: input.id, userId: user.id, workspaceId });
       if (!log) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Upload not found" });
       }

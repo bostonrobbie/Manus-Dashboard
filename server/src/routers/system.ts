@@ -37,7 +37,7 @@ export const systemRouter = router({
       const start = new Date(`${rangeEnd}T00:00:00.000Z`);
       start.setUTCDate(start.getUTCDate() - 30);
       await buildPortfolioOverview(
-        { userId: ctx.user?.id ?? 1, workspaceId: ctx.user?.workspaceId },
+        { userId: ctx.user?.id ?? 1, ownerId: ctx.user?.id ?? 1, workspaceId: ctx.user?.workspaceId },
         { startDate: toIsoDate(start), endDate: rangeEnd },
       );
     } catch (error) {

@@ -11,6 +11,7 @@ import { dashboardSections } from "../config/dashboardLayoutConfig";
 import { logClientError } from "../lib/clientLogger";
 import { trpc } from "../lib/trpc";
 import { useDashboardState } from "../providers/DashboardProvider";
+import { useCurrentUser } from "../hooks/useCurrentUser";
 
 const componentMap: Record<string, (args: any) => JSX.Element> = {
   portfolioSummary: ({ overviewMetrics }: any) => {
@@ -128,6 +129,7 @@ const componentMap: Record<string, (args: any) => JSX.Element> = {
 
 export default function HomeDashboardPage() {
   const { timeRange } = useDashboardState();
+  const { user } = useCurrentUser();
 
   const overviewQuery = trpc.portfolio.getOverview.useQuery({ timeRange }, { retry: 1 });
   const strategyQuery = trpc.portfolio.getStrategySummaries.useQuery({ timeRange }, { retry: 1 });
@@ -204,6 +206,12 @@ export default function HomeDashboardPage() {
     .filter(section => section.visibleByDefault)
     .sort((a, b) => a.defaultOrder - b.defaultOrder);
   const hasTrades = overviewQuery.data?.dataHealth?.hasTrades ?? false;
+  const userIndicator = user ? (
+    <div className="text-right text-xs text-slate-500">
+      <div className="font-medium text-slate-700">{user.email}</div>
+      <div className="uppercase tracking-wide text-[11px]">{user.role}</div>
+    </div>
+  ) : null;
 
   if (overviewQuery.error || strategyQuery.error) {
     const error = overviewQuery.error ?? strategyQuery.error;
@@ -211,9 +219,12 @@ export default function HomeDashboardPage() {
 
     return (
       <div className="space-y-4">
-        <div>
-          <h2 className="text-lg font-semibold text-slate-900">Home dashboard</h2>
-          <p className="text-sm text-slate-600">We hit an error loading your workspace data. Retry below.</p>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900">Home dashboard</h2>
+            <p className="text-sm text-slate-600">We hit an error loading your workspace data. Retry below.</p>
+          </div>
+          {userIndicator}
         </div>
         <Card>
           <CardContent className="space-y-3 py-6">
@@ -236,9 +247,12 @@ export default function HomeDashboardPage() {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h2 className="text-lg font-semibold text-slate-900">Home dashboard</h2>
-        <p className="text-sm text-slate-600">Portfolio overview, strategy stats, and quick alerts for your workspace.</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h2 className="text-lg font-semibold text-slate-900">Home dashboard</h2>
+          <p className="text-sm text-slate-600">Portfolio overview, strategy stats, and quick alerts for your workspace.</p>
+        </div>
+        {userIndicator}
       </div>
 
       {!overviewQuery.isLoading && !hasTrades ? (

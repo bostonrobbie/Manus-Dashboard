@@ -11,6 +11,7 @@ const logger = createLogger("benchmark-ingestion");
 export interface IngestBenchmarksOptions {
   csv: string;
   userId: number;
+  ownerId?: number;
   workspaceId: number;
   fileName?: string;
   defaultSymbol?: string;
@@ -41,9 +42,11 @@ export async function ingestBenchmarksCsv(options: IngestBenchmarksOptions): Pro
   const warnings: string[] = [];
   const { headers, records } = parseCsvRecords(options.csv);
   const totalRows = records.length;
+  const ownerId = options.ownerId ?? options.userId;
 
   const uploadLog = await createUploadLog({
     userId: options.userId,
+    ownerId,
     workspaceId: options.workspaceId,
     fileName: options.fileName ?? "benchmarks.csv",
     uploadType: "benchmarks",
@@ -124,6 +127,7 @@ export async function ingestBenchmarksCsv(options: IngestBenchmarksOptions): Pro
 
       await transactionalDb.insert(schema.benchmarks).values(
         normalized.map(row => ({
+          ownerId,
           workspaceId: options.workspaceId,
           symbol: row.symbol,
           date: row.date,
@@ -156,11 +160,13 @@ export async function ingestBenchmarksCsv(options: IngestBenchmarksOptions): Pro
     status,
     workspaceId: options.workspaceId,
     userId: options.userId,
+    ownerId,
   });
 
   await logAudit({
     action: "upload_benchmarks",
     userId: options.userId,
+    ownerId,
     workspaceId: options.workspaceId,
     entityType: "upload",
     entityId: uploadLog?.id,

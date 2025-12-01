@@ -43,6 +43,7 @@ interface NormalizedTradeRow {
 export interface IngestTradesOptions {
   csv: string;
   userId: number;
+  ownerId?: number;
   workspaceId: number;
   defaultStrategyName?: string;
   defaultStrategyType?: StrategyType;
@@ -81,9 +82,11 @@ export async function ingestTradesCsv(options: IngestTradesOptions): Promise<Ing
   const warnings: string[] = [];
   const { headers, records } = parseCsvRecords(options.csv);
   const totalRows = records.length;
+  const ownerId = options.ownerId ?? options.userId;
 
   const uploadLog = await createUploadLog({
     userId: options.userId,
+    ownerId,
     workspaceId: options.workspaceId,
     fileName: options.fileName ?? "trades.csv",
     uploadType: "trades",
@@ -92,6 +95,7 @@ export async function ingestTradesCsv(options: IngestTradesOptions): Promise<Ing
   logger.info("Trade ingestion start", {
     eventName: "INGEST_TRADES_START",
     userId: options.userId,
+    ownerId,
     workspaceId: options.workspaceId,
     totalRows,
     uploadId: uploadLog?.id,
@@ -170,7 +174,13 @@ export async function ingestTradesCsv(options: IngestTradesOptions): Promise<Ing
       workspaceId: schema.strategies.workspaceId,
     })
     .from(schema.strategies)
-    .where(and(eq(schema.strategies.userId, options.userId), eq(schema.strategies.workspaceId, options.workspaceId)));
+    .where(
+      and(
+        eq(schema.strategies.userId, options.userId),
+        eq(schema.strategies.ownerId, ownerId),
+        eq(schema.strategies.workspaceId, options.workspaceId),
+      ),
+    );
   const strategiesByName = new Map<string, StrategyRecord>(
     existingStrategies.map((s: StrategyRecord): [string, StrategyRecord] => [s.name, s]),
   );
@@ -193,6 +203,7 @@ export async function ingestTradesCsv(options: IngestTradesOptions): Promise<Ing
       .values(
         Array.from(requiredStrategies.entries()).map(([name, type]) => ({
           userId: options.userId,
+          ownerId,
           workspaceId: options.workspaceId,
           name,
           type,
@@ -226,6 +237,7 @@ export async function ingestTradesCsv(options: IngestTradesOptions): Promise<Ing
     return [
       {
         userId: options.userId,
+        ownerId,
         workspaceId: options.workspaceId,
         strategyId,
         symbol: row.symbol,
@@ -282,11 +294,13 @@ export async function ingestTradesCsv(options: IngestTradesOptions): Promise<Ing
     status,
     workspaceId: options.workspaceId,
     userId: options.userId,
+    ownerId,
   });
 
   await logAudit({
     action: "upload_trades",
     userId: options.userId,
+    ownerId,
     workspaceId: options.workspaceId,
     entityType: "upload",
     entityId: uploadLog?.id,
@@ -306,12 +320,14 @@ export async function ingestTradesCsv(options: IngestTradesOptions): Promise<Ing
 
 export async function ingestWebhookTrade(options: {
   userId: number;
+  ownerId?: number;
   workspaceId: number;
   trade: WebhookTrade;
   uploadLabel?: string;
 }) {
   const errors: string[] = [];
   const trade = options.trade;
+  const ownerId = options.ownerId ?? options.userId;
 
   const parsedTimestamp = parseTimestamp(trade.timestamp);
   if (!parsedTimestamp) {
@@ -332,6 +348,7 @@ export async function ingestWebhookTrade(options: {
 
   const uploadLog = await createUploadLog({
     userId: options.userId,
+    ownerId,
     workspaceId: options.workspaceId,
     fileName: options.uploadLabel ?? "tradingview-webhook",
     uploadType: "trades",
@@ -368,7 +385,13 @@ export async function ingestWebhookTrade(options: {
       workspaceId: schema.strategies.workspaceId,
     })
     .from(schema.strategies)
-    .where(and(eq(schema.strategies.userId, options.userId), eq(schema.strategies.workspaceId, options.workspaceId)))) as StrategyRecord[];
+    .where(
+      and(
+        eq(schema.strategies.userId, options.userId),
+        eq(schema.strategies.ownerId, ownerId),
+        eq(schema.strategies.workspaceId, options.workspaceId),
+      ),
+    )) as StrategyRecord[];
 
   const strategyById = new Map(existingStrategies.map((s: StrategyRecord) => [s.id, s] as const));
   const strategyByName = new Map(existingStrategies.map((s: StrategyRecord) => [s.name.toLowerCase(), s] as const));
@@ -390,6 +413,7 @@ export async function ingestWebhookTrade(options: {
       .insert(schema.strategies)
       .values({
         userId: options.userId,
+        ownerId,
         workspaceId: options.workspaceId,
         name: trade.strategyName ?? "Webhook strategy",
         type: trade.strategyType ?? "swing",
@@ -413,6 +437,7 @@ export async function ingestWebhookTrade(options: {
     .insert(schema.trades)
     .values({
       userId: options.userId,
+      ownerId,
       workspaceId: options.workspaceId,
       strategyId: strategyId!,
       symbol: trade.symbol,

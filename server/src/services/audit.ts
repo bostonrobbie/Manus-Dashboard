@@ -5,6 +5,7 @@ const logger = createLogger("audit");
 
 export interface AuditLogInput {
   userId: number;
+  ownerId?: number;
   workspaceId: number;
   action: string;
   entityType: string;
@@ -23,6 +24,7 @@ export async function logAudit(entry: AuditLogInput): Promise<void> {
     logger.warn("Audit log skipped; database unavailable", {
       action: entry.action,
       workspaceId: entry.workspaceId,
+      ownerId: entry.ownerId,
     });
     return;
   }

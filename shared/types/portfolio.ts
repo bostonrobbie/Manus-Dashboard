@@ -139,6 +139,7 @@ export interface StrategyComparisonResult {
 export interface TradeRow {
   id: number;
   userId?: number;
+  ownerId?: number;
   workspaceId?: number;
   strategyId: number;
   symbol: string;
@@ -180,6 +181,7 @@ export interface PortfolioOverview {
 
 export interface ExportTradesInput {
   userId: number;
+  ownerId?: number;
   workspaceId?: number;
   strategyIds?: number[];
   startDate?: string; // derived from time range selector unless explicitly set
