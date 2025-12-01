@@ -12,6 +12,19 @@ const logger = createLogger("ingestion");
 type CsvRecord = Record<string, string>;
 type StrategyRecord = { id: number; name: string; type: StrategyType | null; workspaceId?: number };
 
+export interface WebhookTrade {
+  strategyId?: number;
+  strategyName?: string;
+  strategyType?: StrategyType;
+  symbol: string;
+  side: string;
+  quantity: number;
+  executionPrice: number;
+  timestamp: string | number;
+  externalId?: string;
+  notes?: string;
+}
+
 interface NormalizedTradeRow {
   strategyName: string;
   strategyType?: StrategyType;
@@ -291,6 +304,143 @@ export async function ingestTradesCsv(options: IngestTradesOptions): Promise<Ing
   };
 }
 
+export async function ingestWebhookTrade(options: {
+  userId: number;
+  workspaceId: number;
+  trade: WebhookTrade;
+  uploadLabel?: string;
+}) {
+  const errors: string[] = [];
+  const trade = options.trade;
+
+  const parsedTimestamp = parseTimestamp(trade.timestamp);
+  if (!parsedTimestamp) {
+    errors.push("Invalid timestamp provided");
+    return { inserted: false, errors };
+  }
+
+  const entryTime = parsedTimestamp;
+
+  if (!trade.symbol) errors.push("Symbol is required");
+  if (!trade.side) errors.push("Side is required");
+  if (!Number.isFinite(trade.quantity)) errors.push("Quantity is required");
+  if (!Number.isFinite(trade.executionPrice)) errors.push("Execution price is required");
+
+  if (errors.length > 0) {
+    return { inserted: false, errors };
+  }
+
+  const uploadLog = await createUploadLog({
+    userId: options.userId,
+    workspaceId: options.workspaceId,
+    fileName: options.uploadLabel ?? "tradingview-webhook",
+    uploadType: "trades",
+  });
+
+  const db = await getDb();
+  if (!db) {
+    errors.push("Database not configured");
+    await persistUploadLog(uploadLog, {
+      rowCountTotal: 1,
+      rowCountFailed: 1,
+      status: "failed",
+      errorSummary: summarizeIssues(errors),
+    });
+    return { inserted: false, errors, uploadId: uploadLog?.id };
+  }
+
+  const normalizedSide = normalizeSide(trade.side);
+  const naturalKey = [
+    (trade.strategyId ?? trade.strategyName ?? "").toString().toLowerCase(),
+    trade.symbol.toUpperCase(),
+    normalizedSide,
+    Number(trade.quantity).toFixed(4),
+    Number(trade.executionPrice).toFixed(4),
+    entryTime.toISOString(),
+    entryTime.toISOString(),
+  ].join("|");
+
+  const existingStrategies = (await db
+    .select({
+      id: schema.strategies.id,
+      name: schema.strategies.name,
+      type: schema.strategies.type,
+      workspaceId: schema.strategies.workspaceId,
+    })
+    .from(schema.strategies)
+    .where(and(eq(schema.strategies.userId, options.userId), eq(schema.strategies.workspaceId, options.workspaceId)))) as StrategyRecord[];
+
+  const strategyById = new Map(existingStrategies.map((s: StrategyRecord) => [s.id, s] as const));
+  const strategyByName = new Map(existingStrategies.map((s: StrategyRecord) => [s.name.toLowerCase(), s] as const));
+
+  let strategyId = trade.strategyId;
+  if (strategyId && !strategyById.has(strategyId)) {
+    errors.push("Strategy does not belong to workspace");
+  }
+
+  if (!strategyId) {
+    const key = trade.strategyName?.toLowerCase();
+    if (key && strategyByName.has(key)) {
+      strategyId = strategyByName.get(key)!.id;
+    }
+  }
+
+  if (!strategyId) {
+    const [created] = await db
+      .insert(schema.strategies)
+      .values({
+        userId: options.userId,
+        workspaceId: options.workspaceId,
+        name: trade.strategyName ?? "Webhook strategy",
+        type: trade.strategyType ?? "swing",
+        description: trade.notes ?? "TradingView webhook",
+      })
+      .returning();
+    strategyId = created.id;
+  }
+
+  if (errors.length > 0) {
+    await persistUploadLog(uploadLog, {
+      rowCountTotal: 1,
+      rowCountFailed: 1,
+      status: "failed",
+      errorSummary: summarizeIssues(errors),
+    });
+    return { inserted: false, errors, uploadId: uploadLog?.id };
+  }
+
+  const [inserted] = await db
+    .insert(schema.trades)
+    .values({
+      userId: options.userId,
+      workspaceId: options.workspaceId,
+      strategyId: strategyId!,
+      symbol: trade.symbol,
+      side: normalizedSide,
+      quantity: trade.quantity.toString(),
+      entryPrice: trade.executionPrice.toString(),
+      exitPrice: trade.executionPrice.toString(),
+      entryTime,
+      exitTime: entryTime,
+      externalId: trade.externalId,
+      naturalKey,
+      uploadId: uploadLog?.id,
+    })
+    .onConflictDoNothing({ target: [schema.trades.workspaceId, schema.trades.naturalKey] })
+    .returning({ id: schema.trades.id });
+
+  const importedCount = inserted ? 1 : 0;
+  await persistUploadLog(uploadLog, {
+    rowCountTotal: 1,
+    rowCountImported: importedCount,
+    rowCountFailed: 0,
+    status: importedCount ? "success" : "partial",
+    warningsSummary: importedCount ? null : "Duplicate trade skipped",
+  });
+
+  return { inserted: Boolean(inserted), uploadId: uploadLog?.id, naturalKey, externalId: trade.externalId, strategyId };
+}
+
 function parseCsvRecords(csv: string): { headers: string[]; records: CsvRecord[] } {
   const rows = parseCsv(csv);
   if (rows.length === 0) return { headers: [], records: [] };
@@ -308,6 +458,18 @@ function parseCsvRecords(csv: string): { headers: string[]; records: CsvRecord[]
     records.push(rec);
   }
   return { headers, records };
+}
+
+function parseTimestamp(value: string | number | undefined): Date | null {
+  if (value == null) return null;
+  if (typeof value === "number") {
+    const ms = value > 1e12 ? value : value * 1000;
+    const parsed = new Date(ms);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+  const parsed = Date.parse(String(value));
+  if (Number.isNaN(parsed)) return null;
+  return new Date(parsed);
 }
 
 function parseCsv(csv: string): string[][] {

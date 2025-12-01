@@ -202,6 +202,29 @@ export interface MonteCarloResult {
   finalEquities: number[];
 }
 
+export interface CustomPortfolioRequest {
+  strategyIds: number[];
+  weights?: number[];
+  timeRange?: TimeRange;
+  maxPoints?: number;
+}
+
+export interface CustomPortfolioContribution {
+  strategyId: number;
+  name: string;
+  weight: number;
+  totalReturnPct: number;
+  maxDrawdownPct: number;
+  sharpeRatio: number;
+  tradeCount: number;
+}
+
+export interface CustomPortfolioResult {
+  metrics: WorkspaceMetrics;
+  equityCurve: EquityCurveResponse;
+  contributions: CustomPortfolioContribution[];
+}
+
 export interface PortfolioSummary {
   totalReturnPct: number;
   maxDrawdownPct: number;

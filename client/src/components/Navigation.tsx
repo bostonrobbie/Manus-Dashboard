@@ -12,12 +12,13 @@ function Navigation({ orientation = "vertical", isAdmin }: NavigationProps) {
   const items = useMemo(
     () =>
       [
-        { label: "Overview", to: "/" },
-        { label: "Strategies", to: "/strategies" },
-        { label: "Trades", to: "/trades" },
-        { label: "Uploads / Data", to: "/uploads" },
-        ...(isAdmin ? [{ label: "Admin Data", to: "/admin" }] : []),
+        { label: "Overall Performance", to: "/" },
+        { label: "Strategy Performance", to: "/strategies" },
+        { label: "Custom Portfolios", to: "/portfolios" },
+        { label: "Trade Log", to: "/trades" },
+        { label: "Uploads", to: "/uploads" },
         { label: "Settings / Health", to: "/settings" },
+        ...(isAdmin ? [{ label: "Admin Data", to: "/admin" }] : []),
       ],
     [isAdmin],
   );

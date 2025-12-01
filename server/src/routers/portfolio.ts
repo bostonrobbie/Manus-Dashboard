@@ -6,6 +6,7 @@ import {
   buildPortfolioOverview,
   buildPortfolioSummary,
   buildStrategyComparison,
+  buildCustomPortfolio,
   runMonteCarloSimulation,
   loadTradesPage,
   generateTradesCsv,
@@ -148,6 +149,15 @@ const tradeIngestionResultSchema = z.object({
   headerIssues: ingestionHeaderIssuesSchema,
 });
 const benchmarkIngestionResultSchema = tradeIngestionResultSchema;
+const customPortfolioContributionSchema = z.object({
+  strategyId: z.number().int(),
+  name: z.string(),
+  weight: z.number(),
+  totalReturnPct: finiteNumber,
+  maxDrawdownPct: finiteNumber,
+  sharpeRatio: finiteNumber,
+  tradeCount: z.number().int(),
+});
 
 const MAX_UPLOAD_BYTES = env.maxUploadBytes ?? 5 * 1024 * 1024;
 
@@ -325,6 +335,38 @@ export const portfolioRouter = router({
       return {
         rows: result.rows.map(row => strategyRowSchema.parse(row)),
         total: result.total,
+      };
+    }),
+  customPortfolio: authedProcedure
+    .input(
+      z
+        .object({
+          strategyIds: z.array(z.number().int()).nonempty().max(50),
+          weights: z.array(z.number()).optional(),
+          timeRange: timeRangeInput,
+          maxPoints: z.number().int().positive().max(2000).optional(),
+        })
+        .refine(input => !input.weights || input.weights.length === input.strategyIds.length, {
+          message: "weights length must match strategyIds",
+        }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { workspaceId } = await resolveScope(ctx, "read");
+      const range = deriveDateRangeFromTimeRange(input.timeRange);
+      const scope = { userId: ctx.user.id, workspaceId };
+
+      const result = await buildCustomPortfolio(scope, {
+        strategyIds: input.strategyIds,
+        weights: input.weights,
+        startDate: range.startDate,
+        endDate: range.endDate,
+        maxPoints: input.maxPoints,
+      });
+
+      return {
+        metrics: workspaceMetricsSchema.parse(result.metrics),
+        equityCurve: { points: result.equityCurve.points.map(p => equityPointSchema.parse(p)) },
+        contributions: result.contributions.map(c => customPortfolioContributionSchema.parse(c)),
       };
     }),
   summary: authedProcedure

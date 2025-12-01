@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 import { trpc } from "../lib/trpc";
@@ -42,6 +42,7 @@ function StrategiesPage() {
     { strategyId: selectedStrategyId ?? 0, timeRange, maxPoints: 120 },
     { enabled: selectedStrategyId != null },
   );
+  const summaryQuery = trpc.analytics.summary.useQuery({ timeRange }, { retry: 1 });
 
   const selectedTrades = useMemo(
     () => tradesQuery.data?.rows?.filter(trade => trade.strategyId === selectedStrategyId) ?? [],
@@ -79,6 +80,29 @@ function StrategiesPage() {
   );
 
   const selectedStrategy = strategiesQuery.data?.rows.find(row => row.strategyId === selectedStrategyId);
+  const aggregatedStrategyMetrics = useMemo(() => {
+    const rows = strategiesQuery.data?.rows ?? [];
+    if (!rows.length) return null;
+    const totalTrades = rows.reduce((sum, row) => sum + row.totalTrades, 0);
+    const weightFor = (row: (typeof rows)[number]) => {
+      if (totalTrades === 0) return 1 / rows.length;
+      return row.totalTrades / totalTrades;
+    };
+
+    return {
+      name: "All strategies",
+      totalReturnPct: rows.reduce((sum, row) => sum + row.totalReturnPct * weightFor(row), 0),
+      maxDrawdownPct: rows.reduce((sum, row) => sum + row.maxDrawdownPct * weightFor(row), 0),
+      sharpeRatio: rows.reduce((sum, row) => sum + row.sharpeRatio * weightFor(row), 0),
+      profitFactor: rows.reduce((sum, row) => sum + row.profitFactor * weightFor(row), 0),
+      expectancy: rows.reduce((sum, row) => sum + (row.expectancy ?? 0) * weightFor(row), 0),
+      winRatePct: rows.reduce((sum, row) => sum + row.winRatePct * weightFor(row), 0),
+      totalTrades,
+    };
+  }, [strategiesQuery.data]);
+
+  const focusMetrics = selectedStrategy ?? aggregatedStrategyMetrics;
+  const focusTitle = selectedStrategy?.name ?? aggregatedStrategyMetrics?.name ?? "Strategy performance";
   const strategyEquityPoints = strategyEquityQuery.data?.points ?? [];
   const equityChart = (
     <div className="h-64">
@@ -102,17 +126,87 @@ function StrategiesPage() {
     </div>
   );
 
+  useEffect(() => {
+    if (!selectedStrategyId && strategiesQuery.data?.rows?.length) {
+      setSelectedStrategyId(strategiesQuery.data.rows[0].strategyId);
+    }
+  }, [selectedStrategyId, strategiesQuery.data]);
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-slate-900">Strategies</h2>
-          <p className="text-sm text-slate-600">Which edges are working across this workspace.</p>
+          <h2 className="text-lg font-semibold text-slate-900">Strategy performance</h2>
+          <p className="text-sm text-slate-600">How each strategy performs within this workspace and time range.</p>
         </div>
         {strategiesQuery.isError ? (
           <div className="rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-800">Failed to load strategies.</div>
         ) : null}
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm">{focusTitle}</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+            <MetricCard
+              label="Total return"
+              value={
+                focusMetrics
+                  ? percent.format(("totalReturnPct" in focusMetrics ? focusMetrics.totalReturnPct : 0))
+                  : summaryQuery.data
+                    ? percent.format(summaryQuery.data.totalReturnPct)
+                    : undefined
+              }
+              helper={selectedStrategy ? currency.format(selectedStrategy.totalReturn) : undefined}
+              isLoading={strategiesQuery.isLoading || summaryQuery.isLoading}
+            />
+            <MetricCard
+              label="Max drawdown"
+              value={focusMetrics ? percent.format(focusMetrics.maxDrawdownPct) : undefined}
+              helper={selectedStrategy ? currency.format(selectedStrategy.maxDrawdown) : undefined}
+              isLoading={strategiesQuery.isLoading}
+            />
+            <MetricCard
+              label="Sharpe"
+              value={focusMetrics ? focusMetrics.sharpeRatio.toFixed(2) : undefined}
+              helper={selectedStrategy?.sortinoRatio ? `Sortino ${selectedStrategy.sortinoRatio.toFixed(2)}` : undefined}
+              isLoading={strategiesQuery.isLoading}
+            />
+            <MetricCard
+              label="Profit factor"
+              value={focusMetrics ? focusMetrics.profitFactor.toFixed(2) : undefined}
+              helper={selectedStrategy?.payoffRatio ? `Payoff ${selectedStrategy.payoffRatio.toFixed(2)}` : undefined}
+              isLoading={strategiesQuery.isLoading}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+            <MetricCard
+              label="Expectancy"
+              value={
+                focusMetrics
+                  ? currency.format("expectancy" in focusMetrics && focusMetrics.expectancy != null ? focusMetrics.expectancy : 0)
+                  : undefined
+              }
+              helper={selectedStrategy?.payoffRatio ? `Payoff ${selectedStrategy.payoffRatio.toFixed(2)}` : undefined}
+              isLoading={strategiesQuery.isLoading}
+            />
+            <MetricCard
+              label="Win rate"
+              value={focusMetrics ? percent.format((focusMetrics.winRatePct ?? 0) / 100) : undefined}
+              helper={focusMetrics ? `${focusMetrics.totalTrades.toLocaleString()} trades` : undefined}
+              isLoading={strategiesQuery.isLoading}
+            />
+            <MetricCard
+              label="Trade count"
+              value={focusMetrics ? focusMetrics.totalTrades.toLocaleString() : undefined}
+              isLoading={strategiesQuery.isLoading}
+            />
+          </div>
+          <div className="rounded border border-slate-200 bg-white p-3 text-sm text-slate-700 shadow-sm">{equityChart}</div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
@@ -175,7 +269,7 @@ function StrategiesPage() {
                   return (
                     <tr
                       key={row.strategyId}
-                      className="hover:bg-slate-50"
+                      className={`hover:bg-slate-50 ${selectedStrategyId === row.strategyId ? "bg-indigo-50" : ""}`}
                       onClick={() => setSelectedStrategyId(row.strategyId)}
                     >
                       <td className="px-3 py-2 font-semibold text-slate-900">{row.name}</td>
@@ -216,25 +310,9 @@ function StrategiesPage() {
       {selectedStrategy ? (
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm">{selectedStrategy.name} detail</CardTitle>
+            <CardTitle className="text-sm">Recent trades for {selectedStrategy.name}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-              <MetricCard label="Return" value={currency.format(selectedStrategy.totalReturn)} helper={percent.format(selectedStrategy.totalReturnPct)} />
-              <MetricCard label="Max drawdown" value={currency.format(selectedStrategy.maxDrawdown)} helper={percent.format(selectedStrategy.maxDrawdownPct)} />
-              <MetricCard label="Sharpe" value={selectedStrategy.sharpeRatio.toFixed(2)} />
-              <MetricCard label="Profit factor" value={selectedStrategy.profitFactor.toFixed(2)} />
-            </div>
-            <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
-              <MetricCard
-                label="Expectancy"
-                value={selectedStrategy.expectancy != null ? currency.format(selectedStrategy.expectancy) : "-"}
-                helper={selectedStrategy.payoffRatio != null ? `Payoff ${selectedStrategy.payoffRatio.toFixed(2)}` : undefined}
-              />
-              <MetricCard label="Win rate" value={percent.format(selectedStrategy.winRatePct / 100)} helper={`${selectedStrategy.totalTrades} trades`} />
-              <MetricCard label="Trades" value={selectedStrategy.totalTrades.toLocaleString()} />
-            </div>
-            <div className="rounded border border-slate-200 bg-white p-3 text-sm text-slate-700 shadow-sm">{equityChart}</div>
             <div className="rounded border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
               {selectedTrades.length ? (
                 <ul className="divide-y divide-slate-200">

@@ -13,6 +13,7 @@ import {
   TradeRow,
   MonteCarloResult,
   ExportTradesInput,
+  WorkspaceMetrics,
 } from "@shared/types/portfolio";
 import {
   benchmarks as sampleBenchmarks,
@@ -186,6 +187,28 @@ function downsamplePoints<T extends { date: string }>(points: T[], maxPoints: nu
       return p.combined;
     }
     return 0;
+  }
+}
+
+function normalizeWeights(strategyIds: number[], weights: number[]): number[] {
+  const n = strategyIds.length;
+  if (!n) return [];
+  const padded = strategyIds.map((_, idx) => (Number.isFinite(weights[idx]) ? Number(weights[idx]) : 1));
+  const sum = padded.reduce((acc, val) => acc + (Number.isFinite(val) ? Number(val) : 0), 0);
+  if (!Number.isFinite(sum) || sum === 0) {
+    return Array.from({ length: n }, () => 1 / n);
+  }
+  return padded.map(val => (Number.isFinite(val) ? Number(val) / sum : 0));
+}
+
+function rebaseEquitySeries(points: EquityCurvePoint[]) {
+  if (!points.length) return;
+  const base = points[0];
+  for (const p of points) {
+    p.combined -= base.combined;
+    p.swing -= base.swing;
+    p.intraday -= base.intraday;
+    p.spx -= base.spx;
   }
 }
 
@@ -497,6 +520,175 @@ export async function buildDrawdownCurves(
   }
 
   return { points: ddPoints };
+}
+
+export async function buildCustomPortfolio(
+  scope: UserScope,
+  opts: { strategyIds: number[]; weights?: number[]; startDate?: string; endDate?: string; maxPoints?: number },
+) {
+  const { strategyIds, weights = [] } = opts;
+  if (!strategyIds.length) return { metrics: null, equityCurve: { points: [] }, contributions: [] };
+
+  const strategies = await loadStrategies(scope);
+  const strategyMap = new Map<number, StrategySummary>();
+  for (const strat of strategies) strategyMap.set(strat.id, strat);
+
+  const selectedStrategies = strategyIds.map(id => strategyMap.get(id)).filter(Boolean) as StrategySummary[];
+  if (selectedStrategies.length !== strategyIds.length) {
+    throw new Error("One or more strategies not found for this workspace");
+  }
+
+  const normalizedWeights = normalizeWeights(strategyIds, weights);
+  const weightById = new Map<number, number>();
+  strategyIds.forEach((id, idx) => weightById.set(id, normalizedWeights[idx]));
+
+  const trades = await loadTrades(scope, {
+    startDate: opts.startDate,
+    endDate: opts.endDate,
+    strategyIds,
+  });
+
+  const tradeCounts = new Map<number, number>();
+  const pnlByStrategyDate = new Map<number, Map<string, number>>();
+  const dateSet = new Set<string>();
+
+  for (const trade of trades) {
+    const exit = new Date(trade.exitTime);
+    const isoDate = normalizeToDateKey(exit);
+    if (opts.startDate && isoDate < opts.startDate) continue;
+    if (opts.endDate && isoDate > opts.endDate) continue;
+
+    dateSet.add(isoDate);
+    const strategyBucket = pnlByStrategyDate.get(trade.strategyId) ?? new Map<string, number>();
+    const pnl = tradePnl(trade.side, Number(trade.entryPrice), Number(trade.exitPrice), Number(trade.quantity));
+    strategyBucket.set(isoDate, (strategyBucket.get(isoDate) ?? 0) + pnl);
+    pnlByStrategyDate.set(trade.strategyId, strategyBucket);
+    tradeCounts.set(trade.strategyId, (tradeCounts.get(trade.strategyId) ?? 0) + 1);
+  }
+
+  const benchmarkRows = await loadBenchmarks(scope, opts.startDate, opts.endDate);
+  for (const b of benchmarkRows) {
+    if (opts.startDate && b.date < opts.startDate) continue;
+    if (opts.endDate && b.date > opts.endDate) continue;
+    dateSet.add(b.date);
+  }
+
+  const dates = Array.from(dateSet).sort();
+  const benchmarkEquityByDate = new Map<string, number>();
+  let baseBenchmark: number | null = null;
+  let benchmarkEquity = 0;
+  for (const d of dates) {
+    const bench = benchmarkRows.find(b => b.date === d);
+    if (bench) {
+      if (baseBenchmark == null) baseBenchmark = bench.close;
+      benchmarkEquity = bench.close - (baseBenchmark ?? bench.close);
+    }
+    benchmarkEquityByDate.set(d, benchmarkEquity);
+  }
+
+  const strategyCurves = new Map<number, EquityCurvePoint[]>();
+  const cumulativeByStrategy = new Map<number, number>();
+  for (const id of strategyIds) {
+    strategyCurves.set(id, []);
+    cumulativeByStrategy.set(id, 0);
+  }
+
+  const combinedPoints: EquityCurvePoint[] = [];
+
+  for (const d of dates) {
+    let combined = 0;
+    let swing = 0;
+    let intraday = 0;
+    const benchmarkValue = benchmarkEquityByDate.get(d) ?? 0;
+
+    for (const id of strategyIds) {
+      const dailyMap = pnlByStrategyDate.get(id);
+      const pnl = dailyMap?.get(d) ?? 0;
+      const cumulative = (cumulativeByStrategy.get(id) ?? 0) + pnl;
+      cumulativeByStrategy.set(id, cumulative);
+
+      const strategy = strategyMap.get(id);
+      const type = strategy?.type ?? "swing";
+      const stratPoint: EquityCurvePoint = {
+        date: d,
+        combined: cumulative,
+        swing: type === "swing" ? cumulative : 0,
+        intraday: type === "intraday" ? cumulative : 0,
+        spx: benchmarkValue,
+      };
+      strategyCurves.get(id)?.push(stratPoint);
+
+      const weight = weightById.get(id) ?? 0;
+      combined += weight * cumulative;
+      if (type === "intraday") intraday += weight * cumulative; else swing += weight * cumulative;
+    }
+
+    combinedPoints.push({ date: d, combined, swing, intraday, spx: benchmarkValue });
+  }
+
+  rebaseEquitySeries(combinedPoints);
+  for (const curve of strategyCurves.values()) {
+    rebaseEquitySeries(curve);
+  }
+
+  const initialCapital = ENGINE_CONFIG.initialCapital;
+  const analytics = deriveEquityAnalytics(combinedPoints, initialCapital);
+  const equityReturns = computeDailyReturns(combinedPoints, initialCapital).filter(r => Number.isFinite(r));
+  const benchmarkReturns = computeDailyReturns(combinedPoints, initialCapital, "spx").filter(r => Number.isFinite(r));
+  const returnMetrics = computeReturnMetrics(equityReturns, { periodsPerYear: ENGINE_CONFIG.tradingDays });
+  const benchmarkMetrics =
+    benchmarkReturns.length > 0
+      ? computeReturnMetrics(benchmarkReturns, { periodsPerYear: ENGINE_CONFIG.tradingDays })
+      : null;
+
+  const tradeSamples = trades.map(trade => {
+    const weight = weightById.get(trade.strategyId) ?? 0;
+    const pnl =
+      tradePnl(trade.side, Number(trade.entryPrice), Number(trade.exitPrice), Number(trade.quantity)) * weight;
+    const initialRisk = (trade as any).initialRisk ? Number((trade as any).initialRisk) * weight : undefined;
+    return { pnl, initialRisk };
+  });
+
+  const tradeMetrics = computeTradeMetrics(tradeSamples);
+
+  const workspaceMetrics: WorkspaceMetrics = {
+    totalReturnPct: analytics.totalReturnPct ?? 0,
+    cagrPct: analytics.cagr * 100,
+    volatilityPct: analytics.volatility * 100,
+    sharpe: analytics.sharpeRatio,
+    sortino: analytics.sortinoRatio ?? 0,
+    calmar: analytics.calmar ?? 0,
+    maxDrawdownPct: analytics.maxDrawdownPct,
+    winRatePct: tradeMetrics.winRate * 100,
+    lossRatePct: tradeMetrics.lossRate * 100,
+    avgWin: tradeMetrics.avgWin,
+    avgLoss: tradeMetrics.avgLoss,
+    payoffRatio: tradeMetrics.payoffRatio,
+    profitFactor: safeNumber(tradeMetrics.profitFactor),
+    expectancyPerTrade: tradeMetrics.expectancyPerTrade,
+    alpha: benchmarkMetrics ? returnMetrics.totalReturn - benchmarkMetrics.totalReturn : null,
+  };
+
+  const contributions = strategyIds.map(id => {
+    const curve = strategyCurves.get(id) ?? [];
+    const analyticsForStrategy = deriveEquityAnalytics(curve, initialCapital);
+    const strat = strategyMap.get(id);
+    return {
+      strategyId: id,
+      name: strat?.name ?? `Strategy ${id}`,
+      weight: weightById.get(id) ?? 0,
+      totalReturnPct: analyticsForStrategy.totalReturnPct ?? 0,
+      maxDrawdownPct: analyticsForStrategy.maxDrawdownPct,
+      sharpeRatio: analyticsForStrategy.sharpeRatio,
+      tradeCount: tradeCounts.get(id) ?? 0,
+    };
+  });
+
+  const points = opts.maxPoints && combinedPoints.length > opts.maxPoints
+    ? downsamplePoints(combinedPoints, opts.maxPoints)
+    : combinedPoints;
+
+  return { metrics: workspaceMetrics, equityCurve: { points }, contributions };
 }
 
 export function computeSharpeRatio(returns: number[]): number {
