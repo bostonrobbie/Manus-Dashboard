@@ -3,21 +3,23 @@ import { z } from "zod";
 import {
   buildAggregatedEquityCurve,
   buildDrawdownCurves,
-  buildPortfolioOverview,
-  buildPortfolioSummary,
-  buildStrategyComparison,
-  buildCustomPortfolio,
   runMonteCarloSimulation,
-  loadTradesPage,
-  generateTradesCsv,
 } from "@server/engine/portfolio-engine";
 import { authedProcedure, router } from "@server/trpc/router";
-import { ingestTradesCsv } from "@server/services/tradeIngestion";
 import { ingestBenchmarksCsv } from "@server/services/benchmarkIngestion";
 import { TIME_RANGE_PRESETS, deriveDateRangeFromTimeRange } from "@server/utils/timeRange";
 import { env } from "@server/utils/env";
 import { requireWorkspaceAccess } from "@server/auth/workspaceAccess";
 import type { AuthUser } from "@server/auth/types";
+import {
+  getCustomPortfolioAnalytics,
+  getStrategyAnalytics,
+  getWorkspaceOverview,
+  getWorkspaceSummaryCsv,
+  getWorkspaceSummaryMetrics,
+  getWorkspaceTrades,
+  ingestTradesFromCsv,
+} from "@server/services/tradePipeline";
 
 const finiteNumber = z.number().finite();
 const equityPointSchema = z.object({
@@ -219,9 +221,10 @@ export const portfolioRouter = router({
     )
     .query(async ({ ctx, input }) => {
       const { workspaceId } = await resolveScope(ctx, "read");
-      const range = deriveDateRangeFromTimeRange(input?.timeRange);
       const scope = { userId: ctx.user.id, workspaceId };
-      return overviewSchema.parse(await buildPortfolioOverview(scope, range));
+      return overviewSchema.parse(
+        await getWorkspaceOverview({ userId: scope.userId, workspaceId: scope.workspaceId, timeRange: input?.timeRange }),
+      );
     }),
   equityCurves: authedProcedure
     .input(
@@ -325,12 +328,15 @@ export const portfolioRouter = router({
       const { workspaceId } = await resolveScope(ctx, "read");
       const range = deriveDateRangeFromTimeRange(input.timeRange);
       const scope = { userId: ctx.user.id, workspaceId };
-      const result = await buildStrategyComparison({
-        ...input,
+      const result = await getStrategyAnalytics({
         userId: scope.userId,
         workspaceId: scope.workspaceId,
-        startDate: input.startDate ?? range.startDate,
-        endDate: input.endDate ?? range.endDate,
+        input: {
+          ...input,
+          startDate: input.startDate ?? range.startDate,
+          endDate: input.endDate ?? range.endDate,
+          timeRange: input.timeRange,
+        },
       });
       return {
         rows: result.rows.map(row => strategyRowSchema.parse(row)),
@@ -352,14 +358,14 @@ export const portfolioRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const { workspaceId } = await resolveScope(ctx, "read");
-      const range = deriveDateRangeFromTimeRange(input.timeRange);
       const scope = { userId: ctx.user.id, workspaceId };
 
-      const result = await buildCustomPortfolio(scope, {
+      const result = await getCustomPortfolioAnalytics({
+        userId: scope.userId,
+        workspaceId: scope.workspaceId,
         strategyIds: input.strategyIds,
         weights: input.weights,
-        startDate: range.startDate,
-        endDate: range.endDate,
+        timeRange: input.timeRange,
         maxPoints: input.maxPoints,
       });
 
@@ -379,9 +385,14 @@ export const portfolioRouter = router({
     )
     .query(async ({ ctx, input }) => {
       const { workspaceId } = await resolveScope(ctx, "read");
-      const range = deriveDateRangeFromTimeRange(input?.timeRange);
       const scope = { userId: ctx.user.id, workspaceId };
-      return summarySchema.parse(await buildPortfolioSummary(scope, range));
+      return summarySchema.parse(
+        await getWorkspaceSummaryMetrics({
+          userId: scope.userId,
+          workspaceId: scope.workspaceId,
+          timeRange: input?.timeRange,
+        }),
+      );
     }),
   trades: authedProcedure
     .input(
@@ -398,17 +409,18 @@ export const portfolioRouter = router({
     )
     .query(async ({ ctx, input }) => {
       const { workspaceId } = await resolveScope(ctx, "read");
-      const range = deriveDateRangeFromTimeRange(input?.timeRange);
       const scope = { userId: ctx.user.id, workspaceId };
       const page = input?.page ?? 1;
       const pageSize = input?.pageSize ?? 50;
-      const result = await loadTradesPage(scope, {
-        ...range,
+      const result = await getWorkspaceTrades({
+        userId: scope.userId,
+        workspaceId: scope.workspaceId,
+        timeRange: input?.timeRange,
         page,
         pageSize,
         symbol: input?.symbol?.toUpperCase(),
         side: input?.side,
-        strategyIds: input?.strategyId ? [input.strategyId] : undefined,
+        strategyId: input?.strategyId,
       });
       return {
         rows: result.rows.map(row => tradeRowSchema.parse(row)),
@@ -430,13 +442,13 @@ export const portfolioRouter = router({
     .mutation(async ({ ctx, input }) => {
       try {
         const { workspaceId } = await resolveScope(ctx, "read");
-        const range = deriveDateRangeFromTimeRange(input.timeRange);
-        const csvString = await generateTradesCsv({
+        const csvString = await getWorkspaceSummaryCsv({
           userId: ctx.user.id,
           workspaceId,
           strategyIds: input.strategyIds,
-          startDate: input.startDate ?? range.startDate,
-          endDate: input.endDate ?? range.endDate,
+          startDate: input.startDate,
+          endDate: input.endDate,
+          timeRange: input.timeRange,
         });
 
         return exportTradesResponseSchema.parse({
@@ -465,7 +477,7 @@ export const portfolioRouter = router({
       try {
         const { workspaceId } = await resolveScope(ctx, "write");
         enforceUploadGuards(input.csv, input.fileName);
-        const result = await ingestTradesCsv({
+        const result = await ingestTradesFromCsv({
           csv: input.csv,
           userId: ctx.user.id,
           workspaceId: workspaceId ?? 1,
@@ -473,7 +485,15 @@ export const portfolioRouter = router({
           defaultStrategyType: input.strategyType,
           fileName: input.fileName,
         });
-        return tradeIngestionResultSchema.parse(result);
+        return tradeIngestionResultSchema.parse({
+          importedCount: result.insertedCount,
+          skippedCount: result.skippedCount,
+          failedCount: result.failedCount,
+          errors: result.errors,
+          warnings: result.warnings,
+          uploadId: result.uploadId,
+          headerIssues: undefined,
+        });
       } catch (error) {
         if (error instanceof TRPCError) throw error;
         throw new TRPCError({
