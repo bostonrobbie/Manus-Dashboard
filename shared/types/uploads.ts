@@ -4,6 +4,7 @@ export type UploadType = "trades" | "benchmarks" | "equity";
 export interface UploadLogRow {
   id: number;
   userId: number;
+  ownerId?: number;
   workspaceId: number;
   fileName: string;
   uploadType: UploadType;

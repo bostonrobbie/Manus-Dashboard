@@ -4,6 +4,8 @@ import type { CreateExpressContextOptions } from "@trpc/server/adapters/express"
 import { env } from "@server/utils/env";
 import { parseManusUser } from "./manusAdapter";
 import type { AuthContext, AuthUser } from "./types";
+import type { UserRole } from "@shared/types/auth";
+import { ensureUserRecord } from "./userRecords";
 
 export const MOCK_AUTH_USER: AuthUser = {
   id: 1,
@@ -62,7 +64,35 @@ export function resolveAuth(req: Request): AuthContext {
 
 export async function createContext(opts: CreateExpressContextOptions) {
   const auth = resolveAuth(opts.req);
-  return { req: opts.req, res: opts.res, auth, user: auth.user };
+  const inferredRole = inferRoleFromAuthUser(auth.user);
+  let user = auth.user as (AuthUser & { role?: UserRole }) | null;
+
+  if (auth.user) {
+    const record = await ensureUserRecord(auth.user);
+    if (record) {
+      user = {
+        ...auth.user,
+        id: record.id,
+        email: record.email,
+        role: record.role,
+        workspaceId: auth.user.workspaceId ?? record.workspaceId ?? undefined,
+        authProvider: record.authProvider ?? auth.user.source,
+        authProviderId: record.authProviderId ?? undefined,
+      };
+    } else if (inferredRole) {
+      user = { ...auth.user, role: inferredRole };
+    }
+  }
+
+  return { req: opts.req, res: opts.res, auth, user };
 }
 
 export type Context = Awaited<ReturnType<typeof createContext>>;
+
+const inferRoleFromAuthUser = (user: AuthUser | null): UserRole | undefined => {
+  if (!user) return undefined;
+  if (user.role) return user.role as UserRole;
+  const fromRoles = user.roles?.find(role => role && role.toLowerCase().includes("admin"));
+  if (fromRoles) return "ADMIN";
+  return undefined;
+};

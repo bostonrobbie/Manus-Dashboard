@@ -7,6 +7,7 @@ export type UploadType = "trades" | "benchmarks" | "equity";
 
 export interface UploadLogInput {
   userId: number;
+  ownerId?: number;
   workspaceId: number;
   fileName: string;
   uploadType: UploadType;
@@ -30,6 +31,7 @@ export async function createUploadLog(input: UploadLogInput) {
     .insert(schema.uploadLogs)
     .values({
       userId: input.userId,
+      ownerId: input.ownerId ?? input.userId,
       workspaceId: input.workspaceId,
       fileName: input.fileName,
       uploadType: input.uploadType,
@@ -58,7 +60,7 @@ export async function getUploadLogById(params: { id: number; userId: number; wor
   const db = await getDb();
   if (!db) return null;
 
-  const predicates = [eq(schema.uploadLogs.id, params.id), eq(schema.uploadLogs.userId, params.userId)];
+  const predicates = [eq(schema.uploadLogs.id, params.id), eq(schema.uploadLogs.ownerId, params.userId)];
   if (params.workspaceId != null) {
     predicates.push(eq(schema.uploadLogs.workspaceId, params.workspaceId));
   }
@@ -84,7 +86,7 @@ export async function listUploadLogs(params: {
     return { rows: [], total: 0 };
   }
 
-  const predicates = [eq(schema.uploadLogs.userId, params.userId)];
+  const predicates = [eq(schema.uploadLogs.ownerId, params.userId)];
   if (params.workspaceId != null) {
     predicates.push(eq(schema.uploadLogs.workspaceId, params.workspaceId));
   }

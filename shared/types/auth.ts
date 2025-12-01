@@ -2,6 +2,8 @@ export type AuthSource = "manus" | "local";
 
 export type WorkspaceRole = "viewer" | "editor" | "admin" | "owner";
 
+export type UserRole = "OWNER" | "ADMIN" | "USER" | "VIEWER";
+
 export interface SharedAuthUser {
   id: number;
   email: string;
@@ -10,6 +12,9 @@ export interface SharedAuthUser {
   roles?: string[];
   workspaceRole?: WorkspaceRole;
   source: AuthSource;
+  role?: UserRole;
+  authProvider?: string;
+  authProviderId?: string;
 }
 
 export interface ViewerState {

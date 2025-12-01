@@ -57,6 +57,13 @@
       "when": 1764184924671,
       "tag": "0007_workspace_rbac_audit",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1764184924672,
+      "tag": "0008_owner_scoping",
+      "breakpoints": true
     }
   ]
 }

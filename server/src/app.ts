@@ -131,6 +131,7 @@ export function createServer() {
     const resolvedWorkspaceKey = workspaceKey ?? workspaceRow.externalId ?? workspaceRow.id;
     const result = await ingestTradeFromWebhook({
       userId,
+      ownerId: userId,
       workspaceId: workspaceRow.id,
       uploadLabel: payload.alert_name ?? payload.alertName ?? payload.fileName,
       payload: {

@@ -19,6 +19,7 @@ const logger = createLogger("trade-pipeline");
 
 export interface CsvIngestionParams extends Omit<IngestTradesOptions, "userId" | "workspaceId"> {
   userId: number;
+  ownerId?: number;
   workspaceId: number;
 }
 
@@ -63,6 +64,7 @@ export type WebhookIngestionInput = z.infer<typeof webhookSchema>;
 
 export async function ingestTradeFromWebhook(params: {
   userId: number;
+  ownerId?: number;
   workspaceId: number;
   uploadLabel?: string;
   payload: WebhookIngestionInput;
@@ -88,6 +90,7 @@ export async function ingestTradeFromWebhook(params: {
 
   const result = await ingestWebhookTrade({
     userId: params.userId,
+    ownerId: params.ownerId ?? params.userId,
     workspaceId: params.workspaceId,
     uploadLabel: params.uploadLabel ?? "tradingview-webhook",
     trade: normalizeWebhookTrade(parsed.data),
@@ -134,18 +137,20 @@ function normalizeWebhookTrade(payload: WebhookIngestionInput): WebhookTrade {
 
 export async function getWorkspaceOverview(params: {
   userId: number;
+  ownerId?: number;
   workspaceId: number;
   timeRange?: TimeRange;
 }) {
   const range = deriveDateRangeFromTimeRange(params.timeRange);
   return buildPortfolioOverview(
-    { userId: params.userId, workspaceId: params.workspaceId },
+    { userId: params.userId, ownerId: params.ownerId ?? params.userId, workspaceId: params.workspaceId },
     { startDate: range.startDate, endDate: range.endDate },
   );
 }
 
 export async function getStrategyAnalytics(params: {
   userId: number;
+  ownerId?: number;
   workspaceId: number;
   input: {
     page?: number;
@@ -163,6 +168,7 @@ export async function getStrategyAnalytics(params: {
   return buildStrategyComparison({
     ...params.input,
     userId: params.userId,
+    ownerId: params.ownerId ?? params.userId,
     workspaceId: params.workspaceId,
     page: params.input.page ?? 1,
     pageSize: params.input.pageSize ?? 10,
@@ -176,6 +182,7 @@ export async function getStrategyAnalytics(params: {
 
 export async function getCustomPortfolioAnalytics(params: {
   userId: number;
+  ownerId?: number;
   workspaceId: number;
   strategyIds: number[];
   weights?: number[];
@@ -184,7 +191,7 @@ export async function getCustomPortfolioAnalytics(params: {
 }) {
   const range = deriveDateRangeFromTimeRange(params.timeRange);
   return buildCustomPortfolio(
-    { userId: params.userId, workspaceId: params.workspaceId },
+    { userId: params.userId, ownerId: params.ownerId ?? params.userId, workspaceId: params.workspaceId },
     {
       strategyIds: params.strategyIds,
       weights: params.weights,
@@ -197,6 +204,7 @@ export async function getCustomPortfolioAnalytics(params: {
 
 export async function getWorkspaceTrades(params: {
   userId: number;
+  ownerId?: number;
   workspaceId: number;
   timeRange?: TimeRange;
   page?: number;
@@ -207,7 +215,7 @@ export async function getWorkspaceTrades(params: {
 }) {
   const range = deriveDateRangeFromTimeRange(params.timeRange);
   return loadTradesPage(
-    { userId: params.userId, workspaceId: params.workspaceId },
+    { userId: params.userId, ownerId: params.ownerId ?? params.userId, workspaceId: params.workspaceId },
     {
       ...range,
       page: params.page ?? 1,
@@ -221,6 +229,7 @@ export async function getWorkspaceTrades(params: {
 
 export async function getWorkspaceSummaryCsv(params: {
   userId: number;
+  ownerId?: number;
   workspaceId: number;
   strategyIds?: number[];
   timeRange?: TimeRange;
@@ -231,6 +240,7 @@ export async function getWorkspaceSummaryCsv(params: {
   try {
     return await generateTradesCsv({
       userId: params.userId,
+      ownerId: params.ownerId ?? params.userId,
       workspaceId: params.workspaceId,
       strategyIds: params.strategyIds,
       startDate: params.startDate ?? range.startDate,
@@ -246,9 +256,13 @@ export async function getWorkspaceSummaryCsv(params: {
 
 export async function getWorkspaceSummaryMetrics(params: {
   userId: number;
+  ownerId?: number;
   workspaceId: number;
   timeRange?: TimeRange;
 }) {
   const range = deriveDateRangeFromTimeRange(params.timeRange);
-  return buildPortfolioSummary({ userId: params.userId, workspaceId: params.workspaceId }, range);
+  return buildPortfolioSummary(
+    { userId: params.userId, ownerId: params.ownerId ?? params.userId, workspaceId: params.workspaceId },
+    range,
+  );
 }

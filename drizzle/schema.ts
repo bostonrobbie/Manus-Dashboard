@@ -15,6 +15,7 @@ import {
 export const strategyType = pgEnum("strategy_type", ["swing", "intraday"]);
 export const uploadStatus = pgEnum("upload_status", ["pending", "success", "partial", "failed"]);
 export const uploadType = pgEnum("upload_type", ["trades", "benchmarks", "equity"]);
+export const userRole = pgEnum("user_role", ["OWNER", "ADMIN", "USER", "VIEWER"]);
 
 export const workspaces = pgTable(
   "workspaces",
@@ -47,21 +48,31 @@ export const workspaceMembers = pgTable(
   }),
 );
 
-export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
-  openId: varchar("open_id", { length: 64 }).notNull(),
-  name: text("name"),
-  email: varchar("email", { length: 320 }),
-  role: varchar("role", { length: 32 }).default("user").notNull(),
-  workspaceId: integer("workspace_id").notNull().default(1),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-});
+export const users = pgTable(
+  "users",
+  {
+    id: serial("id").primaryKey(),
+    openId: varchar("open_id", { length: 64 }).notNull(),
+    name: text("name"),
+    email: varchar("email", { length: 320 }).notNull(),
+    role: userRole("role").default("USER").notNull(),
+    workspaceId: integer("workspace_id").notNull().default(1),
+    authProvider: varchar("auth_provider", { length: 64 }).default("manus"),
+    authProviderId: varchar("auth_provider_id", { length: 128 }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  table => ({
+    uniqueEmail: uniqueIndex("users_email_unique").on(table.email),
+    authProviderIdx: index("users_provider_idx").on(table.authProvider, table.authProviderId),
+  }),
+);
 
 export const strategies = pgTable(
   "strategies",
   {
     id: serial("id").primaryKey(),
     userId: integer("user_id").notNull(),
+    ownerId: integer("owner_id").notNull(),
     workspaceId: integer("workspace_id").notNull().default(1),
     name: varchar("name", { length: 255 }).notNull(),
     description: text("description"),
@@ -71,6 +82,7 @@ export const strategies = pgTable(
   },
   table => ({
     userIdx: index("strategies_user_idx").on(table.userId),
+    ownerIdx: index("strategies_owner_idx").on(table.ownerId),
     workspaceIdx: index("strategies_workspace_idx").on(table.workspaceId),
   })
 );
@@ -80,6 +92,7 @@ export const trades = pgTable(
   {
     id: serial("id").primaryKey(),
     userId: integer("user_id").notNull(),
+    ownerId: integer("owner_id").notNull(),
     strategyId: integer("strategy_id").notNull(),
     workspaceId: integer("workspace_id").notNull().default(1),
     symbol: varchar("symbol", { length: 24 }).notNull(),
@@ -97,6 +110,7 @@ export const trades = pgTable(
   },
   table => ({
     userIdx: index("trades_user_idx").on(table.userId),
+    ownerIdx: index("trades_owner_idx").on(table.ownerId),
     strategyIdx: index("trades_strategy_idx").on(table.strategyId),
     workspaceIdx: index("trades_workspace_idx").on(table.workspaceId),
     uploadIdx: index("trades_upload_idx").on(table.uploadId),
@@ -113,6 +127,7 @@ export const benchmarks = pgTable(
   {
     id: serial("id").primaryKey(),
     symbol: varchar("symbol", { length: 64 }).notNull().default("SPY"),
+    ownerId: integer("owner_id").notNull(),
     workspaceId: integer("workspace_id").notNull().default(1),
     date: varchar("date", { length: 16 }).notNull(),
     close: numeric("close", { precision: 18, scale: 4 }).notNull(),
@@ -122,6 +137,7 @@ export const benchmarks = pgTable(
   },
   table => ({
     dateIdx: index("benchmarks_date_idx").on(table.date),
+    ownerIdx: index("benchmarks_owner_idx").on(table.ownerId),
     workspaceIdx: index("benchmarks_workspace_idx").on(table.workspaceId),
     symbolIdx: index("benchmarks_symbol_idx").on(table.symbol),
     uploadIdx: index("benchmarks_upload_idx").on(table.uploadId),
@@ -134,6 +150,7 @@ export const uploadLogs = pgTable(
   {
     id: serial("id").primaryKey(),
     userId: integer("user_id").notNull(),
+    ownerId: integer("owner_id").notNull(),
     workspaceId: integer("workspace_id").notNull().default(1),
     fileName: varchar("file_name", { length: 255 }).notNull(),
     uploadType: uploadType("upload_type").notNull().default("trades"),
@@ -148,6 +165,7 @@ export const uploadLogs = pgTable(
   },
   table => ({
     userIdx: index("upload_logs_user_idx").on(table.userId),
+    ownerIdx: index("upload_logs_owner_idx").on(table.ownerId),
     workspaceIdx: index("upload_logs_workspace_idx").on(table.workspaceId),
     startedIdx: index("upload_logs_started_idx").on(table.startedAt),
   }),
