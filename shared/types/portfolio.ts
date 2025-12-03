@@ -8,7 +8,7 @@ export interface TimeRange {
 
 export type StrategyType = "swing" | "intraday";
 
-export interface WorkspaceMetrics {
+export interface PortfolioMetrics {
   totalReturnPct: number;
   cagrPct: number;
   volatilityPct: number;
@@ -92,7 +92,7 @@ export interface EdgeBucketByDow {
   trades: number;
 }
 
-export interface WorkspaceEdge {
+export interface PortfolioEdge {
   bySymbol: EdgeBucketBySymbol[];
   byHour: EdgeBucketByHour[];
   byDow: EdgeBucketByDow[];
@@ -139,8 +139,6 @@ export interface StrategyComparisonResult {
 export interface TradeRow {
   id: number;
   userId?: number;
-  ownerId?: number;
-  workspaceId?: number;
   strategyId: number;
   symbol: string;
   side: string;
@@ -175,14 +173,12 @@ export interface PortfolioOverview {
   expectancy?: number;
   positions: number;
   lastUpdated: Date;
-  metrics?: WorkspaceMetrics;
-  edge?: WorkspaceEdge;
+  metrics?: PortfolioMetrics;
+  edge?: PortfolioEdge;
 }
 
 export interface ExportTradesInput {
   userId: number;
-  ownerId?: number;
-  workspaceId?: number;
   strategyIds?: number[];
   startDate?: string; // derived from time range selector unless explicitly set
   endDate?: string; // derived from time range selector unless explicitly set
@@ -222,7 +218,7 @@ export interface CustomPortfolioContribution {
 }
 
 export interface CustomPortfolioResult {
-  metrics: WorkspaceMetrics;
+  metrics: PortfolioMetrics;
   equityCurve: EquityCurveResponse;
   contributions: CustomPortfolioContribution[];
 }
@@ -243,17 +239,17 @@ export interface ComparisonPayload {
   }>;
 }
 
-export interface WorkspaceReportMeta {
-  workspaceId: number;
-  workspaceName?: string;
+export interface PortfolioReportMeta {
+  userId: number;
+  portfolioName?: string;
   period: TimeRange;
   generatedAt: string;
   version?: string;
 }
 
-export interface WorkspaceReport {
-  meta: WorkspaceReportMeta;
-  workspaceMetrics: WorkspaceMetrics;
+export interface PortfolioReport {
+  meta: PortfolioReportMeta;
+  portfolioMetrics: PortfolioMetrics;
   strategyMetrics: { strategyId: number; name: string; metrics: StrategyMetrics }[];
-  edge: WorkspaceEdge;
+  edge: PortfolioEdge;
 }

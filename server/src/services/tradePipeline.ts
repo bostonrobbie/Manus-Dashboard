@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
-// @ts-nocheck
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
@@ -47,7 +45,6 @@ export async function ingestTradesFromCsv(params: CsvIngestionParams) {
 }
 
 const webhookSchema = z.object({
-  workspaceKey: z.union([z.string(), z.number()]).optional(),
   strategyKey: z.union([z.string(), z.number()]).optional(),
   strategyType: z.enum(["swing", "intraday"]).optional(),
   symbol: z.string().min(1),
@@ -128,23 +125,13 @@ function normalizeWebhookTrade(payload: WebhookIngestionInput): WebhookTrade {
   };
 }
 
-export async function getWorkspaceOverview(params: {
-  userId: number;
-  ownerId?: number;
-  workspaceId: number;
-  timeRange?: TimeRange;
-}) {
+export async function getPortfolioOverview(params: { userId: number; timeRange?: TimeRange }) {
   const range = deriveDateRangeFromTimeRange(params.timeRange);
-  return buildPortfolioOverview(
-    { userId: params.userId, ownerId: params.ownerId ?? params.userId, workspaceId: params.workspaceId },
-    { startDate: range.startDate, endDate: range.endDate },
-  );
+  return buildPortfolioOverview({ userId: params.userId }, { startDate: range.startDate, endDate: range.endDate });
 }
 
 export async function getStrategyAnalytics(params: {
   userId: number;
-  ownerId?: number;
-  workspaceId: number;
   input: {
     page?: number;
     pageSize?: number;
@@ -161,8 +148,6 @@ export async function getStrategyAnalytics(params: {
   return buildStrategyComparison({
     ...params.input,
     userId: params.userId,
-    ownerId: params.ownerId ?? params.userId,
-    workspaceId: params.workspaceId,
     page: params.input.page ?? 1,
     pageSize: params.input.pageSize ?? 10,
     sortBy: (params.input.sortBy ?? "totalReturn") as keyof StrategyComparisonRow,
@@ -170,13 +155,11 @@ export async function getStrategyAnalytics(params: {
     filterType: params.input.filterType ?? "all",
     startDate: params.input.startDate ?? range.startDate,
     endDate: params.input.endDate ?? range.endDate,
-  });
+});
 }
 
 export async function getCustomPortfolioAnalytics(params: {
   userId: number;
-  ownerId?: number;
-  workspaceId: number;
   strategyIds: number[];
   weights?: number[];
   timeRange?: TimeRange;
@@ -184,7 +167,7 @@ export async function getCustomPortfolioAnalytics(params: {
 }) {
   const range = deriveDateRangeFromTimeRange(params.timeRange);
   return buildCustomPortfolio(
-    { userId: params.userId, ownerId: params.ownerId ?? params.userId, workspaceId: params.workspaceId },
+    { userId: params.userId },
     {
       strategyIds: params.strategyIds,
       weights: params.weights,
@@ -195,10 +178,8 @@ export async function getCustomPortfolioAnalytics(params: {
   );
 }
 
-export async function getWorkspaceTrades(params: {
+export async function getPortfolioTrades(params: {
   userId: number;
-  ownerId?: number;
-  workspaceId: number;
   timeRange?: TimeRange;
   page?: number;
   pageSize?: number;
@@ -208,7 +189,7 @@ export async function getWorkspaceTrades(params: {
 }) {
   const range = deriveDateRangeFromTimeRange(params.timeRange);
   return loadTradesPage(
-    { userId: params.userId, ownerId: params.ownerId ?? params.userId, workspaceId: params.workspaceId },
+    { userId: params.userId },
     {
       ...range,
       page: params.page ?? 1,
@@ -220,10 +201,8 @@ export async function getWorkspaceTrades(params: {
   );
 }
 
-export async function getWorkspaceSummaryCsv(params: {
+export async function getPortfolioSummaryCsv(params: {
   userId: number;
-  ownerId?: number;
-  workspaceId: number;
   strategyIds?: number[];
   timeRange?: TimeRange;
   startDate?: string;
@@ -233,8 +212,6 @@ export async function getWorkspaceSummaryCsv(params: {
   try {
     return await generateTradesCsv({
       userId: params.userId,
-      ownerId: params.ownerId ?? params.userId,
-      workspaceId: params.workspaceId,
       strategyIds: params.strategyIds,
       startDate: params.startDate ?? range.startDate,
       endDate: params.endDate ?? range.endDate,
@@ -247,15 +224,10 @@ export async function getWorkspaceSummaryCsv(params: {
   }
 }
 
-export async function getWorkspaceSummaryMetrics(params: {
-  userId: number;
-  ownerId?: number;
-  workspaceId: number;
-  timeRange?: TimeRange;
-}) {
+export async function getPortfolioSummaryMetrics(params: { userId: number; timeRange?: TimeRange }) {
   const range = deriveDateRangeFromTimeRange(params.timeRange);
   return buildPortfolioSummary(
-    { userId: params.userId, ownerId: params.ownerId ?? params.userId, workspaceId: params.workspaceId },
+    { userId: params.userId },
     range,
   );
 }

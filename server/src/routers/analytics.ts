@@ -1,12 +1,9 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
-// @ts-nocheck
 import { z } from "zod";
 
 import { router, authedProcedure } from "@server/trpc/router";
 import { ENGINE_CONFIG } from "@server/engine/portfolio-engine";
 import { TIME_RANGE_PRESETS } from "@server/utils/timeRange";
-import { requireWorkspaceAccess } from "@server/auth/workspaceAccess";
-import { getWorkspaceOverview, getWorkspaceSummaryMetrics } from "@server/services/tradePipeline";
+import { getPortfolioOverview, getPortfolioSummaryMetrics } from "@server/services/tradePipeline";
 import { requireUser } from "@server/trpc/authHelpers";
 
 const timeRangeInput = z
@@ -28,12 +25,7 @@ export const analyticsRouter = router({
     )
     .query(async ({ ctx, input }) => {
       const user = requireUser(ctx as any);
-      const { workspace } = await requireWorkspaceAccess(user, "read");
-      const workspaceId = workspace?.id ?? user.workspaceId;
-      if (!workspaceId) {
-        throw new Error("Workspace is required for analytics");
-      }
-      return getWorkspaceSummaryMetrics({ userId: user.id, ownerId: user.id, workspaceId, timeRange: input?.timeRange });
+      return getPortfolioSummaryMetrics({ userId: user.id, timeRange: input?.timeRange });
     }),
   rangeMetrics: authedProcedure
     .input(
@@ -45,14 +37,9 @@ export const analyticsRouter = router({
     )
     .query(async ({ ctx, input }) => {
       const user = requireUser(ctx as any);
-      const { workspace } = await requireWorkspaceAccess(user, "read");
-      const workspaceId = workspace?.id ?? user.workspaceId;
-      if (!workspaceId) {
-        throw new Error("Workspace is required for analytics");
-      }
       const [overview, summary] = await Promise.all([
-        getWorkspaceOverview({ userId: user.id, ownerId: user.id, workspaceId, timeRange: input?.timeRange }),
-        getWorkspaceSummaryMetrics({ userId: user.id, ownerId: user.id, workspaceId, timeRange: input?.timeRange }),
+        getPortfolioOverview({ userId: user.id, timeRange: input?.timeRange }),
+        getPortfolioSummaryMetrics({ userId: user.id, timeRange: input?.timeRange }),
       ]);
 
       const pnl = overview.equity - ENGINE_CONFIG.initialCapital;

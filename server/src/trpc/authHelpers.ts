@@ -20,8 +20,8 @@ export function requireUser(ctx: Context) {
 
 export function requireAdmin(ctx: Context) {
   const user = requireUser(ctx);
-  const role = (user as any).role;
-  const allowed = role === "OWNER" || role === "ADMIN" || isAdmin(user);
+  const role = user.role;
+  const allowed = role === "admin" || isAdmin(user);
   if (!allowed) {
     authLogger.warn("Forbidden admin access attempt", {
       endpoint: ctx.req?.url,

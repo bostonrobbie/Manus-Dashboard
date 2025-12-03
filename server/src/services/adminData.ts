@@ -13,18 +13,18 @@ export async function listWorkspaceSummaries(): Promise<AdminWorkspaceSummary[]>
   return [];
 }
 
-export async function listUploadsForWorkspace(): Promise<AdminUploadList> {
+export async function listUploadsForWorkspace(_input?: unknown): Promise<AdminUploadList> {
   throw unsupported();
 }
 
-export async function softDeleteByUpload(): Promise<{ tradesDeleted: number; benchmarksDeleted: number }> {
+export async function softDeleteByUpload(_uploadId?: number): Promise<{ tradesDeleted: number; benchmarksDeleted: number }> {
   throw unsupported();
 }
 
-export async function softDeleteTradesByFilter(): Promise<SoftDeleteResult> {
+export async function softDeleteTradesByFilter(_input?: unknown): Promise<SoftDeleteResult> {
   throw unsupported();
 }
 
-export async function softDeleteBenchmarksByFilter(): Promise<SoftDeleteResult> {
+export async function softDeleteBenchmarksByFilter(_input?: unknown): Promise<SoftDeleteResult> {
   throw unsupported();
 }

@@ -1,6 +1,3 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
-// @ts-nocheck
-
 import { getDb, schema, type Database } from "@server/db";
 import type { IngestionHeaderIssues, IngestionResult } from "@shared/types/ingestion";
 import { createUploadLog, updateUploadLog } from "./uploadLogs";
@@ -47,6 +44,8 @@ export async function ingestBenchmarksCsv(options: IngestBenchmarksOptions): Pro
     fileName: options.fileName ?? "benchmarks.csv",
     uploadType: "benchmarks",
   });
+
+  const uploadId = uploadLog?.id;
 
   logger.info("Benchmark ingestion start", {
     eventName: "INGEST_BENCHMARKS_START",
@@ -100,7 +99,7 @@ export async function ingestBenchmarksCsv(options: IngestBenchmarksOptions): Pro
     failedCount = totalRows;
     logger.error("Benchmark ingestion failed before DB access", {
       eventName: "INGEST_BENCHMARKS_FAILED",
-      uploadId: uploadLog?.id,
+      uploadId,
     });
     await persistUploadLog(uploadLog, {
       rowCountTotal: totalRows,
@@ -121,7 +120,8 @@ export async function ingestBenchmarksCsv(options: IngestBenchmarksOptions): Pro
           symbol: row.symbol,
           date: row.date,
           close: row.close.toString(),
-          uploadId: uploadLog?.id,
+          uploadId: uploadId ?? null,
+          userId: options.userId,
         })),
       );
       importedCount = normalized.length;
@@ -142,7 +142,7 @@ export async function ingestBenchmarksCsv(options: IngestBenchmarksOptions): Pro
 
   logger.info("Benchmark ingestion complete", {
     eventName: "INGEST_BENCHMARKS_END",
-    uploadId: uploadLog?.id,
+    uploadId,
     imported: importedCount,
     skipped: skippedCount,
     failedCount,
@@ -154,11 +154,11 @@ export async function ingestBenchmarksCsv(options: IngestBenchmarksOptions): Pro
     action: "upload_benchmarks",
     userId: options.userId,
     entityType: "upload",
-    entityId: uploadLog?.id,
+    entityId: uploadId,
     summary: `Benchmarks upload ${status}: imported ${importedCount}/${totalRows}`,
   });
 
-  return { importedCount, skippedCount, failedCount: failedCount || skippedCount, errors, warnings, uploadId: uploadLog?.id, headerIssues };
+  return { importedCount, skippedCount, failedCount: failedCount || skippedCount, errors, warnings, uploadId, headerIssues };
 }
 
 function parseCsvRecords(csv: string): { headers: string[]; records: CsvRecord[] } {
