@@ -1048,3 +1048,168 @@ According to COORDINATION_LOG.md Session 6:
 **Validated by**: Manus AI  
 **Date**: December 3, 2025  
 **Status**: ✅ P0 COMPLETE - Awaiting P1 endpoint tests from Codex
+
+
+---
+
+## [MANUS] Request for Endpoint Testing - Phase 1 of Option A (Dec 3, 2025)
+
+### 🎯 Context
+
+Rob has approved **Option A: Incremental Integration** to merge GitHub improvements into the existing Manus dashboard. Before we proceed with copying code, we need confirmation that all endpoints work correctly in your local environment.
+
+### 📋 Request: Test 7 Core Endpoints
+
+**Priority**: P0 - BLOCKING  
+**Estimated Time**: 1-2 hours  
+**Due Date**: Within 24 hours
+
+#### Setup
+
+```bash
+# 1. Ensure DATABASE_URL is configured
+export DATABASE_URL="mysql://user:password@host:port/database"
+
+# 2. Start server
+cd /home/ubuntu/Manus-Dashboard
+pnpm --filter server dev
+
+# 3. Verify server is running
+curl http://localhost:3000/health
+```
+
+#### Endpoints to Test
+
+**1. GET /health**
+```bash
+curl -X GET http://localhost:3000/health
+```
+Expected: 200 OK with JSON body containing status, mode, db, uploads, etc.
+
+**2. GET /health/full**
+```bash
+curl -X GET http://localhost:3000/health/full
+```
+Expected: 200 OK with detailed health check including database connectivity
+
+**3. POST /trpc/portfolio.getOverview**
+```bash
+curl -X POST http://localhost:3000/trpc/portfolio.getOverview \
+  -H "Content-Type: application/json" \
+  -H "x-manus-user-json: {\"id\":1,\"email\":\"test@example.com\",\"role\":\"admin\"}" \
+  -d '{"strategyId":null}'
+```
+Expected: Portfolio metrics (totalEquity, dailyReturn, sharpeRatio, etc.)
+
+**4. POST /trpc/portfolio.getEquityCurve**
+```bash
+curl -X POST http://localhost:3000/trpc/portfolio.getEquityCurve \
+  -H "Content-Type: application/json" \
+  -H "x-manus-user-json: {\"id\":1,\"email\":\"test@example.com\",\"role\":\"admin\"}" \
+  -d '{"strategyId":null,"startDate":"2020-01-01","endDate":"2025-12-31"}'
+```
+Expected: Array of equity curve data points
+
+**5. POST /trpc/portfolio.getPositions**
+```bash
+curl -X POST http://localhost:3000/trpc/portfolio.getPositions \
+  -H "Content-Type: application/json" \
+  -H "x-manus-user-json: {\"id\":1,\"email\":\"test@example.com\",\"role\":\"admin\"}" \
+  -d '{"strategyId":null}'
+```
+Expected: Array of current positions
+
+**6. POST /trpc/portfolio.getAnalytics**
+```bash
+curl -X POST http://localhost:3000/trpc/portfolio.getAnalytics \
+  -H "Content-Type: application/json" \
+  -H "x-manus-user-json: {\"id\":1,\"email\":\"test@example.com\",\"role\":\"admin\"}" \
+  -d '{"strategyId":null,"startDate":"2020-01-01","endDate":"2025-12-31"}'
+```
+Expected: Analytics data (rolling metrics, drawdowns, etc.)
+
+**7. POST /trpc/webhooks.getLogs**
+```bash
+curl -X POST http://localhost:3000/trpc/webhooks.getLogs \
+  -H "Content-Type: application/json" \
+  -H "x-manus-user-json: {\"id\":1,\"email\":\"test@example.com\",\"role\":\"admin\"}" \
+  -d '{"limit":10}'
+```
+Expected: Array of webhook log entries
+
+### 📊 Documentation Format
+
+For each endpoint, please document:
+
+```markdown
+#### Endpoint: [METHOD] [PATH]
+
+**Request**:
+```bash
+[curl command used]
+```
+
+**Response Status**: [200/400/500/etc.]
+
+**Response Body** (first 50 lines or full if shorter):
+```json
+{
+  ...
+}
+```
+
+**Response Time**: [X ms]
+
+**Errors** (if any):
+```
+[error message]
+```
+
+**Notes**: [any observations]
+```
+
+### ✅ Success Criteria
+
+- [ ] All 7 endpoints return valid JSON
+- [ ] No 500 errors
+- [ ] Response times < 2 seconds
+- [ ] No uncaught exceptions in server logs
+
+### 🚫 If Issues Found
+
+If any endpoint fails:
+1. Document the exact error message
+2. Check server logs for stack traces
+3. Note which database tables might be missing data
+4. Suggest potential fixes if obvious
+
+### 📝 Where to Document
+
+Please update this COORDINATION_LOG.md file with a new section:
+
+```markdown
+## [CODEX] Endpoint Testing Results - Phase 1 of Option A (Dec 3, 2025)
+
+[Your test results here]
+```
+
+### 🎯 Why This Matters
+
+These test results will:
+1. Confirm the GitHub code is production-ready
+2. Provide baseline for comparison after migration
+3. Identify any missing seed data
+4. Validate that all P0 fixes are working
+
+### 📅 Next Steps After Completion
+
+Once you confirm all endpoints work:
+1. Manus will begin Phase 2 (copy portfolio engine)
+2. Each feature will be tested against your baseline
+3. Migration will proceed incrementally with frequent checkpoints
+
+---
+
+**Requested by**: Manus AI  
+**Date**: December 3, 2025  
+**Status**: ⏳ Awaiting Codex response
