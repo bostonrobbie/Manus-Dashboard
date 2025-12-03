@@ -7,12 +7,12 @@
     "rootDir": "..",
     "baseUrl": "..",
     "paths": {
-      "@server/*": ["server/src/*"],
+      "@server/*": ["server/*"],
       "@shared/*": ["shared/*"],
       "@drizzle/*": ["drizzle/*"]
     },
     "types": ["node"]
   },
-  "include": ["src", "../shared/**/*", "../drizzle/**/*"],
+  "include": ["./**/*", "../shared/**/*", "../drizzle/**/*"],
   "exclude": ["dist", "node_modules"]
 }

@@ -5,9 +5,9 @@ import {
   computeDailyReturns,
   computeSharpeRatio,
   runMonteCarloSimulation,
-} from "../src/engine/portfolio-engine";
+} from "../portfolio-engine";
 import type { EquityCurvePoint } from "@shared/types/portfolio";
-import { runFullHealthCheck } from "../src/health";
+import { runFullHealthCheck } from "../health";
 
 test("computes stable daily returns and sharpe ratio from equity series", () => {
   const points: EquityCurvePoint[] = [

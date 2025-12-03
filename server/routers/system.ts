@@ -1,10 +1,10 @@
 import { sql } from "drizzle-orm";
 import { z } from "zod";
 
-import { buildPortfolioOverview } from "@server/engine/portfolio-engine";
-import { getDb } from "@server/db";
-import { createLogger } from "@server/utils/logger";
-import { publicProcedure, router } from "@server/trpc/router";
+import { getDb } from "../db";
+import { buildPortfolioOverview } from "../portfolio-engine";
+import { createLogger } from "../utils/logger";
+import { publicProcedure, router } from "../_core/trpc";
 
 const statusSchema = z.object({
   db: z.enum(["ok", "error"]),

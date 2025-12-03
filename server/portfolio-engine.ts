@@ -26,7 +26,7 @@ import {
   computeTradeMetrics,
   safeNumber as metricsSafeNumber,
   sharpe as sharpeRatio,
-} from "./metrics";
+} from "./engine/metrics";
 
 export interface EquityCurveOptions {
   startDate?: string; // derived from time range selector

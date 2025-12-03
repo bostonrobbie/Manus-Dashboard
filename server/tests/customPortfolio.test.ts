@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 
 import { portfolioRouter } from "@server/routers/portfolio";
 
-const user = { id: 1, email: "test@example.com", workspaceId: 1, source: "local" as const };
+const user = { id: 1, email: "test@example.com", source: "local" as const };
 const baseCtx = { user, auth: { mode: "local" as const, user, mock: true } } as any;
 
 const timeRange = { preset: "ALL" as const };

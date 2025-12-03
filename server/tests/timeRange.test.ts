@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { schema } from "@server/db";
-import { buildAggregatedEquityCurve, buildPortfolioOverview } from "@server/engine/portfolio-engine";
+import { buildAggregatedEquityCurve, buildPortfolioOverview } from "@server/portfolio-engine";
 import * as dbModule from "@server/db";
 
 function createMockDb() {
@@ -98,7 +98,7 @@ test("time ranges filter portfolio analytics", async () => {
   const mockDb = createMockDb();
 
   await withMockDb(mockDb, async () => {
-    const scope = { userId: 1, workspaceId: 1 };
+    const scope = { userId: 1 };
     const fullCurve = await buildAggregatedEquityCurve(scope, {});
     const recentCurve = await buildAggregatedEquityCurve(scope, { startDate: "2024-07-01", endDate: "2024-08-31" });
 

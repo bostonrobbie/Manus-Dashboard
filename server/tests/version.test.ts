@@ -1,7 +1,7 @@
 import assert from "node:assert";
 import test from "node:test";
 
-import { getVersionInfo, refreshVersionInfo } from "../src/version";
+import { getVersionInfo, refreshVersionInfo } from "../version";
 
 test("version helper surfaces package version", () => {
   const info = getVersionInfo();

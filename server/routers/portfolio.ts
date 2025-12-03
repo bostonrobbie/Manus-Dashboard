@@ -9,13 +9,13 @@ import {
   loadStrategies,
   loadTrades,
   runMonteCarloSimulation,
-} from "@server/engine/portfolio-engine";
-import { authedProcedure, router } from "@server/trpc/router";
-import { ingestBenchmarksCsv } from "@server/services/benchmarkIngestion";
-import { TIME_RANGE_PRESETS, deriveDateRangeFromTimeRange } from "@server/utils/timeRange";
-import { env } from "@server/utils/env";
-import type { AuthUser } from "@server/auth/types";
-import { createLogger } from "@server/utils/logger";
+} from "../portfolio-engine";
+import { protectedProcedure, requireUser, router } from "../_core/trpc";
+import { ingestBenchmarksCsv } from "../services/benchmarkIngestion";
+import { TIME_RANGE_PRESETS, deriveDateRangeFromTimeRange } from "../utils/timeRange";
+import { env } from "../utils/env";
+import type { SharedAuthUser } from "@shared/types/auth";
+import { createLogger } from "../utils/logger";
 import {
   getCustomPortfolioAnalytics,
   getPortfolioOverview,
@@ -24,9 +24,8 @@ import {
   getPortfolioTrades,
   getStrategyAnalytics,
   ingestTradesFromCsv,
-} from "@server/services/tradePipeline";
+} from "../services/tradePipeline";
 import type { EquityCurvePoint, TimeRange } from "@shared/types/portfolio";
-import { requireUser } from "@server/trpc/authHelpers";
 
 const finiteNumber = z.number().finite();
 const equityPointSchema = z.object({
@@ -220,7 +219,7 @@ const timeRangeInput = z
   })
   .optional();
 
-const resolveScope = async (ctx: { user: AuthUser | null }) => {
+const resolveScope = async (ctx: { user: SharedAuthUser | null }) => {
   const user = requireUser(ctx as any);
   return { user };
 };
@@ -347,7 +346,7 @@ const computeMaxDrawdownFromSeries = (series: { date: string; cumulative: number
 };
 
 export const portfolioRouter = router({
-  getOverview: authedProcedure
+  getOverview: protectedProcedure
     .input(
       z
         .object({
@@ -417,7 +416,7 @@ export const portfolioRouter = router({
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Unable to load portfolio overview" });
       }
     }),
-  getStrategySummaries: authedProcedure
+  getStrategySummaries: protectedProcedure
     .input(
       z
         .object({
@@ -503,7 +502,7 @@ export const portfolioRouter = router({
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Unable to load strategy summaries" });
       }
     }),
-  overview: authedProcedure
+  overview: protectedProcedure
     .input(
       z
         .object({
@@ -521,7 +520,7 @@ export const portfolioRouter = router({
         }),
       );
     }),
-  equityCurves: authedProcedure
+  equityCurves: protectedProcedure
     .input(
       z
         .object({
@@ -543,7 +542,7 @@ export const portfolioRouter = router({
       });
       return { points: res.points.map(p => equityPointSchema.parse(p)) };
     }),
-  drawdowns: authedProcedure
+  drawdowns: protectedProcedure
     .input(
       z
         .object({
@@ -565,7 +564,7 @@ export const portfolioRouter = router({
       });
       return { points: res.points.map(p => drawdownPointSchema.parse(p)) };
     }),
-  strategyEquity: authedProcedure
+  strategyEquity: protectedProcedure
     .input(
       z.object({
         strategyId: z.number().int(),
@@ -585,7 +584,7 @@ export const portfolioRouter = router({
       });
       return { points: res.points.map(p => equityPointSchema.parse(p)) };
     }),
-  strategyComparison: authedProcedure
+  strategyComparison: protectedProcedure
     .input(
       z.object({
         page: z.number().int().positive().default(1),
@@ -637,7 +636,7 @@ export const portfolioRouter = router({
         total: result.total,
       };
     }),
-  customPortfolio: authedProcedure
+  customPortfolio: protectedProcedure
     .input(
       z
         .object({
@@ -668,7 +667,7 @@ export const portfolioRouter = router({
         contributions: result.contributions.map(c => customPortfolioContributionSchema.parse(c)),
       };
     }),
-  summary: authedProcedure
+  summary: protectedProcedure
     .input(
       z
         .object({
@@ -686,7 +685,7 @@ export const portfolioRouter = router({
         }),
       );
     }),
-  trades: authedProcedure
+  trades: protectedProcedure
     .input(
       z
         .object({
@@ -720,7 +719,7 @@ export const portfolioRouter = router({
         pageSize,
       };
     }),
-  exportTradesCsv: authedProcedure
+  exportTradesCsv: protectedProcedure
     .input(
       z.object({
         strategyIds: z.array(z.number().int()).optional(),
@@ -753,7 +752,7 @@ export const portfolioRouter = router({
         });
       }
     }),
-  uploadTradesCsv: authedProcedure
+  uploadTradesCsv: protectedProcedure
     .input(
       z.object({
         csv: z.string(),
@@ -791,7 +790,7 @@ export const portfolioRouter = router({
         });
       }
     }),
-  uploadBenchmarksCsv: authedProcedure
+  uploadBenchmarksCsv: protectedProcedure
     .input(
       z.object({
         csv: z.string(),
@@ -819,7 +818,7 @@ export const portfolioRouter = router({
         });
       }
     }),
-  monteCarloSimulation: authedProcedure
+  monteCarloSimulation: protectedProcedure
     .input(
       z.object({
         days: z.number().int().min(7).max(365).default(90),

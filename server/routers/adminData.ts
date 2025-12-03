@@ -7,9 +7,8 @@ import {
   softDeleteBenchmarksByFilter,
   softDeleteByUpload,
   softDeleteTradesByFilter,
-} from "@server/services/adminData";
-import { authedProcedure, router } from "@server/trpc/router";
-import { requireAdmin } from "@server/trpc/authHelpers";
+} from "../services/adminData";
+import { protectedProcedure, requireAdmin, router } from "../_core/trpc";
 
 const uploadStatus = z.enum(["pending", "success", "partial", "failed"]);
 const uploadType = z.enum(["trades", "benchmarks", "equity"]);
@@ -26,7 +25,7 @@ const symbolSchema = z
   .regex(/^[\w.-]+$/, "Symbol may only include letters, numbers, dashes, underscores, or dots");
 
 export const adminDataRouter = router({
-  listWorkspaces: authedProcedure.query(async ({ ctx }) => {
+  listWorkspaces: protectedProcedure.query(async ({ ctx }) => {
     requireAdmin(ctx as any);
     try {
       return await listWorkspaceSummaries();
@@ -35,7 +34,7 @@ export const adminDataRouter = router({
     }
   }),
 
-  listUploadsForWorkspace: authedProcedure
+  listUploadsForWorkspace: protectedProcedure
     .input(
       z.object({
         page: z.number().int().positive().default(1),
@@ -53,7 +52,7 @@ export const adminDataRouter = router({
       }
     }),
 
-  softDeleteByUpload: authedProcedure
+  softDeleteByUpload: protectedProcedure
     .input(z.object({ uploadId: z.number().int() }))
     .mutation(async ({ ctx, input }) => {
       requireAdmin(ctx as any);
@@ -67,7 +66,7 @@ export const adminDataRouter = router({
       }
     }),
 
-  softDeleteTradesByFilter: authedProcedure
+  softDeleteTradesByFilter: protectedProcedure
     .input(
       z.object({
         symbol: symbolSchema.optional(),
@@ -91,7 +90,7 @@ export const adminDataRouter = router({
       }
     }),
 
-  softDeleteBenchmarksByFilter: authedProcedure
+  softDeleteBenchmarksByFilter: protectedProcedure
     .input(
       z.object({
         symbol: symbolSchema.optional(),

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { computeReturnMetrics, computeTradeMetrics, maxDrawdown } from "../src/engine/metrics";
+import { computeReturnMetrics, computeTradeMetrics, maxDrawdown } from "../engine/metrics";
 
 const approx = (value: number, expected: number, tol = 1e-4) =>
   assert.ok(Math.abs(value - expected) < tol, `${value} not within ${tol} of ${expected}`);

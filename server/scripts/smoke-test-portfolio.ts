@@ -1,11 +1,11 @@
-import "../src/utils/env";
+import "../utils/env";
 
 import {
   buildAggregatedEquityCurve,
   buildPortfolioOverview,
   buildStrategyComparison,
   runMonteCarloSimulation,
-} from "@server/engine/portfolio-engine";
+} from "@server/portfolio-engine";
 import { deriveDateRangeFromTimeRange } from "@server/utils/timeRange";
 
 function assertFinite(name: string, value: number): void {
@@ -16,10 +16,11 @@ function assertFinite(name: string, value: number): void {
 
 async function main() {
   const userId = Number(process.env.USER_ID ?? 1);
+  const scope = { userId };
 
   console.log(`Running portfolio smoke test for user ${userId}...`);
 
-  const overview = await buildPortfolioOverview(userId);
+  const overview = await buildPortfolioOverview(scope);
   assertFinite("equity", overview.equity);
   assertFinite("sharpeRatio", overview.sharpeRatio);
   assertFinite("maxDrawdown", overview.maxDrawdown);
@@ -27,11 +28,11 @@ async function main() {
     `Overview: equity=${overview.equity.toFixed(2)}, sharpe=${overview.sharpeRatio.toFixed(2)}, maxDrawdown=${overview.maxDrawdown.toFixed(2)}`,
   );
 
-  const equityCurve = await buildAggregatedEquityCurve(userId, {});
+  const equityCurve = await buildAggregatedEquityCurve(scope, {});
   console.log(`Aggregated equity curve points: ${equityCurve.points.length}`);
 
   const threeMonthRange = deriveDateRangeFromTimeRange({ preset: "3M" });
-  const equityCurve3M = await buildAggregatedEquityCurve(userId, threeMonthRange);
+  const equityCurve3M = await buildAggregatedEquityCurve(scope, threeMonthRange);
   console.log(
     `3M equity curve points: ${equityCurve3M.points.length} (start=${threeMonthRange.startDate ?? "n/a"}, end=${
       threeMonthRange.endDate ?? "n/a"

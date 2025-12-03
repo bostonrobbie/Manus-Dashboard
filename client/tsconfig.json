@@ -5,7 +5,7 @@
     "baseUrl": ".",
     "paths": {
       "@shared/*": ["../shared/*"],
-      "@server/*": ["../server/src/*"],
+      "@server/*": ["../server/*"],
       "@drizzle/*": ["../drizzle/*"],
       "recharts": ["./src/vendor/recharts"]
     },

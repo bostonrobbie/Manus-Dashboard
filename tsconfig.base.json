@@ -16,7 +16,7 @@
     "paths": {
       "@shared/*": ["shared/*"],
       "@drizzle/*": ["drizzle/*"],
-      "@server/*": ["server/src/*"]
+      "@server/*": ["server/*"]
     }
   },
   "include": ["client", "server", "shared", "drizzle", "scripts"],

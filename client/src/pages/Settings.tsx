@@ -148,7 +148,6 @@ function SettingsPage() {
                 <p className="text-xs uppercase tracking-wide text-slate-500">Configured headers</p>
                 <ul className="mt-1 space-y-1">
                   <li>User: {authDetails.configAuthHeaders.user}</li>
-                  <li>Workspace: {authDetails.configAuthHeaders.workspace}</li>
                 </ul>
               </div>
               <div className="rounded border border-slate-200 bg-slate-50 p-3">

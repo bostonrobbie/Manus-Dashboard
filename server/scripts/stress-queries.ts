@@ -1,21 +1,17 @@
 import { performance } from "node:perf_hooks";
 
 import { createTRPCProxyClient, httpBatchLink } from "@trpc/client";
-import superjson from "superjson";
 
-import type { AppRouter } from "@server/trpc/router";
+import type { AppRouter } from "@server/routers";
 const iterations = Number(process.env.STRESS_ITERATIONS ?? 10);
-const workspaceId = process.env.WORKSPACE_ID ? Number(process.env.WORKSPACE_ID) : undefined;
 const baseUrl = process.env.STRESS_BASE_URL ?? "http://localhost:3001/trpc";
 
 const client = createTRPCProxyClient<AppRouter>({
-  transformer: superjson,
   links: [
     httpBatchLink({
       url: baseUrl,
       headers() {
         return {
-          "x-workspace-id": workspaceId?.toString() ?? "1",
           "x-user-id": "1",
         };
       },
