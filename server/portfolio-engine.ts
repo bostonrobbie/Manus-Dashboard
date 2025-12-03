@@ -973,7 +973,7 @@ export async function buildPortfolioSummary(
 
 export async function buildPortfolioOverview(
   scope: UserScope,
-  opts: { startDate?: string; endDate?: string } = {},
+  opts: { startDate?: string; endDate?: string; strategyIds?: number[] } = {},
 ): Promise<PortfolioOverview> {
   const [equityCurve, drawdowns, trades] = await Promise.all([
     buildAggregatedEquityCurve(scope, opts),

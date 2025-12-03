@@ -7,6 +7,8 @@ import { runBasicHealthCheck, runFullHealthCheck } from "./health";
 import { createLogger } from "./utils/logger";
 import { getVersionInfo } from "./version";
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
+import { getHTTPStatusCodeFromError } from "@trpc/server/http";
 
 import { ingestTradeFromWebhook } from "./services/tradePipeline";
 
@@ -32,6 +34,37 @@ export function createServer() {
 
   app.get("/version", (_req, res) => {
     return res.json(versionInfo);
+  });
+
+  const postProxyHandlers: Record<
+    string,
+    (caller: ReturnType<typeof appRouter.createCaller>, input: unknown) => Promise<unknown>
+  > = {
+    "portfolio.getOverview": (caller, input) => caller.portfolio.getOverview(input as any),
+    "portfolio.getEquityCurve": (caller, input) => caller.portfolio.getEquityCurve(input as any),
+    "portfolio.getPositions": (caller, input) => caller.portfolio.getPositions(input as any),
+    "portfolio.getAnalytics": (caller, input) => caller.portfolio.getAnalytics(input as any),
+    "webhooks.getLogs": (caller, input) => caller.webhooks.getLogs(input as any),
+  };
+
+  app.post("/trpc/:path", async (req, res, next) => {
+    const handler = postProxyHandlers[req.params.path];
+    if (!handler) return next();
+
+    try {
+      const ctx = await createContext({ req, res } as any);
+      const caller = appRouter.createCaller(ctx);
+      const data = await handler(caller, req.body ?? {});
+      return res.json({ result: { data } });
+    } catch (error) {
+      logger.error("tRPC POST proxy failed", {
+        path: req.params.path,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      const status = error instanceof TRPCError ? error.code : "INTERNAL_SERVER_ERROR";
+      const httpStatus = error instanceof TRPCError ? getHTTPStatusCodeFromError(error) ?? 500 : 500;
+      return res.status(httpStatus).json({ error: { message: status } });
+    }
   });
 
   app.post("/webhooks/tradingview", async (req, res) => {

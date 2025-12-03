@@ -6,6 +6,7 @@ import { portfolioRouter } from "./routers/portfolio";
 import { strategiesRouter } from "./routers/strategies";
 import { systemRouter } from "./routers/system";
 import { uploadsRouter } from "./routers/uploads";
+import { webhooksRouter } from "./routers/webhooks";
 import { workspacesRouter } from "./routers/workspaces";
 
 export const appRouter = router({
@@ -17,6 +18,7 @@ export const appRouter = router({
   uploads: uploadsRouter,
   adminData: adminDataRouter,
   system: systemRouter,
+  webhooks: webhooksRouter,
 });
 
 export type AppRouter = typeof appRouter;

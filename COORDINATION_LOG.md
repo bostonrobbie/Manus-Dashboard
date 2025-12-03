@@ -1414,3 +1414,30 @@ No procedure found on path "webhooks.getLogs"
 - `pnpm lint` (pass)
 - `pnpm typecheck` (pass)
 - `pnpm test:all` (pass)
+
+## [CODEX] Phase 2 - portfolio engine wired for Option A migration (Dec 3, 2025)
+
+### Endpoints implemented/updated
+- `portfolio.getOverview` (tRPC query + POST shim) → aggregates trades/benchmarks via `buildAggregatedEquityCurve` and `buildPortfolioOverview`; filters by `strategyId` when provided.
+- `portfolio.getEquityCurve` (tRPC mutation) → returns time-windowed equity curve from `buildAggregatedEquityCurve` with optional downsampling.
+- `portfolio.getPositions` (tRPC mutation) → summarizes positions from `loadTrades` grouped by strategy/symbol with realized PnL totals.
+- `portfolio.getAnalytics` (tRPC mutation) → wraps `buildAggregatedEquityCurve`, `buildDrawdownCurves`, and `buildPortfolioOverview` to provide metrics, drawdowns, and daily returns.
+- `webhooks.getLogs` (tRPC mutation, new router) → reads recent rows from `webhookLogs` (scoped by `userId`, empty array when DB unavailable).
+
+### Data/engine wiring
+- Portfolio endpoints draw from MySQL tables `trades`, `strategies`, and `benchmarks` when available (otherwise fall back to `server/db/sampleData`).
+- Analytics calculations reuse `server/portfolio-engine.ts` helpers (`computeDailyReturns`, `buildDrawdownCurves`, `buildPortfolioOverview`) and `server/engine/metrics.ts` KPIs.
+- Webhook log retrieval reads `webhookLogs` via Drizzle (ordered by `createdAt`), returning ISO timestamps for JSON safety.
+
+### Manual curl validation (local dev @ http://localhost:3000)
+- `POST /trpc/portfolio.getOverview` → **200 OK**, JSON body with equity snapshot and data health (trades present, `accountValue=10000`).
+- `POST /trpc/portfolio.getEquityCurve` → **200 OK**, JSON equity points for 2024 sample trades + SPX track.
+- `POST /trpc/portfolio.getPositions` → **200 OK**, JSON `{ positions: [] }` (no open positions in sample data).
+- `POST /trpc/portfolio.getAnalytics` → **200 OK**, JSON metrics (totalReturnPct≈0.965, Sharpe≈17.17) plus drawdowns/dailyReturns.
+- `POST /trpc/webhooks.getLogs` → **200 OK**, JSON `{ logs: [] }` (no rows when DB absent).
+
+### Tests and checks run
+- `pnpm lint` (pass)
+- `pnpm typecheck` (pass)
+- `pnpm test:all` (pass)
+- Manual POST curls above (all returned 200 with valid JSON)
