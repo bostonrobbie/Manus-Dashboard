@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { computeReturnMetrics, computeTradeMetrics, totalReturn } from "../src/engine/metrics";
+import { computeReturnMetrics, computeTradeMetrics, totalReturn } from "../engine/metrics";
 
 test("return metrics respect drawdown and sharpe bounds", () => {
   for (let i = 0; i < 20; i++) {

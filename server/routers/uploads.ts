@@ -1,17 +1,16 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
-import { authedProcedure, router } from "@server/trpc/router";
-import { getUploadLogById, listUploadLogs } from "@server/services/uploadLogs";
-import { TIME_RANGE_PRESETS, deriveDateRangeFromTimeRange } from "@server/utils/timeRange";
+import { getUploadLogById, listUploadLogs } from "../services/uploadLogs";
+import { TIME_RANGE_PRESETS, deriveDateRangeFromTimeRange } from "../utils/timeRange";
+import { protectedProcedure, requireUser, router } from "../_core/trpc";
 import type { UploadLogRow } from "@shared/types/uploads";
-import { requireUser } from "@server/trpc/authHelpers";
 
 const uploadStatus = z.enum(["pending", "success", "partial", "failed"]);
 const uploadType = z.enum(["trades", "benchmarks", "equity"]);
 
 export const uploadsRouter = router({
-  list: authedProcedure
+  list: protectedProcedure
     .input(
       z
         .object({
@@ -56,7 +55,7 @@ export const uploadsRouter = router({
 
       return { rows: filteredRows, total: result.total };
     }),
-  detail: authedProcedure
+  detail: protectedProcedure
     .input(z.object({ id: z.number().int() }))
     .query(async ({ ctx, input }) => {
       const user = requireUser(ctx as any);

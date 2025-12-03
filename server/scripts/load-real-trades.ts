@@ -1,8 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
 
-import { ingestTradesCsv } from "../src/services/tradeIngestion";
-import "../src/utils/env";
+import { ingestTradesCsv } from "../services/tradeIngestion";
+import "../utils/env";
 
 async function main() {
   const dataDir = path.resolve(__dirname, "../data");
@@ -26,7 +26,6 @@ async function main() {
     const result = await ingestTradesCsv({
       csv: contents,
       userId: 1,
-      workspaceId: 1,
       defaultStrategyName: strategyName,
     });
     console.log(

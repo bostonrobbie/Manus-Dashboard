@@ -304,6 +304,24 @@ Add 4 missing frontend components from GitHub repo to Manus.
 **Notes:**
 - Admin data services remain stubbed/unsupported in Manus; UI surfaces this limitation instead of requiring workspace selection.
 
+### ✅ Session 5 (Current)
+
+**Completed Tasks:**
+- Flattened the server structure to Manus format (moved app/db/engine/services/routers to `server/`, created `_core` for context/trpc, removed `server/src`).
+- Merged schemas to include Manus tables (positions, equityCurve, analytics, webhookLogs) and expanded benchmarks; updated TS paths and docs to reflect the flat layout.
+- Added `FEATURE_MANIFEST.md`, refreshed tests/scripts for single-tenant auth (no workspace IDs), and cleaned smoke/stress utilities to match Manus headers.
+
+**Files Changed:**
+- Server core/app files, routers, services, scripts, tests; `drizzle/schema.ts`; `tsconfig.base.json`; `package.json`; client Settings page; docs.*
+
+**Commands Run:**
+- `pnpm lint`
+- `pnpm typecheck`
+- `pnpm test:all`
+
+**Notes:**
+- Admin operations remain stubbed (return NOT_FOUND) pending Manus feature parity; health/auth debugging now only reports user header.
+
 ---
 
 ## COMPLETED BY MANUS

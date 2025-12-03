@@ -1,5 +1,5 @@
-import { env } from "@server/utils/env";
-import { router, publicProcedure } from "@server/trpc/router";
+import { env } from "../utils/env";
+import { publicProcedure, router } from "../_core/trpc";
 
 const isSensitive = (name: string) => /authorization|token|cookie|secret/i.test(name);
 
@@ -38,7 +38,6 @@ export const authRouter = router({
       parsedUser: ctx.user,
       configAuthHeaders: {
         user: env.manusAuthHeaderUser,
-        workspace: env.manusAuthHeaderWorkspace,
         roles: env.manusAuthHeaderRoles,
         org: env.manusAuthHeaderOrg,
       },

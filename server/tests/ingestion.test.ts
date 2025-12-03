@@ -79,7 +79,7 @@ test("ingestTradesCsv imports valid rows", async () => {
   ].join("\n");
 
   await withMockDb(mockDb, async () => {
-    const result = await ingestTradesCsv({ csv, userId: 1, workspaceId: 1, fileName: "sample.csv" });
+    const result = await ingestTradesCsv({ csv, userId: 1, fileName: "sample.csv" });
 
     assert.equal(result.importedCount, 2);
     assert.equal(result.skippedCount, 0);
@@ -102,7 +102,7 @@ test("ingestTradesCsv reports missing required columns", async () => {
   ].join("\n");
 
   await withMockDb(mockDb, async () => {
-    const result = await ingestTradesCsv({ csv, userId: 1, workspaceId: 1 });
+    const result = await ingestTradesCsv({ csv, userId: 1 });
 
     assert.equal(result.importedCount, 0);
     assert.equal(result.skippedCount, 1);
@@ -124,7 +124,7 @@ test("ingestTradesCsv skips invalid numeric or empty rows", async () => {
   ].join("\n");
 
   await withMockDb(mockDb, async () => {
-    const result = await ingestTradesCsv({ csv, userId: 1, workspaceId: 1 });
+    const result = await ingestTradesCsv({ csv, userId: 1 });
 
     assert.equal(result.importedCount, 1);
     assert.equal(result.skippedCount, 1); // one invalid row
@@ -145,7 +145,7 @@ test("ingestTradesCsv flags invalid dates", async () => {
   ].join("\n");
 
   await withMockDb(mockDb, async () => {
-    const result = await ingestTradesCsv({ csv, userId: 1, workspaceId: 1 });
+    const result = await ingestTradesCsv({ csv, userId: 1 });
 
     assert.equal(result.importedCount, 0);
     assert.equal(result.failedCount, 1);

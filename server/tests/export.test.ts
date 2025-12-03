@@ -2,9 +2,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { portfolioRouter } from "@server/routers/portfolio";
-import { generateTradesCsv } from "../src/engine/portfolio-engine";
+import { generateTradesCsv } from "../portfolio-engine";
 
-const user = { id: 1, email: "test@example.com", workspaceId: 1, source: "local" as const };
+const user = { id: 1, email: "test@example.com", source: "local" as const };
 const baseCtx = { user, auth: { mode: "local" as const, user, mock: true } } as any;
 
 test("generateTradesCsv returns csv content with headers", async () => {

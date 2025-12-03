@@ -14,7 +14,7 @@ async function main() {
 
   const rows = await db
     .select({
-      workspaceId: schema.trades.workspaceId,
+      userId: schema.trades.userId,
       symbol: schema.trades.symbol,
       side: schema.trades.side,
       quantity: schema.trades.quantity,
@@ -24,16 +24,9 @@ async function main() {
       minId: sql<number>`min(${schema.trades.id})`,
     })
     .from(schema.trades)
-    .groupBy(
-      schema.trades.workspaceId,
-      schema.trades.symbol,
-      schema.trades.side,
-      schema.trades.quantity,
-      schema.trades.entryTime,
-      schema.trades.exitTime,
-    )
+    .groupBy(schema.trades.userId, schema.trades.symbol, schema.trades.side, schema.trades.quantity, schema.trades.entryTime, schema.trades.exitTime)
     .having(sql`count(*) > 1`)
-    .orderBy(schema.trades.workspaceId, schema.trades.symbol, schema.trades.entryTime)
+    .orderBy(schema.trades.userId, schema.trades.symbol, schema.trades.entryTime)
     .limit(2000);
 
   if (!rows.length) {
@@ -44,8 +37,9 @@ async function main() {
   logger.warn(`Found ${rows.length} potential duplicate groups`);
   for (const row of rows) {
     logger.warn(
+      "Duplicate trade group",
       {
-        workspaceId: row.workspaceId,
+        userId: row.userId,
         symbol: row.symbol,
         side: row.side,
         quantity: row.quantity,
@@ -54,12 +48,11 @@ async function main() {
         count: row.count,
         minId: row.minId,
       },
-      "Duplicate trade group",
     );
   }
 }
 
 main().catch(error => {
-  logger.error(error, "Duplicate scan failed");
+  logger.error("Duplicate scan failed", { error });
   process.exit(1);
 });

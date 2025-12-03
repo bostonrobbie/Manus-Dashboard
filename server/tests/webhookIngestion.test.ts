@@ -6,7 +6,7 @@ import { ingestWebhookTrade } from "@server/services/tradeIngestion";
 import * as dbModule from "@server/db";
 
 function createMockDb() {
-  const strategies: any[] = [{ id: 1, userId: 1, workspaceId: 1, name: "Existing", type: "swing" }];
+  const strategies: any[] = [{ id: 1, userId: 1, name: "Existing", type: "swing" }];
   const trades: any[] = [];
   const uploadLogs: any[] = [];
 
@@ -77,9 +77,7 @@ test("ingestWebhookTrade builds natural key and inserts", async () => {
 
   await withMockDb(mockDb, async () => {
     const result = await ingestWebhookTrade({
-      userId: 1,
-      workspaceId: 1,
-      trade: {
+      userId: 1,      trade: {
         strategyName: "Webhook Alpha",
         symbol: "SPY",
         side: "long",

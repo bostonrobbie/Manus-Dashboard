@@ -23,7 +23,7 @@ Manus must map the authenticated Google profile into `MANUS_USER_HEADER` and the
 Set `MANUS_AUTH_STRICT=true` in Manus environments so requests without these headers fail; disable `MOCK_USER_ENABLED`/`MANUS_ALLOW_MOCK_ON_AUTH_FAILURE` in production once headers are verified.
 
 ## Start command and port
-- Start: `pnpm start` from repo root (builds server then runs `dist/server/src/index.js`).
+- Start: `pnpm start` from repo root (builds server then runs `dist/server/index.js`).
 - Port: `PORT` env (default `3001`), bound to `0.0.0.0`.
 
 ## Health endpoints

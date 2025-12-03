@@ -3,20 +3,18 @@ import test, { mock } from "node:test";
 
 import { portfolioRouter } from "@server/routers/portfolio";
 import { systemRouter } from "@server/routers/system";
-import * as portfolioEngine from "@server/engine/portfolio-engine";
+import * as portfolioEngine from "@server/portfolio-engine";
 import * as db from "@server/db";
 
-const user = { id: 1, email: "test@example.com", workspaceId: 1, source: "local" as const };
+const user = { id: 1, email: "test@example.com", source: "local" as const };
 const baseCtx = { user, auth: { mode: "local" as const, user, mock: true } } as any;
 
 const janRange = { dateRange: { startDate: "2024-01-01", endDate: "2024-01-20" } } as const;
 
-function createCallerForWorkspace(workspaceId: number) {
-  return portfolioRouter.createCaller({ ...baseCtx, user: { ...user, workspaceId } });
-}
+const createCaller = () => portfolioRouter.createCaller(baseCtx);
 
 test("getOverview returns safe defaults without trades", async () => {
-  const caller = createCallerForWorkspace(999);
+  const caller = createCaller();
   const result = await caller.getOverview({ dateRange: { startDate: "2024-02-01", endDate: "2024-02-10" } });
 
   assert.equal(result.dataHealth.hasTrades, false);
@@ -28,7 +26,7 @@ test("getOverview returns safe defaults without trades", async () => {
 });
 
 test("getOverview aggregates pnl across the requested window", async () => {
-  const caller = createCallerForWorkspace(1);
+  const caller = createCaller();
   const result = await caller.getOverview(janRange);
 
   assert.equal(result.dataHealth.hasTrades, true);
@@ -39,7 +37,7 @@ test("getOverview aggregates pnl across the requested window", async () => {
 });
 
 test("getStrategySummaries tolerates strategies without trades", async () => {
-  const caller = createCallerForWorkspace(1);
+  const caller = createCaller();
   const result = await caller.getStrategySummaries({ dateRange: { startDate: "2024-01-01", endDate: "2024-01-10" } });
 
   assert.equal(result.length >= 2, true);

@@ -1,5 +1,4 @@
 import { createTRPCProxyClient, httpBatchLink } from "@trpc/client";
-import SuperJSON from "superjson";
 
 import { loadManusConfig } from "@server/config/manus";
 import type { AppRouter } from "@server/index";
@@ -24,13 +23,10 @@ async function fetchJson(url: string) {
 async function main() {
   const baseUrl = (process.env.SMOKE_BASE_URL ?? `http://localhost:${config.port}`).replace(/\/$/, "");
   const userHeaderName = process.env.MANUS_AUTH_HEADER_USER ?? process.env.MANUS_AUTH_HEADER ?? "x-manus-user-json";
-  const workspaceHeaderName =
-    process.env.MANUS_AUTH_HEADER_WORKSPACE ?? process.env.MANUS_WORKSPACE_HEADER ?? "x-manus-workspace-id";
   const userHeaderValue = process.env.SMOKE_AUTH_HEADER_VALUE ?? process.env.VITE_MANUS_AUTH_TOKEN ?? "user:1";
-  const workspaceHeaderValue = process.env.SMOKE_WORKSPACE_HEADER_VALUE ?? process.env.SMOKE_WORKSPACE_ID ?? "1";
 
   console.log(`[smoke] Target: ${baseUrl} (mode=${config.modeLabel})`);
-  console.log(`[smoke] Headers: ${userHeaderName}, ${workspaceHeaderName}`);
+  console.log(`[smoke] Header: ${userHeaderName}`);
 
   const health = await fetchJson(`${baseUrl}/health`);
   console.log(`[smoke] /health -> ${health.status}`);
@@ -45,7 +41,7 @@ async function main() {
       throw new Error(`/health/full returned non-JSON (${(error as Error).message})`);
     }
   }
-  console.log(`[smoke] /health/full -> status=${fullRes.status}, db=${fullHealth.db}, workspaces=${fullHealth.workspaces}, uploads=${fullHealth.uploads}`);
+  console.log(`[smoke] /health/full -> status=${fullRes.status}, db=${fullHealth.db}, uploads=${fullHealth.uploads}`);
 
   if (!allowDegraded && !fullRes.ok) {
     throw new Error(`/health/full returned ${fullRes.status}: ${fullText}`);
@@ -53,10 +49,8 @@ async function main() {
 
   const headers: Record<string, string> = {};
   if (userHeaderValue) headers[userHeaderName] = userHeaderValue;
-  if (workspaceHeaderValue) headers[workspaceHeaderName] = workspaceHeaderValue;
 
   const trpc = createTRPCProxyClient<AppRouter>({
-    transformer: SuperJSON,
     links: [
       httpBatchLink({
         url: `${baseUrl}/trpc`,

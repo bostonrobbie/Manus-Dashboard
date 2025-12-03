@@ -11,7 +11,7 @@ import {
   buildStrategyComparison,
   generateTradesCsv,
   loadTradesPage,
-} from "@server/engine/portfolio-engine";
+} from "@server/portfolio-engine";
 import { deriveDateRangeFromTimeRange } from "@server/utils/timeRange";
 import type { StrategyType, TimeRange, StrategyComparisonRow } from "@shared/types/portfolio";
 

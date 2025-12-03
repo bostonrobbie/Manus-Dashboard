@@ -22,8 +22,8 @@ test.after(() => {
 });
 
 const baseAuth = { mode: "local" as const, mock: true, strict: false };
-const ownerUser = { id: 1, email: "owner@example.com", workspaceId: 1, source: "local" as const, role: "OWNER" as const };
-const otherUser = { id: 2, email: "user2@example.com", workspaceId: 2, source: "local" as const, role: "USER" as const };
+const ownerUser = { id: 1, email: "owner@example.com", source: "local" as const, role: "admin" as const };
+const otherUser = { id: 2, email: "user2@example.com", source: "local" as const, role: "user" as const };
 
 const ownerCtx = { user: ownerUser, auth: { ...baseAuth, user: ownerUser } } as any;
 const otherCtx = { user: otherUser, auth: { ...baseAuth, user: otherUser } } as any;

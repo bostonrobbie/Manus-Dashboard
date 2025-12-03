@@ -1,6 +1,6 @@
 # Portfolio Engine
 
-`server/src/engine/portfolio-engine.ts` is the canonical implementation. It:
+`server/portfolio-engine.ts` is the canonical implementation. It:
 
 - Loads strategies, trades, and benchmark closes either from PostgreSQL (via Drizzle) or from baked-in sample data.
 - Builds aggregated equity curves with swing, intraday, combined, and benchmark tracks.

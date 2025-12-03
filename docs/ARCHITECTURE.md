@@ -12,7 +12,7 @@ Manus (Google sign-in) → Manus headers → Manus-Dashboard backend (auth conte
 - Demo data and seeding scripts live under `scripts/` and `server/scripts/` for local smoke tests.
 
 ## Analytics Engine
-- `server/src/engine/metrics.ts` and `server/src/engine/portfolio-engine.ts` compute `WorkspaceMetrics`, `StrategyMetrics`, drawdowns, edge analytics, and risk guidance.
+- `server/engine/metrics.ts` and `server/portfolio-engine.ts` compute analytics, drawdowns, edge analytics, and risk guidance.
 - Results are serialized using shared types in `shared/types/portfolio.ts` and returned through tRPC for charts and KPI strips.
 
 ## API Layer

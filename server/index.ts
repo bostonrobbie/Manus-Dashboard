@@ -18,7 +18,6 @@ logger.info("Starting Manus dashboard server", {
   commit: versionInfo.commit,
   headers: {
     user: env.manusAuthHeaderUser,
-    workspace: env.manusAuthHeaderWorkspace,
   },
 });
 

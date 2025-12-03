@@ -4,7 +4,7 @@
   "private": true,
   "packageManager": "pnpm@8.15.8",
   "scripts": {
-    "lint": "pnpm exec eslint client/src server/src shared --ext .ts,.tsx",
+    "lint": "pnpm exec eslint client/src server shared --ext .ts,.tsx",
     "typecheck": "pnpm -r run typecheck",
     "build": "pnpm -r run build",
     "build:client": "pnpm --filter client run build",

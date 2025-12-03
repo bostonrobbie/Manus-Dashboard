@@ -2,7 +2,7 @@ import assert from "node:assert";
 import test from "node:test";
 import { TRPCError } from "@trpc/server";
 
-import { trpcErrorFormatter } from "@server/trpc/router";
+import { trpcErrorFormatter } from "@server/_core/trpc";
 
 test("masks internal errors", () => {
   const shape = {

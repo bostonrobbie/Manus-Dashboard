@@ -1,7 +1,7 @@
 import express from "express";
 import cors from "cors";
 import * as trpcExpress from "@trpc/server/adapters/express";
-import { createContext } from "./trpc/context";
+import { createContext } from "./_core/context";
 import { appRouter } from "./routers";
 import { runBasicHealthCheck, runFullHealthCheck } from "./health";
 import { createLogger } from "./utils/logger";

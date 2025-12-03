@@ -1,29 +1,12 @@
 import { performance } from "node:perf_hooks";
 
-import { eq } from "drizzle-orm";
-
-import { buildPortfolioOverview, buildPortfolioSummary, loadTrades } from "@server/engine/portfolio-engine";
-import { getDb, schema } from "@server/db";
+import { buildPortfolioOverview, buildPortfolioSummary, loadTrades } from "@server/portfolio-engine";
+import { getDb } from "@server/db";
 import { ingestBenchmarksCsv } from "@server/services/benchmarkIngestion";
 import { ingestTradesCsv } from "@server/services/tradeIngestion";
 import { createLogger } from "@server/utils/logger";
 
 const logger = createLogger("load-large-dataset");
-
-async function ensureWorkspace(workspaceId: number) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not configured");
-
-  const [workspace] = await db.select().from(schema.workspaces).where(eq(schema.workspaces.id, workspaceId));
-  if (!workspace) {
-    await db.insert(schema.workspaces).values({
-      id: workspaceId,
-      externalId: `load-test-${workspaceId}`,
-      name: `Load Test ${workspaceId}`,
-    });
-    logger.info("Created load test workspace", { eventName: "LOAD_DATASET_WORKSPACE_CREATED", workspaceId });
-  }
-}
 
 function generateTradesCsv(count: number): string {
   const rows = [
@@ -55,7 +38,7 @@ function generateBenchmarksCsv(days: number): string {
   return rows.join("\n");
 }
 
-async function runTimings(scope: { userId: number; workspaceId: number }) {
+async function runTimings(scope: { userId: number }) {
   const timings: Record<string, number> = {};
   const mark = async (label: string, fn: () => Promise<unknown>) => {
     const start = performance.now();
@@ -67,19 +50,15 @@ async function runTimings(scope: { userId: number; workspaceId: number }) {
   await mark("portfolioSummary", () => buildPortfolioSummary(scope, {}));
   await mark("loadTradesPage1", () => loadTrades(scope, { startDate: "2023-01-01", endDate: "2023-12-31" }));
 
-  logger.info("Load test timings", { eventName: "LOAD_DATASET_TIMINGS", ...timings, workspaceId: scope.workspaceId });
+  logger.info("Load test timings", { eventName: "LOAD_DATASET_TIMINGS", ...timings, userId: scope.userId });
 }
 
 async function main() {
-  const workspaceId = Number(process.env.WORKSPACE_ID ?? 99);
   const userId = Number(process.env.USER_ID ?? 1);
   const tradesToGenerate = Number(process.env.LOAD_TRADE_COUNT ?? 100_000);
 
-  await ensureWorkspace(workspaceId);
-
   logger.info("Beginning load test dataset generation", {
     eventName: "LOAD_DATASET_START",
-    workspaceId,
     userId,
     tradesToGenerate,
   });
@@ -90,14 +69,12 @@ async function main() {
   const tradeResult = await ingestTradesCsv({
     csv: tradesCsv,
     userId,
-    workspaceId,
     fileName: "load-test-trades.csv",
     defaultStrategyName: "LoadTest",
     defaultStrategyType: "swing",
   });
   logger.info("Trades ingestion complete", {
     eventName: "LOAD_DATASET_TRADES",
-    workspaceId,
     imported: tradeResult.importedCount,
     failed: tradeResult.failedCount,
     warnings: tradeResult.warnings.slice(0, 3),
@@ -106,21 +83,20 @@ async function main() {
   const benchResult = await ingestBenchmarksCsv({
     csv: benchmarksCsv,
     userId,
-    workspaceId,
     fileName: "load-test-benchmarks.csv",
   });
   logger.info("Benchmarks ingestion complete", {
     eventName: "LOAD_DATASET_BENCHMARKS",
-    workspaceId,
     imported: benchResult.importedCount,
     failed: benchResult.failedCount,
   });
 
-  await runTimings({ userId, workspaceId });
+  if (!await getDb()) throw new Error("Database not configured");
+
+  await runTimings({ userId });
 
   logger.info("Load test dataset finished", {
     eventName: "LOAD_DATASET_END",
-    workspaceId,
     userId,
   });
 }

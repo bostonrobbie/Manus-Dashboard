@@ -1,10 +1,9 @@
 import { z } from "zod";
 
-import { router, authedProcedure } from "@server/trpc/router";
-import { ENGINE_CONFIG } from "@server/engine/portfolio-engine";
-import { TIME_RANGE_PRESETS } from "@server/utils/timeRange";
-import { getPortfolioOverview, getPortfolioSummaryMetrics } from "@server/services/tradePipeline";
-import { requireUser } from "@server/trpc/authHelpers";
+import { ENGINE_CONFIG } from "../portfolio-engine";
+import { getPortfolioOverview, getPortfolioSummaryMetrics } from "../services/tradePipeline";
+import { TIME_RANGE_PRESETS } from "../utils/timeRange";
+import { protectedProcedure, requireUser, router } from "../_core/trpc";
 
 const timeRangeInput = z
   .object({
@@ -15,7 +14,7 @@ const timeRangeInput = z
   .optional();
 
 export const analyticsRouter = router({
-  summary: authedProcedure
+  summary: protectedProcedure
     .input(
       z
         .object({
@@ -27,7 +26,7 @@ export const analyticsRouter = router({
       const user = requireUser(ctx as any);
       return getPortfolioSummaryMetrics({ userId: user.id, timeRange: input?.timeRange });
     }),
-  rangeMetrics: authedProcedure
+  rangeMetrics: protectedProcedure
     .input(
       z
         .object({
