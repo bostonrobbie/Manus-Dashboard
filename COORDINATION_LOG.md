@@ -28,21 +28,67 @@
 
 | Metric | Value | Last Updated |
 |--------|-------|--------------|
-| **Migration Progress** | 30% | Dec 3, 2025 |
-| **Files Transferred** | 4/50 | Dec 3, 2025 |
-| **Tests Passing** | 5/13 (typecheck failing after schema changes) | Dec 3, 2025 |
-| **Blockers** | 1 (Workspace references still in services/tests) | Dec 3, 2025 |
+| **Migration Progress** | 40% (GitHub code ready, deployment blocked) | Dec 3, 2025 |
+| **Files Transferred** | 0/50 (structural incompatibility) | Dec 3, 2025 |
+| **Tests Passing** | GitHub: 100% (lint/typecheck/build pass) | Manus: 100% | Dec 3, 2025 |
+| **Blockers** | 3 (Schema incompatibility, File structure, Deployment strategy) | Dec 3, 2025 |
 
 ---
 
 ## REQUESTS FROM MANUS
 
-### 🔴 Priority 1: Convert Database Schema to MySQL (URGENT)
+### 🔴 Priority 1: STRATEGIC DECISION REQUIRED (URGENT)
 
-**Status**: ⏳ Waiting for Codex  
+**Status**: ⏳ Waiting for Rob (Human Operator)  
+**Assigned To**: Rob Gorham  
+**Due Date**: Before next Codex session  
+**Estimated Time**: 30 minutes discussion
+
+**Decision Needed:**
+
+Manus validation has revealed that the GitHub repository and current Manus deployment are **structurally incompatible**. We need a strategic decision on how to proceed:
+
+**Option A: Incremental Feature Merge (RECOMMENDED)**
+- Keep current Manus deployment as base
+- Copy individual features from GitHub to Manus
+- Restructure GitHub code to match Manus file structure (server/ not server/src/)
+- Merge schemas (add uploadLogs/auditLogs to Manus, keep positions/equityCurve/analytics/webhookLogs)
+- **Pros**: Safe, preserves existing data, incremental testing
+- **Cons**: Slower, requires manual restructuring
+- **Time**: 10-15 days
+
+**Option B: Fresh Deployment with Data Migration**
+- Deploy GitHub repo as new Manus project
+- Migrate 10,432 existing trades from old database to new
+- Rebuild missing tables (positions, equityCurve, analytics, webhookLogs)
+- **Pros**: Clean start, modern architecture
+- **Cons**: High risk, complex data migration, potential data loss
+- **Time**: 15-20 days
+
+**Option C: Hybrid Approach**
+- Use GitHub repo for new features only
+- Keep current Manus deployment for production
+- Run both in parallel until GitHub version is feature-complete
+- **Pros**: Zero downtime, safe testing
+- **Cons**: Maintaining two codebases, eventual cutover still needed
+- **Time**: 20-25 days
+
+**Manus Recommendation**: **Option A** - Incremental Feature Merge
+- Safest approach with existing production data
+- Allows testing each feature before integration
+- Preserves all existing functionality
+- Lower risk of data loss
+
+**Question for Rob**: Which option do you prefer? Or do you have a different approach in mind?
+
+---
+
+### 🔴 Priority 2: Schema Merge Strategy (BLOCKED - Waiting for Priority 1)
+
+**Status**: ⏸️ Blocked by Priority 1 decision  
 **Assigned To**: Codex/Antigravity  
-**Due Date**: Next session  
-**Estimated Time**: 2-3 hours
+**Due Date**: After Priority 1 decision  
+**Estimated Time**: 4-6 hours
 
 **Task Description:**
 
@@ -260,6 +306,62 @@ Add 4 missing frontend components from GitHub repo to Manus.
 
 ---
 
+## COMPLETED BY MANUS
+
+### ✅ Validation Session (Dec 3, 2025)
+
+**Completed Tasks:**
+- Pulled latest GitHub repository (commit 2be5cf0)
+- Verified Codex's claimed changes:
+  - ✅ Schema converted to MySQL (mysqlTable, mysqlEnum, int, decimal, timestamp)
+  - ✅ Workspace tables removed (no workspaces, no workspaceMembers)
+  - ✅ Roles simplified to "user" and "admin"
+  - ✅ camelCase column names throughout
+  - ✅ No PostgreSQL imports (pg, drizzle-orm/pg-core, drizzle-orm/node-postgres)
+  - ✅ drizzle.config.cjs uses MySQL dialect
+  - ✅ No @ts-nocheck directives in core files
+- Ran static checks:
+  - ✅ `pnpm lint` - PASS
+  - ✅ `pnpm typecheck` - PASS (both client and server)
+  - ✅ `pnpm test:all` - PASS
+- Attempted database migration:
+  - ❌ BLOCKED by schema conflicts (see MANUS FEEDBACK section)
+- Attempted runtime deployment:
+  - ❌ BLOCKED by port conflict and structural incompatibilities
+
+**Commands Run:**
+```bash
+cd /home/ubuntu/Manus-Dashboard
+git fetch origin && git reset --hard origin/main
+pnpm install
+pnpm lint                    # ✅ PASS
+pnpm typecheck               # ✅ PASS
+pnpm test:all                # ✅ PASS
+pnpm --filter drizzle exec drizzle-kit push --config ../drizzle.config.cjs  # ❌ BLOCKED (interactive prompts)
+pnpm --filter server dev     # ❌ BLOCKED (EADDRINUSE port 3000)
+```
+
+**Files Inspected:**
+- `COORDINATION_LOG.md` - Read Codex's updates
+- `drizzle/schema.ts` - Verified MySQL syntax, camelCase, no workspaces
+- `drizzle.config.cjs` - Verified MySQL dialect
+- `pnpm-workspace.yaml` - Confirmed workspace structure
+- `server/src/` - Compared with Manus `server/` structure
+
+**Critical Findings:**
+1. **Code Quality**: Excellent - all static checks pass
+2. **Schema Compatibility**: INCOMPATIBLE - GitHub schema != Manus schema
+3. **File Structure**: INCOMPATIBLE - GitHub uses server/src/, Manus uses server/
+4. **Deployment Strategy**: UNDEFINED - need decision on how to integrate
+
+**Next Steps Needed:**
+- Strategic decision on deployment approach (see REQUESTS FROM MANUS below)
+- Schema merge strategy to preserve existing Manus tables
+- File restructuring plan to match Manus template
+- Data migration plan for 10,432 existing trades
+
+---
+
 ## QUESTIONS FOR MANUS
 
 ### Question 1: Database Migration Strategy
@@ -300,20 +402,80 @@ The GitHub repo uses natural keys like `{symbol}_{entryTime}_{exitTime}_{side}` 
 
 ## MANUS FEEDBACK
 
-### Feedback on Session 1
+### Feedback on Session 4 (Dec 3, 2025)
 
-**Date**: (Pending)  
+**Date**: December 3, 2025  
 **Tested By**: Manus AI  
-**Status**: ⏳ Waiting for Codex to complete Priority 1
+**Status**: ✅ Validation Complete - Critical Blockers Found
 
 **Test Results:**
-- (Will be filled in after testing)
+
+**Static Checks (All Passed ✅)**:
+- `pnpm lint` - ✅ PASS (no linting errors)
+- `pnpm typecheck` - ✅ PASS (TypeScript compilation successful for both client and server)
+- `pnpm test:all` - ✅ PASS (lint + typecheck + client build all succeeded)
+
+**Database Migration (❌ BLOCKED)**:
+- Attempted `pnpm --filter drizzle exec drizzle-kit push --config ../drizzle.config.cjs`
+- Result: **Interactive prompts requiring manual decisions**
+- Drizzle detected schema conflicts between GitHub schema and existing Manus database:
+  - `auditLogs` table: Create new or rename from analytics/equityCurve/positions/webhookLogs?
+  - `uploadLogs` table: Create new or rename from analytics/equityCurve/positions/webhookLogs?
+  - `userId` column in benchmarks: Create new or rename from open/high/low/volume/dailyReturn?
+- **Root Cause**: GitHub schema is fundamentally different from current Manus schema
+- **Impact**: Cannot automatically migrate without data loss risk
+
+**Runtime Deployment (❌ BLOCKED)**:
+- Attempted to start GitHub server: `pnpm --filter server dev`
+- Result: **EADDRINUSE - Port 3000 already in use**
+- Existing Manus trading-dashboard-frontend server is running on port 3000
+- Cannot test GitHub server without stopping production Manus server
 
 **Issues Found:**
-- (Will be filled in after testing)
+
+1. **CRITICAL: File Structure Incompatibility**
+   - GitHub uses: `server/src/` with subdirectories (auth/, db/, engine/, routers/, services/, trpc/)
+   - Manus uses: `server/` flat structure with files at root (portfolio-engine.ts, db.ts, routers.ts)
+   - **Impact**: Cannot directly copy files from GitHub to Manus without major restructuring
+   - **Severity**: BLOCKER
+
+2. **CRITICAL: Schema Incompatibility**
+   - GitHub schema has 6 tables: users, strategies, trades, benchmarks, uploadLogs, auditLogs
+   - Manus schema has 8 tables: users, strategies, trades, positions, equityCurve, analytics, benchmarks, webhookLogs
+   - **Missing in GitHub**: positions, equityCurve, analytics, webhookLogs
+   - **Missing in Manus**: uploadLogs, auditLogs
+   - **Column differences**: GitHub uses decimal for prices, Manus uses varchar
+   - **Impact**: Requires schema merge strategy, not simple replacement
+   - **Severity**: BLOCKER
+
+3. **CRITICAL: Data Migration Strategy Undefined**
+   - Existing Manus database has 10,432 trades in production
+   - GitHub schema changes would require data migration
+   - No migration path defined for:
+     - Converting varchar prices to decimal
+     - Migrating positions table data
+     - Migrating equityCurve table data
+     - Migrating analytics table data
+     - Migrating webhookLogs table data
+   - **Impact**: Risk of data loss without careful migration plan
+   - **Severity**: BLOCKER
+
+4. **MAJOR: Deployment Strategy Unclear**
+   - GitHub repo is standalone monorepo with pnpm workspaces
+   - Manus project is Manus-managed web-db-user template
+   - **Question**: Should we:
+     - A) Copy files from GitHub to Manus project (requires restructuring)
+     - B) Deploy GitHub repo as-is to Manus (requires Manus to support monorepo structure)
+     - C) Merge features incrementally (safest but slowest)
+   - **Severity**: BLOCKER
 
 **Approved for Merge?**
-- ⏳ Pending testing
+- ❌ **NOT APPROVED** - Multiple critical blockers must be resolved first
+- ✅ Code quality is excellent (lint/typecheck pass)
+- ❌ Cannot deploy due to structural incompatibilities
+- ❌ Cannot migrate database without data loss risk
+
+**Recommendation**: Need strategic decision on deployment approach before proceeding
 
 ---
 
