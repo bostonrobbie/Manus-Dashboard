@@ -322,6 +322,27 @@ Add 4 missing frontend components from GitHub repo to Manus.
 **Notes:**
 - Admin operations remain stubbed (return NOT_FOUND) pending Manus feature parity; health/auth debugging now only reports user header.
 
+### ✅ Session 6 (Dec 3, 2025)
+
+**Completed Tasks:**
+- Fixed MySQL pooling by importing from `mysql2/promise`, creating the pool with `{ uri: env.databaseUrl }`, and sharing it with Drizzle.
+- Added `pingDatabaseOnce` to sanity-check connections and updated health checks to wrap responses in try/catch so `/health` and `/health/full` return promptly with error details instead of hanging.
+- Verified the server dev startup path and health endpoints respond without blocking even when `DATABASE_URL` is absent.
+
+**Files Changed:**
+- `server/db.ts`
+- `server/health.ts`
+
+**Commands Run:**
+- `pnpm install` (pass)
+- `pnpm lint` (pass)
+- `pnpm typecheck` (pass)
+- `pnpm test:all` (pass)
+- `pnpm --filter server dev` (manual; confirmed /health and /health/full respond within 1 second)
+
+**Notes:**
+- Health endpoints now surface database connectivity errors immediately and no longer hang during pool creation.
+
 ---
 
 ## COMPLETED BY MANUS
