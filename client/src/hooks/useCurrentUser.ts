@@ -10,8 +10,7 @@ export function useCurrentUser() {
       ? {
           id: user.id,
           email: user.email,
-          role: user.role ?? "USER",
-          workspaceId: user.workspaceId,
+          role: user.role ?? "user",
         }
       : null,
   };

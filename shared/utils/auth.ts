@@ -1,7 +1,6 @@
-import type { SharedAuthUser, WorkspaceRole } from "@shared/types/auth";
-import type { WorkspaceSummary } from "@shared/types/workspace";
+import type { SharedAuthUser } from "@shared/types/auth";
 
-const ADMIN_ROLE_CLAIMS = ["admin", "owner", "superuser", "platform-admin", "workspace-admin", "org-admin"];
+const ADMIN_ROLE_CLAIMS = ["admin", "superuser", "platform-admin", "org-admin"];
 
 /**
  * Determine whether a user should be treated as an admin.
@@ -20,26 +19,14 @@ export function isAdminUser(user: Pick<SharedAuthUser, "roles"> | null | undefin
   return normalized.some(role => ADMIN_ROLE_CLAIMS.includes(role) || role.includes("admin"));
 }
 
-const WORKSPACE_ROLE_ORDER: WorkspaceRole[] = ["viewer", "editor", "admin", "owner"];
-
-export function getWorkspaceRole(
-  user: Pick<SharedAuthUser, "id" | "workspaceRole" | "workspaceId"> | null | undefined,
-  workspace: Pick<WorkspaceSummary, "id"> & { ownerUserId?: number | null },
-): WorkspaceRole {
-  if (!user) return "viewer";
-  if (workspace.ownerUserId != null && workspace.ownerUserId === user.id) return "owner";
-  return user.workspaceId === workspace.id ? user.workspaceRole ?? "viewer" : "viewer";
+export function getWorkspaceRole() {
+  return "viewer" as const;
 }
 
-export function isWorkspaceOwner(
-  user: Pick<SharedAuthUser, "id"> | null | undefined,
-  workspace: Pick<WorkspaceSummary, "id"> & { ownerUserId?: number | null },
-): boolean {
-  if (!user) return false;
-  return workspace.ownerUserId != null && workspace.ownerUserId === user.id;
+export function isWorkspaceOwner() {
+  return false;
 }
 
-export function canWriteToWorkspace(role: WorkspaceRole | null | undefined): boolean {
-  if (!role) return false;
-  return WORKSPACE_ROLE_ORDER.indexOf(role) >= WORKSPACE_ROLE_ORDER.indexOf("editor");
+export function canWriteToWorkspace() {
+  return false;
 }

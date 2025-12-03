@@ -1,7 +1,7 @@
 import type { AuthUser } from "./types";
 import type { UserRole } from "@shared/types/auth";
 
-const ADMIN_ROLE_CLAIMS = ["admin", "owner", "superuser", "platform-admin", "workspace-admin", "org-admin"];
+const ADMIN_ROLE_CLAIMS = ["admin", "superuser", "platform-admin", "org-admin"];
 
 export function isAdmin(user: AuthUser | null | undefined): boolean {
   if (!user) return false;
@@ -15,4 +15,4 @@ export function isAdmin(user: AuthUser | null | undefined): boolean {
   return normalized.some(role => ADMIN_ROLE_CLAIMS.includes(role) || role.includes("admin"));
 }
 
-export const hasElevatedRole = (role?: UserRole | null) => role === "OWNER" || role === "ADMIN";
+export const hasElevatedRole = (role?: UserRole | null) => role === "admin";

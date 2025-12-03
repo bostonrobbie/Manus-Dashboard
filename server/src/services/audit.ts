@@ -5,8 +5,6 @@ const logger = createLogger("audit");
 
 export interface AuditLogInput {
   userId: number;
-  ownerId?: number;
-  workspaceId: number;
   action: string;
   entityType: string;
   entityId?: string | number | null;
@@ -23,8 +21,6 @@ export async function logAudit(entry: AuditLogInput): Promise<void> {
   if (!db) {
     logger.warn("Audit log skipped; database unavailable", {
       action: entry.action,
-      workspaceId: entry.workspaceId,
-      ownerId: entry.ownerId,
     });
     return;
   }
@@ -32,7 +28,6 @@ export async function logAudit(entry: AuditLogInput): Promise<void> {
   try {
     await db.insert(schema.auditLogs).values({
       userId: entry.userId,
-      workspaceId: entry.workspaceId,
       action: entry.action,
       entityType: entry.entityType,
       entityId: entry.entityId != null ? String(entry.entityId) : null,
@@ -41,7 +36,6 @@ export async function logAudit(entry: AuditLogInput): Promise<void> {
   } catch (error) {
     logger.error("Failed to write audit log", {
       action: entry.action,
-      workspaceId: entry.workspaceId,
       error: (error as Error).message,
     });
   }

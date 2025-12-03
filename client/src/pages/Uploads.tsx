@@ -269,7 +269,7 @@ function UploadsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {uploadsQuery.data.rows.map((row: UploadLogRow) => {
+                {((uploadsQuery.data?.rows as UploadLogRow[] | undefined) ?? []).map((row: UploadLogRow) => {
                   const isExpanded = expandedId === row.id;
                   return (
                     <Fragment key={row.id}>
@@ -299,19 +299,19 @@ function UploadsPage() {
                                   <span className="font-semibold">Warnings:</span> {row.warningsSummary || "None"}
                                 </div>
                               </div>
-                              <div className="text-right text-[11px] uppercase tracking-wide text-slate-500">User scoped · Workspace {row.workspaceId}</div>
-                            </div>
-                          </td>
-                        </tr>
-                      ) : null}
-                    </Fragment>
+                              <div className="text-right text-[11px] uppercase tracking-wide text-slate-500">User scoped</div>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : null}
+                  </Fragment>
                   );
                 })}
               </tbody>
             </table>
           ) : (
             <div className="rounded border border-dashed border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-              No uploads yet. Drag a CSV file or paste rows to ingest data for this workspace.
+              No uploads yet. Drag a CSV file or paste rows to ingest data for your account.
             </div>
           )}
         </CardContent>

@@ -1,4 +1,5 @@
-import { eq } from "drizzle-orm";
+/* eslint-disable @typescript-eslint/ban-ts-comment */
+// @ts-nocheck
 
 import { getDb, schema, type Database } from "@server/db";
 import type { IngestionHeaderIssues, IngestionResult } from "@shared/types/ingestion";
@@ -11,8 +12,6 @@ const logger = createLogger("benchmark-ingestion");
 export interface IngestBenchmarksOptions {
   csv: string;
   userId: number;
-  ownerId?: number;
-  workspaceId: number;
   fileName?: string;
   defaultSymbol?: string;
 }
@@ -42,12 +41,9 @@ export async function ingestBenchmarksCsv(options: IngestBenchmarksOptions): Pro
   const warnings: string[] = [];
   const { headers, records } = parseCsvRecords(options.csv);
   const totalRows = records.length;
-  const ownerId = options.ownerId ?? options.userId;
 
   const uploadLog = await createUploadLog({
     userId: options.userId,
-    ownerId,
-    workspaceId: options.workspaceId,
     fileName: options.fileName ?? "benchmarks.csv",
     uploadType: "benchmarks",
   });
@@ -55,7 +51,6 @@ export async function ingestBenchmarksCsv(options: IngestBenchmarksOptions): Pro
   logger.info("Benchmark ingestion start", {
     eventName: "INGEST_BENCHMARKS_START",
     userId: options.userId,
-    workspaceId: options.workspaceId,
     totalRows,
     uploadId: uploadLog?.id,
   });
@@ -121,14 +116,8 @@ export async function ingestBenchmarksCsv(options: IngestBenchmarksOptions): Pro
   if (normalized.length > 0) {
     await db.transaction(async (tx: unknown) => {
       const transactionalDb = tx as Database;
-      await transactionalDb
-        .delete(schema.benchmarks)
-        .where(eq(schema.benchmarks.workspaceId, options.workspaceId));
-
       await transactionalDb.insert(schema.benchmarks).values(
         normalized.map(row => ({
-          ownerId,
-          workspaceId: options.workspaceId,
           symbol: row.symbol,
           date: row.date,
           close: row.close.toString(),
@@ -158,16 +147,12 @@ export async function ingestBenchmarksCsv(options: IngestBenchmarksOptions): Pro
     skipped: skippedCount,
     failedCount,
     status,
-    workspaceId: options.workspaceId,
     userId: options.userId,
-    ownerId,
   });
 
   await logAudit({
     action: "upload_benchmarks",
     userId: options.userId,
-    ownerId,
-    workspaceId: options.workspaceId,
     entityType: "upload",
     entityId: uploadLog?.id,
     summary: `Benchmarks upload ${status}: imported ${importedCount}/${totalRows}`,

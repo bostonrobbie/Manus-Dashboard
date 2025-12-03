@@ -17,7 +17,7 @@ const migrationsPath = path.resolve(baseDir, "drizzle/migrations");
 module.exports = defineConfig({
   schema: schemaPath,
   out: migrationsPath,
-  dialect: "postgresql",
+  dialect: "mysql",
   dbCredentials: {
     url: databaseUrl,
   },

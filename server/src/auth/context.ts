@@ -11,7 +11,6 @@ export const MOCK_AUTH_USER: AuthUser = {
   id: 1,
   email: "local@test",
   name: "Local Dev",
-  workspaceId: 1,
   roles: ["mock"],
   source: "local",
 };
@@ -20,7 +19,6 @@ export const MANUS_FALLBACK_USER: AuthUser = {
   id: -1,
   email: "mock@manus.local",
   name: "Manus Mock",
-  workspaceId: -1,
   roles: ["mock"],
   source: "manus",
 };
@@ -75,7 +73,6 @@ export async function createContext(opts: CreateExpressContextOptions) {
         id: record.id,
         email: record.email,
         role: record.role,
-        workspaceId: auth.user.workspaceId ?? record.workspaceId ?? undefined,
         authProvider: record.authProvider ?? auth.user.source,
         authProviderId: record.authProviderId ?? undefined,
       };
@@ -93,6 +90,6 @@ const inferRoleFromAuthUser = (user: AuthUser | null): UserRole | undefined => {
   if (!user) return undefined;
   if (user.role) return user.role as UserRole;
   const fromRoles = user.roles?.find(role => role && role.toLowerCase().includes("admin"));
-  if (fromRoles) return "ADMIN";
+  if (fromRoles) return "admin";
   return undefined;
 };
