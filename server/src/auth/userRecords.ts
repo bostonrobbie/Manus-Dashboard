@@ -11,7 +11,6 @@ export interface ResolvedUserRecord {
   id: number;
   email: string;
   name?: string | null;
-  workspaceId?: number | null;
   role: UserRole;
   authProvider?: string | null;
   authProviderId?: string | null;
@@ -21,12 +20,9 @@ const normalizeEmail = (user: AuthUser) =>
   user.email?.trim() || `user-${user.id ?? "unknown"}@local.invalid`;
 
 const normalizeRole = (role?: string | null): UserRole => {
-  if (!role) return "USER";
-  const upper = role.toUpperCase();
-  if (upper === "OWNER") return "OWNER";
-  if (upper === "ADMIN") return "ADMIN";
-  if (upper === "VIEWER") return "VIEWER";
-  return "USER";
+  if (!role) return "user";
+  const lower = role.toLowerCase();
+  return lower === "admin" ? "admin" : "user";
 };
 
 export async function ensureUserRecord(authUser: AuthUser): Promise<ResolvedUserRecord | null> {
@@ -36,7 +32,6 @@ export async function ensureUserRecord(authUser: AuthUser): Promise<ResolvedUser
   const email = normalizeEmail(authUser);
   const provider = authUser.source ?? "manus";
   const providerId = authUser.id != null ? String(authUser.id) : authUser.email ?? undefined;
-  const desiredWorkspaceId = authUser.workspaceId ?? 1;
 
   const [existing] = await db
     .select()
@@ -56,7 +51,6 @@ export async function ensureUserRecord(authUser: AuthUser): Promise<ResolvedUser
       id: (existing as any).id,
       email: (existing as any).email,
       name: (existing as any).name,
-      workspaceId: (existing as any).workspaceId,
       role: normalizedRole,
       authProvider: (existing as any).authProvider,
       authProviderId: (existing as any).authProviderId,
@@ -64,20 +58,30 @@ export async function ensureUserRecord(authUser: AuthUser): Promise<ResolvedUser
   }
 
   const [{ count }] = await db.select({ count: sql<number>`count(*)` }).from(schema.users);
-  const role: UserRole = Number(count) === 0 ? "OWNER" : "USER";
+  const role: UserRole = Number(count) === 0 ? "admin" : "user";
 
-  const [created] = await db
-    .insert(schema.users)
-    .values({
-      openId: providerId ?? email,
-      email,
-      name: authUser.name,
-      workspaceId: desiredWorkspaceId,
-      role,
-      authProvider: provider,
-      authProviderId: providerId,
-    })
-    .returning();
+  const createdId = Number(
+    (await db
+      .insert(schema.users)
+      .values({
+        openId: providerId ?? email,
+        email,
+        name: authUser.name,
+        role,
+        authProvider: provider,
+        authProviderId: providerId,
+      })
+      .$returningId?.())?.[0] ?? 0,
+  );
+
+  const created: ResolvedUserRecord = {
+    id: createdId,
+    email,
+    name: authUser.name,
+    role,
+    authProvider: provider,
+    authProviderId: providerId,
+  };
 
   logger.info("Created user record", { email, role });
 
@@ -85,7 +89,6 @@ export async function ensureUserRecord(authUser: AuthUser): Promise<ResolvedUser
     id: created.id,
     email: created.email,
     name: created.name,
-    workspaceId: created.workspaceId,
     role: normalizeRole((created as any).role),
     authProvider: created.authProvider,
     authProviderId: created.authProviderId,

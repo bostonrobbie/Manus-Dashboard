@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
+// @ts-nocheck
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 

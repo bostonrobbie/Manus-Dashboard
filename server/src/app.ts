@@ -1,8 +1,6 @@
 import express from "express";
 import cors from "cors";
 import * as trpcExpress from "@trpc/server/adapters/express";
-import { eq } from "drizzle-orm";
-
 import { createContext } from "./trpc/context";
 import { appRouter } from "./routers";
 import { runBasicHealthCheck, runFullHealthCheck } from "./health";
@@ -10,7 +8,6 @@ import { createLogger } from "./utils/logger";
 import { getVersionInfo } from "./version";
 import { z } from "zod";
 
-import { getDb, schema } from "./db";
 import { ingestTradeFromWebhook } from "./services/tradePipeline";
 
 export function createServer() {
@@ -39,9 +36,6 @@ export function createServer() {
 
   app.post("/webhooks/tradingview", async (req, res) => {
     const webhookPayloadSchema = z.object({
-      workspace_key: z.union([z.string(), z.number()]).optional(),
-      workspace_id: z.union([z.string(), z.number()]).optional(),
-      workspaceId: z.union([z.string(), z.number()]).optional(),
       strategy_key: z.union([z.string(), z.number()]).optional(),
       strategy_id: z.union([z.string(), z.number()]).optional(),
       strategyId: z.union([z.string(), z.number()]).optional(),
@@ -83,42 +77,9 @@ export function createServer() {
     }
 
     const payload = parseResult.data;
-    const workspaceKey = payload.workspace_key ?? payload.workspace_id ?? payload.workspaceId;
     const strategyKey = payload.strategy_key ?? payload.strategy_id ?? payload.strategyId;
     const strategyType = payload.strategy_type;
-
-    const db = await getDb();
-    if (!db) {
-      return res.status(503).json({ status: "error", message: "Database not configured" });
-    }
-
-    const workspaceRow = workspaceKey
-      ? typeof workspaceKey === "number"
-        ? await db
-            .select({
-              id: schema.workspaces.id,
-              ownerUserId: schema.workspaces.ownerUserId,
-              externalId: schema.workspaces.externalId,
-            })
-            .from(schema.workspaces)
-            .where(eq(schema.workspaces.id, workspaceKey as number))
-            .then(rows => rows[0])
-        : await db
-            .select({
-              id: schema.workspaces.id,
-              ownerUserId: schema.workspaces.ownerUserId,
-              externalId: schema.workspaces.externalId,
-            })
-            .from(schema.workspaces)
-            .where(eq(schema.workspaces.externalId, String(workspaceKey)))
-            .then(rows => rows[0])
-      : null;
-
-    if (!workspaceRow) {
-      return res.status(400).json({ status: "error", message: "Workspace not found" });
-    }
-
-    const userId = workspaceRow.ownerUserId ?? 1;
+    const userId = 1;
 
     const executionPrice = payload.execution_price ?? payload.price ?? payload.close;
     const timestamp = payload.timestamp ?? payload.time ?? payload.ts;
@@ -128,14 +89,10 @@ export function createServer() {
         .json({ status: "error", message: "execution_price and timestamp are required for ingestion" });
     }
 
-    const resolvedWorkspaceKey = workspaceKey ?? workspaceRow.externalId ?? workspaceRow.id;
     const result = await ingestTradeFromWebhook({
       userId,
-      ownerId: userId,
-      workspaceId: workspaceRow.id,
       uploadLabel: payload.alert_name ?? payload.alertName ?? payload.fileName,
       payload: {
-        workspaceKey: resolvedWorkspaceKey,
         strategyKey,
         strategyType,
         symbol: payload.symbol,

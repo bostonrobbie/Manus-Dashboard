@@ -7,8 +7,6 @@ export type UploadType = "trades" | "benchmarks" | "equity";
 
 export interface UploadLogInput {
   userId: number;
-  ownerId?: number;
-  workspaceId: number;
   fileName: string;
   uploadType: UploadType;
 }
@@ -27,55 +25,54 @@ export async function createUploadLog(input: UploadLogInput) {
   const db = await getDb();
   if (!db) return null;
 
-  const [log] = await db
+  const [id] = (await db
     .insert(schema.uploadLogs)
     .values({
       userId: input.userId,
-      ownerId: input.ownerId ?? input.userId,
-      workspaceId: input.workspaceId,
       fileName: input.fileName,
       uploadType: input.uploadType,
       status: "pending",
       startedAt: new Date(),
     })
-    .returning();
+    .$returningId?.()) ?? [];
 
-  return log;
+  return {
+    id: id ?? 0,
+    userId: input.userId,
+    fileName: input.fileName,
+    uploadType: input.uploadType,
+    status: "pending",
+    startedAt: new Date(),
+    rowCountTotal: 0,
+    rowCountImported: 0,
+    rowCountFailed: 0,
+  } as const;
 }
 
 export async function updateUploadLog(id: number, update: UploadLogUpdate) {
   const db = await getDb();
   if (!db) return null;
 
-  const [log] = await db
+  await db
     .update(schema.uploadLogs)
     .set({ ...update, finishedAt: update.finishedAt ?? new Date() })
-    .where(eq(schema.uploadLogs.id, id))
-    .returning();
+    .where(eq(schema.uploadLogs.id, id));
 
-  return log;
+  const [log] = await db.select().from(schema.uploadLogs).where(eq(schema.uploadLogs.id, id));
+  return log ?? null;
 }
 
-export async function getUploadLogById(params: { id: number; userId: number; workspaceId?: number }) {
+export async function getUploadLogById(params: { id: number; userId: number }) {
   const db = await getDb();
   if (!db) return null;
 
-  const predicates = [eq(schema.uploadLogs.id, params.id), eq(schema.uploadLogs.ownerId, params.userId)];
-  if (params.workspaceId != null) {
-    predicates.push(eq(schema.uploadLogs.workspaceId, params.workspaceId));
-  }
-
-  const [log] = await db
-    .select()
-    .from(schema.uploadLogs)
-    .where(and(...predicates));
+  const [log] = await db.select().from(schema.uploadLogs).where(and(eq(schema.uploadLogs.id, params.id), eq(schema.uploadLogs.userId, params.userId)));
 
   return log ?? null;
 }
 
 export async function listUploadLogs(params: {
   userId: number;
-  workspaceId?: number;
   page: number;
   pageSize: number;
   uploadType?: UploadType;
@@ -86,10 +83,7 @@ export async function listUploadLogs(params: {
     return { rows: [], total: 0 };
   }
 
-  const predicates = [eq(schema.uploadLogs.ownerId, params.userId)];
-  if (params.workspaceId != null) {
-    predicates.push(eq(schema.uploadLogs.workspaceId, params.workspaceId));
-  }
+  const predicates = [eq(schema.uploadLogs.userId, params.userId)];
   if (params.uploadType) {
     predicates.push(eq(schema.uploadLogs.uploadType, params.uploadType));
   }

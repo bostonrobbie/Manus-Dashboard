@@ -157,9 +157,6 @@ function SettingsPage() {
                   <ul className="mt-1 space-y-1">
                     <li>ID: {authDetails.parsedUser.id}</li>
                     <li>Email: {authDetails.parsedUser.email}</li>
-                    {authDetails.parsedUser.workspaceId ? (
-                      <li>Workspace: {authDetails.parsedUser.workspaceId}</li>
-                    ) : null}
                   </ul>
                 ) : (
                   <p className="mt-1 text-slate-600">No user parsed from headers.</p>

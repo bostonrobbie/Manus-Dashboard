@@ -5,7 +5,6 @@ import { authedProcedure, router } from "@server/trpc/router";
 import { getUploadLogById, listUploadLogs } from "@server/services/uploadLogs";
 import { TIME_RANGE_PRESETS, deriveDateRangeFromTimeRange } from "@server/utils/timeRange";
 import type { UploadLogRow } from "@shared/types/uploads";
-import { requireWorkspaceAccess } from "@server/auth/workspaceAccess";
 import { requireUser } from "@server/trpc/authHelpers";
 
 const uploadStatus = z.enum(["pending", "success", "partial", "failed"]);
@@ -32,10 +31,6 @@ export const uploadsRouter = router({
     )
     .query(async ({ ctx, input }) => {
       const user = requireUser(ctx as any);
-      const { workspaceId } = await (async () => {
-        const access = await requireWorkspaceAccess(user, "read");
-        return { workspaceId: access.workspace?.id ?? user.workspaceId };
-      })();
       const params = {
         page: input?.page ?? 1,
         pageSize: input?.pageSize ?? 10,
@@ -47,7 +42,6 @@ export const uploadsRouter = router({
 
       const result = await listUploadLogs({
         userId: user.id,
-        workspaceId,
         page: params.page,
         pageSize: params.pageSize,
         uploadType: params.uploadType,
@@ -66,11 +60,7 @@ export const uploadsRouter = router({
     .input(z.object({ id: z.number().int() }))
     .query(async ({ ctx, input }) => {
       const user = requireUser(ctx as any);
-      const { workspaceId } = await (async () => {
-        const access = await requireWorkspaceAccess(user, "read");
-        return { workspaceId: access.workspace?.id ?? user.workspaceId };
-      })();
-      const log = await getUploadLogById({ id: input.id, userId: user.id, workspaceId });
+      const log = await getUploadLogById({ id: input.id, userId: user.id });
       if (!log) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Upload not found" });
       }

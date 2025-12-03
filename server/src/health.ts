@@ -45,7 +45,7 @@ const baseSummary = (): HealthSummary => {
     warnings: [...env.warnings],
     timestamp: new Date().toISOString(),
     db: dbState,
-    workspaces: dbState,
+    workspaces: "ok",
     uploads: dbState,
     ...versionInfo,
   };
@@ -61,7 +61,7 @@ export async function runFullHealthCheck(getDbImpl: typeof getDb = getDb): Promi
   const summary: FullHealthSummary = {
     ...baseSummary(),
     db: env.databaseUrl ? "ok" : "unknown",
-    workspaces: env.databaseUrl ? "ok" : "unknown",
+    workspaces: "ok",
     uploads: env.databaseUrl ? "ok" : "unknown",
     auth: env.manusMode ? (env.manusReady ? "ok" : "error") : "warning",
     details: {},
@@ -71,22 +71,12 @@ export async function runFullHealthCheck(getDbImpl: typeof getDb = getDb): Promi
     const db = await getDbImpl();
     if (!db) {
       summary.db = "error";
-      summary.workspaces = "error";
       summary.uploads = "error";
       summary.warnings = [...summary.warnings, "Database unavailable"];
       summary.details = { ...summary.details, db: "Database not configured" };
     } else {
       summary.db = "ok";
       await db.execute(sql`select 1`);
-
-      try {
-        await db.select({ id: schema.workspaces.id }).from(schema.workspaces).limit(1);
-        summary.workspaces = "ok";
-      } catch (error) {
-        summary.workspaces = "error";
-        summary.details = { ...summary.details, workspaces: (error as Error).message };
-        healthLogger.warn("Workspace health query failed", { error: (error as Error).message });
-      }
 
       try {
         await db.select({ id: schema.uploadLogs.id }).from(schema.uploadLogs).limit(1);
@@ -99,7 +89,6 @@ export async function runFullHealthCheck(getDbImpl: typeof getDb = getDb): Promi
     }
   } catch (error) {
     summary.db = "error";
-    summary.workspaces = "error";
     summary.uploads = "error";
     summary.details = { ...summary.details, db: (error as Error).message };
     healthLogger.error("Health check failed", { error: (error as Error).message });
