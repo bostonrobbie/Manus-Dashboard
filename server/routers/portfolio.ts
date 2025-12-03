@@ -4,6 +4,7 @@ import {
   ENGINE_CONFIG,
   buildAggregatedEquityCurve,
   buildDrawdownCurves,
+  buildPortfolioOverview,
   computeDailyReturns,
   computeSharpeRatio,
   loadStrategies,
@@ -25,7 +26,7 @@ import {
   getStrategyAnalytics,
   ingestTradesFromCsv,
 } from "../services/tradePipeline";
-import type { EquityCurvePoint, TimeRange } from "@shared/types/portfolio";
+import type { EquityCurvePoint, TimeRange, TradeRow } from "@shared/types/portfolio";
 
 const finiteNumber = z.number().finite();
 const equityPointSchema = z.object({
@@ -58,6 +59,23 @@ const workspaceMetricsSchema = z.object({
   profitFactor: finiteNumber,
   expectancyPerTrade: finiteNumber,
   alpha: finiteNumber.nullable(),
+});
+const emptyWorkspaceMetrics = workspaceMetricsSchema.parse({
+  totalReturnPct: 0,
+  cagrPct: 0,
+  volatilityPct: 0,
+  sharpe: 0,
+  sortino: 0,
+  calmar: 0,
+  maxDrawdownPct: 0,
+  winRatePct: 0,
+  lossRatePct: 0,
+  avgWin: 0,
+  avgLoss: 0,
+  payoffRatio: 0,
+  profitFactor: 0,
+  expectancyPerTrade: 0,
+  alpha: null,
 });
 const overviewSchema = z.object({
   equity: finiteNumber,
@@ -189,6 +207,31 @@ const homeOverviewSchema = z.object({
   openRisk: finiteNumber.nullable(),
   accountValue: finiteNumber.nullable(),
   dataHealth: overviewHealthSchema,
+});
+
+const equityCurveResponseSchema = z.object({ points: z.array(equityPointSchema) });
+
+const positionSchema = z.object({
+  symbol: z.string(),
+  strategyId: z.number().int().nullable(),
+  side: z.enum(["long", "short", "flat"]),
+  quantity: finiteNumber,
+  avgEntry: finiteNumber,
+  marketValue: finiteNumber,
+  unrealizedPnl: finiteNumber,
+  realizedPnl: finiteNumber,
+  lastTradeAt: z.string(),
+  status: z.enum(["open", "closed"]),
+});
+
+const positionsResponseSchema = z.object({ positions: z.array(positionSchema) });
+
+const analyticsPayloadSchema = z.object({
+  metrics: workspaceMetricsSchema,
+  equityCurve: z.array(equityPointSchema),
+  drawdowns: z.array(drawdownPointSchema),
+  dailyReturns: z.array(finiteNumber),
+  tradeCount: z.number().int(),
 });
 
 const strategyEquityPointSchema = z.object({ date: z.string(), equity: finiteNumber });
@@ -352,6 +395,7 @@ export const portfolioRouter = router({
         .object({
           dateRange: dateRangeSchema,
           timeRange: timeRangeInput,
+          strategyId: z.number().int().nullable().optional(),
         })
         .optional(),
     )
@@ -360,8 +404,9 @@ export const portfolioRouter = router({
       const { user } = await resolveScope(ctx);
       const scope = { userId: user.id };
       const range = resolveDateRange({ ...input?.dateRange, timeRange: input?.timeRange });
+      const strategyFilter = input?.strategyId ? [input.strategyId] : undefined;
       try {
-        const trades = await loadTrades(scope);
+        const trades = await loadTrades(scope, { strategyIds: strategyFilter });
         const tradesInRange = trades.filter(trade => {
           const exitDate = trade.exitTime.slice(0, 10);
           if (range.startDate && exitDate < range.startDate) return false;
@@ -372,6 +417,7 @@ export const portfolioRouter = router({
         const equityCurve = await buildAggregatedEquityCurve(scope, {
           startDate: range.startDate,
           endDate: range.endDate,
+          strategyIds: strategyFilter ?? undefined,
         });
 
         const pnlSeries = buildCumulativePnlSeries(tradesInRange, range);
@@ -667,6 +713,115 @@ export const portfolioRouter = router({
         contributions: result.contributions.map(c => customPortfolioContributionSchema.parse(c)),
       };
     }),
+  getEquityCurve: protectedProcedure
+    .input(
+      z
+        .object({
+          startDate: z.string().optional(),
+          endDate: z.string().optional(),
+          timeRange: timeRangeInput,
+          maxPoints: z.number().int().min(10).max(5000).optional(),
+          strategyId: z.number().int().nullable().optional(),
+        })
+        .optional(),
+    )
+    .output(equityCurveResponseSchema)
+    .mutation(async ({ ctx, input }) => {
+      const { user } = await resolveScope(ctx);
+      const scope = { userId: user.id };
+      const range = resolveDateRange({
+        startDate: input?.startDate,
+        endDate: input?.endDate,
+        timeRange: input?.timeRange,
+      });
+      const strategyFilter = input?.strategyId ? [input.strategyId] : undefined;
+      const result = await buildAggregatedEquityCurve(scope, {
+        startDate: range.startDate,
+        endDate: range.endDate,
+        maxPoints: input?.maxPoints ?? 1000,
+        strategyIds: strategyFilter,
+      });
+
+      return equityCurveResponseSchema.parse(result);
+    }),
+  getPositions: protectedProcedure
+    .input(
+      z
+        .object({
+          strategyId: z.number().int().nullable().optional(),
+          timeRange: timeRangeInput,
+          startDate: z.string().optional(),
+          endDate: z.string().optional(),
+        })
+        .optional(),
+    )
+    .output(positionsResponseSchema)
+    .mutation(async ({ ctx, input }) => {
+      const { user } = await resolveScope(ctx);
+      const scope = { userId: user.id };
+      const range = resolveDateRange({
+        startDate: input?.startDate,
+        endDate: input?.endDate,
+        timeRange: input?.timeRange,
+      });
+      const strategyFilter = input?.strategyId ? [input.strategyId] : undefined;
+      const trades = await loadTrades(scope, {
+        startDate: range.startDate,
+        endDate: range.endDate,
+        strategyIds: strategyFilter,
+      });
+
+      return positionsResponseSchema.parse({ positions: buildPositions(trades) });
+    }),
+  getAnalytics: protectedProcedure
+    .input(
+      z
+        .object({
+          startDate: z.string().optional(),
+          endDate: z.string().optional(),
+          timeRange: timeRangeInput,
+          maxPoints: z.number().int().min(10).max(5000).optional(),
+          strategyId: z.number().int().nullable().optional(),
+        })
+        .optional(),
+    )
+    .output(analyticsPayloadSchema)
+    .mutation(async ({ ctx, input }) => {
+      const { user } = await resolveScope(ctx);
+      const scope = { userId: user.id };
+      const range = resolveDateRange({
+        startDate: input?.startDate,
+        endDate: input?.endDate,
+        timeRange: input?.timeRange,
+      });
+      const strategyFilter = input?.strategyId ? [input.strategyId] : undefined;
+      const [equityCurve, drawdowns, overview] = await Promise.all([
+        buildAggregatedEquityCurve(scope, {
+          startDate: range.startDate,
+          endDate: range.endDate,
+          maxPoints: input?.maxPoints ?? 1000,
+          strategyIds: strategyFilter,
+        }),
+        buildDrawdownCurves(scope, {
+          startDate: range.startDate,
+          endDate: range.endDate,
+          maxPoints: input?.maxPoints ?? 1000,
+          strategyIds: strategyFilter,
+        }),
+        buildPortfolioOverview(scope, { startDate: range.startDate, endDate: range.endDate, strategyIds: strategyFilter }),
+      ]);
+
+      const metrics = overview.metrics ?? emptyWorkspaceMetrics;
+      const dailyReturns = computeDailyReturns(equityCurve.points, ENGINE_CONFIG.initialCapital);
+
+      return analyticsPayloadSchema.parse({
+        metrics,
+        equityCurve: equityCurve.points,
+        drawdowns: drawdowns.points,
+        dailyReturns,
+        tradeCount: overview.totalTrades,
+      });
+    }),
   summary: protectedProcedure
     .input(
       z
@@ -840,3 +995,69 @@ export const portfolioRouter = router({
       ),
     ),
 });
+
+function buildPositions(trades: TradeRow[]) {
+  const grouped = new Map<
+    string,
+    {
+      symbol: string;
+      strategyId: number | null;
+      totalQty: number;
+      totalAbsQty: number;
+      entryNotional: number;
+      realizedPnl: number;
+      lastPrice: number;
+      lastTradeAt: string;
+    }
+  >();
+
+  for (const trade of trades) {
+    const key = `${trade.strategyId ?? ""}::${trade.symbol}`;
+    const qty = Number(trade.quantity) || 0;
+    const entryPrice = Number(trade.entryPrice) || 0;
+    const exitPrice = Number(trade.exitPrice) || 0;
+    const signedQty = trade.side.toLowerCase() === "short" ? -qty : qty;
+    const pnl = tradePnl(trade.side, entryPrice, exitPrice, qty);
+
+    const existing = grouped.get(key) ?? {
+      symbol: trade.symbol,
+      strategyId: trade.strategyId ?? null,
+      totalQty: 0,
+      totalAbsQty: 0,
+      entryNotional: 0,
+      realizedPnl: 0,
+      lastPrice: exitPrice,
+      lastTradeAt: trade.exitTime,
+    };
+
+    existing.totalQty += signedQty;
+    existing.totalAbsQty += Math.abs(qty);
+    existing.entryNotional += Math.abs(qty) * entryPrice;
+    existing.realizedPnl += pnl;
+    existing.lastPrice = exitPrice;
+    existing.lastTradeAt = trade.exitTime;
+
+    grouped.set(key, existing);
+  }
+
+  return Array.from(grouped.values())
+    .map(position => {
+      const avgEntry = position.totalAbsQty > 0 ? position.entryNotional / position.totalAbsQty : 0;
+      const side = position.totalQty > 0 ? "long" : position.totalQty < 0 ? "short" : "flat";
+      const marketValue = position.lastPrice * position.totalQty;
+
+      return positionSchema.parse({
+        symbol: position.symbol,
+        strategyId: position.strategyId,
+        side,
+        quantity: position.totalQty,
+        avgEntry,
+        marketValue,
+        unrealizedPnl: 0,
+        realizedPnl: position.realizedPnl,
+        lastTradeAt: position.lastTradeAt,
+        status: position.totalQty === 0 ? "closed" : "open",
+      });
+    })
+    .sort((a, b) => b.lastTradeAt.localeCompare(a.lastTradeAt));
+}

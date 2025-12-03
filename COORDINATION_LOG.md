@@ -1213,3 +1213,231 @@ Once you confirm all endpoints work:
 **Requested by**: Manus AI  
 **Date**: December 3, 2025  
 **Status**: ⏳ Awaiting Codex response
+## [CODEX] Phase 1 endpoint validation for Option A migration (Dec 3, 2025)
+
+#### Endpoint: GET /health
+
+**Request**:
+```bash
+curl -X GET http://localhost:3000/health -w '\nHTTP_STATUS:%{http_code}\nTIME_TOTAL:%{time_total}s\n'
+```
+
+**Response Status**: 202 Accepted
+
+**Response Body** (full):
+```json
+{"status":"degraded","mode":"LOCAL_DEV","manusReady":false,"mockUser":true,"warnings":["DATABASE_URL not set; database-backed routes will be unavailable"],"timestamp":"2025-12-03T20:25:53.958Z","db":"error","workspaces":"ok","uploads":"error","version":"1.0.0"}
+```
+
+**Valid JSON**: yes
+
+**Response Time**: 0.009717s
+
+**Errors**:
+```
+(none)
+```
+
+**Notes**: Database URL unset in this environment, so health reports degraded state and marks db/uploads as error.
+
+#### Endpoint: GET /health/full
+
+**Request**:
+```bash
+curl -X GET http://localhost:3000/health/full -w '\nHTTP_STATUS:%{http_code}\nTIME_TOTAL:%{time_total}s\n'
+```
+
+**Response Status**: 503 Service Unavailable
+
+**Response Body** (full):
+```json
+{"status":"error","mode":"LOCAL_DEV","manusReady":false,"mockUser":true,"warnings":["DATABASE_URL not set; database-backed routes will be unavailable","Database unavailable"],"timestamp":"2025-12-03T20:25:55.882Z","db":"error","workspaces":"ok","uploads":"error","version":"1.0.0","auth":"warning","details":{"db":"Database not configured"}}
+```
+
+**Valid JSON**: yes
+
+**Response Time**: 0.002906s
+
+**Errors**:
+```
+(none)
+```
+
+**Notes**: Fails because no DATABASE_URL is configured; detailed message notes database not configured.
+
+#### Endpoint: POST /trpc/portfolio.getOverview
+
+**Request**:
+```bash
+curl -X POST http://localhost:3000/trpc/portfolio.getOverview \
+  -H "Content-Type: application/json" \
+  -H "x-manus-user-json: {\"id\":1,\"email\":\"test@example.com\",\"role\":\"admin\"}" \
+  -d '{"strategyId":null}' -w '\nHTTP_STATUS:%{http_code}\nTIME_TOTAL:%{time_total}s\n'
+```
+
+**Response Status**: 405 Method Not Allowed
+
+**Response Body** (full):
+```json
+{"error":{"message":"Internal server error","code":-32005,"data":{"code":"METHOD_NOT_SUPPORTED","httpStatus":405,"stack":"TRPCError: Unsupported POST-request to query procedure at path \"portfolio.getOverview\"\n    at /workspace/Manus-Dashboard/node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.9.3/node_modules/@trpc/server/dist/resolveResponse-BGrZsJDx.cjs:1937:67\n    at Array.map (<anonymous>)\n    at Object.resolveResponse (/workspace/Manus-Dashboard/node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.9.3/node_modules/@trpc/server/dist/resolveResponse-BGrZsJDx.cjs:1929:31)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async /workspace/Manus-Dashboard/node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.9.3/node_modules/@trpc/server/dist/node-http-DWoBQ413.cjs:201:22","path":"portfolio.getOverview","auth":false}}}
+```
+
+**Valid JSON**: yes
+
+**Response Time**: 0.050114s
+
+**Errors**:
+```
+Unsupported POST-request to query procedure at path "portfolio.getOverview"
+```
+
+**Notes**: The tRPC route exists but rejects POST for this query; a GET-based tRPC request may be required.
+
+#### Endpoint: POST /trpc/portfolio.getEquityCurve
+
+**Request**:
+```bash
+curl -X POST http://localhost:3000/trpc/portfolio.getEquityCurve \
+  -H "Content-Type: application/json" \
+  -H "x-manus-user-json: {\"id\":1,\"email\":\"test@example.com\",\"role\":\"admin\"}" \
+  -d '{"strategyId":null,"startDate":"2020-01-01","endDate":"2025-12-31"}' -w '\nHTTP_STATUS:%{http_code}\nTIME_TOTAL:%{time_total}s\n'
+```
+
+**Response Status**: 404 Not Found
+
+**Response Body** (full):
+```json
+{"error":{"message":"Internal server error","code":-32004,"data":{"code":"NOT_FOUND","httpStatus":404,"stack":"TRPCError: No procedure found on path \"portfolio.getEquityCurve\"\n    at /workspace/Manus-Dashboard/node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.9.3/node_modules/@trpc/server/dist/resolveResponse-BGrZsJDx.cjs:1933:22\n    at Array.map (<anonymous>)\n    at Object.resolveResponse (/workspace/Manus-Dashboard/node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.9.3/node_modules/@trpc/server/dist/resolveResponse-BGrZsJDx.cjs:1929:31)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async /workspace/Manus-Dashboard/node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.9.3/node_modules/@trpc/server/dist/node-http-DWoBQ413.cjs:201:22","path":"portfolio.getEquityCurve","auth":false}}}
+```
+
+**Valid JSON**: yes
+
+**Response Time**: 0.004566s
+
+**Errors**:
+```
+No procedure found on path "portfolio.getEquityCurve"
+```
+
+**Notes**: The current portfolio router does not expose a `getEquityCurve` procedure; see `server/routers/portfolio.ts` for available queries.
+
+#### Endpoint: POST /trpc/portfolio.getPositions
+
+**Request**:
+```bash
+curl -X POST http://localhost:3000/trpc/portfolio.getPositions \
+  -H "Content-Type: application/json" \
+  -H "x-manus-user-json: {\"id\":1,\"email\":\"test@example.com\",\"role\":\"admin\"}" \
+  -d '{"strategyId":null}' -w '\nHTTP_STATUS:%{http_code}\nTIME_TOTAL:%{time_total}s\n'
+```
+
+**Response Status**: 404 Not Found
+
+**Response Body** (full):
+```json
+{"error":{"message":"Internal server error","code":-32004,"data":{"code":"NOT_FOUND","httpStatus":404,"stack":"TRPCError: No procedure found on path \"portfolio.getPositions\"\n    at /workspace/Manus-Dashboard/node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.9.3/node_modules/@trpc/server/dist/resolveResponse-BGrZsJDx.cjs:1933:22\n    at Array.map (<anonymous>)\n    at Object.resolveResponse (/workspace/Manus-Dashboard/node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.9.3/node_modules/@trpc/server/dist/resolveResponse-BGrZsJDx.cjs:1929:31)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async /workspace/Manus-Dashboard/node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.9.3/node_modules/@trpc/server/dist/node-http-DWoBQ413.cjs:201:22","path":"portfolio.getPositions","auth":false}}}
+```
+
+**Valid JSON**: yes
+
+**Response Time**: 0.003571s
+
+**Errors**:
+```
+No procedure found on path "portfolio.getPositions"
+```
+
+**Notes**: No matching tRPC procedure is registered under `portfolio.getPositions` in the current router map.
+
+#### Endpoint: POST /trpc/portfolio.getAnalytics
+
+**Request**:
+```bash
+curl -X POST http://localhost:3000/trpc/portfolio.getAnalytics \
+  -H "Content-Type: application/json" \
+  -H "x-manus-user-json: {\"id\":1,\"email\":\"test@example.com\",\"role\":\"admin\"}" \
+  -d '{"strategyId":null,"startDate":"2020-01-01","endDate":"2025-12-31"}' -w '\nHTTP_STATUS:%{http_code}\nTIME_TOTAL:%{time_total}s\n'
+```
+
+**Response Status**: 404 Not Found
+
+**Response Body** (full):
+```json
+{"error":{"message":"Internal server error","code":-32004,"data":{"code":"NOT_FOUND","httpStatus":404,"stack":"TRPCError: No procedure found on path \"portfolio.getAnalytics\"\n    at /workspace/Manus-Dashboard/node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.9.3/node_modules/@trpc/server/dist/resolveResponse-BGrZsJDx.cjs:1933:22\n    at Array.map (<anonymous>)\n    at Object.resolveResponse (/workspace/Manus-Dashboard/node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.9.3/node_modules/@trpc/server/dist/resolveResponse-BGrZsJDx.cjs:1929:31)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async /workspace/Manus-Dashboard/node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.9.3/node_modules/@trpc/server/dist/node-http-DWoBQ413.cjs:201:22","path":"portfolio.getAnalytics","auth":false}}}
+```
+
+**Valid JSON**: yes
+
+**Response Time**: 0.003195s
+
+**Errors**:
+```
+No procedure found on path "portfolio.getAnalytics"
+```
+
+**Notes**: The analytics router exposes other procedures (e.g., `getStrategyAnalytics`) but not `getAnalytics` under `portfolio`.
+
+#### Endpoint: POST /trpc/webhooks.getLogs
+
+**Request**:
+```bash
+curl -X POST http://localhost:3000/trpc/webhooks.getLogs \
+  -H "Content-Type: application/json" \
+  -H "x-manus-user-json: {\"id\":1,\"email\":\"test@example.com\",\"role\":\"admin\"}" \
+  -d '{"limit":10}' -w '\nHTTP_STATUS:%{http_code}\nTIME_TOTAL:%{time_total}s\n'
+```
+
+**Response Status**: 404 Not Found
+
+**Response Body** (full):
+```json
+{"error":{"message":"Internal server error","code":-32004,"data":{"code":"NOT_FOUND","httpStatus":404,"stack":"TRPCError: No procedure found on path \"webhooks.getLogs\"\n    at /workspace/Manus-Dashboard/node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.9.3/node_modules/@trpc/server/dist/resolveResponse-BGrZsJDx.cjs:1933:22\n    at Array.map (<anonymous>)\n    at Object.resolveResponse (/workspace/Manus-Dashboard/node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.9.3/node_modules/@trpc/server/dist/resolveResponse-BGrZsJDx.cjs:1929:31)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async /workspace/Manus-Dashboard/node_modules/.pnpm/@trpc+server@11.7.2_typescript@5.9.3/node_modules/@trpc/server/dist/node-http-DWoBQ413.cjs:201:22","path":"webhooks.getLogs","auth":false}}}
+```
+
+**Valid JSON**: yes
+
+**Response Time**: 0.004641s
+
+**Errors**:
+```
+No procedure found on path "webhooks.getLogs"
+```
+
+**Notes**: There is no `webhooks` router registered in `server/routers.ts`, so this path currently resolves to NOT_FOUND.
+
+### Summary
+- 2xx with valid JSON: 1/7 (GET /health returned 202 with degraded status)
+- 4xx/5xx with JSON: 6/7 (health/full 503; portfolio/webhooks requests 405/404 with JSON error payloads)
+- Connection/timeouts: 0/7
+
+### Sanity checks executed
+- `pnpm lint` (pass)
+- `pnpm typecheck` (pass)
+- `pnpm test:all` (pass)
+
+## [CODEX] Phase 2 - portfolio engine wired for Option A migration (Dec 3, 2025)
+
+### Endpoints implemented/updated
+- `portfolio.getOverview` (tRPC query + POST shim) → aggregates trades/benchmarks via `buildAggregatedEquityCurve` and `buildPortfolioOverview`; filters by `strategyId` when provided.
+- `portfolio.getEquityCurve` (tRPC mutation) → returns time-windowed equity curve from `buildAggregatedEquityCurve` with optional downsampling.
+- `portfolio.getPositions` (tRPC mutation) → summarizes positions from `loadTrades` grouped by strategy/symbol with realized PnL totals.
+- `portfolio.getAnalytics` (tRPC mutation) → wraps `buildAggregatedEquityCurve`, `buildDrawdownCurves`, and `buildPortfolioOverview` to provide metrics, drawdowns, and daily returns.
+- `webhooks.getLogs` (tRPC mutation, new router) → reads recent rows from `webhookLogs` (scoped by `userId`, empty array when DB unavailable).
+
+### Data/engine wiring
+- Portfolio endpoints draw from MySQL tables `trades`, `strategies`, and `benchmarks` when available (otherwise fall back to `server/db/sampleData`).
+- Analytics calculations reuse `server/portfolio-engine.ts` helpers (`computeDailyReturns`, `buildDrawdownCurves`, `buildPortfolioOverview`) and `server/engine/metrics.ts` KPIs.
+- Webhook log retrieval reads `webhookLogs` via Drizzle (ordered by `createdAt`), returning ISO timestamps for JSON safety.
+
+### Manual curl validation (local dev @ http://localhost:3000)
+- `POST /trpc/portfolio.getOverview` → **200 OK**, JSON body with equity snapshot and data health (trades present, `accountValue=10000`).
+- `POST /trpc/portfolio.getEquityCurve` → **200 OK**, JSON equity points for 2024 sample trades + SPX track.
+- `POST /trpc/portfolio.getPositions` → **200 OK**, JSON `{ positions: [] }` (no open positions in sample data).
+- `POST /trpc/portfolio.getAnalytics` → **200 OK**, JSON metrics (totalReturnPct≈0.965, Sharpe≈17.17) plus drawdowns/dailyReturns.
+- `POST /trpc/webhooks.getLogs` → **200 OK**, JSON `{ logs: [] }` (no rows when DB absent).
+
+### Tests and checks run
+- `pnpm lint` (pass)
+- `pnpm typecheck` (pass)
+- `pnpm test:all` (pass)
+- Manual POST curls above (all returned 200 with valid JSON)
