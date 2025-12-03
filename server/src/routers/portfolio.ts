@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
-// @ts-nocheck
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import {
@@ -16,16 +14,15 @@ import { authedProcedure, router } from "@server/trpc/router";
 import { ingestBenchmarksCsv } from "@server/services/benchmarkIngestion";
 import { TIME_RANGE_PRESETS, deriveDateRangeFromTimeRange } from "@server/utils/timeRange";
 import { env } from "@server/utils/env";
-import { requireWorkspaceAccess } from "@server/auth/workspaceAccess";
 import type { AuthUser } from "@server/auth/types";
 import { createLogger } from "@server/utils/logger";
 import {
   getCustomPortfolioAnalytics,
+  getPortfolioOverview,
+  getPortfolioSummaryCsv,
+  getPortfolioSummaryMetrics,
+  getPortfolioTrades,
   getStrategyAnalytics,
-  getWorkspaceOverview,
-  getWorkspaceSummaryCsv,
-  getWorkspaceSummaryMetrics,
-  getWorkspaceTrades,
   ingestTradesFromCsv,
 } from "@server/services/tradePipeline";
 import type { EquityCurvePoint, TimeRange } from "@shared/types/portfolio";
@@ -137,7 +134,6 @@ const exportTradesResponseSchema = z.object({
 const tradeRowSchema = z.object({
   id: z.number().int(),
   userId: z.number().int().optional(),
-  workspaceId: z.number().int().optional(),
   strategyId: z.number().int(),
   symbol: z.string(),
   side: z.string(),
@@ -224,14 +220,9 @@ const timeRangeInput = z
   })
   .optional();
 
-const resolveScope = async (ctx: { user: AuthUser | null }, intent: "read" | "write") => {
+const resolveScope = async (ctx: { user: AuthUser | null }) => {
   const user = requireUser(ctx as any);
-  const access = await requireWorkspaceAccess(user, intent);
-  const workspaceId = access.workspace?.id ?? user.workspaceId;
-  if (!workspaceId) {
-    throw new TRPCError({ code: "FORBIDDEN", message: "Workspace is required" });
-  }
-  return { access, workspaceId, user };
+  return { user };
 };
 
 export function enforceUploadGuards(csv: string, fileName?: string) {
@@ -367,8 +358,8 @@ export const portfolioRouter = router({
     )
     .output(homeOverviewSchema)
     .query(async ({ ctx, input }) => {
-      const { workspaceId, user } = await resolveScope(ctx, "read");
-      const scope = { userId: user.id, ownerId: user.id, workspaceId };
+      const { user } = await resolveScope(ctx);
+      const scope = { userId: user.id };
       const range = resolveDateRange({ ...input?.dateRange, timeRange: input?.timeRange });
       try {
         const trades = await loadTrades(scope);
@@ -420,7 +411,6 @@ export const portfolioRouter = router({
         portfolioLogger.error("Home dashboard getOverview failed", {
           procedure: "getOverview",
           userId: user.id,
-          workspaceId,
           range,
           error: error instanceof Error ? error.message : String(error),
         });
@@ -438,8 +428,8 @@ export const portfolioRouter = router({
     )
     .output(z.array(strategySummarySchema))
     .query(async ({ ctx, input }) => {
-      const { workspaceId, user } = await resolveScope(ctx, "read");
-      const scope = { userId: user.id, ownerId: user.id, workspaceId };
+      const { user } = await resolveScope(ctx);
+      const scope = { userId: user.id };
       const range = resolveDateRange({ ...input?.dateRange, timeRange: input?.timeRange });
       try {
         const [strategies, trades] = await Promise.all([
@@ -507,7 +497,6 @@ export const portfolioRouter = router({
         portfolioLogger.error("Home dashboard getStrategySummaries failed", {
           procedure: "getStrategySummaries",
           userId: user.id,
-          workspaceId,
           range,
           error: error instanceof Error ? error.message : String(error),
         });
@@ -523,13 +512,11 @@ export const portfolioRouter = router({
         .optional(),
     )
     .query(async ({ ctx, input }) => {
-      const { workspaceId, user } = await resolveScope(ctx, "read");
-      const scope = { userId: user.id, ownerId: user.id, workspaceId };
+      const { user } = await resolveScope(ctx);
+      const scope = { userId: user.id };
       return overviewSchema.parse(
-        await getWorkspaceOverview({
+        await getPortfolioOverview({
           userId: scope.userId,
-          ownerId: scope.ownerId,
-          workspaceId: scope.workspaceId,
           timeRange: input?.timeRange,
         }),
       );
@@ -546,9 +533,9 @@ export const portfolioRouter = router({
         .optional()
     )
     .query(async ({ ctx, input }) => {
-      const { workspaceId, user } = await resolveScope(ctx, "read");
+      const { user } = await resolveScope(ctx);
       const range = deriveDateRangeFromTimeRange(input?.timeRange);
-      const scope = { userId: user.id, ownerId: user.id, workspaceId };
+      const scope = { userId: user.id };
       const res = await buildAggregatedEquityCurve(scope, {
         startDate: input?.startDate ?? range.startDate,
         endDate: input?.endDate ?? range.endDate,
@@ -568,9 +555,9 @@ export const portfolioRouter = router({
         .optional()
     )
     .query(async ({ ctx, input }) => {
-      const { workspaceId, user } = await resolveScope(ctx, "read");
+      const { user } = await resolveScope(ctx);
       const range = deriveDateRangeFromTimeRange(input?.timeRange);
-      const scope = { userId: user.id, ownerId: user.id, workspaceId };
+      const scope = { userId: user.id };
       const res = await buildDrawdownCurves(scope, {
         startDate: input?.startDate ?? range.startDate,
         endDate: input?.endDate ?? range.endDate,
@@ -587,9 +574,9 @@ export const portfolioRouter = router({
       }),
     )
     .query(async ({ ctx, input }) => {
-      const { workspaceId, user } = await resolveScope(ctx, "read");
+      const { user } = await resolveScope(ctx);
       const range = deriveDateRangeFromTimeRange(input.timeRange);
-      const scope = { userId: user.id, ownerId: user.id, workspaceId };
+      const scope = { userId: user.id };
       const res = await buildAggregatedEquityCurve(scope, {
         startDate: range.startDate,
         endDate: range.endDate,
@@ -633,13 +620,11 @@ export const portfolioRouter = router({
       })
     )
     .query(async ({ ctx, input }) => {
-      const { workspaceId, user } = await resolveScope(ctx, "read");
+      const { user } = await resolveScope(ctx);
       const range = deriveDateRangeFromTimeRange(input.timeRange);
-      const scope = { userId: user.id, ownerId: user.id, workspaceId };
+      const scope = { userId: user.id };
       const result = await getStrategyAnalytics({
         userId: scope.userId,
-        ownerId: scope.ownerId,
-        workspaceId: scope.workspaceId,
         input: {
           ...input,
           startDate: input.startDate ?? range.startDate,
@@ -666,13 +651,11 @@ export const portfolioRouter = router({
         }),
     )
     .mutation(async ({ ctx, input }) => {
-      const { workspaceId, user } = await resolveScope(ctx, "read");
-      const scope = { userId: user.id, ownerId: user.id, workspaceId };
+      const { user } = await resolveScope(ctx);
+      const scope = { userId: user.id };
 
       const result = await getCustomPortfolioAnalytics({
         userId: scope.userId,
-        ownerId: scope.ownerId,
-        workspaceId: scope.workspaceId,
         strategyIds: input.strategyIds,
         weights: input.weights,
         timeRange: input.timeRange,
@@ -694,13 +677,11 @@ export const portfolioRouter = router({
         .optional(),
     )
     .query(async ({ ctx, input }) => {
-      const { workspaceId, user } = await resolveScope(ctx, "read");
-      const scope = { userId: user.id, ownerId: user.id, workspaceId };
+      const { user } = await resolveScope(ctx);
+      const scope = { userId: user.id };
       return summarySchema.parse(
-        await getWorkspaceSummaryMetrics({
+        await getPortfolioSummaryMetrics({
           userId: scope.userId,
-          ownerId: scope.ownerId,
-          workspaceId: scope.workspaceId,
           timeRange: input?.timeRange,
         }),
       );
@@ -719,14 +700,12 @@ export const portfolioRouter = router({
         .optional(),
     )
     .query(async ({ ctx, input }) => {
-      const { workspaceId, user } = await resolveScope(ctx, "read");
-      const scope = { userId: user.id, ownerId: user.id, workspaceId };
+      const { user } = await resolveScope(ctx);
+      const scope = { userId: user.id };
       const page = input?.page ?? 1;
       const pageSize = input?.pageSize ?? 50;
-      const result = await getWorkspaceTrades({
+      const result = await getPortfolioTrades({
         userId: scope.userId,
-        ownerId: scope.ownerId,
-        workspaceId: scope.workspaceId,
         timeRange: input?.timeRange,
         page,
         pageSize,
@@ -753,11 +732,9 @@ export const portfolioRouter = router({
     .output(exportTradesResponseSchema)
     .mutation(async ({ ctx, input }) => {
       try {
-        const { workspaceId, user } = await resolveScope(ctx, "read");
-        const csvString = await getWorkspaceSummaryCsv({
+        const { user } = await resolveScope(ctx);
+        const csvString = await getPortfolioSummaryCsv({
           userId: user.id,
-          ownerId: user.id,
-          workspaceId,
           strategyIds: input.strategyIds,
           startDate: input.startDate,
           endDate: input.endDate,
@@ -788,13 +765,11 @@ export const portfolioRouter = router({
     .output(tradeIngestionResultSchema)
     .mutation(async ({ ctx, input }) => {
       try {
-        const { workspaceId, user } = await resolveScope(ctx, "write");
+        const { user } = await resolveScope(ctx);
         enforceUploadGuards(input.csv, input.fileName);
         const result = await ingestTradesFromCsv({
           csv: input.csv,
           userId: user.id,
-          ownerId: user.id,
-          workspaceId: workspaceId ?? 1,
           defaultStrategyName: input.strategyName,
           defaultStrategyType: input.strategyType,
           fileName: input.fileName,
@@ -827,13 +802,11 @@ export const portfolioRouter = router({
     .output(benchmarkIngestionResultSchema)
     .mutation(async ({ ctx, input }) => {
       try {
-        const { workspaceId, user } = await resolveScope(ctx, "write");
+        const { user } = await resolveScope(ctx);
         enforceUploadGuards(input.csv, input.fileName);
         const result = await ingestBenchmarksCsv({
           csv: input.csv,
           userId: user.id,
-          ownerId: user.id,
-          workspaceId: workspaceId ?? 1,
           fileName: input.fileName,
           defaultSymbol: input.symbol,
         });
@@ -857,10 +830,9 @@ export const portfolioRouter = router({
     .query(async ({ ctx, input }) =>
       monteCarloSchema.parse(
         await (async () => {
-          const { workspaceId, user } = await resolveScope(ctx, "read");
+          const { user } = await resolveScope(ctx);
           return runMonteCarloSimulation({
             userId: user.id,
-            workspaceId,
             days: input.days,
             simulations: input.simulations,
             ...deriveDateRangeFromTimeRange(input.timeRange),

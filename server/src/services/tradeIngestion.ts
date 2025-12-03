@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
-// @ts-nocheck
 import { eq } from "drizzle-orm";
 
 import { getDb, schema } from "@server/db";
@@ -89,11 +87,13 @@ export async function ingestTradesCsv(options: IngestTradesOptions): Promise<Ing
     uploadType: "trades",
   });
 
+  const uploadId = uploadLog?.id;
+
   logger.info("Trade ingestion start", {
     eventName: "INGEST_TRADES_START",
     userId: options.userId,
     totalRows,
-    uploadId: uploadLog?.id,
+    uploadId,
   });
 
   const headerIssues = validateHeaders(headers);
@@ -112,7 +112,7 @@ export async function ingestTradesCsv(options: IngestTradesOptions): Promise<Ing
       failedCount: totalRows,
       errors,
       warnings,
-      uploadId: uploadLog?.id,
+      uploadId,
       headerIssues,
     };
   }
@@ -150,7 +150,7 @@ export async function ingestTradesCsv(options: IngestTradesOptions): Promise<Ing
   if (!db) {
     errors.push("Database not configured");
     failedCount = totalRows;
-    logger.error("Trade ingestion failed before DB access", { eventName: "INGEST_TRADES_FAILED", uploadId: uploadLog?.id });
+    logger.error("Trade ingestion failed before DB access", { eventName: "INGEST_TRADES_FAILED", uploadId });
     await persistUploadLog(uploadLog, {
       rowCountTotal: totalRows,
       rowCountFailed: totalRows,
@@ -158,7 +158,7 @@ export async function ingestTradesCsv(options: IngestTradesOptions): Promise<Ing
       errorSummary: summarizeIssues(errors),
       warningsSummary: summarizeIssues(warnings),
     });
-    return { importedCount: 0, skippedCount: totalRows, failedCount, errors, warnings, uploadId: uploadLog?.id };
+    return { importedCount: 0, skippedCount: totalRows, failedCount, errors, warnings, uploadId };
   }
 
   const existingStrategies = await db
@@ -196,13 +196,22 @@ export async function ingestTradesCsv(options: IngestTradesOptions): Promise<Ing
           description: "Imported from CSV",
         })),
       );
-    const inserted =
-      typeof inserter.$returningId === "function" ? await inserter.$returningId() : ([] as number[]);
+    if (typeof inserter.$returningId === "function") {
+      await inserter.$returningId();
+    } else {
+      await inserter;
+    }
 
-    inserted.forEach((id, idx) => {
-      const [name, type] = Array.from(requiredStrategies.entries())[idx];
-      strategiesByName.set(name, { id, name, type, description: "Imported from CSV" } as StrategyRecord);
-      strategiesById.set(id, { id, name, type, description: "Imported from CSV" } as StrategyRecord);
+    const refreshedStrategies = await db
+      .select({ id: schema.strategies.id, name: schema.strategies.name, type: schema.strategies.type })
+      .from(schema.strategies)
+      .where(eq(schema.strategies.userId, options.userId));
+
+    strategiesByName.clear();
+    strategiesById.clear();
+    refreshedStrategies.forEach(strategy => {
+      strategiesByName.set(strategy.name, strategy as StrategyRecord);
+      strategiesById.set(strategy.id, strategy as StrategyRecord);
     });
   }
 
@@ -235,7 +244,7 @@ export async function ingestTradesCsv(options: IngestTradesOptions): Promise<Ing
         exitTime: row.exitTime,
         externalId: row.externalId,
         naturalKey: row.naturalKey,
-        uploadId: uploadLog?.id,
+        uploadId: uploadId ?? null,
       },
     ];
   });
@@ -246,7 +255,12 @@ export async function ingestTradesCsv(options: IngestTradesOptions): Promise<Ing
 
     if (typeof inserter.$returningId === "function") {
       const ids = await inserter.$returningId();
-      inserted = ids.map(id => ({ id }));
+      inserted = ids
+        .map((value: unknown) => {
+          const numeric = typeof value === "number" ? value : Number((value as { id?: unknown })?.id);
+          return Number.isFinite(numeric) ? { id: numeric } : null;
+        })
+        .filter((v: { id: number } | null): v is { id: number } => v !== null);
     }
 
     insertedCount = inserted.length || tradesToInsert.length;
@@ -270,7 +284,7 @@ export async function ingestTradesCsv(options: IngestTradesOptions): Promise<Ing
 
   logger.info("Trade ingestion end", {
     eventName: "INGEST_TRADES_END",
-    uploadId: uploadLog?.id,
+    uploadId,
     imported: insertedCount,
     skipped: skippedCount,
     failedCount,
@@ -282,7 +296,7 @@ export async function ingestTradesCsv(options: IngestTradesOptions): Promise<Ing
     action: "upload_trades",
     userId: options.userId,
     entityType: "upload",
-    entityId: uploadLog?.id,
+    entityId: uploadId,
     summary: `Trades upload ${status}: imported ${insertedCount}/${totalRows}`,
   });
 
@@ -292,7 +306,7 @@ export async function ingestTradesCsv(options: IngestTradesOptions): Promise<Ing
     failedCount: failedCount || skippedCount,
     errors,
     warnings,
-    uploadId: uploadLog?.id,
+    uploadId,
     headerIssues,
   };
 }
@@ -328,6 +342,8 @@ export async function ingestWebhookTrade(options: {
     uploadType: "trades",
   });
 
+  const uploadId = uploadLog?.id;
+
   const db = await getDb();
   if (!db) {
     errors.push("Database not configured");
@@ -337,7 +353,7 @@ export async function ingestWebhookTrade(options: {
       status: "failed",
       errorSummary: summarizeIssues(errors),
     });
-    return { inserted: false, errors, uploadId: uploadLog?.id };
+    return { inserted: false, errors, uploadId };
   }
 
   const normalizedSide = normalizeSide(trade.side);
@@ -371,16 +387,30 @@ export async function ingestWebhookTrade(options: {
   }
 
   if (!strategyId) {
+    const strategyName = trade.strategyName ?? "Webhook strategy";
     const strategyInserter = db
       .insert(schema.strategies)
       .values({
         userId: options.userId,
-        name: trade.strategyName ?? "Webhook strategy",
+        name: strategyName,
         type: trade.strategyType ?? "swing",
         description: trade.notes ?? "TradingView webhook",
       });
     const ids = typeof strategyInserter.$returningId === "function" ? await strategyInserter.$returningId() : [];
-    strategyId = ids[0];
+    const normalizedId = ids
+      .map(value => (typeof value === "number" ? value : Number((value as { id?: unknown })?.id)))
+      .find(id => Number.isFinite(id));
+
+    if (normalizedId) {
+      strategyId = normalizedId;
+    } else {
+      const refreshedStrategies = await db
+        .select({ id: schema.strategies.id, name: schema.strategies.name })
+        .from(schema.strategies)
+        .where(eq(schema.strategies.userId, options.userId));
+      const matching = refreshedStrategies.find(s => s.name.toLowerCase() === strategyName.toLowerCase());
+      strategyId = matching?.id;
+    }
   }
 
   if (errors.length > 0) {
@@ -390,7 +420,7 @@ export async function ingestWebhookTrade(options: {
       status: "failed",
       errorSummary: summarizeIssues(errors),
     });
-    return { inserted: false, errors, uploadId: uploadLog?.id };
+    return { inserted: false, errors, uploadId };
   }
 
   const tradeInserter = db
@@ -407,13 +437,13 @@ export async function ingestWebhookTrade(options: {
       exitTime: entryTime,
       externalId: trade.externalId,
       naturalKey,
-      uploadId: uploadLog?.id,
+      uploadId,
     });
 
-  const inserted =
+  const insertedIds =
     typeof tradeInserter.$returningId === "function" ? await tradeInserter.$returningId() : ([] as number[]);
 
-  const importedCount = inserted.length > 0 ? 1 : 0;
+  const importedCount = insertedIds.length > 0 ? 1 : 0;
   await persistUploadLog(uploadLog, {
     rowCountTotal: 1,
     rowCountImported: importedCount,
@@ -422,7 +452,7 @@ export async function ingestWebhookTrade(options: {
     warningsSummary: importedCount ? null : "Duplicate trade skipped",
   });
 
-  return { inserted: Boolean(inserted), uploadId: uploadLog?.id, naturalKey, externalId: trade.externalId, strategyId };
+  return { inserted: importedCount > 0, uploadId, naturalKey, externalId: trade.externalId, strategyId };
 }
 
 function parseCsvRecords(csv: string): { headers: string[]; records: CsvRecord[] } {

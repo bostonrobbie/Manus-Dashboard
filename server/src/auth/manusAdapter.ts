@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
-// @ts-nocheck
 import type { Request } from "express";
 import jwt from "jsonwebtoken";
 
@@ -15,9 +13,6 @@ type ManusClaims = {
   sub?: string | number;
   email?: string;
   name?: string;
-  workspaceId?: string | number;
-  workspace_id?: string | number;
-  workspace?: { id?: string | number };
   roles?: string[];
   permissions?: string[];
   orgId?: string | number;
@@ -31,18 +26,9 @@ type ManusParsedUser = {
   sub?: string | number;
   email?: string;
   name?: string;
-  workspaceId?: string | number;
-  workspace_id?: string | number;
-  workspace?: { id?: string | number };
   roles?: string[];
   permissions?: string[];
   [key: string]: unknown;
-};
-
-const parseWorkspaceId = (value?: string | number): number | undefined => {
-  if (value == null) return undefined;
-  const num = typeof value === "number" ? value : Number(value);
-  return Number.isFinite(num) ? num : undefined;
 };
 
 const parseUserId = (value: string | number | undefined): number | null => {
@@ -65,8 +51,6 @@ const coerceUserFromSerialized = (raw: string): Partial<AuthUser> | null => {
       const candidate = (parsed as ManusClaims).parsedUser && typeof (parsed as ManusClaims).parsedUser === "object"
         ? ((parsed as ManusClaims).parsedUser as ManusParsedUser)
         : (parsed as ManusParsedUser);
-      const workspaceCandidate =
-        (candidate.workspace as any)?.id ?? (candidate as any).workspace_id ?? (candidate as any).workspaceId;
       const rolesCandidate =
         Array.isArray(candidate.roles)
           ? candidate.roles
@@ -80,7 +64,6 @@ const coerceUserFromSerialized = (raw: string): Partial<AuthUser> | null => {
       id: id ?? undefined,
       email: candidate.email ?? (candidate as any).user_email ?? (candidate as any).mail,
       name: (candidate as ManusClaims).name as string | undefined,
-      workspaceId: parseWorkspaceId(workspaceCandidate),
       roles: rolesCandidate,
     };
   }
@@ -112,11 +95,10 @@ const coerceUserFromSerialized = (raw: string): Partial<AuthUser> | null => {
 export interface ManusParseResult {
   user: AuthUser | null;
   authHeaderPresent: boolean;
-  workspaceHeaderPresent: boolean;
   headerNames: string[];
 }
 
-const recordFailure = (headerNames: string[], authHeaderPresent: boolean, workspaceHeaderPresent: boolean) => {
+const recordFailure = (headerNames: string[], authHeaderPresent: boolean) => {
   if (!env.manusMode) return;
   if (manusFailureLogCount >= MAX_FAILURE_LOGS) return;
 
@@ -124,9 +106,7 @@ const recordFailure = (headerNames: string[], authHeaderPresent: boolean, worksp
   logger.warn("Unable to resolve Manus user from headers", {
     mode: "MANUS",
     authHeaderPresent,
-    workspaceHeaderPresent,
     configuredUserHeader: env.manusAuthHeaderUser,
-    configuredWorkspaceHeader: env.manusAuthHeaderWorkspace,
     headerNames: headerNames.filter(name => name.startsWith("x-")),
   });
 };
@@ -141,19 +121,8 @@ export function parseManusUser(req: Request): ManusParseResult {
       "x-manus-user-json",
     ]),
   );
-  const workspaceHeaderCandidates = Array.from(
-    new Set([
-      env.manusAuthHeaderWorkspace,
-      env.manusAuthHeaderWorkspace.replace(/_/g, "-"),
-      "x-manus-workspace",
-      "x-manus-workspace-id",
-    ]),
-  );
   const rolesHeaderCandidates = env.manusAuthHeaderRoles
     ? Array.from(new Set([env.manusAuthHeaderRoles, env.manusAuthHeaderRoles.replace(/_/g, "-")]))
-    : [];
-  const orgHeaderCandidates = env.manusAuthHeaderOrg
-    ? Array.from(new Set([env.manusAuthHeaderOrg, env.manusAuthHeaderOrg.replace(/_/g, "-")]))
     : [];
 
   const getHeaderValue = (candidates: string[]) => {
@@ -165,18 +134,14 @@ export function parseManusUser(req: Request): ManusParseResult {
   };
 
   const rawHeader = getHeaderValue(userHeaderCandidates);
-  const rawWorkspace = getHeaderValue(workspaceHeaderCandidates);
   const rawRoles = getHeaderValue(rolesHeaderCandidates);
-  const rawOrg = getHeaderValue(orgHeaderCandidates);
-  const workspaceSource = rawWorkspace ?? rawOrg;
 
   if (!rawHeader) {
-    recordFailure(headerNames, Boolean(rawHeader), Boolean(workspaceSource));
-    return { user: null, authHeaderPresent: false, workspaceHeaderPresent: Boolean(workspaceSource), headerNames };
+    recordFailure(headerNames, Boolean(rawHeader));
+    return { user: null, authHeaderPresent: false, headerNames };
   }
 
   const headerString = String(rawHeader);
-  const workspaceId = parseWorkspaceId(workspaceSource as string | number | undefined);
   const parsedRoles = Array.isArray(rawRoles)
     ? (rawRoles as unknown as string[])
     : typeof rawRoles === "string"
@@ -205,17 +170,14 @@ export function parseManusUser(req: Request): ManusParseResult {
         parseUserId((claims as any).uid as any) ??
         parseUserId((claims as any).id as any);
       if (id == null) {
-        recordFailure(headerNames, true, Boolean(workspaceSource));
-        return { user: null, authHeaderPresent: true, workspaceHeaderPresent: Boolean(workspaceSource), headerNames };
+        recordFailure(headerNames, true);
+        return { user: null, authHeaderPresent: true, headerNames };
       }
       return {
         user: {
           id,
           email: (claims as ManusClaims).email ?? "unknown@manus",
           name: (claims as ManusClaims).name,
-          workspaceId:
-            parseWorkspaceId((claims as ManusClaims).workspaceId ?? (claims as ManusClaims).workspace_id ?? claims.workspace?.id) ??
-            workspaceId,
           roles: Array.isArray((claims as ManusClaims).roles)
             ? ((claims as ManusClaims).roles as string[])
             : Array.isArray((claims as ManusClaims).permissions)
@@ -224,13 +186,12 @@ export function parseManusUser(req: Request): ManusParseResult {
           source: "manus",
         },
         authHeaderPresent: true,
-        workspaceHeaderPresent: Boolean(workspaceSource),
         headerNames,
       };
     } catch (error) {
       logger.warn("Unable to verify Manus token", { error: (error as Error).message });
-      recordFailure(headerNames, true, Boolean(workspaceSource));
-      return { user: null, authHeaderPresent: true, workspaceHeaderPresent: Boolean(workspaceSource), headerNames };
+      recordFailure(headerNames, true);
+      return { user: null, authHeaderPresent: true, headerNames };
     }
   }
 
@@ -241,12 +202,10 @@ export function parseManusUser(req: Request): ManusParseResult {
         id: serialized.id,
         email: serialized.email,
         name: serialized.name,
-        workspaceId: serialized.workspaceId ?? workspaceId,
         roles: serialized.roles ?? parsedRoles,
         source: "manus",
       },
       authHeaderPresent: true,
-      workspaceHeaderPresent: Boolean(workspaceSource),
       headerNames,
     };
   }
@@ -257,15 +216,13 @@ export function parseManusUser(req: Request): ManusParseResult {
       user: {
         id: fallbackId,
         email: "unknown@manus",
-        workspaceId,
         source: "manus",
       },
       authHeaderPresent: true,
-      workspaceHeaderPresent: Boolean(workspaceSource),
       headerNames,
     };
   }
 
-  recordFailure(headerNames, true, Boolean(workspaceSource));
-  return { user: null, authHeaderPresent: true, workspaceHeaderPresent: Boolean(workspaceSource), headerNames };
+  recordFailure(headerNames, true);
+  return { user: null, authHeaderPresent: true, headerNames };
 }

@@ -240,6 +240,24 @@ Add 4 missing frontend components from GitHub repo to Manus.
 **Notes:**
 - Server unit tests are temporarily skipped due to missing MySQL runtime (`mysql2`) and removed workspace tables; schema and typecheck now succeed with stubs but deeper runtime coverage is deferred.
 
+### ✅ Session 4 (Current)
+
+**Completed Tasks:**
+- Finalized single-tenant runtime: workspace access helpers now grant authenticated access without workspace checks, routers/services/engine drop workspaceId usage, and admin UI clarifies that workspace tools are disabled on Manus.
+- Restored TypeScript coverage by removing all `@ts-nocheck` directives in server/schema code, fixing ingestion pipelines and auth helpers, and ensuring client and server typechecks pass.
+- Removed remaining PostgreSQL dependencies and scripts; server DB config uses mysql2 only, sample data and schemas align with Manus MySQL enums/columns, and legacy scripts/types were deleted.
+
+**Files Changed:**
+- Server auth helpers, routers (portfolio, analytics, adminData, strategies, system, workspaces), services (tradePipeline, tradeIngestion, benchmarkIngestion, uploadLogs, manusAdapter), engine (portfolio-engine), DB config/sample data, shared portfolio types, drizzle/schema.ts, docs/Database.md, pnpm-workspace.yaml, and client AdminDataManager page.
+
+**Commands Run:**
+- `pnpm lint` (pass)
+- `pnpm typecheck` (pass)
+- `pnpm test:all` (pass; runs lint, typecheck, client build)
+
+**Notes:**
+- Admin data services remain stubbed/unsupported in Manus; UI surfaces this limitation instead of requiring workspace selection.
+
 ---
 
 ## QUESTIONS FOR MANUS

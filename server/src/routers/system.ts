@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
-// @ts-nocheck
 import { sql } from "drizzle-orm";
 import { z } from "zod";
 
@@ -38,16 +36,12 @@ export const systemRouter = router({
       const rangeEnd = toIsoDate(today);
       const start = new Date(`${rangeEnd}T00:00:00.000Z`);
       start.setUTCDate(start.getUTCDate() - 30);
-      await buildPortfolioOverview(
-        { userId: ctx.user?.id ?? 1, ownerId: ctx.user?.id ?? 1, workspaceId: ctx.user?.workspaceId },
-        { startDate: toIsoDate(start), endDate: rangeEnd },
-      );
+      await buildPortfolioOverview({ userId: ctx.user?.id ?? 1 }, { startDate: toIsoDate(start), endDate: rangeEnd });
     } catch (error) {
       portfolioStatus = "error";
       logger.warn("System status portfolio probe failed", {
         error: error instanceof Error ? error.message : String(error),
         userId: ctx.user?.id,
-        workspaceId: ctx.user?.workspaceId,
       });
     }
 

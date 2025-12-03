@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
-// @ts-nocheck
 import { and, between, desc, eq, gte, inArray, isNull, lte, sql } from "drizzle-orm";
 import {
   DrawdownPoint,
@@ -15,7 +13,7 @@ import {
   TradeRow,
   MonteCarloResult,
   ExportTradesInput,
-  WorkspaceMetrics,
+  PortfolioMetrics,
 } from "@shared/types/portfolio";
 import {
   benchmarks as sampleBenchmarks,
@@ -39,14 +37,10 @@ export interface EquityCurveOptions {
 
 export interface UserScope {
   userId: number;
-  ownerId?: number;
-  workspaceId?: number;
 }
 
 export interface StrategyComparisonInput {
   userId: number;
-  ownerId?: number;
-  workspaceId?: number;
   page: number;
   pageSize: number;
   sortBy: keyof StrategyComparisonRow;
@@ -80,8 +74,6 @@ type TradeRecord = {
   id: number;
   strategyId: number;
   userId: number;
-  ownerId?: number;
-  workspaceId: number;
   symbol: string;
   side: string;
   quantity: unknown;
@@ -218,19 +210,13 @@ function rebaseEquitySeries(points: EquityCurvePoint[]) {
 }
 
 export async function loadStrategies(scope: UserScope): Promise<StrategySummary[]> {
-  const { userId, ownerId, workspaceId } = scope;
+  const { userId } = scope;
   const db = await getDb();
-  const owner = ownerId ?? userId;
   if (db) {
-    const predicates = [eq(schema.strategies.ownerId, owner)];
-    if (workspaceId != null) {
-      predicates.push(eq(schema.strategies.workspaceId, workspaceId));
-    }
-
     const rows = await db
       .select({ id: schema.strategies.id, name: schema.strategies.name, type: schema.strategies.type, description: schema.strategies.description })
       .from(schema.strategies)
-      .where(predicates.length > 1 ? and(...predicates) : predicates[0]);
+      .where(eq(schema.strategies.userId, userId));
     if (rows.length > 0) {
       return rows.map((r: any) => ({
         id: r.id,
@@ -240,9 +226,7 @@ export async function loadStrategies(scope: UserScope): Promise<StrategySummary[
       }));
     }
   }
-  return sampleStrategies.filter(
-    s => s.ownerId === owner && (workspaceId == null || s.workspaceId === workspaceId),
-  );
+  return sampleStrategies.filter(s => s.userId === userId);
 }
 
 export async function loadTrades(scope: UserScope, opts: TradeLoadOptions = {}): Promise<TradeRow[]> {
@@ -254,8 +238,6 @@ export async function loadTrades(scope: UserScope, opts: TradeLoadOptions = {}):
         id: schema.trades.id,
         strategyId: schema.trades.strategyId,
         userId: schema.trades.userId,
-        ownerId: schema.trades.ownerId,
-        workspaceId: schema.trades.workspaceId,
         symbol: schema.trades.symbol,
         side: schema.trades.side,
         quantity: schema.trades.quantity,
@@ -300,8 +282,6 @@ export async function loadTradesPage(scope: UserScope, opts: PaginatedTradeLoadO
       id: schema.trades.id,
       strategyId: schema.trades.strategyId,
       userId: schema.trades.userId,
-      ownerId: schema.trades.ownerId,
-      workspaceId: schema.trades.workspaceId,
       symbol: schema.trades.symbol,
       side: schema.trades.side,
       quantity: schema.trades.quantity,
@@ -326,11 +306,7 @@ export async function loadTradesPage(scope: UserScope, opts: PaginatedTradeLoadO
 }
 
 function buildTradePredicates(scope: UserScope, opts: TradeLoadOptions) {
-  const ownerId = scope.ownerId ?? scope.userId;
-  const predicates = [eq(schema.trades.ownerId, ownerId), isNull(schema.trades.deletedAt)];
-  if (scope.workspaceId != null) {
-    predicates.push(eq(schema.trades.workspaceId, scope.workspaceId));
-  }
+  const predicates = [eq(schema.trades.userId, scope.userId), isNull(schema.trades.deletedAt)];
   if (opts.startDate) {
     predicates.push(gte(schema.trades.exitTime, new Date(`${opts.startDate}T00:00:00.000Z`)));
   }
@@ -354,8 +330,6 @@ function mapTradeRows(rows: TradeRecord[]): TradeRow[] {
     id: trade.id,
     strategyId: trade.strategyId,
     userId: trade.userId,
-    ownerId: trade.ownerId ?? trade.userId,
-    workspaceId: trade.workspaceId,
     symbol: trade.symbol,
     side: trade.side,
     quantity: Number(trade.quantity),
@@ -383,9 +357,8 @@ function applyTradeFilters(rows: TradeRow[], opts: TradeLoadOptions): TradeRow[]
 }
 
 function filterSampleTrades(scope: UserScope, opts: TradeLoadOptions): TradeRow[] {
-  const ownerId = scope.ownerId ?? scope.userId;
   return sampleTrades
-    .filter(t => t.ownerId === ownerId && (scope.workspaceId == null || t.workspaceId === scope.workspaceId))
+    .filter(t => t.userId === scope.userId)
     .filter(t => {
       const exitDate = t.exitTime.slice(0, 10);
       if (opts.startDate && exitDate < opts.startDate) return false;
@@ -398,16 +371,11 @@ function filterSampleTrades(scope: UserScope, opts: TradeLoadOptions): TradeRow[
 }
 
 async function loadBenchmarks(scope: UserScope, startDate?: string, endDate?: string) {
-  const { workspaceId } = scope;
-  const ownerId = scope.ownerId ?? scope.userId;
   const db = await getDb();
   if (db) {
-    type BenchmarkRecord = { date: string; close: unknown; deletedAt?: Date | string | null; ownerId?: number };
+    type BenchmarkRecord = { date: string; close: unknown; deletedAt?: Date | string | null; userId?: number };
 
-    const predicates: any[] = [isNull(schema.benchmarks.deletedAt), eq(schema.benchmarks.ownerId, ownerId)];
-    if (workspaceId != null) {
-      predicates.push(eq(schema.benchmarks.workspaceId, workspaceId));
-    }
+    const predicates: any[] = [isNull(schema.benchmarks.deletedAt), eq(schema.benchmarks.userId, scope.userId)];
     if (startDate && endDate) {
       predicates.push(between(schema.benchmarks.date, startDate, endDate));
     } else if (startDate) {
@@ -421,7 +389,7 @@ async function loadBenchmarks(scope: UserScope, startDate?: string, endDate?: st
         date: schema.benchmarks.date,
         close: schema.benchmarks.close,
         deletedAt: schema.benchmarks.deletedAt,
-        ownerId: schema.benchmarks.ownerId,
+        userId: schema.benchmarks.userId,
       })
       .from(schema.benchmarks)
       .where(predicates.length ? and(...predicates) : undefined);
@@ -432,8 +400,7 @@ async function loadBenchmarks(scope: UserScope, startDate?: string, endDate?: st
   }
 
   return sampleBenchmarks.filter(row => {
-    if (row.ownerId !== ownerId) return false;
-    if (workspaceId != null && row.workspaceId !== workspaceId) return false;
+    if (row.userId !== scope.userId) return false;
     if (startDate && row.date < startDate) return false;
     if (endDate && row.date > endDate) return false;
     return true;
@@ -553,7 +520,7 @@ export async function buildCustomPortfolio(
 
   const selectedStrategies = strategyIds.map(id => strategyMap.get(id)).filter(Boolean) as StrategySummary[];
   if (selectedStrategies.length !== strategyIds.length) {
-    throw new Error("One or more strategies not found for this workspace");
+    throw new Error("One or more strategies could not be found for this portfolio");
   }
 
   const normalizedWeights = normalizeWeights(strategyIds, weights);
@@ -669,7 +636,7 @@ export async function buildCustomPortfolio(
 
   const tradeMetrics = computeTradeMetrics(tradeSamples);
 
-  const workspaceMetrics: WorkspaceMetrics = {
+  const portfolioMetrics: PortfolioMetrics = {
     totalReturnPct: analytics.totalReturnPct ?? 0,
     cagrPct: analytics.cagr * 100,
     volatilityPct: analytics.volatility * 100,
@@ -706,7 +673,7 @@ export async function buildCustomPortfolio(
     ? downsamplePoints(combinedPoints, opts.maxPoints)
     : combinedPoints;
 
-  return { metrics: workspaceMetrics, equityCurve: { points }, contributions };
+  return { metrics: portfolioMetrics, equityCurve: { points }, contributions };
 }
 
 export function computeSharpeRatio(returns: number[]): number {
@@ -827,22 +794,17 @@ export async function buildStrategyComparison(
 ): Promise<StrategyComparisonResult> {
   const db = await getDb();
   const useDb = Boolean(db);
-  const scope: UserScope = { userId: input.userId, ownerId: input.ownerId ?? input.userId, workspaceId: input.workspaceId };
+  const scope: UserScope = { userId: input.userId };
   const trades = useDb
     ? await loadTrades(scope, { startDate: input.startDate, endDate: input.endDate })
-    : sampleTrades
-        .filter(t => t.ownerId === (input.ownerId ?? input.userId) && (input.workspaceId == null || t.workspaceId === input.workspaceId))
-        .filter(t => {
-          const exitDate = t.exitTime.slice(0, 10);
-          if (input.startDate && exitDate < input.startDate) return false;
-          if (input.endDate && exitDate > input.endDate) return false;
-          return true;
-        });
-  const strategies = useDb
-    ? await loadStrategies(scope)
-    : sampleStrategies.filter(
-        s => s.userId === input.userId && (input.workspaceId == null || s.workspaceId === input.workspaceId),
-      );
+    : sampleTrades.filter(t => {
+        if (t.userId !== input.userId) return false;
+        const exitDate = t.exitTime.slice(0, 10);
+        if (input.startDate && exitDate < input.startDate) return false;
+        if (input.endDate && exitDate > input.endDate) return false;
+        return true;
+      });
+  const strategies = useDb ? await loadStrategies(scope) : sampleStrategies.filter(s => s.userId === input.userId);
 
   const rows = trades.map(trade => {
     const strat = strategies.find(s => s.id === trade.strategyId);
@@ -980,7 +942,6 @@ export async function buildPortfolioSummary(
   const curve = await buildAggregatedEquityCurve(scope, opts);
   const comparison = await buildStrategyComparison({
     userId: scope.userId,
-    workspaceId: scope.workspaceId,
     page: 1,
     pageSize: 100,
     sortBy: "totalReturn",
@@ -1041,7 +1002,7 @@ export async function buildPortfolioOverview(
       ? computeReturnMetrics(benchmarkReturns, { periodsPerYear: ENGINE_CONFIG.tradingDays })
       : null;
 
-  const workspaceMetrics = {
+  const portfolioMetrics: PortfolioMetrics = {
     totalReturnPct: analytics.totalReturnPct ?? 0,
     cagrPct: analytics.cagr * 100,
     volatilityPct: analytics.volatility * 100,
@@ -1074,7 +1035,7 @@ export async function buildPortfolioOverview(
       drawdownPoints.length ? drawdownPoints.reduce((m, p) => Math.min(m, p.combined), 0) : 0,
     ),
     currentDrawdown: safeNumber(drawdownPoints.at(-1)?.combined ?? 0),
-    maxDrawdownPct: workspaceMetrics.maxDrawdownPct,
+    maxDrawdownPct: portfolioMetrics.maxDrawdownPct,
     totalTrades: tradeSamples.length,
     winningTrades: tradeSamples.filter(t => t.pnl > 0).length,
     losingTrades: tradeSamples.filter(t => t.pnl < 0).length,
@@ -1084,12 +1045,12 @@ export async function buildPortfolioOverview(
     expectancy: tradeMetrics.expectancyPerTrade,
     positions: 0,
     lastUpdated: new Date(),
-    metrics: workspaceMetrics,
+    metrics: portfolioMetrics,
   };
 }
 
 export async function generateTradesCsv(input: ExportTradesInput): Promise<string> {
-  const trades = await loadTrades({ userId: input.userId, ownerId: input.ownerId ?? input.userId, workspaceId: input.workspaceId }, {
+  const trades = await loadTrades({ userId: input.userId }, {
     startDate: input.startDate,
     endDate: input.endDate,
     strategyIds: input.strategyIds,
@@ -1163,7 +1124,6 @@ function csvEscape(value: string): string {
 
 export async function runMonteCarloSimulation(input: {
   userId: number;
-  workspaceId?: number;
   strategyIds?: number[];
   days: number;
   simulations: number;
@@ -1171,7 +1131,7 @@ export async function runMonteCarloSimulation(input: {
   endDate?: string; // derived from time range selector
 }): Promise<MonteCarloResult> {
   const equity = await buildAggregatedEquityCurve(
-    { userId: input.userId, workspaceId: input.workspaceId },
+    { userId: input.userId },
     {
     startDate: input.startDate,
     endDate: input.endDate,

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import {
   decimal,
   int,
@@ -9,23 +8,6 @@ import {
   varchar,
 } from "drizzle-orm/mysql-core";
 
-export const strategyType = mysqlEnum("strategyType", [
-  "swing",
-  "intraday",
-]);
-export const uploadStatus = mysqlEnum("uploadStatus", [
-  "pending",
-  "success",
-  "partial",
-  "failed",
-]);
-export const uploadType = mysqlEnum("uploadType", [
-  "trades",
-  "benchmarks",
-  "equity",
-]);
-export const userRole = mysqlEnum("role", ["user", "admin"]);
-
 export const users = mysqlTable("users", {
   id: int("id").autoincrement().primaryKey(),
   openId: varchar("openId", { length: 64 }).notNull(),
@@ -33,7 +15,7 @@ export const users = mysqlTable("users", {
   email: varchar("email", { length: 320 })
     .notNull()
     .unique("users_email_unique"),
-  role: userRole("role").default("user").notNull(),
+  role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
   authProvider: varchar("authProvider", { length: 64 }).default("manus"),
   authProviderId: varchar("authProviderId", { length: 128 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -45,7 +27,7 @@ export const strategies = mysqlTable("strategies", {
   name: varchar("name", { length: 255 }).notNull(),
   description: text("description"),
   symbol: varchar("symbol", { length: 32 }).default("SPY").notNull(),
-  type: strategyType("type").notNull().default("swing"),
+  type: mysqlEnum("type", ["swing", "intraday"]).notNull().default("swing"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
@@ -73,6 +55,7 @@ export const trades = mysqlTable("trades", {
 
 export const benchmarks = mysqlTable("benchmarks", {
   id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
   symbol: varchar("symbol", { length: 64 }).notNull().default("SPY"),
   date: varchar("date", { length: 16 }).notNull(),
   close: decimal("close", { precision: 18, scale: 4 }).notNull(),
@@ -85,11 +68,11 @@ export const uploadLogs = mysqlTable("uploadLogs", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull(),
   fileName: varchar("fileName", { length: 255 }).notNull(),
-  uploadType: uploadType("uploadType").notNull().default("trades"),
+  uploadType: mysqlEnum("uploadType", ["trades", "benchmarks", "equity"]).notNull().default("trades"),
   rowCountTotal: int("rowCountTotal").default(0).notNull(),
   rowCountImported: int("rowCountImported").default(0).notNull(),
   rowCountFailed: int("rowCountFailed").default(0).notNull(),
-  status: uploadStatus("status").notNull().default("pending"),
+  status: mysqlEnum("uploadStatus", ["pending", "success", "partial", "failed"]).notNull().default("pending"),
   startedAt: timestamp("startedAt").defaultNow().notNull(),
   finishedAt: timestamp("finishedAt"),
   errorSummary: text("errorSummary"),

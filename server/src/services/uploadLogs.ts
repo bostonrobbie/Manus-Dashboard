@@ -36,8 +36,10 @@ export async function createUploadLog(input: UploadLogInput) {
     })
     .$returningId?.()) ?? [];
 
+  const uploadId = typeof id === "number" ? id : undefined;
+
   return {
-    id: id ?? 0,
+    id: uploadId ?? 0,
     userId: input.userId,
     fileName: input.fileName,
     uploadType: input.uploadType,
