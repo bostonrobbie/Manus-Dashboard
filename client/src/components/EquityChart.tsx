@@ -1,3 +1,4 @@
+import React, { useMemo } from "react";
 import {
   CartesianGrid,
   Legend,
@@ -10,6 +11,7 @@ import {
 } from "recharts";
 
 import { cn } from "../lib/utils";
+import { downsampleEveryNth } from "../lib/downsample";
 
 export interface EquitySeries {
   key: string;
@@ -45,17 +47,19 @@ function EquityChart({
   emptyMessage = "No equity data available for this selection.",
   dataTestId,
 }: EquityChartProps) {
+  const chartData = useMemo(() => downsampleEveryNth(data), [data]);
+
   return (
     <div className={cn("w-full", className)} style={{ height }} data-testid={dataTestId}>
       {isLoading ? (
         <div className="h-full animate-pulse rounded bg-slate-100" />
-      ) : data.length === 0 ? (
+      ) : chartData.length === 0 ? (
         <div className="flex h-full items-center justify-center rounded border border-dashed border-slate-200 bg-slate-50 text-sm text-slate-600">
           {emptyMessage}
         </div>
       ) : (
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+          <LineChart data={chartData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
             <XAxis dataKey="date" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
             <YAxis tickFormatter={value => valueFormatter(Number(value))} tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
@@ -71,4 +75,4 @@ function EquityChart({
   );
 }
 
-export default EquityChart;
+export default React.memo(EquityChart);

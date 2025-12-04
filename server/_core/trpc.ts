@@ -1,5 +1,6 @@
 import { TRPCError, initTRPC } from "@trpc/server";
 
+import { captureException } from "../monitoring/monitor";
 import { createLogger } from "../utils/logger";
 import type { Context } from "./context";
 
@@ -7,18 +8,17 @@ const logger = createLogger("trpc");
 
 export const trpcErrorFormatter = ({ shape, error }: { shape: any; error: TRPCError }) => {
   const isAuthError = error.code === "UNAUTHORIZED" || error.code === "FORBIDDEN";
-  if (!isAuthError && error.code !== "BAD_REQUEST") {
-    logger.error("tRPC error", { code: error.code, message: error.message });
-  }
+  const isClientError = isAuthError || error.code === "BAD_REQUEST";
+  const reason = (error.cause as any)?.reason ?? (error.cause instanceof Error ? error.cause.message : undefined);
 
   return {
     ...shape,
-    message: isAuthError ? error.message : "Internal server error",
+    message: isClientError ? error.message : "Internal server error",
     data: {
       ...shape.data,
       code: error.code,
       auth: isAuthError,
-      reason: (error.cause as any)?.reason,
+      reason,
     },
   };
 };
@@ -27,8 +27,37 @@ const t = initTRPC.context<Context>().create({
   errorFormatter: trpcErrorFormatter,
 });
 
+const errorHandlingMiddleware = t.middleware(async ({ ctx, next, path }) => {
+  try {
+    return await next();
+  } catch (err) {
+    const error = err as Error;
+    const meta = {
+      endpoint: path,
+      userId: ctx.user?.id,
+      message: error.message,
+      stack: error.stack,
+      timestamp: new Date().toISOString(),
+    };
+
+    logger.error("tRPC endpoint failed", meta);
+    captureException(error, { endpoint: path, userId: ctx.user?.id });
+
+    if (error instanceof TRPCError) {
+      throw new TRPCError({
+        code: error.code,
+        message: error.message,
+        cause: error.cause ?? error,
+      });
+    }
+
+    throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Internal server error", cause: error });
+  }
+});
+
 export const router = t.router;
-export const publicProcedure = t.procedure;
+const baseProcedure = t.procedure.use(errorHandlingMiddleware);
+export const publicProcedure = baseProcedure;
 
 const enforceUser = t.middleware(({ ctx, next }) => {
   if (!ctx.user) {
@@ -37,7 +66,7 @@ const enforceUser = t.middleware(({ ctx, next }) => {
   return next({ ctx: { ...ctx, user: ctx.user } });
 });
 
-export const protectedProcedure = t.procedure.use(enforceUser);
+export const protectedProcedure = baseProcedure.use(enforceUser);
 
 export function requireUser(ctx: Context) {
   if (!ctx.user) {
