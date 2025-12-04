@@ -35,15 +35,7 @@ async function seedBenchmarks() {
       volume: record.volume ? parseInt(record.volume) : null,
     }));
 
-    await db.insert(benchmarks).values(values).onDuplicateKeyUpdate({
-      set: {
-        open: values[0]!.open,
-        high: values[0]!.high,
-        low: values[0]!.low,
-        close: values[0]!.close,
-        volume: values[0]!.volume,
-      },
-    });
+    await db.insert(benchmarks).values(values);
     
     inserted += values.length;
     console.log(`Inserted ${inserted}/${records.length} benchmark records...`);

@@ -204,7 +204,7 @@ export default function StrategyComparison() {
                     <Line
                       type="monotone"
                       dataKey="combined"
-                      stroke="hsl(var(--primary))"
+                      stroke="#3b82f6"
                       strokeWidth={3}
                       dot={false}
                       name="Combined Portfolio"

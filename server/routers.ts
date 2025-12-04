@@ -87,10 +87,30 @@ export const appRouter = router({
         );
 
         // Calculate equity curves
-        const portfolioEquity = analytics.calculateEquityCurve(allTrades, startingCapital);
-        const benchmarkEquity = analytics.calculateBenchmarkEquityCurve(
+        const rawPortfolioEquity = analytics.calculateEquityCurve(allTrades, startingCapital);
+        const rawBenchmarkEquity = analytics.calculateBenchmarkEquityCurve(
           benchmarkData,
           startingCapital
+        );
+
+        // Determine date range for forward fill
+        const equityStartDate = startDate || (
+          rawPortfolioEquity.length > 0 
+            ? rawPortfolioEquity[0]!.date 
+            : new Date()
+        );
+        const equityEndDate = now;
+
+        // Forward-fill to create continuous daily series
+        const portfolioEquity = analytics.forwardFillEquityCurve(
+          rawPortfolioEquity,
+          equityStartDate,
+          equityEndDate
+        );
+        const benchmarkEquity = analytics.forwardFillEquityCurve(
+          rawBenchmarkEquity,
+          equityStartDate,
+          equityEndDate
         );
 
         // Calculate performance by period
@@ -180,7 +200,22 @@ export const appRouter = router({
         );
 
         // Calculate equity curve
-        const equityCurve = analytics.calculateEquityCurve(strategyTrades, startingCapital);
+        const rawEquityCurve = analytics.calculateEquityCurve(strategyTrades, startingCapital);
+        
+        // Determine date range for forward fill
+        const equityStartDate = startDate || (
+          rawEquityCurve.length > 0 
+            ? rawEquityCurve[0]!.date 
+            : new Date()
+        );
+        const equityEndDate = now;
+        
+        // Forward-fill to create continuous daily series
+        const equityCurve = analytics.forwardFillEquityCurve(
+          rawEquityCurve,
+          equityStartDate,
+          equityEndDate
+        );
 
         // Get recent trades (last 50)
         const recentTrades = [...strategyTrades]

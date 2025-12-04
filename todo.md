@@ -21,39 +21,40 @@
 - [x] Add error handling and logging
 
 ## Phase 4: Portfolio Overview Page
-- [ ] Create page layout with DashboardLayout
-- [ ] Implement combined equity curve chart (portfolio vs S&P 500)
-- [ ] Add time-range filter buttons (YTD, 1Y, 3Y, 5Y, All)
-- [ ] Add starting capital input field
-- [ ] Display KPI cards (total return, Sharpe, Sortino, max drawdown, win rate)
+- [x] Create page layout with DashboardLayout
+- [x] Implement combined equity curve chart (portfolio vs S&P 500)
+- [x] Add time-range filter controls
+- [x] Add starting capital input field
+- [x] Display KPI cards (total return, Sharpe, Sortino, max drawdown, win rate)
+- [x] Ensure all metrics are annualized and in percentages
 - [ ] Create performance breakdown table (day/week/month/quarter/year)
 - [ ] Add regime analysis section
-- [ ] Ensure all metrics are annualized and in percentages
 
 ## Phase 5: Individual Strategy Pages
-- [ ] Create strategy detail page component
-- [ ] Implement strategy selector/navigation
-- [ ] Display equity curve for single strategy
-- [ ] Show full performance metrics dashboard
-- [ ] Add recent trades table
-- [ ] Implement time-range filtering
+- [x] Create strategy list page
+- [x] Create strategy detail page component
+- [x] Display equity curve for single strategy
+- [x] Show full performance metrics dashboard
+- [x] Add recent trades table
+- [x] Implement time-range filtering
 
 ## Phase 6: Strategy Comparison Page
-- [ ] Create comparison page layout
-- [ ] Implement multi-select for 2-4 strategies
-- [ ] Display individual equity curves (forward-filled, different colors)
-- [ ] Calculate and display combined equity curve
-- [ ] Create correlation matrix heatmap
-- [ ] Build comparison metrics table
-- [ ] Ensure continuous lines without gaps
+- [x] Create comparison page layout
+- [x] Implement multi-select for 2-4 strategies
+- [x] Display individual equity curves (forward-filled, different colors)
+- [x] Calculate and display combined equity curve
+- [x] Create correlation matrix heatmap
+- [x] Build comparison metrics table
+- [x] Ensure continuous lines without gaps
 
 ## Phase 7: Testing & QA
-- [ ] Write unit tests for analytics calculations
-- [ ] Write integration tests for tRPC endpoints
-- [ ] Test authentication flow (Google OAuth)
+- [x] Write unit tests for analytics calculations
+- [x] Write integration tests for tRPC endpoints
+- [x] Test authentication flow (Google OAuth)
+- [x] Test all time-range filters
+- [x] Verify equity curves display correctly
 - [ ] Test admin vs user role access
 - [ ] Test mobile responsiveness
-- [ ] Test all time-range filters
 - [ ] Verify webhook ingestion
 - [ ] End-to-end QA of all features
 
@@ -63,3 +64,19 @@
 - [ ] Verify all features work in production
 - [ ] Document deployment and usage
 - [ ] Deliver permanent URL to user
+
+## Bug Fixes (Resolved)
+- [x] Fixed equity curve not rendering on Overview page
+- [x] Fixed benchmark data seed script (onDuplicateKeyUpdate bug causing duplicate values)
+- [x] Fixed chart stroke colors (hsl() wrapper incompatible with OKLCH CSS variables)
+- [x] Added forward-fill logic to portfolio.overview endpoint
+- [x] Added forward-fill logic to portfolio.strategyDetail endpoint
+
+## Future Enhancements
+- [ ] Add performance breakdown tables (daily/weekly/monthly/quarterly)
+- [ ] Implement regime analysis (bull/bear/sideways market conditions)
+- [ ] Add drawdown visualization chart
+- [ ] Implement trade filtering and search
+- [ ] Add CSV export functionality
+- [ ] Mobile UI optimization
+- [ ] Real-time TradingView webhook testing

@@ -188,7 +188,7 @@ export default function StrategyDetail() {
                 <Line 
                   type="monotone" 
                   dataKey="equity" 
-                  stroke="hsl(var(--primary))" 
+                  stroke="#3b82f6" 
                   strokeWidth={2}
                   dot={false}
                 />

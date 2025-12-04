@@ -182,7 +182,7 @@ export default function Overview() {
                 <Line 
                   type="monotone" 
                   dataKey="portfolio" 
-                  stroke="hsl(var(--primary))" 
+                  stroke="#3b82f6" 
                   strokeWidth={2}
                   dot={false}
                   name="Portfolio"
@@ -190,7 +190,7 @@ export default function Overview() {
                 <Line 
                   type="monotone" 
                   dataKey="benchmark" 
-                  stroke="hsl(var(--muted-foreground))" 
+                  stroke="#94a3b8" 
                   strokeWidth={2}
                   dot={false}
                   name="S&P 500"
