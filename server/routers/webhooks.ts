@@ -78,7 +78,7 @@ async function recordWebhookLog(params: {
   });
 }
 
-async function resolveStrategyId(db: Awaited<ReturnType<typeof getDb>>, userId: number, payload: TradingViewPayload) {
+async function resolveStrategyId(db: NonNullable<Awaited<ReturnType<typeof getDb>>>, userId: number, payload: TradingViewPayload) {
   const strategyIdCandidate = payload.strategyId;
   const strategyName = payload.strategyName ?? payload.strategy;
 
@@ -117,6 +117,9 @@ async function resolveStrategyId(db: Awaited<ReturnType<typeof getDb>>, userId: 
 
 export async function handleTradingViewWebhook(req: Request, res: Response) {
   const db = await getDb();
+  if (!db) {
+    return res.status(503).json({ success: false, error: "Database not available" });
+  }
   const eventPayload = req.body ?? {};
   const providedSecret = (req.headers["x-webhook-secret"] as string | undefined)?.trim();
   const configuredSecret = process.env.TRADINGVIEW_WEBHOOK_SECRET;

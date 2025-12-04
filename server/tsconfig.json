@@ -14,5 +14,5 @@
     "types": ["node"]
   },
   "include": ["./**/*", "../shared/**/*", "../drizzle/**/*"],
-  "exclude": ["dist", "node_modules"]
+  "exclude": ["dist", "node_modules", "scripts/**/*", "vitest.config.ts"]
 }

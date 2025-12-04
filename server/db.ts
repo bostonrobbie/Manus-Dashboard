@@ -46,4 +46,4 @@ export function setTestDb(mockDb: Database | null) {
   db = mockDb;
 }
 
-export { schema };
+export { schema, db };
