@@ -162,6 +162,20 @@
 
 ---
 
+### ✅ [CODEX] Portfolio UI Enhancements (Feb 5, 2026)
+**Completed:** February 5, 2026
+
+**What Was Done:**
+- Rebuilt the portfolio overview page with contract-compliant time ranges, starting capital control, equity/drawdown charts, KPI grid, and breakdowns.
+- Added new Strategy Detail and Strategy Comparison pages with reusable components (charts, metrics grid, multi-select, correlation heatmap).
+- Introduced unit tests for the three pages and Playwright flows covering overview toggles, strategy detail render, and comparison selection.
+- Documented navigation updates in README and refreshed UI widgets (time range selector, starting capital input).
+
+**Next Steps:**
+- Expand UX polish for edge cases (empty states, data sparsity) and add more robust data-driven E2E assertions once fixtures are available.
+
+---
+
 ## Known Bugs / Issues
 
 *No bugs reported yet - project is in initial setup phase.*

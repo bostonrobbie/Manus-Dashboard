@@ -83,7 +83,11 @@ function DashboardLayout({ children, user, mode, mock }: DashboardLayoutProps) {
                     onChange={setWorkspaceId}
                   />
                 </div>
-                <TimeRangeSelector value={timeRange} onChange={setTimeRange} />
+                <TimeRangeSelector
+                  value={timeRange.preset}
+                  onChange={preset => setTimeRange({ preset })}
+                  presets={["1M", "3M", "6M", "YTD", "1Y", "ALL"]}
+                />
               </div>
             </div>
           </header>
