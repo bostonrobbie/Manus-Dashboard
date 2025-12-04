@@ -246,7 +246,7 @@ const result = await trpc.portfolio.strategyDetail.useQuery({
 });
 ```
 
-**Status:** 🚧 TO BE IMPLEMENTED
+**Status:** ✅ IMPLEMENTED
 
 ---
 
@@ -371,7 +371,7 @@ const result = await trpc.portfolio.compareStrategies.useQuery({
 }
 ```
 
-**Status:** 🚧 TO BE IMPLEMENTED
+**Status:** ✅ IMPLEMENTED
 
 **Important Notes:**
 - The combined curve uses equal weighting (each strategy gets 1/N allocation)

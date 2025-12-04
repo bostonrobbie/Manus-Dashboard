@@ -30,7 +30,7 @@ async function main() {
   const timings: number[] = [];
   for (let i = 0; i < iterations; i++) {
     const { ms } = await time(() =>
-      client.portfolio.overview.query({ timeRange: { preset: "3M" } }).catch(err => {
+      client.portfolio.overview.query({ timeRange: "ALL", startingCapital: 100000 }).catch(err => {
         console.error("overview failed", err);
         return null as any;
       }),

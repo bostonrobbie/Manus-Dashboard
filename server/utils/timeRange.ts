@@ -1,6 +1,6 @@
 import { TimeRange } from "@shared/types/portfolio";
 
-export const TIME_RANGE_PRESETS = ["1M", "3M", "6M", "YTD", "1Y", "ALL"] as const;
+export const TIME_RANGE_PRESETS = ["1M", "3M", "6M", "YTD", "1Y", "3Y", "5Y", "ALL"] as const;
 
 const toIsoDate = (date: Date) => date.toISOString().slice(0, 10);
 
@@ -35,6 +35,12 @@ export function deriveDateRangeFromTimeRange(timeRange?: TimeRange): {
       break;
     case "1Y":
       start.setUTCFullYear(start.getUTCFullYear() - 1);
+      break;
+    case "3Y":
+      start.setUTCFullYear(start.getUTCFullYear() - 3);
+      break;
+    case "5Y":
+      start.setUTCFullYear(start.getUTCFullYear() - 5);
       break;
     default:
       break;

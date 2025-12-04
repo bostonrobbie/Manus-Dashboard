@@ -70,87 +70,6 @@
 
 ---
 
-### 🟡 Priority 2: Backend API - Portfolio Overview Enhancement
-
-**Assigned To:** TBD (Manus or Codex)  
-**Status:** Not Started  
-**Due Date:** TBD  
-**Estimated Time:** 6-8 hours  
-**Dependencies:** Priority 1 must be complete
-
-**Tasks:**
-- [ ] Extend `server/routers/portfolio.ts` - `overview` endpoint
-- [ ] Add time-range parameter support (YTD, 1Y, 3Y, 5Y, ALL)
-- [ ] Add startingCapital parameter
-- [ ] Implement day/week/month/quarter breakdown calculations
-- [ ] Add regime-based performance analysis (optional)
-- [ ] Write unit tests for all new calculation functions
-- [ ] Update API_CONTRACT.md with new endpoint spec
-- [ ] Test with sample data
-
-**Files to Modify:**
-- `server/routers/portfolio.ts`
-- `server/portfolio-engine.ts` (if needed)
-- `server/tests/portfolio.test.ts` (create if doesn't exist)
-- `shared/types/portfolio.ts` (for TypeScript types)
-
-**Success Criteria:**
-- ✅ Endpoint accepts time-range and startingCapital parameters
-- ✅ Returns breakdown by day/week/month/quarter
-- ✅ All calculations have unit tests
-- ✅ API contract is documented
-
----
-
-### 🟡 Priority 3: Backend API - Individual Strategy Detail
-
-**Assigned To:** TBD  
-**Status:** Not Started  
-**Due Date:** TBD  
-**Estimated Time:** 4-6 hours  
-**Dependencies:** Priority 2 complete
-
-**Tasks:**
-- [ ] Create new `strategyDetail` endpoint in `server/routers/portfolio.ts`
-- [ ] Implement strategy-specific equity curve generation
-- [ ] Calculate strategy-specific metrics
-- [ ] Add trade history filtering for the strategy
-- [ ] Write unit tests
-- [ ] Document in API_CONTRACT.md
-
-**Success Criteria:**
-- ✅ Endpoint returns complete strategy details
-- ✅ Equity curve is accurate
-- ✅ Metrics match manual calculations
-- ✅ Tests pass
-
----
-
-### 🟡 Priority 4: Backend API - Strategy Comparison
-
-**Assigned To:** TBD  
-**Status:** Not Started  
-**Due Date:** TBD  
-**Estimated Time:** 8-10 hours  
-**Dependencies:** Priority 3 complete
-
-**Tasks:**
-- [ ] Create `compareStrategies` endpoint
-- [ ] Implement correlation matrix calculation
-- [ ] Build combined portfolio equity curve (equal-weight)
-- [ ] Implement forward-fill logic for non-trading days
-- [ ] Calculate combined portfolio metrics
-- [ ] Write comprehensive unit tests
-- [ ] Document in API_CONTRACT.md
-
-**Success Criteria:**
-- ✅ Can compare 2-4 strategies
-- ✅ Correlation matrix is accurate
-- ✅ Combined curve shows continuous line (no gaps)
-- ✅ All tests pass
-
----
-
 ### 🟡 Priority 5: TradingView Webhook Integration
 
 **Assigned To:** TBD  
@@ -234,6 +153,20 @@
 - Defined success metrics
 
 **Deliverable:** `/home/ubuntu/COMPREHENSIVE_PROJECT_PLAN.md`
+
+---
+
+### ✅ [CODEX] Portfolio Analytics Endpoints (Dec 4, 2025)
+**Completed:** December 4, 2025
+
+**What Was Done:**
+- Implemented contract-compliant `portfolio.overview` with benchmark comparison, drawdowns, and breakdowns.
+- Added new `strategyDetail` endpoint with metrics, drawdowns, recent trades, and breakdowns.
+- Added `compareStrategies` endpoint with forward-filled curves, equal-weight combined equity, and correlation matrix.
+- Updated API contract status flags and added Vitest coverage for the new endpoints.
+
+**Notes/Follow-ups:**
+- Regime analysis and advanced risk metrics (VaR/CVaR/Omega) remain pending for future iterations.
 
 ---
 

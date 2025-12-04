@@ -43,3 +43,43 @@ test("webhooks.getLogs returns empty array without db", async () => {
 
   assert.deepEqual(result.logs, []);
 });
+
+test("portfolio.overview matches contract schema", async () => {
+  const caller = createPortfolioCaller();
+  const result = await caller.overview({ timeRange: "ALL", startingCapital: 100000 });
+
+  assert.ok(Array.isArray(result.equityCurve));
+  assert.ok(result.equityCurve.length > 0);
+  assert.ok(typeof result.metrics.portfolio.totalReturn === "number");
+  assert.ok(typeof result.metrics.spy.sharpe === "number");
+  assert.ok(typeof result.breakdown.daily.portfolio === "number");
+  assert.equal(result.drawdownCurve.length, result.equityCurve.length);
+});
+
+test("portfolio.strategyDetail returns detailed analytics", async () => {
+  const caller = createPortfolioCaller();
+  const result = await caller.strategyDetail({ strategyId: 1, timeRange: "ALL", startingCapital: 100000 });
+
+  assert.equal(result.strategy.id, 1);
+  assert.ok(result.equityCurve.length > 0);
+  assert.ok(result.drawdownCurve.length > 0);
+  assert.ok(result.metrics.totalReturn === 0 || Number.isFinite(result.metrics.totalReturn));
+  assert.ok(typeof result.breakdown.ytd === "number");
+  assert.ok(Array.isArray(result.recentTrades));
+});
+
+test("portfolio.compareStrategies enforces strategy count and forward fills", async () => {
+  const caller = createPortfolioCaller();
+
+  await assert.rejects(
+    async () => caller.compareStrategies({ strategyIds: [1], timeRange: "ALL", startingCapital: 100000 }),
+    /between 2 and 4 strategies/,
+  );
+
+  const result = await caller.compareStrategies({ strategyIds: [1, 2], timeRange: "ALL", startingCapital: 100000 });
+
+  assert.deepEqual(Object.keys(result.individualCurves).sort(), ["1", "2"]);
+  assert.equal(result.correlationMatrix.matrix.length, 2);
+  assert.equal(result.combinedCurve.length, result.individualCurves["1"].length);
+  assert.ok(result.individualCurves["1"].every(point => typeof point.equity === "number"));
+});
