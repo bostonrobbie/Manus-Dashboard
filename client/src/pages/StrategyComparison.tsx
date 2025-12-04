@@ -1,0 +1,355 @@
+import { useState } from "react";
+import { trpc } from "@/lib/trpc";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { Loader2 } from "lucide-react";
+
+type TimeRange = 'YTD' | '1Y' | '3Y' | '5Y' | 'ALL';
+
+const COLORS = [
+  'hsl(var(--chart-1))',
+  'hsl(var(--chart-2))',
+  'hsl(var(--chart-3))',
+  'hsl(var(--chart-4))',
+];
+
+export default function StrategyComparison() {
+  const [timeRange, setTimeRange] = useState<TimeRange>('1Y');
+  const [startingCapital, setStartingCapital] = useState(100000);
+  const [selectedStrategyIds, setSelectedStrategyIds] = useState<number[]>([]);
+
+  // Get list of all strategies
+  const { data: strategies } = trpc.portfolio.listStrategies.useQuery();
+
+  // Get comparison data
+  const { data, isLoading, error } = trpc.portfolio.compareStrategies.useQuery(
+    {
+      strategyIds: selectedStrategyIds,
+      timeRange,
+      startingCapital,
+    },
+    {
+      enabled: selectedStrategyIds.length >= 2,
+    }
+  );
+
+  const toggleStrategy = (strategyId: number) => {
+    setSelectedStrategyIds(prev => {
+      if (prev.includes(strategyId)) {
+        return prev.filter(id => id !== strategyId);
+      } else if (prev.length < 4) {
+        return [...prev, strategyId];
+      }
+      return prev;
+    });
+  };
+
+  // Prepare chart data
+  const chartData = data?.strategies[0]?.equityCurve.map((_, index) => {
+    const point: any = {
+      date: new Date(data.strategies[0]!.equityCurve[index]!.date).toLocaleDateString(),
+    };
+    
+    data.strategies.forEach((strat, stratIndex) => {
+      point[`strategy${stratIndex}`] = strat.equityCurve[index]?.equity || 0;
+    });
+    
+    point.combined = data.combinedEquity[index]?.equity || 0;
+    
+    return point;
+  }) || [];
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Strategy Comparison</h1>
+        <p className="text-muted-foreground">
+          Compare performance and correlation between strategies
+        </p>
+      </div>
+
+      {/* Controls */}
+      <div className="flex flex-col gap-4 md:flex-row md:items-end">
+        <div className="space-y-2 flex-1">
+          <Label htmlFor="starting-capital">Starting Capital</Label>
+          <Input
+            id="starting-capital"
+            type="number"
+            value={startingCapital}
+            onChange={(e) => setStartingCapital(Number(e.target.value))}
+            className="w-full md:w-[200px]"
+          />
+        </div>
+        
+        <div className="space-y-2 flex-1">
+          <Label htmlFor="time-range">Time Range</Label>
+          <Select value={timeRange} onValueChange={(v) => setTimeRange(v as TimeRange)}>
+            <SelectTrigger id="time-range" className="w-full md:w-[200px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="YTD">Year to Date</SelectItem>
+              <SelectItem value="1Y">1 Year</SelectItem>
+              <SelectItem value="3Y">3 Years</SelectItem>
+              <SelectItem value="5Y">5 Years</SelectItem>
+              <SelectItem value="ALL">All Time</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {/* Strategy Selection */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Select Strategies (2-4)</CardTitle>
+          <CardDescription>Choose strategies to compare</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            {strategies?.map((strategy) => (
+              <div key={strategy.id} className="flex items-center space-x-2">
+                <Checkbox
+                  id={`strategy-${strategy.id}`}
+                  checked={selectedStrategyIds.includes(strategy.id)}
+                  onCheckedChange={() => toggleStrategy(strategy.id)}
+                  disabled={
+                    !selectedStrategyIds.includes(strategy.id) &&
+                    selectedStrategyIds.length >= 4
+                  }
+                />
+                <label
+                  htmlFor={`strategy-${strategy.id}`}
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                >
+                  {strategy.name}
+                </label>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Comparison Results */}
+      {selectedStrategyIds.length < 2 && (
+        <Card>
+          <CardContent className="flex items-center justify-center py-12">
+            <p className="text-muted-foreground">
+              Please select at least 2 strategies to compare
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {isLoading && (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      )}
+
+      {error && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-destructive">Error Loading Data</CardTitle>
+            <CardDescription>{error.message}</CardDescription>
+          </CardHeader>
+        </Card>
+      )}
+
+      {data && selectedStrategyIds.length >= 2 && (
+        <>
+          {/* Equity Curves */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Equity Curves</CardTitle>
+              <CardDescription>Individual and combined portfolio performance</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="h-[400px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis 
+                      dataKey="date" 
+                      tick={{ fontSize: 12 }}
+                      angle={-45}
+                      textAnchor="end"
+                      height={80}
+                    />
+                    <YAxis 
+                      tick={{ fontSize: 12 }}
+                      tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
+                    />
+                    <Tooltip 
+                      formatter={(value: number) => `$${value.toFixed(2)}`}
+                      labelStyle={{ color: 'black' }}
+                    />
+                    <Legend />
+                    {data.strategies.map((strat, index) => (
+                      <Line
+                        key={strat.id}
+                        type="monotone"
+                        dataKey={`strategy${index}`}
+                        stroke={COLORS[index]}
+                        strokeWidth={2}
+                        dot={false}
+                        name={strat.name || ''}
+                      />
+                    ))}
+                    <Line
+                      type="monotone"
+                      dataKey="combined"
+                      stroke="hsl(var(--primary))"
+                      strokeWidth={3}
+                      dot={false}
+                      name="Combined Portfolio"
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Correlation Matrix */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Correlation Matrix</CardTitle>
+              <CardDescription>Correlation between strategy returns</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr>
+                      <th className="border p-2 bg-muted"></th>
+                      {data.strategies.map((strat) => (
+                        <th key={strat.id} className="border p-2 bg-muted text-sm">
+                          {strat.symbol}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.strategies.map((strat1, i) => (
+                      <tr key={strat1.id}>
+                        <td className="border p-2 bg-muted font-medium text-sm">
+                          {strat1.symbol}
+                        </td>
+                        {data.strategies.map((strat2, j) => {
+                          const corr = data.correlationMatrix[i]?.[j] || 0;
+                          const bgColor = 
+                            i === j ? 'bg-primary/20' :
+                            corr > 0.7 ? 'bg-red-100' :
+                            corr > 0.3 ? 'bg-yellow-100' :
+                            corr < -0.3 ? 'bg-blue-100' :
+                            'bg-green-100';
+                          
+                          return (
+                            <td 
+                              key={strat2.id} 
+                              className={`border p-2 text-center text-sm ${bgColor}`}
+                            >
+                              {corr.toFixed(2)}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="mt-4 text-sm text-muted-foreground">
+                <p>Correlation ranges from -1 to 1:</p>
+                <ul className="list-disc list-inside space-y-1 mt-2">
+                  <li><span className="text-blue-600">Blue</span>: Negative correlation (&lt; -0.3)</li>
+                  <li><span className="text-green-600">Green</span>: Low correlation (-0.3 to 0.3)</li>
+                  <li><span className="text-yellow-600">Yellow</span>: Moderate correlation (0.3 to 0.7)</li>
+                  <li><span className="text-red-600">Red</span>: High correlation (&gt; 0.7)</li>
+                </ul>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Performance Comparison Table */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Performance Comparison</CardTitle>
+              <CardDescription>Side-by-side metrics</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr>
+                      <th className="border p-2 bg-muted text-left">Metric</th>
+                      {data.strategies.map((strat) => (
+                        <th key={strat.id} className="border p-2 bg-muted text-right">
+                          {strat.symbol}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td className="border p-2 font-medium">Total Return</td>
+                      {data.strategies.map((strat) => (
+                        <td key={strat.id} className="border p-2 text-right">
+                          {strat.metrics?.totalReturn.toFixed(2)}%
+                        </td>
+                      ))}
+                    </tr>
+                    <tr>
+                      <td className="border p-2 font-medium">Annualized Return</td>
+                      {data.strategies.map((strat) => (
+                        <td key={strat.id} className="border p-2 text-right">
+                          {strat.metrics?.annualizedReturn.toFixed(2)}%
+                        </td>
+                      ))}
+                    </tr>
+                    <tr>
+                      <td className="border p-2 font-medium">Sharpe Ratio</td>
+                      {data.strategies.map((strat) => (
+                        <td key={strat.id} className="border p-2 text-right">
+                          {strat.metrics?.sharpeRatio.toFixed(2)}
+                        </td>
+                      ))}
+                    </tr>
+                    <tr>
+                      <td className="border p-2 font-medium">Max Drawdown</td>
+                      {data.strategies.map((strat) => (
+                        <td key={strat.id} className="border p-2 text-right text-destructive">
+                          -{strat.metrics?.maxDrawdown.toFixed(2)}%
+                        </td>
+                      ))}
+                    </tr>
+                    <tr>
+                      <td className="border p-2 font-medium">Win Rate</td>
+                      {data.strategies.map((strat) => (
+                        <td key={strat.id} className="border p-2 text-right">
+                          {strat.metrics?.winRate.toFixed(1)}%
+                        </td>
+                      ))}
+                    </tr>
+                    <tr>
+                      <td className="border p-2 font-medium">Total Trades</td>
+                      {data.strategies.map((strat) => (
+                        <td key={strat.id} className="border p-2 text-right">
+                          {strat.metrics?.totalTrades}
+                        </td>
+                      ))}
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        </>
+      )}
+    </div>
+  );
+}

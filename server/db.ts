@@ -1,6 +1,6 @@
-import { eq } from "drizzle-orm";
+import { eq, and, gte, lte, inArray } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
+import { InsertUser, users, strategies, trades, benchmarks } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -89,4 +89,106 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-// TODO: add feature queries here as your schema grows.
+/**
+ * Get all strategies
+ */
+export async function getAllStrategies() {
+  const db = await getDb();
+  if (!db) return [];
+  
+  return await db.select().from(strategies).where(eq(strategies.active, true));
+}
+
+/**
+ * Get strategy by ID
+ */
+export async function getStrategyById(id: number) {
+  const db = await getDb();
+  if (!db) return null;
+  
+  const result = await db.select().from(strategies).where(eq(strategies.id, id)).limit(1);
+  return result.length > 0 ? result[0] : null;
+}
+
+/**
+ * Get all trades for specific strategies with optional date filtering
+ */
+export async function getTrades(params: {
+  strategyIds?: number[];
+  startDate?: Date;
+  endDate?: Date;
+}) {
+  const db = await getDb();
+  if (!db) return [];
+
+  const conditions = [];
+  
+  if (params.strategyIds && params.strategyIds.length > 0) {
+    conditions.push(inArray(trades.strategyId, params.strategyIds));
+  }
+  
+  if (params.startDate) {
+    conditions.push(gte(trades.exitDate, params.startDate));
+  }
+  
+  if (params.endDate) {
+    conditions.push(lte(trades.exitDate, params.endDate));
+  }
+
+  if (conditions.length === 0) {
+    return await db.select().from(trades);
+  }
+
+  return await db.select().from(trades).where(and(...conditions));
+}
+
+/**
+ * Get benchmark data with optional date filtering
+ */
+export async function getBenchmarkData(params?: {
+  startDate?: Date;
+  endDate?: Date;
+}) {
+  const db = await getDb();
+  if (!db) return [];
+
+  const conditions = [];
+  
+  if (params?.startDate) {
+    conditions.push(gte(benchmarks.date, params.startDate));
+  }
+  
+  if (params?.endDate) {
+    conditions.push(lte(benchmarks.date, params.endDate));
+  }
+
+  if (conditions.length === 0) {
+    return await db.select().from(benchmarks);
+  }
+
+  return await db.select().from(benchmarks).where(and(...conditions));
+}
+
+/**
+ * Insert a new trade (for webhook ingestion)
+ */
+export async function insertTrade(trade: {
+  strategyId: number;
+  entryDate: Date;
+  exitDate: Date;
+  direction: string;
+  entryPrice: number;
+  exitPrice: number;
+  quantity: number;
+  pnl: number;
+  pnlPercent: number;
+  commission: number;
+}) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  const result = await db.insert(trades).values(trade);
+  return result;
+}
