@@ -58,6 +58,11 @@ _None - queue cleared during the latest quality-first pass._
 ## Completed Tasks
 
 ### ✅ [CODEX] Quality-first logging & monitoring pass (Mar 2026)
+- ✅ [CODEX] Local E2E harness + Manus deployment notes (Nov 2024)
+  - Added `pnpm e2e:local` Playwright runner that boots local preview + mock-user API automatically.
+  - Documented Manus deployment env/commands/health in `DeploymentToManus.md` and linked from README.
+  - Playwright E2E now mocks core tRPC responses so no Manus headers or database are required locally.
+  - Remaining limitation: Manus-hosted E2E runs still require real Manus auth headers/credentials (use `pnpm e2e:manus`).
 **Completed:** March 2026
 
 **What Was Done:**
