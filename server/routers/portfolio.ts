@@ -19,7 +19,6 @@ import type { SharedAuthUser } from "@shared/types/auth";
 import { createLogger } from "../utils/logger";
 import {
   getCustomPortfolioAnalytics,
-  getPortfolioOverview,
   getPortfolioSummaryCsv,
   getPortfolioSummaryMetrics,
   getPortfolioTrades,
@@ -27,6 +26,18 @@ import {
   ingestTradesFromCsv,
 } from "../services/tradePipeline";
 import type { EquityCurvePoint, TimeRange, TradeRow } from "@shared/types/portfolio";
+import {
+  PortfolioContractTimeRange,
+  buildCombinedEquityFromReturns,
+  buildCorrelationMatrix,
+  buildDateIndex,
+  buildDrawdownCurve,
+  computeBreakdown,
+  computeDailyReturnSeries,
+  computeMetricBundle,
+  deriveRangeFromContractTimeRange,
+  forwardFillEquity,
+} from "@server/core/portfolioMetrics";
 
 const finiteNumber = z.number().finite();
 const equityPointSchema = z.object({
@@ -76,31 +87,6 @@ const emptyWorkspaceMetrics = workspaceMetricsSchema.parse({
   profitFactor: 0,
   expectancyPerTrade: 0,
   alpha: null,
-});
-const overviewSchema = z.object({
-  equity: finiteNumber,
-  dailyPnL: finiteNumber,
-  dailyReturn: finiteNumber,
-  totalReturn: finiteNumber,
-  totalReturnPct: finiteNumber.optional(),
-  sharpeRatio: finiteNumber,
-  sortinoRatio: finiteNumber.optional(),
-  cagr: finiteNumber.optional(),
-  calmar: finiteNumber.optional(),
-  volatility: finiteNumber.optional(),
-  maxDrawdown: finiteNumber,
-  currentDrawdown: finiteNumber,
-  maxDrawdownPct: finiteNumber.optional(),
-  totalTrades: z.number().int(),
-  winningTrades: z.number().int(),
-  losingTrades: z.number().int(),
-  winRate: finiteNumber,
-  lossRate: finiteNumber.optional(),
-  profitFactor: finiteNumber,
-  expectancy: finiteNumber.optional(),
-  positions: z.number().int(),
-  lastUpdated: z.date(),
-  metrics: workspaceMetricsSchema.optional(),
 });
 const summarySchema = z.object({
   totalReturnPct: finiteNumber,
@@ -262,6 +248,10 @@ const timeRangeInput = z
   })
   .optional();
 
+const contractTimeRangeInput: z.ZodType<PortfolioContractTimeRange> = z.enum(
+  ["YTD", "1Y", "3Y", "5Y", "ALL"] as const,
+);
+
 const resolveScope = async (ctx: { user: SharedAuthUser | null }) => {
   const user = requireUser(ctx as any);
   return { user };
@@ -335,6 +325,14 @@ const resolveDateRange = (input?: { startDate?: string; endDate?: string; timeRa
 const tradePnl = (side: string, entry: number, exit: number, qty: number) => {
   const normalizedSide = side.toLowerCase();
   return normalizedSide === "short" || normalizedSide === "sell" ? (entry - exit) * qty : (exit - entry) * qty;
+};
+
+const computeHoldingPeriodDays = (trade: TradeRow) => {
+  const entry = new Date(trade.entryTime);
+  const exit = new Date(trade.exitTime);
+  const diff = exit.getTime() - entry.getTime();
+  if (!Number.isFinite(diff) || diff <= 0) return 0;
+  return diff / (1000 * 60 * 60 * 24);
 };
 
 const buildCumulativePnlSeries = (
@@ -550,21 +548,309 @@ export const portfolioRouter = router({
     }),
   overview: protectedProcedure
     .input(
-      z
-        .object({
-          timeRange: timeRangeInput,
-        })
-        .optional(),
+      z.object({
+        timeRange: contractTimeRangeInput,
+        startingCapital: z.number().default(100000),
+      }),
     )
     .query(async ({ ctx, input }) => {
       const { user } = await resolveScope(ctx);
       const scope = { userId: user.id };
-      return overviewSchema.parse(
-        await getPortfolioOverview({
-          userId: scope.userId,
-          timeRange: input?.timeRange,
-        }),
-      );
+      const range = deriveRangeFromContractTimeRange(input.timeRange);
+      const startingCapital = input.startingCapital;
+
+      try {
+        const [equityCurve, trades] = await Promise.all([
+          buildAggregatedEquityCurve(scope, { startDate: range.startDate, endDate: range.endDate }),
+          loadTrades(scope, { startDate: range.startDate, endDate: range.endDate }),
+        ]);
+
+        const equityPoints = equityCurve.points.sort((a, b) => a.date.localeCompare(b.date));
+        const portfolioCurve = equityPoints.map(point => ({
+          date: point.date,
+          equity: startingCapital + point.combined,
+        }));
+        const spyCurve = equityPoints.map(point => ({
+          date: point.date,
+          equity: startingCapital + point.spx,
+        }));
+
+        const drawdownPortfolio = buildDrawdownCurve(portfolioCurve);
+        const drawdownSpy = buildDrawdownCurve(spyCurve);
+        const drawdownCurve = drawdownPortfolio.map((p, idx) => ({
+          date: p.date,
+          portfolio: p.equity,
+          spy: drawdownSpy[idx]?.equity ?? 0,
+        }));
+
+        const tradeSamples = trades.map(t => ({
+          pnl: tradePnl(t.side, Number(t.entryPrice), Number(t.exitPrice), Number(t.quantity)),
+          initialRisk: (t as any).initialRisk ? Number((t as any).initialRisk) : undefined,
+          holdingPeriodDays: computeHoldingPeriodDays(t),
+        }));
+
+        const metricsPortfolio = computeMetricBundle({ equityCurve: portfolioCurve, trades: tradeSamples });
+        const metricsSpy = computeMetricBundle({ equityCurve: spyCurve });
+
+        const breakdownPortfolio = computeBreakdown(portfolioCurve);
+        const breakdownSpy = computeBreakdown(spyCurve);
+
+        const portfolioEquity = portfolioCurve.at(-1)?.equity ?? startingCapital;
+        const totalReturnValue = portfolioEquity - startingCapital;
+        const winRatePct = metricsPortfolio.winRate;
+        const lossRatePct = metricsPortfolio.lossRatePct ?? Math.max(0, 100 - winRatePct);
+        const winningTrades = tradeSamples.filter(t => t.pnl > 0).length;
+        const losingTrades = tradeSamples.filter(t => t.pnl < 0).length;
+        const maxDrawdownPct = drawdownPortfolio.reduce((min, p) => Math.min(min, p.equity), 0);
+        const maxDrawdownValue = portfolioEquity * Math.abs(maxDrawdownPct) * 0.01;
+
+        return {
+          equityCurve: portfolioCurve.map((point, idx) => ({
+            date: point.date,
+            portfolio: point.equity,
+            spy: spyCurve[idx]?.equity ?? startingCapital,
+          })),
+          drawdownCurve,
+          metrics: {
+            portfolio: metricsPortfolio,
+            spy: metricsSpy,
+          },
+          breakdown: {
+            daily: { portfolio: breakdownPortfolio.daily, spy: breakdownSpy.daily },
+            weekly: { portfolio: breakdownPortfolio.weekly, spy: breakdownSpy.weekly },
+            monthly: { portfolio: breakdownPortfolio.monthly, spy: breakdownSpy.monthly },
+            quarterly: { portfolio: breakdownPortfolio.quarterly, spy: breakdownSpy.quarterly },
+            ytd: { portfolio: breakdownPortfolio.ytd, spy: breakdownSpy.ytd },
+          },
+          equity: portfolioEquity,
+          totalReturn: totalReturnValue,
+          profitFactor: metricsPortfolio.profitFactor,
+          maxDrawdown: maxDrawdownValue,
+          sharpeRatio: metricsPortfolio.sharpe,
+          sortinoRatio: metricsPortfolio.sortino,
+          winRate: winRatePct / 100,
+          lossRate: lossRatePct / 100,
+          maxDrawdownPct,
+          totalTrades: tradeSamples.length,
+          winningTrades,
+          losingTrades,
+          expectancy: metricsPortfolio.expectancyPerTrade ?? 0,
+        };
+      } catch (error) {
+        portfolioLogger.error("portfolio.overview failed", {
+          procedure: "overview",
+          userId: user.id,
+          range,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        if (error instanceof TRPCError) throw error;
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Unable to load portfolio overview" });
+      }
+    }),
+  strategyDetail: protectedProcedure
+    .input(
+      z.object({
+        strategyId: z.number(),
+        timeRange: contractTimeRangeInput,
+        startingCapital: z.number().default(100000),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const { user } = await resolveScope(ctx);
+      const scope = { userId: user.id };
+      const range = deriveRangeFromContractTimeRange(input.timeRange);
+
+      try {
+        const strategies = await loadStrategies(scope);
+        const strategy = strategies.find(s => s.id === input.strategyId);
+        if (!strategy) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Strategy not found" });
+        }
+
+        const [equityCurve, trades] = await Promise.all([
+          buildAggregatedEquityCurve(scope, {
+            startDate: range.startDate,
+            endDate: range.endDate,
+            strategyIds: [strategy.id],
+          }),
+          loadTrades(scope, { startDate: range.startDate, endDate: range.endDate, strategyIds: [strategy.id] }),
+        ]);
+
+        const orderedPoints = equityCurve.points.sort((a, b) => a.date.localeCompare(b.date));
+        const strategyCurve = orderedPoints.map(point => ({
+          date: point.date,
+          equity: input.startingCapital + point.combined,
+        }));
+
+        const drawdownCurve = buildDrawdownCurve(strategyCurve).map(point => ({
+          date: point.date,
+          drawdown: point.equity,
+        }));
+
+        const tradeSamples = trades.map(t => ({
+          pnl: tradePnl(t.side, Number(t.entryPrice), Number(t.exitPrice), Number(t.quantity)),
+          initialRisk: (t as any).initialRisk ? Number((t as any).initialRisk) : undefined,
+          holdingPeriodDays: computeHoldingPeriodDays(t),
+        }));
+
+        const metrics = computeMetricBundle({ equityCurve: strategyCurve, trades: tradeSamples });
+        const breakdown = computeBreakdown(strategyCurve);
+        const recentTrades = trades
+          .sort((a, b) => b.exitTime.localeCompare(a.exitTime))
+          .slice(0, 20)
+          .map(t => {
+            const qty = Number(t.quantity) || 0;
+            const entryPrice = Number(t.entryPrice) || 0;
+            const pnl = tradePnl(t.side, entryPrice, Number(t.exitPrice), qty);
+            const notional = Math.abs(entryPrice * qty);
+            const pnlPercent = notional > 0 ? (pnl / notional) * 100 : 0;
+
+            return {
+              id: t.id,
+              symbol: t.symbol,
+              side: t.side,
+              entryPrice: Number(t.entryPrice),
+              exitPrice: Number(t.exitPrice),
+              entryTime: t.entryTime,
+              exitTime: t.exitTime,
+              pnl,
+              pnlPercent,
+            };
+          });
+
+        return {
+          strategy: {
+            id: strategy.id,
+            name: strategy.name,
+            description: strategy.description ?? "",
+            type: strategy.type,
+            symbol: (strategy as any).symbol ?? trades[0]?.symbol ?? "",
+          },
+          equityCurve: strategyCurve,
+          drawdownCurve,
+          metrics,
+          recentTrades,
+          breakdown,
+        };
+      } catch (error) {
+        portfolioLogger.error("portfolio.strategyDetail failed", {
+          procedure: "strategyDetail",
+          userId: user.id,
+          input,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        if (error instanceof TRPCError) throw error;
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Unable to load strategy detail" });
+      }
+    }),
+  compareStrategies: protectedProcedure
+    .input(
+      z.object({
+        strategyIds: z.array(z.number()).min(2).max(4),
+        timeRange: contractTimeRangeInput,
+        startingCapital: z.number().default(100000),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const { user } = await resolveScope(ctx);
+      const scope = { userId: user.id };
+      const range = deriveRangeFromContractTimeRange(input.timeRange);
+
+      if (input.strategyIds.length < 2 || input.strategyIds.length > 4) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Please select between 2 and 4 strategies" });
+      }
+
+      try {
+        const [trades, equityResponses] = await Promise.all([
+          loadTrades(scope, {
+            startDate: range.startDate,
+            endDate: range.endDate,
+            strategyIds: input.strategyIds,
+          }),
+          Promise.all(
+            input.strategyIds.map(async id => ({
+              id,
+              curve: await buildAggregatedEquityCurve(scope, {
+                startDate: range.startDate,
+                endDate: range.endDate,
+                strategyIds: [id],
+              }),
+            })),
+          ),
+        ]);
+
+        const allPoints = equityResponses.flatMap(r => r.curve.points);
+        const earliestPoint = allPoints.length ? allPoints.reduce((min, p) => (p.date < min.date ? p : min)) : null;
+        const latestPoint = allPoints.length ? allPoints.reduce((max, p) => (p.date > max.date ? p : max)) : null;
+        const startDate = range.startDate ?? earliestPoint?.date;
+        const endDate = range.endDate ?? latestPoint?.date ?? deriveRangeFromContractTimeRange(input.timeRange).endDate;
+
+        if (!startDate || !endDate) {
+          return {
+            individualCurves: {},
+            combinedCurve: [],
+            correlationMatrix: { strategyIds: input.strategyIds, matrix: [] },
+            combinedMetrics: computeMetricBundle({ equityCurve: [] }),
+            individualMetrics: {},
+          };
+        }
+
+        const dateIndex = buildDateIndex(startDate, endDate);
+        const individualCurves: Record<string, { date: string; equity: number }[]> = {};
+        const dailyReturnMap: Record<number, number[]> = {};
+        const individualMetrics: Record<string, ReturnType<typeof computeMetricBundle>> = {};
+
+        for (const response of equityResponses) {
+          const equitySeries = response.curve.points
+            .sort((a, b) => a.date.localeCompare(b.date))
+            .map(point => ({ date: point.date, equity: input.startingCapital + point.combined }));
+          const filled = forwardFillEquity(equitySeries, dateIndex, input.startingCapital);
+          individualCurves[response.id.toString()] = filled;
+          const returns = [0, ...computeDailyReturnSeries(filled)];
+          dailyReturnMap[response.id] = returns;
+          const strategyTrades = trades.filter(t => t.strategyId === response.id);
+          individualMetrics[response.id.toString()] = computeMetricBundle({
+            equityCurve: filled,
+            trades: strategyTrades.map(t => ({
+              pnl: tradePnl(t.side, Number(t.entryPrice), Number(t.exitPrice), Number(t.quantity)),
+              initialRisk: (t as any).initialRisk ? Number((t as any).initialRisk) : undefined,
+              holdingPeriodDays: computeHoldingPeriodDays(t),
+            })),
+          });
+        }
+
+        const combinedCurve = buildCombinedEquityFromReturns(dateIndex, Object.values(dailyReturnMap), input.startingCapital);
+        const combinedMetrics = computeMetricBundle({
+          equityCurve: combinedCurve,
+          trades: trades.map(t => ({
+            pnl: tradePnl(t.side, Number(t.entryPrice), Number(t.exitPrice), Number(t.quantity)),
+            initialRisk: (t as any).initialRisk ? Number((t as any).initialRisk) : undefined,
+            holdingPeriodDays: computeHoldingPeriodDays(t),
+          })),
+        });
+
+        const correlationMatrix = {
+          strategyIds: input.strategyIds,
+          matrix: buildCorrelationMatrix(dailyReturnMap, input.strategyIds),
+        };
+
+        return {
+          individualCurves,
+          combinedCurve,
+          correlationMatrix,
+          combinedMetrics,
+          individualMetrics,
+        };
+      } catch (error) {
+        portfolioLogger.error("portfolio.compareStrategies failed", {
+          procedure: "compareStrategies",
+          userId: user.id,
+          input,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        if (error instanceof TRPCError) throw error;
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Unable to compare strategies" });
+      }
     }),
   equityCurves: protectedProcedure
     .input(

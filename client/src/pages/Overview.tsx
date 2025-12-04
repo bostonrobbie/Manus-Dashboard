@@ -20,6 +20,7 @@ import StrategyComparison from "../components/StrategyComparison";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 
 const MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+type ContractTimeRange = "YTD" | "1Y" | "3Y" | "5Y" | "ALL";
 
 function colorForReturn(pct: number) {
   const intensity = Math.min(1, Math.abs(pct) / 20);
@@ -30,7 +31,22 @@ function colorForReturn(pct: number) {
 function OverviewPage() {
   const { timeRange, workspaceId } = useDashboardState();
 
-  const overviewQuery = trpc.portfolio.overview.useQuery({ timeRange }, { retry: 1 });
+  const contractRange = useMemo<ContractTimeRange>(() => {
+    const preset = timeRange?.preset;
+    switch (preset) {
+      case "YTD":
+        return "YTD";
+      case "1Y":
+        return "1Y";
+      default:
+        return "ALL";
+    }
+  }, [timeRange]);
+
+  const overviewQuery = trpc.portfolio.overview.useQuery(
+    { timeRange: contractRange, startingCapital: 100000 },
+    { retry: 1 },
+  );
   const summaryQuery = trpc.analytics.summary.useQuery({ timeRange }, { retry: 1 });
   const equityQuery = trpc.portfolio.equityCurves.useQuery({ maxPoints: 365, timeRange }, { retry: 1 });
   const drawdownQuery = trpc.portfolio.drawdowns.useQuery({ maxPoints: 365, timeRange }, { retry: 1 });
@@ -53,6 +69,7 @@ function OverviewPage() {
   const drawdowns = useMemo(() => drawdownQuery.data?.points ?? [], [drawdownQuery.data?.points]);
   const rangeMetrics = rangeMetricsQuery.data;
   const comparison = comparisonQuery.data;
+  const metrics = overview?.metrics?.portfolio;
 
   const currency = useMemo(
     () =>
@@ -74,8 +91,6 @@ function OverviewPage() {
       }),
     [],
   );
-
-  const metrics = overview?.metrics;
 
   const monthlyReturns = useMemo(() => {
     if (!equity.length) return [] as { year: string; month: number; pct: number }[];
