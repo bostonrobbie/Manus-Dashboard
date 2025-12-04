@@ -36,6 +36,11 @@ This dashboard provides professional-grade portfolio analytics for 8 intraday tr
 - **Testing:** Vitest + Playwright
 - **Deployment:** Manus Platform
 
+### Navigation Highlights
+- **Portfolio Overview** (`/overview`): equity vs SPY, drawdowns, KPIs, and breakdowns with time range + starting capital controls.
+- **Strategy Detail** (`/strategies/:strategyId`): per-strategy equity, drawdowns, metrics grid, recent trades, and breakdowns.
+- **Strategy Comparison** (`/strategy-comparison`): select 2–4 strategies to view combined/individual curves, correlations, and metrics.
+
 ---
 
 ## 🚀 Getting Started

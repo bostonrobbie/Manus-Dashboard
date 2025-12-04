@@ -15,6 +15,7 @@ function Navigation({ orientation = "vertical", isAdmin }: NavigationProps) {
         { label: "Home Dashboard", to: "/" },
         { label: "Performance Overview", to: "/overview" },
         { label: "Strategy Performance", to: "/strategies" },
+        { label: "Strategy Comparison", to: "/strategy-comparison" },
         { label: "Custom Portfolios", to: "/portfolios" },
         { label: "Trade Log", to: "/trades" },
         { label: "Uploads", to: "/uploads" },
