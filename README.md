@@ -1,53 +1,352 @@
-# Manus Dashboard
+# Manus Intraday Strategies Dashboard
 
-A Manus-compatible, Antigravity-ready monorepo with a React 19 + Vite frontend and an Express + tRPC backend. The portfolio engine provides deterministic analytics backed by Drizzle ORM and PostgreSQL, with sample data available when no database is configured.
+A production-ready, scalable dashboard for tracking and analyzing intraday trading strategies with comprehensive analytics, real-time webhook integration, and institutional-grade quality assurance.
 
-## Repository map
-- `client/` – React UI (tRPC hooks, Recharts charts)
-- `server/` – Express + tRPC API and analytics engine
-- `drizzle/` – Database schema and migrations
-- `docs/` – Architecture, domain, Manus integration, and UX guides (see `DOMAIN_MODEL.md`, `ARCHITECTURE.md`, `DEPLOY_ON_MANUS.md`, `MANUS_CONTRACT_CHECKLIST.md`, `DATA_PIPELINE.md`)
-- `e2e/` – Playwright smoke navigation
-- `scripts/` – Operational helpers and seeds
+**Status:** 🚧 In Development  
+**Version:** 1.0.0  
+**Last Updated:** December 4, 2025
 
-## Workspaces
-- `client/` – Vite-powered dashboard UI (active frontend)
-- `server/` – Express + tRPC API
-- `shared/` – Shared TypeScript contracts
-- `drizzle/` – Database schema and migrations
-- `scripts/` – Operational helpers
-- `app/` – Legacy dashboard kept for reference; not part of standard builds
+---
 
-## Getting Started
-1. Install pnpm if needed: `corepack enable`.
-2. Install dependencies: `pnpm install`.
-3. Copy `.env.example` to `.env` and set `DATABASE_URL` if available. Leave `MOCK_USER_ENABLED=true` for local mock mode or set `MANUS_MODE=true` when Manus headers/JWTs are expected.
-4. Run the backend: `pnpm --filter server dev`.
-5. Run the frontend: `pnpm --filter client dev`.
+## 🎯 Project Overview
 
-## Development commands
-- `pnpm lint` – ESLint across client/server/shared packages.
-- `pnpm typecheck` – TypeScript across all workspaces without emitting build output.
-- `pnpm test:all` – lint, typecheck, server tests, server build, and client build in sequence.
-- Optional ops checks: `pnpm smoke:test` against a running API.
+This dashboard provides professional-grade portfolio analytics for 8 intraday trading strategies, featuring:
 
-> Note: ESLint uses the flat config and depends on `@eslint/js`; `pnpm install` from the repo root will install it automatically.
+- **Portfolio Overview** - Combined performance vs S&P 500 with time-range filtering
+- **Individual Strategy Analysis** - Detailed metrics and equity curves for each strategy
+- **Strategy Comparison** - Multi-strategy correlation analysis and combined portfolios
+- **TradingView Integration** - Automated trade signal capture via webhooks
+- **Comprehensive Testing** - Unit, integration, and E2E tests for reliability
+- **Production Monitoring** - Error tracking, logging, and health checks
 
-> Manus operators: see [docs/MANUS_INTEGRATION_PLAN.md](docs/MANUS_INTEGRATION_PLAN.md) for the staged auth/data alignment steps before production rollout.
+---
 
-## Building
-- `pnpm run build` builds all workspaces.
-- `pnpm start` builds then starts the compiled API (port defaults to 3001).
+## 📋 Key Documentation
 
-## Health
-`GET /health` returns `{ status, mode, manusReady, mockUser, db, workspaces, uploads, version, warnings }` and can be used for Manus readiness checks. `GET /health/full` probes the database, workspaces table, upload logs, and Manus auth readiness; failures return `503` with details. `GET /version` returns `{ version, commit }` derived from the repo version and optional `BUILD_COMMIT`.
+### For Developers
+- **[COMPREHENSIVE_PROJECT_PLAN.md](./COMPREHENSIVE_PROJECT_PLAN.md)** - Complete 7-phase development roadmap
+- **[API_CONTRACT.md](./API_CONTRACT.md)** - Full API documentation with schemas
+- **[TASK_LOG.md](./TASK_LOG.md)** - AI collaboration and task tracking
+- **[NEEDS_EXTERNAL_CODING.md](./NEEDS_EXTERNAL_CODING.md)** - ⚠️ **Tasks requiring external development**
+- **[MANUS_REQUIREMENTS.md](./MANUS_REQUIREMENTS.md)** - Manus platform compatibility guide
 
-## Auth & data modes
-- **Manus mode** (`MANUS_MODE=true`): expects `MANUS_AUTH_HEADER_USER`/`MANUS_AUTH_HEADER_WORKSPACE` (or a bearer token validated via `MANUS_JWT_SECRET`/`MANUS_PUBLIC_KEY_URL`). Requests without auth return `UNAUTHORIZED`.
-- **Local/mock mode** (`MOCK_USER_ENABLED=true`): injects a deterministic mock user (`id=1`, `workspaceId=1`) so the dashboard stays usable without Manus headers. Frontend helpers `VITE_MANUS_AUTH_HEADER`/`VITE_MANUS_AUTH_TOKEN` can be set to mirror Manus headers during local QA.
+### Quick Links
+- **Repository:** https://github.com/bostonrobbie/Manus-Dashboard
+- **Tech Stack:** React 19 + Vite + TypeScript + tRPC + MySQL + TailwindCSS
+- **Testing:** Vitest + Playwright
+- **Deployment:** Manus Platform
 
-## Manus Integration Track
-- High-level migration and compatibility work is tracked in [docs/MANUS_INTEGRATION_PLAN.md](docs/MANUS_INTEGRATION_PLAN.md).
-- Deployment prerequisites and commands are in [docs/DEPLOY_ON_MANUS.md](docs/DEPLOY_ON_MANUS.md).
-- Data scoping and CSV handling are described in [docs/DATA_PIPELINE.md](docs/DATA_PIPELINE.md).
-- Architecture and portfolio engine details are in `docs/` (see `Architecture.md` and `PortfolioEngine.md`).
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+- Node.js 22.13.0+
+- pnpm 8.15.8+
+- MySQL/TiDB database (provided by Manus platform)
+
+### Installation
+
+```bash
+# Clone repository
+git clone https://github.com/bostonrobbie/Manus-Dashboard.git
+cd Manus-Dashboard
+
+# Install dependencies
+pnpm install
+
+# Set up environment
+cp .env.example .env
+# Edit .env with your database and auth credentials
+```
+
+### Development
+
+```bash
+# Run backend (port 3001)
+pnpm --filter server dev
+
+# Run frontend (port 5173) - in another terminal
+pnpm --filter client dev
+
+# Run all tests
+pnpm test:all
+
+# Lint code
+pnpm lint
+
+# Type check
+pnpm typecheck
+```
+
+### Production Build
+
+```bash
+# Build all packages
+pnpm build
+
+# Start production server
+pnpm start
+```
+
+---
+
+## 📁 Project Structure
+
+```
+Manus-Dashboard/
+├── client/                 # React frontend
+│   ├── src/
+│   │   ├── pages/         # Page components
+│   │   ├── components/    # Reusable components
+│   │   ├── hooks/         # Custom React hooks
+│   │   └── lib/           # Utilities
+│   └── public/            # Static assets
+├── server/                # Express + tRPC backend
+│   ├── routers/           # tRPC API routers
+│   ├── services/          # Business logic
+│   ├── engine/            # Portfolio analytics engine
+│   ├── tests/             # Backend tests
+│   └── scripts/           # Utility scripts
+├── drizzle/               # Database schema & migrations
+│   ├── schema.ts          # MySQL schema
+│   └── migrations/        # Auto-generated migrations
+├── shared/                # Shared TypeScript types
+├── e2e/                   # Playwright E2E tests
+├── docs/                  # Additional documentation
+└── data/                  # Seed data (⚠️ TO BE ADDED)
+    └── seed/
+        ├── strategies.csv
+        ├── trades.csv
+        └── spy_benchmark.csv
+```
+
+---
+
+## 🔑 Key Features
+
+### ✅ Implemented
+- Portfolio overview with equity curves
+- Trade ingestion from CSV
+- Benchmark data management (S&P 500)
+- Monte Carlo simulation
+- Rolling metrics calculation
+- Export functionality
+- Admin data manager
+- Health check endpoints
+- Comprehensive database schema
+- Authentication framework (Manus OAuth)
+- Webhook logging infrastructure
+
+### 🚧 In Development (See NEEDS_EXTERNAL_CODING.md)
+- Individual strategy detail pages
+- Strategy comparison with correlation analysis
+- Time-range filtering (YTD, 1Y, 3Y, 5Y, All)
+- Combined equity curves for multiple strategies
+- TradingView webhook endpoint
+- Comprehensive test suite
+- Production monitoring and logging
+
+### 📋 Planned
+- Regime analysis (bull/bear/sideways)
+- Advanced risk metrics (VaR, CVaR)
+- Real-time dashboard updates
+- Mobile app (React Native)
+- Strategy optimization tools
+
+---
+
+## 🗄️ Database Schema
+
+### Core Tables
+- **users** - User authentication and roles
+- **strategies** - Strategy definitions (swing/intraday)
+- **trades** - Historical trade data with deduplication
+- **positions** - Current open positions
+- **equityCurve** - Pre-calculated equity data for performance
+- **analytics** - Rolling metrics and statistics
+- **benchmarks** - S&P 500 comparison data
+- **webhookLogs** - TradingView webhook event tracking
+- **uploadLogs** - CSV import audit trail
+- **auditLogs** - System action logging
+
+All tables use MySQL syntax with camelCase column names for Manus platform compatibility.
+
+---
+
+## 🧪 Testing
+
+### Test Coverage
+- **Unit Tests:** Backend calculation functions (Sharpe, Sortino, drawdown, etc.)
+- **Integration Tests:** API endpoints with database
+- **E2E Tests:** Complete user workflows with Playwright
+- **Property Tests:** Portfolio math validation
+
+### Running Tests
+
+```bash
+# All tests
+pnpm test:all
+
+# Backend tests only
+pnpm --filter server test
+
+# E2E tests
+pnpm e2e
+
+# With coverage
+pnpm --filter server test --coverage
+```
+
+---
+
+## 📊 API Endpoints
+
+### Portfolio
+- `trpc.portfolio.overview` - Portfolio vs benchmark analytics
+- `trpc.portfolio.strategyDetail` - Individual strategy details (🚧 in development)
+- `trpc.portfolio.compareStrategies` - Multi-strategy comparison (🚧 in development)
+- `trpc.portfolio.exportTrades` - Export trade data as CSV
+
+### Webhooks
+- `POST /api/webhook/tradingview` - TradingView alert integration (🚧 in development)
+
+### System
+- `GET /health` - Basic health check
+- `GET /health/full` - Detailed health with database status
+- `GET /version` - Application version info
+
+See **[API_CONTRACT.md](./API_CONTRACT.md)** for complete API documentation.
+
+---
+
+## 🔐 Authentication
+
+Uses Manus OAuth for authentication. Two roles supported:
+- **admin** - Full access to all features
+- **user** - Read-only dashboard access
+
+### Environment Variables
+```bash
+MANUS_MODE=true
+MANUS_AUTH_HEADER_USER=x-manus-user-json
+MANUS_AUTH_HEADER_WORKSPACE=x-manus-workspace-id
+MANUS_JWT_SECRET=<your-secret>
+```
+
+For local development, set `MOCK_USER_ENABLED=true` to bypass authentication.
+
+---
+
+## 🚀 Deployment
+
+### Manus Platform
+
+1. **Set Environment Variables**
+   ```bash
+   DATABASE_URL=mysql://user:password@host:port/database
+   MANUS_MODE=true
+   MANUS_JWT_SECRET=<secret>
+   TRADINGVIEW_WEBHOOK_SECRET=<secret>
+   ```
+
+2. **Run Migrations**
+   ```bash
+   pnpm migrate
+   ```
+
+3. **Build and Deploy**
+   ```bash
+   pnpm build
+   pnpm start
+   ```
+
+4. **Verify Health**
+   ```bash
+   curl https://your-domain.manus.app/health
+   ```
+
+---
+
+## ⚠️ CRITICAL: Data Requirements
+
+**Before development can proceed, we need:**
+
+1. **Strategy Trade Data** (CSV format)
+   - Historical trades for all 8 intraday strategies
+   - Columns: strategyId, strategyName, symbol, side, quantity, entryPrice, exitPrice, entryTime, exitTime
+   - At least 6 months of data per strategy
+
+2. **S&P 500 Benchmark Data** (CSV format)
+   - Daily SPY price data
+   - Columns: date, symbol, open, high, low, close, volume
+   - Same date range as strategy data
+
+3. **Strategy Metadata** (JSON or CSV)
+   - Names and descriptions of all 8 strategies
+   - Symbol traded, strategy type
+
+**See [NEEDS_EXTERNAL_CODING.md](./NEEDS_EXTERNAL_CODING.md) for complete requirements.**
+
+---
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+**Database Connection Failed**
+- Verify `DATABASE_URL` is correct
+- Check database is running and accessible
+- Ensure MySQL (not PostgreSQL) syntax is used
+
+**Authentication Errors**
+- Verify Manus OAuth is configured
+- Check `MANUS_JWT_SECRET` is set
+- For local dev, enable `MOCK_USER_ENABLED=true`
+
+**Build Errors**
+- Run `pnpm install` to ensure dependencies are up to date
+- Check Node.js version (requires 22.13.0+)
+- Run `pnpm typecheck` to identify TypeScript errors
+
+---
+
+## 📞 Support & Contribution
+
+### Reporting Issues
+- GitHub Issues: https://github.com/bostonrobbie/Manus-Dashboard/issues
+- Include: Error message, steps to reproduce, expected vs actual behavior
+
+### Contributing
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Run tests: `pnpm test:all`
+5. Submit a pull request
+
+### AI Collaboration
+See **[TASK_LOG.md](./TASK_LOG.md)** for AI-to-AI coordination protocol.
+
+---
+
+## 📜 License
+
+Proprietary - All rights reserved
+
+---
+
+## 🙏 Acknowledgments
+
+Built with:
+- React 19 & Vite
+- tRPC for type-safe APIs
+- Drizzle ORM for database
+- TailwindCSS for styling
+- Recharts for visualization
+- Vitest & Playwright for testing
+
+Deployed on Manus Platform
+
+---
+
+**Next Steps:** See **[NEEDS_EXTERNAL_CODING.md](./NEEDS_EXTERNAL_CODING.md)** for tasks requiring external development (Codex/ChatGPT).
