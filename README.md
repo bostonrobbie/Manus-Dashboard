@@ -81,12 +81,20 @@ pnpm lint
 pnpm typecheck
 ```
 
-### Local end-to-end run (frontend + backend)
+### Local development and data
 
-1. Ensure MySQL is reachable (MANUS or local) and `.env` is populated.
-2. Run `pnpm --filter server dev` to start the API and webhooks at `http://localhost:3001`.
-3. In another terminal, run `pnpm --filter client dev` and open `http://localhost:5173`.
-4. Optional: seed demo data (below) before loading the UI for realistic charts.
+```bash
+# Seed the demo dataset (uses sample CSVs; safe for local/dev)
+pnpm db:seed:demo
+
+# Start the API and webhook server (mock user enabled by default)
+pnpm --filter server dev
+
+# In another terminal, start the frontend (points at the API automatically)
+pnpm --filter client dev
+```
+
+> Tip: The backend falls back to bundled sample data when `DATABASE_URL` is not set, so you can explore the UI without a Manus database. Seeding provides richer charts for the E2E flow.
 
 ### Production Build
 
@@ -119,10 +127,15 @@ pnpm --filter server test:coverage
 
 # Frontend coverage
 pnpm --filter client test:coverage
-
-# Playwright E2E (requires dev server running)
-pnpm e2e
+# Local Playwright E2E (auto-starts preview + mock-friendly API)
+pnpm e2e:local
 ```
+
+E2E details:
+- `pnpm e2e:local` builds the client, starts a local preview on `http://localhost:4173`, boots the API on `http://localhost:3002` with mock auth, and runs Playwright against the preview.
+- `pnpm e2e` keeps the same defaults but respects `E2E_BASE_URL` if you already have a running preview.
+- `pnpm e2e:manus` enables Manus headers for against-platform runs (requires Manus env vars).
+- Local E2E runs use Playwright web servers plus mocked tRPC responses so no Manus headers or database are required. (Preview port: 4173; API port used for tests: 3002.)
 
 ---
 
@@ -162,6 +175,19 @@ Manus-Dashboard/
 - **Backend:** Express server in `server/` exposing tRPC routers and RESTful webhook endpoints, with structured logging and monitoring hooks.
 - **Database:** MySQL schema managed via Drizzle (`drizzle/schema.ts`), including indexes for trades and equity curve queries.
 - **Webhooks:** TradingView webhook (`POST /api/webhook/tradingview`) normalizes trade signals and records audit logs.
+
+```
+[Browser]
+   ↓ (tRPC + REST)
+[Client @4173] ──────→ [Server @3001] ──────→ [MySQL/TiDB]
+                         ↑
+              TradingView webhook (signed)
+```
+
+### Deployment
+
+- Refer to [DeploymentToManus.md](./DeploymentToManus.md) for environment variables, migration/boot commands, and health contract.
+- Production flow: build with `pnpm build`, run migrations with `pnpm migrate`, then start the server via `pnpm --filter server start` on Manus.
 
 ---
 

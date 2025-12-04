@@ -1,5 +1,11 @@
 import { expect, test } from "@playwright/test";
 
+import { setupLocalApiMocks } from "./support/mockApi";
+
+test.beforeEach(async ({ page }) => {
+  await setupLocalApiMocks(page);
+});
+
 const routes = [
   { name: "Overview", path: "/", expectation: /Overview|Portfolio Control Center/ },
   { name: "Strategies", path: "/strategies", expectation: /Strategies/i },
@@ -17,6 +23,7 @@ test.describe("dashboard smoke", () => {
     page.on("pageerror", error => errors.push(error.message));
 
     await page.goto("/");
+    await expect(page.getByRole("heading", { name: /portfolio control center/i })).toBeVisible();
     await expect(page.getByRole("navigation")).toBeVisible();
 
     for (const route of routes) {
