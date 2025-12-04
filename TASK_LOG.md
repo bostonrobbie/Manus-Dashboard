@@ -70,33 +70,6 @@
 
 ---
 
-### 🟡 Priority 5: TradingView Webhook Integration
-
-**Assigned To:** TBD  
-**Status:** Not Started  
-**Due Date:** TBD  
-**Estimated Time:** 4-6 hours  
-**Dependencies:** None (can be done in parallel)
-
-**Tasks:**
-- [ ] Create secure webhook endpoint: `POST /api/webhook/tradingview`
-- [ ] Implement secret token validation
-- [ ] Parse and validate incoming trade signals
-- [ ] Insert trades into database
-- [ ] Log webhook events to `webhookLogs` table
-- [ ] Implement error handling and retry logic
-- [ ] Write webhook testing utilities
-- [ ] Create TradingView setup documentation
-
-**Success Criteria:**
-- ✅ Webhook endpoint is secure (requires secret)
-- ✅ Successfully processes valid signals
-- ✅ Rejects invalid/malformed signals
-- ✅ All events are logged
-- ✅ Documentation is clear
-
----
-
 ## In Progress
 
 ### [MANUS] Phase 1: Foundation & Setup
@@ -167,6 +140,25 @@
 
 **Notes/Follow-ups:**
 - Regime analysis and advanced risk metrics (VaR/CVaR/Omega) remain pending for future iterations.
+
+---
+
+### ✅ [CODEX] TradingView Webhook & CSV Seeds (Feb 4, 2026)
+**Completed:** February 4, 2026
+
+**What Was Done:**
+- Implemented `POST /api/webhook/tradingview` with secret validation, payload normalization, trade insertion, and webhook logging.
+- Added webhook integration tests covering success, invalid secret, and malformed payload paths.
+- Created CSV seed scripts for strategies, trades, and SPY benchmark data with an orchestrated `seed:all` entry point.
+- Documented webhook usage and seed commands in `README.md`.
+
+**Assumptions:**
+- Webhook requests must include entry/exit prices and timestamps to persist complete trade rows.
+- Seeds and webhooks default to `userId=1` (overridable via `SEED_USER_ID` or `TRADINGVIEW_WEBHOOK_USER_ID`).
+
+**Follow-ups:**
+- Add rate limiting and retry/backoff handling for webhook calls.
+- Consider supporting open/close events without full entry/exit data in future schema updates.
 
 ---
 

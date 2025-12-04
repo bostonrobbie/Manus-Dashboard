@@ -16,8 +16,13 @@
     "migrate": "pnpm --filter drizzle run migrate",
     "db:seed:demo": "tsx server/scripts/seed-demo-data.ts",
     "db:seed:large": "tsx server/scripts/load-large-dataset.ts",
+    "seed:strategies": "tsx server/scripts/seedStrategiesFromCsv.ts",
+    "seed:trades": "tsx server/scripts/seedTradesFromCsv.ts",
+    "seed:benchmarks": "tsx server/scripts/seedSpyBenchmarkFromCsv.ts",
+    "seed:all": "tsx server/scripts/seedAllFromCsv.ts",
     "smoke:test": "pnpm --filter server run smoke:test",
-    "e2e": "pnpm exec playwright test"
+    "e2e": "pnpm exec playwright test",
+    "test": "pnpm --filter server test"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^8.5.0",

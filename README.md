@@ -89,6 +89,26 @@ pnpm build
 pnpm start
 ```
 
+### Database Seeding (CSV)
+
+CSV seed files should live in `data/seed/`:
+
+- `data/seed/strategies.csv`
+- `data/seed/trades.csv`
+- `data/seed/spy_benchmark.csv`
+
+Load them into the database with:
+
+```bash
+# Seed strategies, trades, and SPY benchmark in order
+pnpm seed:all
+
+# Or run individual seeds
+pnpm seed:strategies
+pnpm seed:trades
+pnpm seed:benchmarks
+```
+
 ---
 
 ## 📁 Project Structure
@@ -137,13 +157,13 @@ Manus-Dashboard/
 - Comprehensive database schema
 - Authentication framework (Manus OAuth)
 - Webhook logging infrastructure
+- TradingView webhook endpoint with secret validation
 
 ### 🚧 In Development (See NEEDS_EXTERNAL_CODING.md)
 - Individual strategy detail pages
 - Strategy comparison with correlation analysis
 - Time-range filtering (YTD, 1Y, 3Y, 5Y, All)
 - Combined equity curves for multiple strategies
-- TradingView webhook endpoint
 - Comprehensive test suite
 - Production monitoring and logging
 
@@ -153,6 +173,31 @@ Manus-Dashboard/
 - Real-time dashboard updates
 - Mobile app (React Native)
 - Strategy optimization tools
+
+---
+
+## 📡 TradingView Webhook
+
+- **Endpoint:** `POST /api/webhook/tradingview`
+- **Headers:** `x-webhook-secret: <TRADINGVIEW_WEBHOOK_SECRET>`
+- **Notes:** Payloads should include entry/exit prices and timestamps (payloads without those fields are rejected).
+
+**Example Payload**
+
+```json
+{
+  "strategyName": "Intraday Strategy 1",
+  "symbol": "SPY",
+  "side": "long",
+  "quantity": 100,
+  "entryPrice": 450.25,
+  "exitPrice": 451.5,
+  "entryTime": "2025-01-02T14:30:00Z",
+  "exitTime": "2025-01-02T20:00:00Z",
+  "alertId": "alert_12345",
+  "note": "TV alert payload"
+}
+```
 
 ---
 

@@ -42,4 +42,8 @@ export async function getDb(): Promise<Database | null> {
   return db;
 }
 
+export function setTestDb(mockDb: Database | null) {
+  db = mockDb;
+}
+
 export { schema };
