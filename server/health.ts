@@ -54,7 +54,26 @@ const baseSummary = (): HealthSummary => {
 export async function runBasicHealthCheck(): Promise<{ status: number; body: HealthSummary }> {
   try {
     const summary = baseSummary();
-    const statusCode = summary.status === "ok" ? 200 : 202;
+    try {
+      const db = await getDb();
+      if (db) {
+        await pingDatabaseOnce();
+        await db.execute(sql`select 1`);
+        summary.db = "ok";
+        summary.uploads = "ok";
+      } else {
+        summary.db = "error";
+        summary.uploads = "error";
+        summary.warnings = [...summary.warnings, "Database unavailable"];
+      }
+    } catch (error) {
+      summary.db = "error";
+      summary.uploads = "error";
+      summary.warnings = [...summary.warnings, (error as Error).message];
+      healthLogger.error("Basic health check failed", { error: (error as Error).message });
+    }
+
+    const statusCode = summary.status === "ok" && summary.db !== "error" ? 200 : 202;
     return { status: statusCode, body: summary };
   } catch (error) {
     healthLogger.error("Basic health check failed", { error: (error as Error).message });

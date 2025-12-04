@@ -3,10 +3,12 @@ import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { getDb, schema } from "../db";
+import { captureException } from "../monitoring/monitor";
 import { protectedProcedure, requireUser, router } from "../_core/trpc";
 import { createLogger } from "../utils/logger";
 
 const logger = createLogger("webhooks");
+const WEBHOOK_ENDPOINT = "webhooks.tradingview";
 
 const tradingViewPayloadSchema = z.object({
   strategyId: z.coerce.number().int().optional(),
@@ -120,77 +122,22 @@ export async function handleTradingViewWebhook(req: Request, res: Response) {
   const configuredSecret = process.env.TRADINGVIEW_WEBHOOK_SECRET;
   // TODO: add per-IP or per-secret rate limiting to harden the webhook surface.
 
-  if (!configuredSecret) {
-    logger.error("TradingView webhook secret not configured");
-    await recordWebhookLog({
-      db,
-      userId: DEFAULT_WEBHOOK_USER_ID,
-      payload: eventPayload,
-      status: "error",
-      errorMessage: "Webhook secret not configured",
-    });
-    return res.status(503).json({ success: false, error: "Webhook secret not configured" });
-  }
-
-  if (!providedSecret || providedSecret !== configuredSecret) {
-    await recordWebhookLog({
-      db,
-      userId: DEFAULT_WEBHOOK_USER_ID,
-      payload: eventPayload,
-      status: "error",
-      errorMessage: "Invalid webhook secret",
-    });
-    return res.status(403).json({ success: false, error: "Invalid webhook secret" });
-  }
-
-  const parsed = tradingViewPayloadSchema.safeParse(eventPayload);
-  if (!parsed.success) {
-    const message = parsed.error.issues.map(issue => issue.message).join("; ") || "Invalid payload";
-    logger.warn("TradingView webhook payload failed validation", { message });
-    await recordWebhookLog({
-      db,
-      userId: DEFAULT_WEBHOOK_USER_ID,
-      payload: eventPayload,
-      status: "error",
-      errorMessage: message,
-    });
-    return res.status(400).json({ success: false, error: message });
-  }
-
-  if (!db) {
-    await recordWebhookLog({
-      db,
-      userId: DEFAULT_WEBHOOK_USER_ID,
-      payload: eventPayload,
-      status: "error",
-      errorMessage: "Database not configured",
-    });
-    return res.status(503).json({ success: false, error: "Database not configured" });
-  }
-
-  const payload = parsed.data;
   const userId = DEFAULT_WEBHOOK_USER_ID;
-
-  const strategyId = await resolveStrategyId(db, userId, payload);
-  if (!strategyId) {
-    await recordWebhookLog({
-      db,
+  const logAndRespond = async (
+    status: number,
+    errorMessage: string,
+    payload: unknown = eventPayload,
+    error?: unknown,
+  ) => {
+    const err = error instanceof Error ? error : errorMessage ? new Error(errorMessage) : undefined;
+    logger.error("TradingView webhook error", {
+      endpoint: WEBHOOK_ENDPOINT,
       userId,
-      payload,
-      status: "error",
-      errorMessage: "Unable to resolve strategy from payload",
+      message: err?.message ?? errorMessage,
+      stack: err?.stack,
+      timestamp: new Date().toISOString(),
     });
-    return res.status(400).json({ success: false, error: "strategyId or strategyName is required" });
-  }
-
-  const normalizedSide = payload.side === "buy" ? "long" : payload.side === "sell" ? "short" : payload.side;
-  const entryPrice = payload.entryPrice ?? payload.price;
-  const exitPrice = payload.exitPrice ?? payload.price ?? entryPrice;
-  const entryTime = extractDate(payload.entryTime ?? payload.timestamp);
-  const exitTime = extractDate(payload.exitTime ?? payload.timestamp ?? payload.entryTime);
-
-  if (entryPrice == null || exitPrice == null || !entryTime || !exitTime) {
-    const errorMessage = "entryPrice, exitPrice, entryTime, and exitTime are required";
+    captureException(err ?? new Error(errorMessage), { endpoint: WEBHOOK_ENDPOINT, userId });
     await recordWebhookLog({
       db,
       userId,
@@ -198,10 +145,45 @@ export async function handleTradingViewWebhook(req: Request, res: Response) {
       status: "error",
       errorMessage,
     });
-    return res.status(400).json({ success: false, error: errorMessage });
+    return res.status(status).json({ success: false, error: errorMessage });
+  };
+
+  if (!configuredSecret) {
+    return logAndRespond(503, "Webhook secret not configured");
   }
 
+  if (!providedSecret || providedSecret !== configuredSecret) {
+    return logAndRespond(403, "Invalid webhook secret");
+  }
+
+  const parsed = tradingViewPayloadSchema.safeParse(eventPayload);
+  if (!parsed.success) {
+    const message = parsed.error.issues.map(issue => issue.message).join("; ") || "Invalid payload";
+    return logAndRespond(400, message);
+  }
+
+  if (!db) {
+    return logAndRespond(503, "Database not configured");
+  }
+
+  const payload = parsed.data;
+
   try {
+    const strategyId = await resolveStrategyId(db, userId, payload);
+    if (!strategyId) {
+      return logAndRespond(400, "strategyId or strategyName is required", payload);
+    }
+
+    const normalizedSide = payload.side === "buy" ? "long" : payload.side === "sell" ? "short" : payload.side;
+    const entryPrice = payload.entryPrice ?? payload.price;
+    const exitPrice = payload.exitPrice ?? payload.price ?? entryPrice;
+    const entryTime = extractDate(payload.entryTime ?? payload.timestamp);
+    const exitTime = extractDate(payload.exitTime ?? payload.timestamp ?? payload.entryTime);
+
+    if (entryPrice == null || exitPrice == null || !entryTime || !exitTime) {
+      return logAndRespond(400, "entryPrice, exitPrice, entryTime, and exitTime are required", payload);
+    }
+
     await db.insert(schema.trades).values({
       userId,
       strategyId,
@@ -227,15 +209,7 @@ export async function handleTradingViewWebhook(req: Request, res: Response) {
     return res.status(200).json({ status: "ok", success: true });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to insert trade";
-    logger.error("TradingView webhook failed", { message });
-    await recordWebhookLog({
-      db,
-      userId,
-      payload,
-      status: "error",
-      errorMessage: message,
-    });
-    return res.status(500).json({ success: false, error: message });
+    return logAndRespond(500, message, payload, error);
   }
 }
 

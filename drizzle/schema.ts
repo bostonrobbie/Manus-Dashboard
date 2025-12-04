@@ -1,5 +1,6 @@
 import {
   decimal,
+  index,
   int,
   mysqlEnum,
   mysqlTable,
@@ -31,27 +32,33 @@ export const strategies = mysqlTable("strategies", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
-export const trades = mysqlTable("trades", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull(),
-  strategyId: int("strategyId").notNull(),
-  symbol: varchar("symbol", { length: 24 }).notNull(),
-  side: varchar("side", { length: 16 }).notNull(),
-  quantity: decimal("quantity", { precision: 18, scale: 4 }).notNull(),
-  entryPrice: decimal("entryPrice", { precision: 18, scale: 4 }).notNull(),
-  exitPrice: decimal("exitPrice", { precision: 18, scale: 4 }).notNull(),
-  entryTime: timestamp("entryTime").notNull(),
-  exitTime: timestamp("exitTime").notNull(),
-  externalId: varchar("externalId", { length: 128 }).unique(
-    "trades_external_unique",
-  ),
-  naturalKey: varchar("naturalKey", { length: 512 }).unique(
-    "trades_natural_key_unique",
-  ),
-  uploadId: int("uploadId"),
-  deletedAt: timestamp("deletedAt"),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-});
+export const trades = mysqlTable(
+  "trades",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    userId: int("userId").notNull(),
+    strategyId: int("strategyId").notNull(),
+    symbol: varchar("symbol", { length: 24 }).notNull(),
+    side: varchar("side", { length: 16 }).notNull(),
+    quantity: decimal("quantity", { precision: 18, scale: 4 }).notNull(),
+    entryPrice: decimal("entryPrice", { precision: 18, scale: 4 }).notNull(),
+    exitPrice: decimal("exitPrice", { precision: 18, scale: 4 }).notNull(),
+    entryTime: timestamp("entryTime").notNull(),
+    exitTime: timestamp("exitTime").notNull(),
+    externalId: varchar("externalId", { length: 128 }).unique(
+      "trades_external_unique",
+    ),
+    naturalKey: varchar("naturalKey", { length: 512 }).unique(
+      "trades_natural_key_unique",
+    ),
+    uploadId: int("uploadId"),
+    deletedAt: timestamp("deletedAt"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  table => ({
+    strategyEntryTimeIdx: index("trades_strategy_entry_idx").on(table.strategyId, table.entryTime),
+  }),
+);
 
 export const positions = mysqlTable("positions", {
   id: int("id").autoincrement().primaryKey(),
@@ -71,18 +78,24 @@ export const positions = mysqlTable("positions", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
-export const equityCurve = mysqlTable("equityCurve", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull(),
-  strategyId: int("strategyId"),
+export const equityCurve = mysqlTable(
+  "equityCurve",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    userId: int("userId").notNull(),
+    strategyId: int("strategyId"),
 
-  date: varchar("date", { length: 16 }).notNull(),
-  equity: varchar("equity", { length: 30 }).notNull(),
-  dailyReturn: varchar("dailyReturn", { length: 20 }),
-  cumulativeReturn: varchar("cumulativeReturn", { length: 20 }),
+    date: varchar("date", { length: 16 }).notNull(),
+    equity: varchar("equity", { length: 30 }).notNull(),
+    dailyReturn: varchar("dailyReturn", { length: 20 }),
+    cumulativeReturn: varchar("cumulativeReturn", { length: 20 }),
 
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-});
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  table => ({
+    strategyDateIdx: index("equity_curve_strategy_date_idx").on(table.strategyId, table.date),
+  }),
+);
 
 export const analytics = mysqlTable("analytics", {
   id: int("id").autoincrement().primaryKey(),

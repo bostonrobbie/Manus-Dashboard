@@ -440,8 +440,7 @@ curl -X POST https://your-domain.manus.app/api/webhook/tradingview \
 ```json
 {
   "success": true,
-  "tradeId": 1234,
-  "message": "Trade signal processed successfully"
+  "status": "ok"
 }
 ```
 
@@ -453,7 +452,13 @@ curl -X POST https://your-domain.manus.app/api/webhook/tradingview \
 }
 ```
 
-**Status:** 🚧 TO BE IMPLEMENTED
+**Status:** ✅ IMPLEMENTED
+
+**Error Codes:**
+- `400` - Validation error (missing prices/timestamps or schema violations)
+- `403` - Invalid webhook secret
+- `503` - Webhook secret or database not configured
+- `500` - Unexpected processing failure
 
 **Security Notes:**
 - Webhook secret must be configured in environment variables
@@ -467,18 +472,25 @@ curl -X POST https://your-domain.manus.app/api/webhook/tradingview \
 
 ### 1. Health Check
 
-**Endpoint:** `GET /health`  
-**Method:** `GET`  
-**Auth Required:** No  
-**Description:** Returns basic health status of the application.
+**Endpoint:** `GET /health`
+**Method:** `GET`
+**Auth Required:** No
+**Description:** Returns basic health status of the application, including DB readiness.
 
 **Output Schema:**
 ```typescript
 {
-  status: "ok" | "error",
+  status: "ok" | "degraded" | "error",
+  mode: "MANUS" | "LOCAL_DEV",
+  manusReady: boolean,
+  mockUser: boolean,
+  warnings: string[],
   timestamp: string,
-  version: string,
-  uptime: number  // seconds
+  db: "ok" | "error" | "unknown",
+  workspaces: "ok" | "error" | "unknown",
+  uploads: "ok" | "error" | "unknown",
+  version?: string,
+  commit?: string
 }
 ```
 
@@ -488,27 +500,31 @@ curl -X POST https://your-domain.manus.app/api/webhook/tradingview \
 
 ### 2. Full Health Check
 
-**Endpoint:** `GET /health/full`  
-**Method:** `GET`  
-**Auth Required:** No  
+**Endpoint:** `GET /health/full`
+**Method:** `GET`
+**Auth Required:** No
 **Description:** Returns detailed health status including database connectivity.
 
 **Output Schema:**
 ```typescript
 {
-  status: "ok" | "error",
+  status: "ok" | "degraded" | "error",
+  mode: "MANUS" | "LOCAL_DEV",
+  manusReady: boolean,
+  mockUser: boolean,
+  warnings: string[],
   timestamp: string,
-  version: string,
-  uptime: number,
-  database: {
-    connected: boolean,
-    latency: number  // milliseconds
-  },
-  services: {
-    [serviceName: string]: {
-      status: "ok" | "error",
-      message?: string
-    }
+  db: "ok" | "error" | "unknown",
+  workspaces: "ok" | "error" | "unknown",
+  uploads: "ok" | "error" | "unknown",
+  auth: "ok" | "warning" | "error",
+  version?: string,
+  commit?: string,
+  details?: {
+    db?: string,
+    workspaces?: string,
+    uploads?: string,
+    auth?: string
   }
 }
 ```

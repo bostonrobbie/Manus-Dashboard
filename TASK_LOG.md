@@ -2,7 +2,7 @@
 
 **Project:** Manus Intraday Strategies Dashboard  
 **Repository:** https://github.com/bostonrobbie/Manus-Dashboard  
-**Last Updated:** December 4, 2025 by Manus  
+**Last Updated:** March 2026 by Codex
 
 ---
 
@@ -34,64 +34,45 @@
 
 | Metric | Value | Last Updated |
 |--------|-------|--------------|
-| **Project Phase** | Phase 1: Foundation & Setup | Dec 4, 2025 |
-| **Overall Progress** | 5% | Dec 4, 2025 |
-| **Tests Passing** | N/A (not yet implemented) | - |
-| **Critical Blockers** | 0 | Dec 4, 2025 |
-| **Open Tasks** | 5 | Dec 4, 2025 |
+| **Project Phase** | Phase 5: Quality-first polish | Mar 2026 |
+| **Overall Progress** | 70% | Mar 2026 |
+| **Tests Passing** | ✅ pnpm test (server + client) | Mar 2026 |
+| **Critical Blockers** | 0 | Mar 2026 |
+| **Open Tasks** | 2 | Mar 2026 |
 
 ---
 
 ## Open Tasks for AI (Manus/Codex)
 
-### 🔴 Priority 1: Foundation Setup (CURRENT)
-
-**Assigned To:** Manus  
-**Status:** In Progress  
-**Due Date:** December 4, 2025  
-**Estimated Time:** 2-3 hours
-
-**Tasks:**
-- [x] Clone GitHub repository
-- [x] Analyze existing codebase structure
-- [x] Create comprehensive project plan
-- [x] Create TASK_LOG.md (this file)
-- [ ] Create API_CONTRACT.md skeleton
-- [ ] Initialize project structure (verify it works with existing setup)
-- [ ] Install and verify all dependencies
-- [ ] Run existing tests to establish baseline
-- [ ] Document any immediate issues found
-
-**Success Criteria:**
-- ✅ All documentation files created
-- ✅ Dependencies install without errors
-- ✅ Existing tests pass (if any)
-- ✅ Development environment is ready
+- [ ] Wire the new monitoring abstraction to Sentry/Datadog once credentials are provided.
+- [ ] Upgrade chart downsampling to a smarter algorithm (e.g., LTTB) after validating performance on large datasets.
 
 ---
 
 ## In Progress
 
-### [MANUS] Phase 1: Foundation & Setup
-**Started:** December 4, 2025 09:50 AM EST
-**Current Step:** Creating project plan and documentation
-**Progress:** 80%
-**Notes:**
-- Repository cloned successfully
-- Existing codebase is in good shape
-- MySQL schema is already Manus-compatible
-- Portfolio engine exists and is functional
-- Need to verify dependencies and run tests
-
-- Context sync and baseline validation (current session)
+_None - queue cleared during the latest quality-first pass._
 
 ---
 
 ## Completed Tasks
 
+### ✅ [CODEX] Quality-first logging & monitoring pass (Mar 2026)
+**Completed:** March 2026
+
+**What Was Done:**
+- Added centralized tRPC error-handling middleware with structured logs and monitoring hooks.
+- Hardened TradingView webhook error handling and audit logging.
+- Added chart rendering optimizations (memoization + downsampling) and database indexes for trade/equity queries.
+- Updated documentation (README, API contract, task log) to reflect current system behavior and health checks.
+
+**Follow-ups:**
+- Connect monitoring abstraction to a real provider when credentials become available.
+- Replace naive downsampling with smarter algorithms if datasets grow further.
+
 ### ✅ [MANUS] Repository Analysis (Dec 4, 2025)
-**Completed:** December 4, 2025 10:00 AM EST  
-**Duration:** 10 minutes  
+**Completed:** December 4, 2025 10:00 AM EST
+**Duration:** 10 minutes
 
 **What Was Done:**
 - Cloned GitHub repository from https://github.com/bostonrobbie/Manus-Dashboard

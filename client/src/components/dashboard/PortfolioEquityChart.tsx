@@ -1,3 +1,4 @@
+import React, { useMemo } from "react";
 import {
   CartesianGrid,
   Line,
@@ -9,6 +10,7 @@ import {
 } from "recharts";
 
 import { StatsPanel } from "./StatsPanel";
+import { downsampleEveryNth } from "../../lib/downsample";
 
 export interface EquityPoint {
   date: string;
@@ -23,11 +25,17 @@ interface PortfolioEquityChartProps {
 }
 
 export function PortfolioEquityChart({ equitySeries, stats, title }: PortfolioEquityChartProps) {
-  const data = (equitySeries ?? []).map(point => ({
-    date: point.date,
-    value: point.value,
-    benchmark: point.benchmark,
-  }));
+  const data = useMemo(
+    () =>
+      downsampleEveryNth(
+        (equitySeries ?? []).map(point => ({
+          date: point.date,
+          value: point.value,
+          benchmark: point.benchmark,
+        })),
+      ),
+    [equitySeries],
+  );
 
   return (
     <div className="relative h-72 w-full">
@@ -58,3 +66,5 @@ export function PortfolioEquityChart({ equitySeries, stats, title }: PortfolioEq
     </div>
   );
 }
+
+export const MemoizedPortfolioEquityChart = React.memo(PortfolioEquityChart);

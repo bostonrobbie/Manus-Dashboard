@@ -2,9 +2,9 @@
 
 A production-ready, scalable dashboard for tracking and analyzing intraday trading strategies with comprehensive analytics, real-time webhook integration, and institutional-grade quality assurance.
 
-**Status:** 🚧 In Development  
-**Version:** 1.0.0  
-**Last Updated:** December 4, 2025
+**Status:** ✅ Quality-first hardening in progress
+**Version:** 1.0.0
+**Last Updated:** March 2026
 
 ---
 
@@ -74,15 +74,19 @@ pnpm --filter server dev
 # Run frontend (port 5173) - in another terminal
 pnpm --filter client dev
 
-# Run all tests
-pnpm test:all
-
 # Lint code
 pnpm lint
 
 # Type check
 pnpm typecheck
 ```
+
+### Local end-to-end run (frontend + backend)
+
+1. Ensure MySQL is reachable (MANUS or local) and `.env` is populated.
+2. Run `pnpm --filter server dev` to start the API and webhooks at `http://localhost:3001`.
+3. In another terminal, run `pnpm --filter client dev` and open `http://localhost:5173`.
+4. Optional: seed demo data (below) before loading the UI for realistic charts.
 
 ### Production Build
 
@@ -94,24 +98,30 @@ pnpm build
 pnpm start
 ```
 
-### Database Seeding (CSV)
+### Database Seeding
 
-CSV seed files should live in `data/seed/`:
+- Demo dataset: `pnpm db:seed:demo` (small) or `pnpm db:seed:large` (stress testing).
+- CSV-driven seeds (place CSVs in `data/seed/`):
+  - `pnpm seed:strategies`
+  - `pnpm seed:trades`
+  - `pnpm seed:benchmarks`
+  - `pnpm seed:all` (runs the three in order)
 
-- `data/seed/strategies.csv`
-- `data/seed/trades.csv`
-- `data/seed/spy_benchmark.csv`
-
-Load them into the database with:
+### Tests & Coverage
 
 ```bash
-# Seed strategies, trades, and SPY benchmark in order
-pnpm seed:all
+# Lint + unit/integration tests for server and client
+pnpm lint
+pnpm test
 
-# Or run individual seeds
-pnpm seed:strategies
-pnpm seed:trades
-pnpm seed:benchmarks
+# Backend coverage
+pnpm --filter server test:coverage
+
+# Frontend coverage
+pnpm --filter client test:coverage
+
+# Playwright E2E (requires dev server running)
+pnpm e2e
 ```
 
 ---
@@ -145,6 +155,13 @@ Manus-Dashboard/
         ├── trades.csv
         └── spy_benchmark.csv
 ```
+
+### High-level architecture
+
+- **Frontend:** React + Vite SPA served from `client/`, calling tRPC endpoints and rendering Recharts-based analytics.
+- **Backend:** Express server in `server/` exposing tRPC routers and RESTful webhook endpoints, with structured logging and monitoring hooks.
+- **Database:** MySQL schema managed via Drizzle (`drizzle/schema.ts`), including indexes for trades and equity curve queries.
+- **Webhooks:** TradingView webhook (`POST /api/webhook/tradingview`) normalizes trade signals and records audit logs.
 
 ---
 
