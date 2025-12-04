@@ -37,6 +37,7 @@ function StartingCapitalInput({ value, onChange, className }: StartingCapitalInp
         value={internal}
         onChange={event => handleChange(event.target.value)}
         className={cn(error ? "border-red-300" : "", "max-w-xs")}
+        aria-label="Starting capital"
       />
       {error ? <span className="text-xs text-red-600">{error}</span> : null}
     </div>

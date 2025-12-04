@@ -111,6 +111,7 @@ function OverviewPage() {
               { key: "spy", name: "SPY", color: "#1d4ed8" },
             ]}
             isLoading={overviewQuery.isLoading}
+            dataTestId="equity-chart"
           />
         </CardContent>
       </Card>

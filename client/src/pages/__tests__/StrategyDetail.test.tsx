@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import React from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -96,5 +97,20 @@ describe("StrategyDetailPage", () => {
     detailMock.mockReturnValueOnce({ data: undefined, isLoading: false, isError: true });
     render(<StrategyDetailPage />);
     expect(screen.getByText(/Unable to load strategy details/)).toBeInTheDocument();
+  });
+
+  it("updates query params when controls change", async () => {
+    const user = userEvent.setup();
+    render(<StrategyDetailPage />);
+
+    await user.click(screen.getByRole("button", { name: "1Y" }));
+    const timeRangeCall = detailMock.mock.calls.at(-1);
+    expect(timeRangeCall?.[0]).toMatchObject({ strategyId: 7, timeRange: "1Y", startingCapital: 100000 });
+
+    const input = screen.getByLabelText(/Starting capital/i);
+    await user.clear(input);
+    await user.type(input, "150000");
+    const capitalCall = detailMock.mock.calls.at(-1);
+    expect(capitalCall?.[0]).toMatchObject({ strategyId: 7, timeRange: "1Y", startingCapital: 150000 });
   });
 });

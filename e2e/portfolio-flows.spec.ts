@@ -1,20 +1,24 @@
 import { expect, test } from "@playwright/test";
 
 test.describe("portfolio flows", () => {
-  test("overview time range toggles", async ({ page }) => {
+  test("auth headers allow overview load and time range change", async ({ page }) => {
     await page.goto("/overview");
+    await expect(page.locator("h1")).toContainText(/portfolio overview/i);
     await page.getByRole("button", { name: "3Y" }).click();
     await expect(page.getByRole("button", { name: "3Y" })).toHaveClass(/bg-slate-900/);
+    await expect(page.locator("[data-testid=equity-chart]")).toBeVisible();
   });
 
-  test("strategy detail renders sections", async ({ page }) => {
+  test("strategy detail navigation and controls", async ({ page }) => {
     await page.goto("/strategies/1");
     await expect(page.locator("main")).toContainText(/strategy detail|strategy/i);
-    await expect(page.locator("main")).toContainText(/Recent trades/i);
+    await page.getByRole("button", { name: "1Y" }).click();
+    await page.getByLabel("Starting capital").fill("120000");
     await expect(page.locator("main")).toContainText(/Performance breakdown/i);
+    await expect(page.locator("main")).toContainText(/Recent trades/i);
   });
 
-  test("strategy comparison selects strategies", async ({ page }) => {
+  test("strategy comparison shows curves and correlation", async ({ page }) => {
     await page.goto("/strategy-comparison");
     const options = page.locator('[data-testid^="strategy-option-"]');
     const count = await options.count();
@@ -22,7 +26,10 @@ test.describe("portfolio flows", () => {
 
     await options.nth(0).click();
     await options.nth(1).click();
+    await page.getByRole("button", { name: "5Y" }).click();
 
     await expect(page.locator("main")).toContainText(/Combined metrics/i);
+    await expect(page.locator("[data-testid=correlation-heatmap]")).toBeVisible();
+    await expect(page.locator("[data-testid=combined-equity-chart]")).toBeVisible();
   });
 });

@@ -22,7 +22,8 @@
     "seed:all": "tsx server/scripts/seedAllFromCsv.ts",
     "smoke:test": "pnpm --filter server run smoke:test",
     "e2e": "pnpm exec playwright test",
-    "test": "pnpm -r --filter server --filter client test"
+    "test": "pnpm -r --filter server --filter client test",
+    "test:coverage": "pnpm --filter server run test:coverage && pnpm --filter client run test:coverage"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^8.5.0",

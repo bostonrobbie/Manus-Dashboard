@@ -17,11 +17,18 @@ function CorrelationHeatmap({ strategyIds, matrix }: CorrelationHeatmapProps) {
   const labels = useMemo(() => strategyIds.map(id => `S${id}`), [strategyIds]);
 
   if (!hasData) {
-    return <div className="rounded border border-dashed border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">Add 2-4 strategies to view the correlation matrix.</div>;
+    return (
+      <div
+        className="rounded border border-dashed border-slate-200 bg-slate-50 p-4 text-sm text-slate-600"
+        data-testid="correlation-heatmap"
+      >
+        Add 2-4 strategies to view the correlation matrix.
+      </div>
+    );
   }
 
   return (
-    <div className="overflow-auto">
+    <div className="overflow-auto" data-testid="correlation-heatmap">
       <table className="min-w-full border-collapse text-sm">
         <thead>
           <tr>
