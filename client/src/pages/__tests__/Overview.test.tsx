@@ -86,6 +86,25 @@ describe("OverviewPage", () => {
     expect(lastCall?.[0]).toMatchObject({ timeRange: "3Y", startingCapital: 100000 });
   });
 
+  it("updates the query when starting capital changes", async () => {
+    const user = userEvent.setup();
+    render(<OverviewPage />);
+
+    const input = screen.getByLabelText(/Starting capital/i);
+    await user.clear(input);
+    await user.type(input, "125000");
+
+    const lastCall = overviewMock.mock.calls.at(-1);
+    expect(lastCall?.[0]).toMatchObject({ timeRange: "YTD", startingCapital: 125000 });
+  });
+
+  it("surfaces an error state when the query fails", () => {
+    overviewMock.mockReturnValueOnce({ data: undefined, isLoading: false, isError: true });
+    render(<OverviewPage />);
+
+    expect(screen.getByText(/Failed to load overview/i)).toBeInTheDocument();
+  });
+
   it("renders metrics and breakdown rows", () => {
     render(<OverviewPage />);
     expect(screen.getByText(/portfolio overview/i)).toBeInTheDocument();

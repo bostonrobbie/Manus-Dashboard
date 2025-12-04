@@ -99,6 +99,7 @@ function StrategyDetailPage() {
               data={equityData}
               series={[{ key: "equity", name: "Equity", color: "#0f172a" }]}
               isLoading={detailQuery.isLoading}
+              dataTestId="strategy-equity-chart"
             />
           </CardContent>
         </Card>

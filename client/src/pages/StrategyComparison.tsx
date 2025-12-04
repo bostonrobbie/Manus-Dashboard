@@ -139,6 +139,7 @@ function StrategyComparisonPage() {
             series={[{ key: "combined", name: "Combined", color: "#0f172a" }, ...individualSeries]}
             isLoading={compareQuery.isLoading}
             emptyMessage="Select 2-4 strategies to view equity curves."
+            dataTestId="combined-equity-chart"
           />
         </CardContent>
       </Card>

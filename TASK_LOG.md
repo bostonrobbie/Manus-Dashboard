@@ -176,6 +176,26 @@
 
 ---
 
+### ✅ [CODEX] Testing Infrastructure Hardening (Dec 4, 2025)
+**Completed:** December 4, 2025
+
+**What Was Done:**
+- Added Vitest unit coverage for core metric helpers (returns, drawdowns, forward-fill, correlation, combined equity) and integration checks for portfolio overview/strategy detail/compare strategies plus webhook secret handling.
+- Expanded front-end page tests for Overview, Strategy Detail, and Strategy Comparison to cover loading/error states, control-driven query params, and chart/testid hooks for E2E stability.
+- Updated Playwright smoke flows for overview toggles, strategy detail controls, and comparison correlation visibility.
+- Enabled workspace-wide coverage commands (`pnpm test:coverage`).
+
+**Coverage Snapshot:**
+- Backend core metrics modules: `server/core/portfolioMetrics.ts` ~91% lines; `server/engine/metrics.ts` ~82% lines. Overall server coverage ~12% due to untested admin/ingestion routes and scripts.
+- Frontend pages: Overview ~92% lines, Strategy Comparison ~99%, Strategy Detail ~99%. Overall client coverage ~23% with many auxiliary pages/components still untested.
+
+**Intentionally Untested / Pending:**
+- Admin/workspace routers, ingestion pipelines, and health checks require database-backed fixtures.
+- Legacy Node test suite still fails without Manus-specific env/config; left untouched to avoid regressions.
+- Playwright run requires a live preview server; current command fails in headless CI without the app running.
+
+---
+
 ## Known Bugs / Issues
 
 *No bugs reported yet - project is in initial setup phase.*

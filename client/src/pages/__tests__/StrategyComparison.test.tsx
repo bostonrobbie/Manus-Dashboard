@@ -91,4 +91,27 @@ describe("StrategyComparisonPage", () => {
     const lastCall = compareMock.mock.calls.at(-1);
     expect(lastCall?.[0]).toMatchObject({ strategyIds: [1, 2], timeRange: "YTD", startingCapital: 100000 });
   });
+
+  it("updates comparison params when controls change and shows loading state", async () => {
+    compareMock.mockReturnValue({ data: comparisonResponse, isLoading: false, isError: false });
+    const user = userEvent.setup();
+    const { container } = render(<StrategyComparisonPage />);
+
+    await user.click(screen.getByRole("button", { name: /Alpha/i }));
+    await user.click(screen.getByRole("button", { name: /Beta/i }));
+
+    await user.click(screen.getByRole("button", { name: "3Y" }));
+    const timeRangeCall = compareMock.mock.calls.at(-1);
+    expect(timeRangeCall?.[0]).toMatchObject({ strategyIds: [1, 2], timeRange: "3Y", startingCapital: 100000 });
+
+    const input = screen.getByLabelText(/Starting capital/i);
+    await user.clear(input);
+    await user.type(input, "200000");
+    const capitalCall = compareMock.mock.calls.at(-1);
+    expect(capitalCall?.[0]).toMatchObject({ strategyIds: [1, 2], timeRange: "3Y", startingCapital: 200000 });
+
+    compareMock.mockReturnValueOnce({ data: comparisonResponse, isLoading: true, isError: false });
+    await user.click(screen.getByRole("button", { name: /Alpha/i }));
+    expect(container.querySelector(".animate-pulse")).toBeInTheDocument();
+  });
 });

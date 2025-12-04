@@ -25,6 +25,7 @@ interface EquityChartProps {
   valueFormatter?: (value: number) => string;
   className?: string;
   emptyMessage?: string;
+  dataTestId?: string;
 }
 
 const defaultCurrency = new Intl.NumberFormat(undefined, {
@@ -42,9 +43,10 @@ function EquityChart({
   valueFormatter = value => defaultCurrency.format(value),
   className,
   emptyMessage = "No equity data available for this selection.",
+  dataTestId,
 }: EquityChartProps) {
   return (
-    <div className={cn("w-full", className)} style={{ height }}>
+    <div className={cn("w-full", className)} style={{ height }} data-testid={dataTestId}>
       {isLoading ? (
         <div className="h-full animate-pulse rounded bg-slate-100" />
       ) : data.length === 0 ? (
