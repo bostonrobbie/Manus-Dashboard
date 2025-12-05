@@ -564,3 +564,186 @@ function getWeekNumber(date: Date): number {
   const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
   return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
 }
+
+
+/**
+ * Get top N performing periods by return percentage
+ */
+export function getTopPerformers(
+  breakdowns: Array<{
+    period: string;
+    returnPercent: number;
+    pnl: number;
+    trades: number;
+    winningTrades: number;
+    losingTrades: number;
+    winRate: number;
+    profitFactor: number;
+    avgWin: number;
+    avgLoss: number;
+    periodType: string;
+    startDate: Date;
+    endDate: Date;
+  }>,
+  limit: number = 10
+) {
+  return [...breakdowns]
+    .sort((a, b) => b.returnPercent - a.returnPercent)
+    .slice(0, limit);
+}
+
+/**
+ * Get worst N performing periods by return percentage
+ */
+export function getWorstPerformers(
+  breakdowns: Array<{
+    period: string;
+    returnPercent: number;
+    pnl: number;
+    trades: number;
+    winningTrades: number;
+    losingTrades: number;
+    winRate: number;
+    profitFactor: number;
+    avgWin: number;
+    avgLoss: number;
+    periodType: string;
+    startDate: Date;
+    endDate: Date;
+  }>,
+  limit: number = 10
+) {
+  return [...breakdowns]
+    .sort((a, b) => a.returnPercent - b.returnPercent)
+    .slice(0, limit);
+}
+
+/**
+ * Analyze performance by day of week (0=Sunday, 6=Saturday)
+ */
+export function getDayOfWeekAnalysis(trades: Trade[], startingCapital: number) {
+  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const dayStats: Record<number, {
+    trades: Trade[];
+    totalPnL: number;
+    winningTrades: number;
+    losingTrades: number;
+  }> = {};
+
+  // Initialize all days
+  for (let i = 0; i < 7; i++) {
+    dayStats[i] = {
+      trades: [],
+      totalPnL: 0,
+      winningTrades: 0,
+      losingTrades: 0,
+    };
+  }
+
+  // Group trades by exit day of week
+  trades.forEach(trade => {
+    const dayOfWeek = trade.exitDate.getDay();
+    dayStats[dayOfWeek].trades.push(trade);
+    dayStats[dayOfWeek].totalPnL += trade.pnl;
+    if (trade.pnl > 0) {
+      dayStats[dayOfWeek].winningTrades++;
+    } else if (trade.pnl < 0) {
+      dayStats[dayOfWeek].losingTrades++;
+    }
+  });
+
+  // Calculate metrics for each day
+  return Object.entries(dayStats).map(([day, stats]) => {
+    const dayNum = parseInt(day);
+    const totalTrades = stats.trades.length;
+    const winRate = totalTrades > 0 ? (stats.winningTrades / totalTrades) * 100 : 0;
+    const returnPercent = (stats.totalPnL / startingCapital) * 100;
+
+    const wins = stats.trades.filter(t => t.pnl > 0);
+    const losses = stats.trades.filter(t => t.pnl < 0);
+    const totalWins = wins.reduce((sum, t) => sum + t.pnl, 0);
+    const totalLosses = Math.abs(losses.reduce((sum, t) => sum + t.pnl, 0));
+    const profitFactor = totalLosses > 0 ? totalWins / totalLosses : totalWins > 0 ? Infinity : 0;
+
+    return {
+      day: dayNames[dayNum],
+      dayOfWeek: dayNum,
+      trades: totalTrades,
+      pnl: stats.totalPnL / 100, // Convert to dollars
+      returnPercent,
+      winningTrades: stats.winningTrades,
+      losingTrades: stats.losingTrades,
+      winRate,
+      profitFactor,
+      avgWin: wins.length > 0 ? totalWins / wins.length / 100 : 0,
+      avgLoss: losses.length > 0 ? totalLosses / losses.length / 100 : 0,
+    };
+  }).sort((a, b) => a.dayOfWeek - b.dayOfWeek);
+}
+
+/**
+ * Analyze performance by month of year (1=Jan, 12=Dec)
+ */
+export function getMonthOfYearAnalysis(trades: Trade[], startingCapital: number) {
+  const monthNames = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+  
+  const monthStats: Record<number, {
+    trades: Trade[];
+    totalPnL: number;
+    winningTrades: number;
+    losingTrades: number;
+  }> = {};
+
+  // Initialize all months
+  for (let i = 1; i <= 12; i++) {
+    monthStats[i] = {
+      trades: [],
+      totalPnL: 0,
+      winningTrades: 0,
+      losingTrades: 0,
+    };
+  }
+
+  // Group trades by exit month
+  trades.forEach(trade => {
+    const month = trade.exitDate.getMonth() + 1; // 0-indexed to 1-indexed
+    monthStats[month].trades.push(trade);
+    monthStats[month].totalPnL += trade.pnl;
+    if (trade.pnl > 0) {
+      monthStats[month].winningTrades++;
+    } else if (trade.pnl < 0) {
+      monthStats[month].losingTrades++;
+    }
+  });
+
+  // Calculate metrics for each month
+  return Object.entries(monthStats).map(([month, stats]) => {
+    const monthNum = parseInt(month);
+    const totalTrades = stats.trades.length;
+    const winRate = totalTrades > 0 ? (stats.winningTrades / totalTrades) * 100 : 0;
+    const returnPercent = (stats.totalPnL / startingCapital) * 100;
+
+    const wins = stats.trades.filter(t => t.pnl > 0);
+    const losses = stats.trades.filter(t => t.pnl < 0);
+    const totalWins = wins.reduce((sum, t) => sum + t.pnl, 0);
+    const totalLosses = Math.abs(losses.reduce((sum, t) => sum + t.pnl, 0));
+    const profitFactor = totalLosses > 0 ? totalWins / totalLosses : totalWins > 0 ? Infinity : 0;
+
+    return {
+      month: monthNames[monthNum - 1],
+      monthOfYear: monthNum,
+      trades: totalTrades,
+      pnl: stats.totalPnL / 100, // Convert to dollars
+      returnPercent,
+      winningTrades: stats.winningTrades,
+      losingTrades: stats.losingTrades,
+      winRate,
+      profitFactor,
+      avgWin: wins.length > 0 ? totalWins / wins.length / 100 : 0,
+      avgLoss: losses.length > 0 ? totalLosses / losses.length / 100 : 0,
+    };
+  }).sort((a, b) => a.monthOfYear - b.monthOfYear);
+}

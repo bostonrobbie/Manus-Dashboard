@@ -114,3 +114,56 @@
 - [ ] User role-based access control testing
 - [ ] Performance optimization for large datasets
 - [ ] Add more benchmark options (NASDAQ, Russell 2000, etc.)
+
+
+## Critical Issues & Enhancements (User Reported)
+
+### Data Quality & Verification
+- [x] Investigate max drawdown calculation logic (CORRECT - not a bug)
+- [x] Audit trade data completeness for all 8 strategies
+- [x] Fix duplicate trades in database (11,000 → 9,335 clean trades)
+- [x] Verify CL Trend Following strategy has trades after 2017 (2,357 trades total)
+- [x] Check all strategies have complete trade history (all verified)
+- [x] Verify all trades are plotted on correct datetime (validated)
+- [x] Fix strategy routing bug on Strategies page
+- [ ] Fix strategies with missing trades on Compare page
+
+### Performance Breakdown Enhancements
+- [ ] Redesign performance breakdown to show best/worst performing periods
+- [ ] Add "Top 10 Best Days" analysis
+- [ ] Add "Top 10 Worst Days" analysis
+- [ ] Add "Best/Worst Weeks" analysis
+- [ ] Add "Best/Worst Months" analysis
+- [ ] Add rolling drawdown visualization
+- [ ] Add rolling Sharpe ratio chart
+- [ ] Add rolling Sortino ratio chart
+- [ ] Add rolling correlation with S&P 500
+- [ ] Add win rate by time period chart
+- [ ] Add profit factor by time period chart
+- [ ] Add monthly returns heatmap (calendar view)
+- [ ] Add underwater equity curve (drawdown visualization)
+- [ ] Compare portfolio metrics vs S&P 500 side-by-side
+
+### Micro vs Mini Contract Toggle (CRITICAL - Data is in Mini format)
+- [x] Research standard micro/mini contract specifications for each instrument
+- [x] Research accurate conversion ratios (ES, NQ, CL, BTC, GC, YM)
+- [x] Add contractSize enum field to strategies schema
+- [x] Add contractMultiplier field for calculations
+- [x] Run database migration
+- [x] Create contract conversion utilities (server/lib/contracts.ts)
+- [x] Design toggle UI component (micro/mini switch)
+- [x] Create ContractSizeContext for global state
+- [x] Add contract size toggle to Overview page
+- [ ] Implement backend conversion logic in analytics (integrate with tRPC)
+- [ ] Update all P&L calculations to respect contract size
+- [ ] Update equity curves with correct scaling
+- [ ] Update all metrics displays (Total Return, Sharpe, etc.)
+- [ ] Write tests for conversion accuracy
+- [ ] Verify math against industry standards
+
+### Backend Quality & Testing
+- [ ] Add comprehensive data validation tests
+- [ ] Add tests for edge cases (missing data, incomplete strategies)
+- [ ] Improve error handling for strategies with no trades
+- [ ] Add data quality checks in seed scripts
+- [ ] Implement database constraints for data integrity

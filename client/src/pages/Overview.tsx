@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { Loader2, TrendingUp, TrendingDown, Activity, Target } from "lucide-react";
 import { PerformanceBreakdown } from "@/components/PerformanceBreakdown";
+import { ContractSizeToggle } from "@/components/ContractSizeToggle";
 
 type TimeRange = 'YTD' | '1Y' | '3Y' | '5Y' | 'ALL';
 
@@ -96,6 +97,9 @@ export default function Overview() {
           </div>
         </div>
       </div>
+
+      {/* Contract Size Toggle */}
+      <ContractSizeToggle />
 
       {/* Key Metrics Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

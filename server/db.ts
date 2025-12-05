@@ -96,7 +96,7 @@ export async function getAllStrategies() {
   const db = await getDb();
   if (!db) return [];
   
-  return await db.select().from(strategies).where(eq(strategies.active, true));
+  return await db.select().from(strategies).where(eq(strategies.active, true)).orderBy(strategies.id);
 }
 
 /**

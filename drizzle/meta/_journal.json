@@ -15,6 +15,13 @@
       "when": 1764888773581,
       "tag": "0001_zippy_lightspeed",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1764897295408,
+      "tag": "0002_high_vindicator",
+      "breakpoints": true
     }
   ]
 }
