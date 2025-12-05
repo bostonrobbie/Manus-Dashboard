@@ -158,10 +158,10 @@ export default function Overview() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-destructive">
-              -{metrics.maxDrawdown.toFixed(2)}%
+              -${metrics.maxDrawdownDollars.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
             </div>
             <p className="text-xs text-muted-foreground">
-              Peak to trough decline
+              Peak to trough decline ({metrics.maxDrawdown.toFixed(2)}%)
             </p>
           </CardContent>
         </Card>
@@ -342,7 +342,7 @@ export default function Overview() {
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-muted-foreground">Max Drawdown:</span>
                     <span className="font-semibold text-red-600">
-                      ${((Math.abs(allTimeData?.metrics.maxDrawdown ?? metrics.maxDrawdown) / 100) * startingCapital / 10).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                      ${((allTimeData?.metrics.maxDrawdownDollars ?? metrics.maxDrawdownDollars) / 10).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
@@ -355,7 +355,7 @@ export default function Overview() {
                       <span className="text-lg font-bold text-primary">
                         ${Math.max(
                           500,
-                          Math.ceil(((Math.abs(allTimeData?.metrics.maxDrawdown ?? metrics.maxDrawdown) / 100) * startingCapital / 10 + 500) / 100) * 100
+                          Math.ceil(((allTimeData?.metrics.maxDrawdownDollars ?? metrics.maxDrawdownDollars) / 10 + 500) / 100) * 100
                         ).toLocaleString()}
                       </span>
                     </div>
@@ -376,7 +376,7 @@ export default function Overview() {
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-muted-foreground">Max Drawdown:</span>
                     <span className="font-semibold text-red-600">
-                      ${((Math.abs(allTimeData?.metrics.maxDrawdown ?? metrics.maxDrawdown) / 100) * startingCapital).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                      ${(allTimeData?.metrics.maxDrawdownDollars ?? metrics.maxDrawdownDollars).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
@@ -389,7 +389,7 @@ export default function Overview() {
                       <span className="text-lg font-bold text-primary">
                         ${Math.max(
                           5000,
-                          Math.ceil(((Math.abs(allTimeData?.metrics.maxDrawdown ?? metrics.maxDrawdown) / 100) * startingCapital + 5000) / 1000) * 1000
+                          Math.ceil(((allTimeData?.metrics.maxDrawdownDollars ?? metrics.maxDrawdownDollars) + 5000) / 1000) * 1000
                         ).toLocaleString()}
                       </span>
                     </div>
@@ -405,7 +405,7 @@ export default function Overview() {
               <p className="text-sm text-blue-900 dark:text-blue-100">
                 <strong>Note:</strong> These calculations assume trading with the same position sizing as your backtest 
                 (${startingCapital.toLocaleString()} starting capital). The minimum account size ensures you can survive 
-                the maximum historical drawdown ({Math.abs(allTimeData?.metrics.maxDrawdown ?? metrics.maxDrawdown).toFixed(2)}%) plus maintain required margin. 
+                the maximum historical drawdown (${(allTimeData?.metrics.maxDrawdownDollars ?? metrics.maxDrawdownDollars).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}) plus maintain required margin. 
                 For 0% risk of ruin, your actual trading capital should exceed these minimums.
               </p>
             </div>

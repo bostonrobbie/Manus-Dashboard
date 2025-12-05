@@ -49,6 +49,7 @@ export interface PerformanceMetrics {
   sortinoRatio: number;
   calmarRatio: number; // NEW: Calmar ratio
   maxDrawdown: number; // percentage
+  maxDrawdownDollars: number; // NEW: Max drawdown in dollars (peak to trough)
   winRate: number; // percentage
   profitFactor: number;
   avgWin: number; // dollars
@@ -287,6 +288,7 @@ export function calculatePerformanceMetrics(
       sortinoRatio: 0,
       calmarRatio: 0,
       maxDrawdown: 0,
+      maxDrawdownDollars: 0,
       winRate: 0,
       profitFactor: 0,
       avgWin: 0,
@@ -332,6 +334,19 @@ export function calculatePerformanceMetrics(
   // Calculate equity curve for drawdown and Sharpe
   const equityCurve = calculateEquityCurve(trades, startingCapital);
   const maxDrawdown = Math.max(...equityCurve.map(p => p.drawdown), 0);
+
+  // Calculate max drawdown in dollars (peak to trough)
+  let maxEquity = equityCurve[0].equity;
+  let maxDrawdownDollars = 0;
+  for (const point of equityCurve) {
+    if (point.equity > maxEquity) {
+      maxEquity = point.equity;
+    }
+    const drawdownDollars = maxEquity - point.equity;
+    if (drawdownDollars > maxDrawdownDollars) {
+      maxDrawdownDollars = drawdownDollars;
+    }
+  }
 
   // Calculate daily returns for Sharpe and Sortino
   const dailyReturns: number[] = [];
@@ -383,6 +398,7 @@ export function calculatePerformanceMetrics(
     sortinoRatio,
     calmarRatio,
     maxDrawdown,
+    maxDrawdownDollars,
     winRate,
     profitFactor,
     avgWin,

@@ -1003,3 +1003,43 @@
 - [x] Add graceful fallback message when chart fails to load
 - [x] Add performance notice when showing 1Y data for longer ranges
 - [x] Test chart loads successfully with all 8 strategies
+
+
+## Current Sprint: User-Requested Fixes & Enhancements
+
+### Strategies Page Fixes
+- [ ] Fix distorted equity curves on Strategies page
+- [ ] Make time range selector actually update the chart data
+- [ ] Add clickable legend to toggle individual strategies on/off
+
+### Compare Page Enhancements
+- [ ] Show individual strategy curves + combined curve on same chart
+- [ ] Fix correlation matrix text visibility (improve contrast)
+- [ ] Fix combined performance calculation (proper backtest, not averaging)
+- [ ] Add S&P 500 benchmark toggle to equity curves
+
+### Overview Page Changes
+- [ ] Change Max Drawdown from percentage to dollar amount (peak to trough)
+- [ ] Find largest historical drawdown across all time periods
+- [ ] Update Portfolio Sizing Calculator with actual max drawdown dollar amount
+- [ ] Update margin requirements for micro and mini contracts in calculator
+
+
+## User-Requested Fixes ✅ COMPLETE (Dec 5, 2025)
+
+### Strategies Page
+- [x] Fix equity curves distortion
+- [x] Make time range selector actually change chart data
+- [x] Add clickable legend to toggle individual strategies on/off
+
+### Compare Page
+- [x] Show individual strategy curves + combined curve on same chart
+- [x] Fix correlation matrix text visibility (better contrast)
+- [x] Fix combined performance calculation (proper backtest, not averaging)
+- [x] Add S&P 500 benchmark toggle to equity curves
+
+### Overview Page
+- [x] Change Max Drawdown from percentage to dollar amount (peak to trough)
+- [x] Find largest historical drawdown across all time periods ($45,554)
+- [x] Update Portfolio Sizing Calculator with actual max drawdown dollar amount
+- [x] Update margin requirements for micro and mini contracts

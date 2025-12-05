@@ -23,16 +23,14 @@ const STRATEGY_COLORS = [
 
 export default function Strategies() {
   const [timeRange, setTimeRange] = useState<TimeRange>('1Y');
+  const [hiddenStrategies, setHiddenStrategies] = useState<Set<string>>(new Set());
   const { data: strategies, isLoading, error } = trpc.portfolio.listStrategies.useQuery();
   
   // Get all strategies comparison data for the chart
-  // Limit to 1Y for performance (full dataset can timeout)
-  const chartTimeRange = timeRange === 'ALL' || timeRange === '5Y' || timeRange === '3Y' ? '1Y' : timeRange;
-  
   const { data: comparisonData, isLoading: isLoadingComparison, error: comparisonError } = trpc.portfolio.compareStrategies.useQuery(
     {
       strategyIds: strategies?.map(s => s.id) || [],
-      timeRange: chartTimeRange,
+      timeRange: timeRange,
       startingCapital: 100000,
     },
     {
@@ -58,6 +56,18 @@ export default function Strategies() {
       
       return point;
     }) || [];
+
+  const toggleStrategy = (symbol: string) => {
+    setHiddenStrategies(prev => {
+      const next = new Set(prev);
+      if (next.has(symbol)) {
+        next.delete(symbol);
+      } else {
+        next.add(symbol);
+      }
+      return next;
+    });
+  };
 
   if (isLoading) {
     return (
@@ -125,49 +135,6 @@ export default function Strategies() {
               <p className="text-sm text-muted-foreground">Unable to load comparison chart</p>
               <p className="text-xs text-muted-foreground">View individual strategy details below</p>
             </div>
-          ) : chartTimeRange !== timeRange ? (
-            <div className="space-y-4">
-              <div className="bg-muted/50 rounded-lg p-3 text-sm text-muted-foreground">
-                Showing 1 Year data for performance. For longer periods, view individual strategy details.
-              </div>
-              <div className="h-[400px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                    <XAxis 
-                      dataKey="date" 
-                      tick={{ fontSize: 12, fill: 'hsl(var(--foreground))' }}
-                      stroke="hsl(var(--muted-foreground))"
-                    />
-                    <YAxis 
-                      tick={{ fontSize: 12, fill: 'hsl(var(--foreground))' }}
-                      tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
-                      stroke="hsl(var(--muted-foreground))"
-                    />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: 'hsl(var(--background))',
-                        border: '1px solid hsl(var(--border))',
-                        borderRadius: '8px'
-                      }}
-                      formatter={(value: number) => `$${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-                    />
-                    <Legend wrapperStyle={{ paddingTop: '20px' }} />
-                    {comparisonData?.strategies.map((strat, index) => (
-                      <Line
-                        key={strat.id}
-                        type="monotone"
-                        dataKey={strat.symbol || `strategy${index}`}
-                        stroke={STRATEGY_COLORS[index % STRATEGY_COLORS.length]}
-                        strokeWidth={2}
-                        dot={false}
-                        name={strat.name || strat.symbol || `Strategy ${index + 1}`}
-                      />
-                    ))}
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
           ) : (
             <div className="h-[400px]">
               <ResponsiveContainer width="100%" height="100%">
@@ -191,18 +158,47 @@ export default function Strategies() {
                     }}
                     formatter={(value: number) => `$${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                   />
-                  <Legend wrapperStyle={{ paddingTop: '20px' }} />
-                  {comparisonData?.strategies.map((strat, index) => (
-                    <Line
-                      key={strat.id}
-                      type="monotone"
-                      dataKey={strat.symbol || `strategy${index}`}
-                      stroke={STRATEGY_COLORS[index % STRATEGY_COLORS.length]}
-                      strokeWidth={2}
-                      dot={false}
-                      name={strat.name || strat.symbol || `Strategy ${index + 1}`}
+                    <Legend 
+                      wrapperStyle={{ paddingTop: '20px' }} 
+                      content={(props) => {
+                        const { payload } = props;
+                        return (
+                          <div className="flex flex-wrap justify-center gap-4 pt-4">
+                            {payload?.map((entry: any, index: number) => {
+                              const isHidden = hiddenStrategies.has(entry.dataKey);
+                              return (
+                                <div
+                                  key={`legend-${index}`}
+                                  className="flex items-center gap-2 cursor-pointer hover:opacity-70 transition-opacity"
+                                  onClick={() => toggleStrategy(entry.dataKey)}
+                                  style={{ opacity: isHidden ? 0.4 : 1 }}
+                                >
+                                  <div
+                                    className="w-4 h-0.5"
+                                    style={{ backgroundColor: entry.color }}
+                                  />
+                                  <span className="text-sm" style={{ textDecoration: isHidden ? 'line-through' : 'none' }}>
+                                    {entry.value}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        );
+                      }}
                     />
-                  ))}
+                    {comparisonData?.strategies.map((strat, index) => (
+                      <Line
+                        key={strat.id}
+                        type="monotone"
+                        dataKey={strat.symbol || `strategy${index}`}
+                        stroke={STRATEGY_COLORS[index % STRATEGY_COLORS.length]}
+                        strokeWidth={2}
+                        dot={false}
+                        name={strat.name || strat.symbol || `Strategy ${index + 1}`}
+                        hide={hiddenStrategies.has(strat.symbol || `strategy${index}`)}
+                      />
+                    ))}
                 </LineChart>
               </ResponsiveContainer>
             </div>
