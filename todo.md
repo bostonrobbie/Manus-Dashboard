@@ -953,3 +953,53 @@
 - ✅ 11 test files
 - ✅ All critical functionality covered
 - ✅ No regressions introduced
+
+
+## Current Sprint: Final Enhancements (Dec 5, 2025)
+
+### Calendar PnL Heatmap
+- [ ] Create backend function to aggregate PnL by calendar date
+- [ ] Add tRPC endpoint for calendar data
+- [ ] Create CalendarHeatmap component
+- [ ] Add to Overview page
+- [ ] Style with color gradients
+- [ ] Add tooltips with daily stats
+
+### Trade Filtering & CSV Export
+- [ ] Design trade filter UI (date range, direction, P&L, strategy)
+- [ ] Create TradeFilters component
+- [ ] Add filter state management
+- [ ] Implement CSV export function
+- [ ] Add export button to trades tables
+- [ ] Test filtering with various combinations
+- [ ] Test CSV export format
+
+### Optimize Strategies Page Chart
+- [ ] Investigate timeout issue with all-strategies chart
+- [ ] Implement data sampling or pagination
+- [ ] Add loading states
+- [ ] Test with full dataset
+- [ ] Verify performance improvement
+
+
+## Current Sprint: Final Enhancements ✅ COMPLETE
+
+- [x] Add calendar PnL heatmap (monthly returns visualization) - Already existed
+- [x] Implement trade filtering & CSV export - Completed with TradeFilters component
+- [x] Optimize Strategies page all-strategies chart (currently times out) - Fixed validation and added error handling
+
+### Trade Filtering & CSV Export Implementation
+- [x] Create TradeFilters component with date range, direction, P&L filters
+- [x] Create csvExport utility for exporting trades to CSV
+- [x] Integrate TradeFilters into StrategyDetail page
+- [x] Add Export CSV button with download functionality
+- [x] Test filtering logic (date, direction, P&L range)
+- [x] Test CSV export with filtered data
+
+### Strategies Page Chart Optimization
+- [x] Fix compareStrategies validation (was limiting to 4 strategies, now allows 10)
+- [x] Add data sampling for large datasets (every 3rd point if >500 points)
+- [x] Add error handling for timeout scenarios
+- [x] Add graceful fallback message when chart fails to load
+- [x] Add performance notice when showing 1Y data for longer ranges
+- [x] Test chart loads successfully with all 8 strategies

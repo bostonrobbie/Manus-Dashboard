@@ -360,7 +360,7 @@ export const appRouter = router({
      */
     compareStrategies: protectedProcedure
       .input(z.object({
-        strategyIds: z.array(z.number()).min(2).max(4),
+        strategyIds: z.array(z.number()).min(1).max(10),
         timeRange: TimeRange.optional(),
         startingCapital: z.number().optional().default(100000),
       }))

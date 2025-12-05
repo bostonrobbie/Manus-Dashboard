@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { Loader2, ArrowLeft } from "lucide-react";
+import { TradeFilters, TradeFilterState } from "@/components/TradeFilters";
+import { exportTradesToCSV } from "@/lib/csvExport";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 
@@ -19,6 +21,7 @@ export default function StrategyDetail() {
 
   const [timeRange, setTimeRange] = useState<TimeRange>('1Y');
   const [startingCapital, setStartingCapital] = useState(100000);
+  const [filters, setFilters] = useState<TradeFilterState>({});
 
   const { data, isLoading, error } = trpc.portfolio.strategyDetail.useQuery({
     strategyId,
@@ -50,6 +53,35 @@ export default function StrategyDetail() {
   if (!data) return null;
 
   const { strategy, metrics, equityCurve, recentTrades } = data;
+
+  // Apply filters to trades
+  const filteredTrades = recentTrades.filter((trade) => {
+    if (filters.startDate && new Date(trade.exitDate) < new Date(filters.startDate)) return false;
+    if (filters.endDate && new Date(trade.exitDate) > new Date(filters.endDate)) return false;
+    if (filters.direction && trade.direction.toLowerCase() !== filters.direction) return false;
+    if (filters.minPnl !== undefined && trade.pnl / 100 < filters.minPnl) return false;
+    if (filters.maxPnl !== undefined && trade.pnl / 100 > filters.maxPnl) return false;
+    return true;
+  });
+
+  // CSV export handler
+  const handleExportCSV = () => {
+    const tradesForExport = filteredTrades.map((trade) => ({
+      entryDate: new Date(trade.entryDate),
+      exitDate: new Date(trade.exitDate),
+      direction: trade.direction,
+      entryPrice: trade.entryPrice,
+      exitPrice: trade.exitPrice,
+      quantity: trade.quantity,
+      pnl: trade.pnl,
+      pnlPercent: trade.pnlPercent,
+      commission: trade.commission,
+      strategyName: strategy.name,
+    }));
+    
+    const filename = `${strategy.name.replace(/\s+/g, '_')}_trades_${new Date().toISOString().split('T')[0]}.csv`;
+    exportTradesToCSV(tradesForExport, filename);
+  };
 
   // Prepare chart data
   const chartData = equityCurve.map((point) => ({
@@ -202,9 +234,17 @@ export default function StrategyDetail() {
       <Card>
         <CardHeader>
           <CardTitle>Recent Trades</CardTitle>
-          <CardDescription>Last 50 trades</CardDescription>
+          <CardDescription>Filter and export trade history</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
+          <TradeFilters
+            filters={filters}
+            onFiltersChange={setFilters}
+            onExportCSV={handleExportCSV}
+            totalTrades={recentTrades.length}
+            filteredTrades={filteredTrades.length}
+          />
+          
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
@@ -219,7 +259,14 @@ export default function StrategyDetail() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {recentTrades.map((trade) => (
+                {filteredTrades.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                      No trades match the selected filters
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredTrades.map((trade) => (
                   <TableRow key={trade.id}>
                     <TableCell>{new Date(trade.entryDate).toLocaleDateString()}</TableCell>
                     <TableCell>{new Date(trade.exitDate).toLocaleDateString()}</TableCell>
@@ -237,7 +284,8 @@ export default function StrategyDetail() {
                       {(trade.pnlPercent / 10000).toFixed(2)}%
                     </TableCell>
                   </TableRow>
-                ))}
+                  ))
+                )}
               </TableBody>
             </Table>
           </div>

@@ -26,29 +26,38 @@ export default function Strategies() {
   const { data: strategies, isLoading, error } = trpc.portfolio.listStrategies.useQuery();
   
   // Get all strategies comparison data for the chart
-  const { data: comparisonData, isLoading: isLoadingComparison } = trpc.portfolio.compareStrategies.useQuery(
+  // Limit to 1Y for performance (full dataset can timeout)
+  const chartTimeRange = timeRange === 'ALL' || timeRange === '5Y' || timeRange === '3Y' ? '1Y' : timeRange;
+  
+  const { data: comparisonData, isLoading: isLoadingComparison, error: comparisonError } = trpc.portfolio.compareStrategies.useQuery(
     {
       strategyIds: strategies?.map(s => s.id) || [],
-      timeRange,
+      timeRange: chartTimeRange,
       startingCapital: 100000,
     },
     {
       enabled: !!strategies && strategies.length > 0,
+      retry: false, // Don't retry on timeout
+      staleTime: 5 * 60 * 1000, // Cache for 5 minutes
     }
   );
   
-  // Prepare chart data
-  const chartData = comparisonData?.strategies[0]?.equityCurve.map((_, index) => {
-    const point: any = {
-      date: new Date(comparisonData.strategies[0]!.equityCurve[index]!.date).toLocaleDateString(undefined, { month: 'short', year: '2-digit' }),
-    };
-    
-    comparisonData.strategies.forEach((strat, stratIndex) => {
-      point[strat.symbol || `strategy${stratIndex}`] = strat.equityCurve![index]?.equity || 0;
-    });
-    
-    return point;
-  }) || [];
+  // Prepare chart data with sampling for performance
+  const sampleInterval = (comparisonData?.strategies[0]?.equityCurve?.length || 0) > 500 ? 3 : 1;
+  const chartData = comparisonData?.strategies[0]?.equityCurve
+    ?.filter((_, index) => index % sampleInterval === 0)
+    .map((_, index) => {
+      const actualIndex = index * sampleInterval;
+      const point: any = {
+        date: new Date(comparisonData.strategies[0]!.equityCurve[actualIndex]!.date).toLocaleDateString(undefined, { month: 'short', year: '2-digit' }),
+      };
+      
+      comparisonData.strategies.forEach((strat, stratIndex) => {
+        point[strat.symbol || `strategy${stratIndex}`] = strat.equityCurve![actualIndex]?.equity || 0;
+      });
+      
+      return point;
+    }) || [];
 
   if (isLoading) {
     return (
@@ -109,6 +118,55 @@ export default function Strategies() {
           {isLoadingComparison ? (
             <div className="flex items-center justify-center h-[400px]">
               <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              <p className="ml-3 text-sm text-muted-foreground">Loading comparison data...</p>
+            </div>
+          ) : comparisonError ? (
+            <div className="flex flex-col items-center justify-center h-[400px] gap-3">
+              <p className="text-sm text-muted-foreground">Unable to load comparison chart</p>
+              <p className="text-xs text-muted-foreground">View individual strategy details below</p>
+            </div>
+          ) : chartTimeRange !== timeRange ? (
+            <div className="space-y-4">
+              <div className="bg-muted/50 rounded-lg p-3 text-sm text-muted-foreground">
+                Showing 1 Year data for performance. For longer periods, view individual strategy details.
+              </div>
+              <div className="h-[400px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <XAxis 
+                      dataKey="date" 
+                      tick={{ fontSize: 12, fill: 'hsl(var(--foreground))' }}
+                      stroke="hsl(var(--muted-foreground))"
+                    />
+                    <YAxis 
+                      tick={{ fontSize: 12, fill: 'hsl(var(--foreground))' }}
+                      tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
+                      stroke="hsl(var(--muted-foreground))"
+                    />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: 'hsl(var(--background))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px'
+                      }}
+                      formatter={(value: number) => `$${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                    />
+                    <Legend wrapperStyle={{ paddingTop: '20px' }} />
+                    {comparisonData?.strategies.map((strat, index) => (
+                      <Line
+                        key={strat.id}
+                        type="monotone"
+                        dataKey={strat.symbol || `strategy${index}`}
+                        stroke={STRATEGY_COLORS[index % STRATEGY_COLORS.length]}
+                        strokeWidth={2}
+                        dot={false}
+                        name={strat.name || strat.symbol || `Strategy ${index + 1}`}
+                      />
+                    ))}
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
             </div>
           ) : (
             <div className="h-[400px]">
