@@ -1131,3 +1131,7 @@
 - [x] Shows P&L amount, percentage, and trade count per period
 - [x] Supports daily, weekly, monthly, quarterly, yearly views
 - [x] Legend showing color intensity meanings
+
+
+## Restore to Published Version (Current Session)
+- [x] Add S&P 500 toggle to Drawdown Comparison chart on Compare page
