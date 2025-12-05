@@ -62,7 +62,7 @@ export default function Overview() {
   const chartData = portfolioEquity.map((point, index) => ({
     date: new Date(point.date).toLocaleDateString(),
     portfolio: point.equity,
-    benchmark: benchmarkEquity[index]?.equity || 0,
+    benchmark: benchmarkEquity[index]?.equity ?? null, // Use null for missing values (don't plot)
   }));
 
   return (

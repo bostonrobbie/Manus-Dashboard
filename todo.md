@@ -661,3 +661,11 @@
 - [x] Add logging for data fetch operations (logs to benchmark-update.log)
 - [ ] Write tests for yfinance integration
 - [ ] Write tests for scheduled job execution
+
+
+## S&P 500 Chart Drop to $0 Fix
+- [x] Investigate why S&P 500 drops to $0 on most recent day (benchmarkEquity[index] was undefined, fallback to 0)
+- [x] Check benchmark data end date vs portfolio end date (benchmark ends 2/8/2025, portfolio continues to today)
+- [x] Fix benchmark equity curve to stop at last valid data point (already done in backend)
+- [x] Ensure chart doesn't plot undefined/null values as $0 (changed || 0 to ?? null)
+- [x] Test with browser to verify fix (S&P 500 line now stops gracefully at last data point)
