@@ -4,7 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceArea } from "recharts";
+import { Checkbox } from "@/components/ui/checkbox";
+import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceArea } from "recharts";
 import { Loader2, TrendingUp, TrendingDown, Activity, Target, Gauge, Info } from "lucide-react";
 import { CalendarPnL } from "@/components/CalendarPnL";
 import { UnderwaterCurveChart } from "@/components/UnderwaterCurveChart";
@@ -129,58 +130,39 @@ export default function Overview() {
       {/* Overview Header Section - Bundled */}
       <Card className="bg-gradient-to-br from-card to-card/50 border-2">
         <CardContent className="pt-6 space-y-6">
-          {/* Header - Centered Title with Minimal Controls */}
-          <div className="relative">
-            {/* Minimized Controls - Top Right */}
-            <div className="absolute top-0 right-0 flex gap-2 text-xs">
-              <div className="flex items-center gap-1.5">
-                <Label htmlFor="starting-capital" className="text-[10px] text-muted-foreground">Capital</Label>
-                <Input
-                  id="starting-capital"
-                  type="number"
-                  value={startingCapital}
-                  onChange={(e) => setStartingCapital(Number(e.target.value))}
-                  className="w-[100px] h-7 text-xs"
-                />
-              </div>
-              
-              <div className="flex items-center gap-1.5">
-                <Label htmlFor="time-range" className="text-[10px] text-muted-foreground">Range</Label>
-                <Select value={timeRange} onValueChange={(v) => setTimeRange(v as TimeRange)}>
-                  <SelectTrigger id="time-range" className="w-[100px] h-7 text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="YTD">Year to Date</SelectItem>
-                    <SelectItem value="1Y">1 Year</SelectItem>
-                    <SelectItem value="3Y">3 Years</SelectItem>
-                    <SelectItem value="5Y">5 Years</SelectItem>
-                    <SelectItem value="ALL">All Time</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+          {/* Header - Centered Title */}
+          <div className="text-center relative">
+            <h1 className="text-4xl font-bold tracking-tight mb-2">Portfolio Overview</h1>
+            <p className="text-sm text-muted-foreground">
+              Combined performance of all intraday strategies
+            </p>
             
-            {/* Centered Title */}
-            <div className="text-center">
-              <h1 className="text-4xl font-bold tracking-tight mb-2">Portfolio Overview</h1>
-              <p className="text-sm text-muted-foreground">
-                Combined performance of all intraday strategies
-              </p>
+            {/* Hidden Controls - Absolute positioned, very subtle */}
+            <div className="absolute top-0 right-0 flex gap-1.5 opacity-30 hover:opacity-100 transition-opacity">
+              <Input
+                id="starting-capital"
+                type="number"
+                value={startingCapital}
+                onChange={(e) => setStartingCapital(Number(e.target.value))}
+                className="w-[80px] h-6 text-[10px] border-muted-foreground/20"
+                placeholder="Capital"
+              />
+              <Select value={timeRange} onValueChange={(v) => setTimeRange(v as TimeRange)}>
+                <SelectTrigger id="time-range" className="w-[80px] h-6 text-[10px] border-muted-foreground/20">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="YTD">YTD</SelectItem>
+                  <SelectItem value="1Y">1Y</SelectItem>
+                  <SelectItem value="3Y">3Y</SelectItem>
+                  <SelectItem value="5Y">5Y</SelectItem>
+                  <SelectItem value="ALL">ALL</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
-          {/* Underwater Curve - Prioritized */}
-          {data.underwater && (
-            <div className="-mx-6 -mt-2">
-              <UnderwaterCurveChart 
-                data={data.underwater} 
-                benchmarkData={(data as any).benchmarkUnderwater}
-              />
-            </div>
-          )}
-
-          {/* Key Metrics Cards - Uniform Styling */}
+          {/* Key Metrics Cards - At Top */}
           <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-5">
             {/* Total Return */}
             <div className="bg-muted/30 border border-muted rounded-lg p-4 text-center">
@@ -317,7 +299,76 @@ export default function Overview() {
         </CardContent>
       </Card>
 
-      {/* Underwater Curve moved to header section above */}
+      {/* Underwater Curve - Directly Below Equity Curve */}
+      {data.underwater && (
+        <Card>
+          <CardHeader className="pb-2">
+            <div className="flex justify-between items-center">
+              <CardTitle className="text-base">Underwater Equity Curve</CardTitle>
+              {(data as any).benchmarkUnderwater && (
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="show-benchmark-underwater"
+                    checked={false}
+                    onCheckedChange={() => {}}
+                  />
+                  <Label htmlFor="show-benchmark-underwater" className="text-xs cursor-pointer">
+                    Show S&P 500
+                  </Label>
+                </div>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[250px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart 
+                  data={data.underwater.curve.map((point, index) => ({
+                    date: chartData[index]?.date || point.date.toLocaleDateString(),
+                    drawdown: point.drawdownPercent,
+                  }))}
+                >
+                  <defs>
+                    <linearGradient id="drawdownGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#ef4444" stopOpacity={0.3} />
+                      <stop offset="100%" stopColor="#ef4444" stopOpacity={0.05} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted-foreground))" strokeOpacity={0.15} />
+                  <XAxis 
+                    dataKey="date" 
+                    tick={{ fontSize: 13, fill: '#e5e7eb' }}
+                    angle={-45}
+                    textAnchor="end"
+                    height={80}
+                    domain={[0, chartData.length - 1]}
+                    type="category"
+                    padding={{ left: 0, right: 0 }}
+                  />
+                  <YAxis 
+                    tick={{ fontSize: 13, fill: '#e5e7eb' }}
+                    tickFormatter={(value) => `${value.toFixed(0)}%`}
+                    domain={['dataMin', 0]}
+                  />
+                  <Tooltip 
+                    formatter={(value: number) => `${value.toFixed(2)}%`}
+                    labelStyle={{ color: 'black' }}
+                  />
+                  <Legend />
+                  <Area
+                    type="monotone"
+                    dataKey="drawdown"
+                    stroke="#ef4444"
+                    strokeWidth={2}
+                    fill="url(#drawdownGradient)"
+                    name="Portfolio"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Additional Metrics */}
       {/* Trade & Risk Statistics - Combined panel with comprehensive metrics */}

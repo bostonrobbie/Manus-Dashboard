@@ -1197,3 +1197,13 @@
 - [x] Create uniform stat boxes with consistent neutral styling (no varied colors)
 - [x] Improve stat formatting and centering for professional appearance
 - [x] Remove AI-generated look - make design cohesive and intentional
+
+
+## Overview Layout Reorganization (Current Session)
+- [x] Move stat boxes (Total Return, Sharpe, Sortino, Win Rate, Calmar) back to top of page
+- [x] Remove underwater curve from header bundled section
+- [x] Remove underwater curve statistics boxes (Max DD, Longest DD, Avg DD, etc.)
+- [x] Position underwater curve chart directly below equity curve chart
+- [x] Align both charts - same width, synchronized time axis, matching colors
+- [x] Ensure charts update together when time range changes
+- [x] Further hide or better position Starting Capital and Time Range controls
