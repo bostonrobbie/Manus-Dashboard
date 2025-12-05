@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceArea } from "recharts";
-import { Loader2, TrendingUp, TrendingDown, Activity, Target, Gauge } from "lucide-react";
+import { Loader2, TrendingUp, TrendingDown, Activity, Target, Gauge, Info } from "lucide-react";
 import { CalendarPnL } from "@/components/CalendarPnL";
 import { UnderwaterCurveChart } from "@/components/UnderwaterCurveChart";
 import { DayOfWeekHeatmap } from "@/components/DayOfWeekHeatmap";
@@ -126,49 +126,50 @@ export default function Overview() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Portfolio Overview</h1>
-          <p className="text-muted-foreground">
-            Combined performance of all intraday strategies
-          </p>
-        </div>
-        
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <div className="space-y-2">
-            <Label htmlFor="starting-capital">Starting Capital</Label>
-            <Input
-              id="starting-capital"
-              type="number"
-              value={startingCapital}
-              onChange={(e) => setStartingCapital(Number(e.target.value))}
-              className="w-full sm:w-[180px]"
-            />
+      {/* Overview Header Section - Bundled */}
+      <Card className="bg-gradient-to-br from-card to-card/50 border-2">
+        <CardContent className="pt-6 space-y-6">
+          {/* Header with Controls */}
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">Portfolio Overview</h1>
+              <p className="text-muted-foreground">
+                Combined performance of all intraday strategies
+              </p>
+            </div>
+            
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <div className="space-y-2">
+                <Label htmlFor="starting-capital">Starting Capital</Label>
+                <Input
+                  id="starting-capital"
+                  type="number"
+                  value={startingCapital}
+                  onChange={(e) => setStartingCapital(Number(e.target.value))}
+                  className="w-full sm:w-[180px]"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="time-range">Time Range</Label>
+                <Select value={timeRange} onValueChange={(v) => setTimeRange(v as TimeRange)}>
+                  <SelectTrigger id="time-range" className="w-full sm:w-[180px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="YTD">Year to Date</SelectItem>
+                    <SelectItem value="1Y">1 Year</SelectItem>
+                    <SelectItem value="3Y">3 Years</SelectItem>
+                    <SelectItem value="5Y">5 Years</SelectItem>
+                    <SelectItem value="ALL">All Time</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="time-range">Time Range</Label>
-            <Select value={timeRange} onValueChange={(v) => setTimeRange(v as TimeRange)}>
-              <SelectTrigger id="time-range" className="w-full sm:w-[180px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="YTD">Year to Date</SelectItem>
-                <SelectItem value="1Y">1 Year</SelectItem>
-                <SelectItem value="3Y">3 Years</SelectItem>
-                <SelectItem value="5Y">5 Years</SelectItem>
-                <SelectItem value="ALL">All Time</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-      </div>
 
-
-
-      {/* Key Metrics Cards - Modern Design */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-6">
+          {/* Key Metrics Cards */}
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-6">
         <Card className="hover:shadow-lg transition-shadow duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
             <CardTitle className="text-sm font-semibold text-muted-foreground">Total Return</CardTitle>
@@ -176,16 +177,16 @@ export default function Overview() {
               <TrendingUp className="h-5 w-5 text-primary" />
             </div>
           </CardHeader>
-          <CardContent className="space-y-2">
-            <div className={`text-4xl font-bold tracking-tight ${
+          <CardContent className="space-y-1.5">
+            <div className={`text-3xl font-bold tracking-tight break-words ${
               metrics.totalReturn >= 0 ? 'text-green-500' : 'text-red-500'
             }`}>
               {metrics.totalReturn >= 0 ? '+' : ''}{metrics.totalReturn.toFixed(2)}%
             </div>
-            <p className="text-sm text-muted-foreground font-medium">
+            <p className="text-xs text-muted-foreground font-medium leading-tight">
               {metrics.annualizedReturn.toFixed(2)}% annualized
             </p>
-            <p className="text-xs text-muted-foreground/70">
+            <p className="text-[10px] text-muted-foreground/40 leading-tight">
               {getDateRangeText(timeRange)}
             </p>
           </CardContent>
@@ -198,12 +199,12 @@ export default function Overview() {
               <Activity className="h-5 w-5 text-blue-500" />
             </div>
           </CardHeader>
-          <CardContent className="space-y-2">
-            <div className="text-4xl font-bold tracking-tight">{metrics.sharpeRatio.toFixed(2)}</div>
-            <p className="text-sm text-muted-foreground font-medium">
+          <CardContent className="space-y-1.5">
+            <div className="text-3xl font-bold tracking-tight break-words">{metrics.sharpeRatio.toFixed(2)}</div>
+            <p className="text-xs text-muted-foreground font-medium leading-tight">
               Risk-adjusted return
             </p>
-            <p className="text-xs text-muted-foreground/70">
+            <p className="text-[10px] text-muted-foreground/40 leading-tight">
               {getDateRangeText(timeRange)}
             </p>
           </CardContent>
@@ -216,12 +217,12 @@ export default function Overview() {
               <Activity className="h-5 w-5 text-purple-500" />
             </div>
           </CardHeader>
-          <CardContent className="space-y-2">
-            <div className="text-4xl font-bold tracking-tight">{metrics.sortinoRatio.toFixed(2)}</div>
-            <p className="text-sm text-muted-foreground font-medium">
+          <CardContent className="space-y-1.5">
+            <div className="text-3xl font-bold tracking-tight break-words">{metrics.sortinoRatio.toFixed(2)}</div>
+            <p className="text-xs text-muted-foreground font-medium leading-tight">
               Downside risk-adjusted
             </p>
-            <p className="text-xs text-muted-foreground/70">
+            <p className="text-[10px] text-muted-foreground/40 leading-tight">
               {getDateRangeText(timeRange)}
             </p>
           </CardContent>
@@ -234,14 +235,14 @@ export default function Overview() {
               <TrendingDown className="h-5 w-5 text-red-500" />
             </div>
           </CardHeader>
-          <CardContent className="space-y-2">
-            <div className="text-4xl font-bold tracking-tight text-red-500">
+          <CardContent className="space-y-1.5">
+            <div className="text-3xl font-bold tracking-tight text-red-500 break-words">
               -${metrics.maxDrawdownDollars.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
             </div>
-            <p className="text-sm text-muted-foreground font-medium">
+            <p className="text-xs text-muted-foreground font-medium leading-tight">
               {metrics.maxDrawdown.toFixed(2)}% peak to trough
             </p>
-            <p className="text-xs text-muted-foreground/70">
+            <p className="text-[10px] text-muted-foreground/40 leading-tight">
               {getDateRangeText(timeRange)}
             </p>
           </CardContent>
@@ -254,12 +255,12 @@ export default function Overview() {
               <Target className="h-5 w-5 text-emerald-500" />
             </div>
           </CardHeader>
-          <CardContent className="space-y-2">
-            <div className="text-4xl font-bold tracking-tight">{metrics.winRate.toFixed(1)}%</div>
-            <p className="text-sm text-muted-foreground font-medium">
+          <CardContent className="space-y-1.5">
+            <div className="text-3xl font-bold tracking-tight break-words">{metrics.winRate.toFixed(1)}%</div>
+            <p className="text-xs text-muted-foreground font-medium leading-tight">
               {metrics.totalTrades.toLocaleString()} / {data.tradeStats.totalTrades.toLocaleString()} trades
             </p>
-            <p className="text-xs text-muted-foreground/70">
+            <p className="text-[10px] text-muted-foreground/40 leading-tight">
               {getDateRangeText(timeRange)}
             </p>
           </CardContent>
@@ -272,20 +273,38 @@ export default function Overview() {
               <Gauge className="h-5 w-5 text-amber-500" />
             </div>
           </CardHeader>
-          <CardContent className="space-y-2">
-            <div className="text-4xl font-bold tracking-tight">{metrics.calmarRatio.toFixed(2)}</div>
-            <p className="text-sm text-muted-foreground font-medium">
+          <CardContent className="space-y-1.5">
+            <div className="text-3xl font-bold tracking-tight break-words">{metrics.calmarRatio.toFixed(2)}</div>
+            <p className="text-xs text-muted-foreground font-medium leading-tight">
               Return / Drawdown
             </p>
-            <p className="text-xs text-muted-foreground/70">
+            <p className="text-[10px] text-muted-foreground/40 leading-tight">
               {getDateRangeText(timeRange)}
             </p>
           </CardContent>
         </Card>
-      </div>
+          </div>
 
-      {/* Portfolio Summary */}
-      {data.summary && <PortfolioSummary summary={data.summary} />}
+          {/* Portfolio Summary */}
+          {data.summary && (
+            <div className="bg-gradient-to-br from-primary/5 to-primary/10 border border-primary/20 rounded-lg p-4">
+              <div className="flex gap-3">
+                <div className="p-2 bg-primary/15 rounded-lg flex-shrink-0 h-fit">
+                  <Info className="w-5 h-5 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-xs font-semibold text-primary mb-1.5 uppercase tracking-wide">
+                    Portfolio Summary
+                  </h3>
+                  <p className="text-sm leading-relaxed text-foreground/90">
+                    {data.summary}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Equity Curve Chart */}
       <Card>
@@ -393,6 +412,11 @@ export default function Overview() {
         </Card>
       )}
 
+      {/* Rolling Metrics */}
+      {data.rollingMetrics && data.rollingMetrics.length > 0 && (
+        <RollingMetricsChart rollingMetrics={data.rollingMetrics} timeRange={timeRange} />
+      )}
+
       {/* Strategy Correlation Matrix */}
       {data.strategyCorrelationMatrix && (
         <Card>
@@ -403,11 +427,6 @@ export default function Overview() {
             />
           </CardContent>
         </Card>
-      )}
-
-      {/* Rolling Metrics */}
-      {data.rollingMetrics && data.rollingMetrics.length > 0 && (
-        <RollingMetricsChart rollingMetrics={data.rollingMetrics} timeRange={timeRange} />
       )}
 
       {/* Monthly Returns Calendar - REMOVED per user request (redundant with Calendar P&L) */}

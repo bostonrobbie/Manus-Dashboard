@@ -57,9 +57,11 @@ export function CalendarPnL({ data, periodType, onPeriodTypeChange }: CalendarPn
       return acc;
     }, {} as Record<string, BreakdownPeriod[]>);
 
-    return (
-      <div className="space-y-6">
-        {Object.entries(monthGroups).map(([month, days]) => {
+      return (
+        <div className="space-y-6">
+          {Object.entries(monthGroups)
+            .sort((a, b) => b[0].localeCompare(a[0])) // Sort descending (most recent first)
+            .map(([month, days]) => {
           const [year, monthNum] = month.split("-");
           const monthName = new Date(parseInt(year), parseInt(monthNum) - 1).toLocaleString("default", { month: "long", year: "numeric" });
           
@@ -230,11 +232,15 @@ export function CalendarPnL({ data, periodType, onPeriodTypeChange }: CalendarPn
 
       return (
         <div className="space-y-6">
-          {Object.entries(yearGroups).map(([year, months]) => (
+          {Object.entries(yearGroups)
+            .sort((a, b) => b[0].localeCompare(a[0])) // Sort descending (most recent year first)
+            .map(([year, months]) => (
             <div key={year} className="space-y-2">
               <h3 className="text-lg font-semibold">{year}</h3>
               <div className="grid grid-cols-4 md:grid-cols-6 gap-2">
-                {months.map((month) => {
+                {months
+                  .sort((a, b) => b.period.localeCompare(a.period)) // Sort descending (most recent month first)
+                  .map((month) => {
                   const monthName = new Date(month.period).toLocaleString("default", { month: "short" });
                   return (
                     <div

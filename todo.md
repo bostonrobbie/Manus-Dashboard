@@ -1178,3 +1178,12 @@
 - [x] Reduce grid opacity on Compare page Equity Curves chart
 - [x] Reduce grid opacity on Compare page Drawdown Comparison chart
 - [x] General aesthetic improvements to Compare page
+
+
+## UI Refinements (Current Session)
+- [x] Fix text overflow in Overview metrics cards - ensure text stays centered and contained
+- [x] Make date ranges below metrics much smaller and more subtle
+- [x] Bundle Overview header section (title, controls, metrics, summary) into cohesive packaged area
+- [x] Reverse Calendar P&L chronological order (most recent dates at top)
+- [x] Swap Rolling Performance Metrics and Strategy Correlation sections (Rolling on top)
+- [x] Further enhance individual strategy cards design for even better aesthetics

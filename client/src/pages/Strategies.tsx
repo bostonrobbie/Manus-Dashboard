@@ -228,23 +228,26 @@ export default function Strategies() {
           const MarketIcon = getMarketIcon(strategy.market || 'Unknown');
           
           return (
-            <Card key={strategy.id} className="hover:shadow-xl transition-all duration-200 border-2 hover:border-primary/30 group">
-              <CardHeader className="pb-4">
+            <Card key={strategy.id} className="relative overflow-hidden hover:shadow-2xl transition-all duration-300 border-2 hover:border-primary/40 group bg-gradient-to-br from-card via-card to-card/80">
+              <CardHeader className="pb-4 relative z-10">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
-                      <div className="p-2.5 bg-primary/10 rounded-xl group-hover:bg-primary/20 transition-colors">
-                        <MarketIcon className="h-6 w-6 text-primary" />
+                      <div className="relative">
+                        <div className="absolute inset-0 bg-primary/20 rounded-xl blur-md group-hover:blur-lg transition-all"></div>
+                        <div className="relative p-2.5 bg-primary/15 rounded-xl group-hover:bg-primary/25 transition-all border border-primary/20">
+                          <MarketIcon className="h-6 w-6 text-primary" />
+                        </div>
                       </div>
                       <div>
-                        <CardTitle className="text-lg leading-tight">
+                        <CardTitle className="text-xl leading-tight font-bold group-hover:text-primary transition-colors">
                           {strategy.name}
                         </CardTitle>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className="text-xs font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                        <div className="flex items-center gap-2 mt-1.5">
+                          <span className="text-xs font-bold text-primary bg-primary/15 px-2.5 py-1 rounded-full border border-primary/30">
                             {strategy.symbol}
                           </span>
-                          <span className="text-xs text-muted-foreground">
+                          <span className="text-xs text-muted-foreground font-medium">
                             {strategy.strategyType}
                           </span>
                         </div>
@@ -256,24 +259,27 @@ export default function Strategies() {
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-4 relative z-10">
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-muted/30 rounded-lg p-3">
-                    <div className="text-xs text-muted-foreground mb-1">Market</div>
-                    <div className="text-sm font-semibold">{strategy.market}</div>
+                  <div className="bg-gradient-to-br from-muted/40 to-muted/20 rounded-lg p-3 border border-muted/30">
+                    <div className="text-[10px] text-muted-foreground mb-1 uppercase tracking-wide font-semibold">Market</div>
+                    <div className="text-sm font-bold">{strategy.market}</div>
                   </div>
-                  <div className="bg-muted/30 rounded-lg p-3">
-                    <div className="text-xs text-muted-foreground mb-1">Type</div>
-                    <div className="text-sm font-semibold">{strategy.strategyType}</div>
+                  <div className="bg-gradient-to-br from-muted/40 to-muted/20 rounded-lg p-3 border border-muted/30">
+                    <div className="text-[10px] text-muted-foreground mb-1 uppercase tracking-wide font-semibold">Type</div>
+                    <div className="text-sm font-bold">{strategy.strategyType}</div>
                   </div>
                 </div>
                 
                 <Link href={`/strategy/${strategy.id}`}>
-                  <Button className="w-full group-hover:bg-primary group-hover:text-primary-foreground transition-colors" variant="outline">
-                    View Details
+                  <Button className="w-full group-hover:bg-primary group-hover:text-primary-foreground transition-all shadow-sm group-hover:shadow-md" variant="outline">
+                    <span className="font-semibold">View Details</span>
                     <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
                   </Button>
                 </Link>
+                
+                {/* Decorative gradient overlay */}
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/0 via-primary/0 to-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
               </CardContent>
             </Card>
           );
