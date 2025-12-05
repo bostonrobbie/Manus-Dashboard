@@ -6,11 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { Loader2, TrendingUp, TrendingDown, Activity, Target, Gauge } from "lucide-react";
-import { CalendarPnL } from "@/components/CalendarPnL";
+import { PerformanceBreakdown } from "@/components/PerformanceBreakdown";
 import { UnderwaterCurveChart } from "@/components/UnderwaterCurveChart";
 import { DayOfWeekHeatmap } from "@/components/DayOfWeekHeatmap";
-import { WeekOfMonthHeatmap } from "@/components/WeekOfMonthHeatmap";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StrategyCorrelationHeatmap } from "@/components/StrategyCorrelationHeatmap";
 import { RollingMetricsChart } from "@/components/RollingMetricsChart";
 import { MonthlyReturnsCalendar } from "@/components/MonthlyReturnsCalendar";
@@ -24,38 +22,9 @@ type TimeRange = 'YTD' | '1Y' | '3Y' | '5Y' | 'ALL';
 export default function Overview() {
   const [timeRange, setTimeRange] = useState<TimeRange>('1Y');
   const [startingCapital, setStartingCapital] = useState(100000);
-  const [calendarPeriodType, setCalendarPeriodType] = useState<'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly'>('monthly');
-
-  // Helper to format date range
-  const getDateRangeText = (range: TimeRange) => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = now.toLocaleString('default', { month: 'short' });
-    
-    switch (range) {
-      case 'YTD':
-        return `Jan ${year} - ${month} ${year}`;
-      case '1Y':
-        return `${month} ${year - 1} - ${month} ${year}`;
-      case '3Y':
-        return `${year - 3} - ${year}`;
-      case '5Y':
-        return `${year - 5} - ${year}`;
-      case 'ALL':
-        return '2010 - 2025';
-      default:
-        return '';
-    }
-  };
 
   const { data, isLoading, error } = trpc.portfolio.overview.useQuery({
     timeRange,
-    startingCapital,
-  });
-
-  // Fetch all-time max drawdown for portfolio sizing calculator
-  const { data: allTimeData } = trpc.portfolio.overview.useQuery({
-    timeRange: 'ALL',
     startingCapital,
   });
 
@@ -89,17 +58,12 @@ export default function Overview() {
 
   const { metrics, portfolioEquity, benchmarkEquity } = data;
 
-  // Prepare chart data with timestamps for proper domain calculation
+  // Prepare chart data
   const chartData = portfolioEquity.map((point, index) => ({
     date: new Date(point.date).toLocaleDateString(),
-    timestamp: new Date(point.date).getTime(), // Add timestamp for domain
     portfolio: point.equity,
     benchmark: benchmarkEquity[index]?.equity ?? null, // Use null for missing values (don't plot)
   }));
-
-  // Calculate domain boundaries for X-axis to ensure chart extends full width
-  const minTimestamp = chartData.length > 0 ? chartData[0]!.timestamp : 0;
-  const maxTimestamp = chartData.length > 0 ? chartData[chartData.length - 1]!.timestamp : 0;
 
   return (
     <div className="space-y-6">
@@ -145,7 +109,7 @@ export default function Overview() {
 
 
       {/* Key Metrics Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-6">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Return</CardTitle>
@@ -158,9 +122,6 @@ export default function Overview() {
             <p className="text-xs text-muted-foreground">
               Annualized: {metrics.annualizedReturn.toFixed(2)}%
             </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              {getDateRangeText(timeRange)}
-            </p>
           </CardContent>
         </Card>
 
@@ -172,26 +133,7 @@ export default function Overview() {
           <CardContent>
             <div className="text-2xl font-bold">{metrics.sharpeRatio.toFixed(2)}</div>
             <p className="text-xs text-muted-foreground">
-              Risk-adjusted return
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              {getDateRangeText(timeRange)}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Sortino Ratio</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{metrics.sortinoRatio.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground">
-              Downside risk-adjusted
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              {getDateRangeText(timeRange)}
+              Sortino: {metrics.sortinoRatio.toFixed(2)}
             </p>
           </CardContent>
         </Card>
@@ -203,13 +145,10 @@ export default function Overview() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-destructive">
-              -${metrics.maxDrawdownDollars.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+              -{metrics.maxDrawdown.toFixed(2)}%
             </div>
             <p className="text-xs text-muted-foreground">
-              Peak to trough decline ({metrics.maxDrawdown.toFixed(2)}%)
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              {getDateRangeText(timeRange)}
+              Peak to trough decline
             </p>
           </CardContent>
         </Card>
@@ -222,10 +161,7 @@ export default function Overview() {
           <CardContent>
             <div className="text-2xl font-bold">{metrics.winRate.toFixed(1)}%</div>
             <p className="text-xs text-muted-foreground">
-              {metrics.totalTrades.toLocaleString()} / {data.tradeStats.totalTrades.toLocaleString()} trades
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              {getDateRangeText(timeRange)}
+              {metrics.winningTrades} / {metrics.totalTrades} trades
             </p>
           </CardContent>
         </Card>
@@ -239,9 +175,6 @@ export default function Overview() {
             <div className="text-2xl font-bold">{metrics.calmarRatio.toFixed(2)}</div>
             <p className="text-xs text-muted-foreground">
               Return / Drawdown
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              {getDateRangeText(timeRange)}
             </p>
           </CardContent>
         </Card>
@@ -265,16 +198,13 @@ export default function Overview() {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis 
                   dataKey="date" 
-                  tick={{ fontSize: 13, fill: '#e5e7eb' }}
+                  tick={{ fontSize: 12 }}
                   angle={-45}
                   textAnchor="end"
                   height={80}
-                  domain={[0, chartData.length - 1]}
-                  type="category"
-                  padding={{ left: 0, right: 0 }}
                 />
                 <YAxis 
-                  tick={{ fontSize: 13, fill: '#e5e7eb' }}
+                  tick={{ fontSize: 12 }}
                   tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
                 />
                 <Tooltip 
@@ -332,23 +262,11 @@ export default function Overview() {
       {/* Distribution Snapshot */}
       {data.distribution && <DistributionSnapshot distribution={data.distribution} />}
 
-      {/* Day-of-Week and Week-of-Month Performance */}
-      {((data.dayOfWeekBreakdown && data.dayOfWeekBreakdown.length > 0) || 
-        (data.weekOfMonthBreakdown && data.weekOfMonthBreakdown.length > 0)) && (
+      {/* Day-of-Week Performance */}
+      {data.dayOfWeekBreakdown && data.dayOfWeekBreakdown.length > 0 && (
         <Card>
           <CardContent className="pt-6">
-            <Tabs defaultValue="day-of-week" className="w-full">
-              <TabsList className="mb-4">
-                <TabsTrigger value="day-of-week">Day of Week</TabsTrigger>
-                <TabsTrigger value="week-of-month">Week of Month</TabsTrigger>
-              </TabsList>
-              <TabsContent value="day-of-week">
-                {data.dayOfWeekBreakdown && <DayOfWeekHeatmap data={data.dayOfWeekBreakdown} />}
-              </TabsContent>
-              <TabsContent value="week-of-month">
-                {data.weekOfMonthBreakdown && <WeekOfMonthHeatmap data={data.weekOfMonthBreakdown} />}
-              </TabsContent>
-            </Tabs>
+            <DayOfWeekHeatmap data={data.dayOfWeekBreakdown} />
           </CardContent>
         </Card>
       )}
@@ -367,7 +285,7 @@ export default function Overview() {
 
       {/* Rolling Metrics */}
       {data.rollingMetrics && data.rollingMetrics.length > 0 && (
-        <RollingMetricsChart rollingMetrics={data.rollingMetrics} timeRange={timeRange} />
+        <RollingMetricsChart rollingMetrics={data.rollingMetrics} />
       )}
 
       {/* Monthly Returns Calendar */}
@@ -375,106 +293,11 @@ export default function Overview() {
         <MonthlyReturnsCalendar monthlyReturns={data.monthlyReturnsCalendar} />
       )}
 
-      {/* Calendar P&L */}
-      {breakdownData && (
-        <CalendarPnL
-          data={breakdownData[calendarPeriodType]}
-          periodType={calendarPeriodType}
-          onPeriodTypeChange={setCalendarPeriodType}
-        />
-      )}
-
-      {/* Portfolio Sizing Calculator */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Portfolio Sizing Calculator</CardTitle>
-          <CardDescription>
-            Calculate minimum account size for micros and minis at Interactive Brokers
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2">
-              {/* Micro Contracts */}
-              <Card className="bg-muted/30">
-                <CardHeader>
-                  <CardTitle className="text-lg">Micro Contracts</CardTitle>
-                  <CardDescription>1/10th the size of mini contracts</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">Max Drawdown:</span>
-                    <span className="font-semibold text-red-600">
-                      ${((allTimeData?.metrics.maxDrawdownDollars ?? metrics.maxDrawdownDollars) / 10).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">IBKR Margin Requirement:</span>
-                    <span className="font-semibold">$500</span>
-                  </div>
-                  <div className="border-t pt-3 mt-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium">Minimum Account Size:</span>
-                      <span className="text-lg font-bold text-primary">
-                        ${Math.max(
-                          500,
-                          Math.ceil(((allTimeData?.metrics.maxDrawdownDollars ?? metrics.maxDrawdownDollars) / 10 + 500) / 100) * 100
-                        ).toLocaleString()}
-                      </span>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Based on max drawdown + margin requirement with 0% risk of ruin
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Mini Contracts */}
-              <Card className="bg-muted/30">
-                <CardHeader>
-                  <CardTitle className="text-lg">Mini Contracts</CardTitle>
-                  <CardDescription>Standard contract size for retail traders</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">Max Drawdown:</span>
-                    <span className="font-semibold text-red-600">
-                      ${(allTimeData?.metrics.maxDrawdownDollars ?? metrics.maxDrawdownDollars).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">IBKR Margin Requirement:</span>
-                    <span className="font-semibold">$5,000</span>
-                  </div>
-                  <div className="border-t pt-3 mt-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium">Minimum Account Size:</span>
-                      <span className="text-lg font-bold text-primary">
-                        ${Math.max(
-                          5000,
-                          Math.ceil(((allTimeData?.metrics.maxDrawdownDollars ?? metrics.maxDrawdownDollars) + 5000) / 1000) * 1000
-                        ).toLocaleString()}
-                      </span>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Based on max drawdown + margin requirement with 0% risk of ruin
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-            
-            <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900 rounded-lg p-4">
-              <p className="text-sm text-blue-900 dark:text-blue-100">
-                <strong>Note:</strong> These calculations assume trading with the same position sizing as your backtest 
-                (${startingCapital.toLocaleString()} starting capital). The minimum account size ensures you can survive 
-                the maximum historical drawdown (${(allTimeData?.metrics.maxDrawdownDollars ?? metrics.maxDrawdownDollars).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}) plus maintain required margin. 
-                For 0% risk of ruin, your actual trading capital should exceed these minimums.
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Performance Breakdown */}
+      <PerformanceBreakdown 
+        data={breakdownData || { daily: [], weekly: [], monthly: [], quarterly: [], yearly: [] }} 
+        isLoading={breakdownLoading}
+      />
     </div>
   );
 }

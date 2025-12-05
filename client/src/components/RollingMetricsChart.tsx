@@ -15,27 +15,11 @@ interface RollingMetricsData {
 
 interface RollingMetricsChartProps {
   rollingMetrics: RollingMetricsData[];
-  timeRange?: string;
 }
 
-export function RollingMetricsChart({ rollingMetrics, timeRange }: RollingMetricsChartProps) {
-  // Determine window based on time range
-  const getWindowForTimeRange = (range?: string) => {
-    switch (range) {
-      case 'YTD':
-      case '1Y':
-        return 365;
-      case '3Y':
-        return 365;
-      case '5Y':
-      case 'ALL':
-        return 365;
-      default:
-        return 90;
-    }
-  };
+export function RollingMetricsChart({ rollingMetrics }: RollingMetricsChartProps) {
+  const [selectedWindow, setSelectedWindow] = useState<number>(90);
 
-  const selectedWindow = getWindowForTimeRange(timeRange);
   const selectedData = rollingMetrics.find(rm => rm.window === selectedWindow);
 
   if (!selectedData || selectedData.data.length === 0) {
@@ -60,16 +44,6 @@ export function RollingMetricsChart({ rollingMetrics, timeRange }: RollingMetric
     maxDrawdown: d.maxDrawdown,
   }));
 
-  // Calculate medians
-  const sharpeValues = chartData.map(d => d.sharpe).filter(v => v !== null) as number[];
-  const sortinoValues = chartData.map(d => d.sortino).filter(v => v !== null) as number[];
-  const medianSharpe = sharpeValues.length > 0 ? sharpeValues.sort((a, b) => a - b)[Math.floor(sharpeValues.length / 2)] : null;
-  const medianSortino = sortinoValues.length > 0 ? sortinoValues.sort((a, b) => a - b)[Math.floor(sortinoValues.length / 2)] : null;
-
-  // Get latest values for end labels
-  const latestSharpe = chartData[chartData.length - 1]?.sharpe;
-  const latestSortino = chartData[chartData.length - 1]?.sortino;
-
   // Sample data for better performance (show every Nth point)
   const sampleRate = Math.max(1, Math.floor(chartData.length / 100));
   const sampledData = chartData.filter((_, i) => i % sampleRate === 0);
@@ -79,29 +53,31 @@ export function RollingMetricsChart({ rollingMetrics, timeRange }: RollingMetric
       <CardHeader>
         <CardTitle>Rolling Performance Metrics</CardTitle>
         <CardDescription>
-          {selectedWindow}-day rolling window showing Sharpe and Sortino ratio trends for selected time range
+          {selectedWindow}-day rolling window showing Sharpe and Sortino ratio trends
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="space-y-6">
+        <Tabs value={String(selectedWindow)} onValueChange={(v) => setSelectedWindow(Number(v))}>
+          <TabsList className="mb-4">
+            <TabsTrigger value="30">30 Days</TabsTrigger>
+            <TabsTrigger value="90">90 Days</TabsTrigger>
+            <TabsTrigger value="365">365 Days</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value={String(selectedWindow)} className="space-y-6">
             {/* Sharpe Ratio Chart */}
             <div>
-              <div className="flex justify-between items-center mb-2">
-                <h4 className="text-sm font-medium">Rolling Sharpe Ratio</h4>
-                {latestSharpe !== null && latestSharpe !== undefined && (
-                  <span className="text-sm font-semibold text-blue-400">Current: {latestSharpe.toFixed(2)}</span>
-                )}
-              </div>
+              <h4 className="text-sm font-medium mb-2">Rolling Sharpe Ratio</h4>
               <ResponsiveContainer width="100%" height={200}>
                 <LineChart data={sampledData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                   <XAxis 
                     dataKey="date" 
-                    tick={{ fontSize: 14, fill: 'white' }}
+                    tick={{ fontSize: 11 }}
                     stroke="#9CA3AF"
                   />
                   <YAxis 
-                    tick={{ fontSize: 14, fill: 'white' }}
+                    tick={{ fontSize: 11 }}
                     stroke="#9CA3AF"
                   />
                   <Tooltip 
@@ -116,39 +92,23 @@ export function RollingMetricsChart({ rollingMetrics, timeRange }: RollingMetric
                     dot={false}
                     name="Sharpe Ratio"
                   />
-                  {medianSharpe !== null && (
-                    <Line 
-                      type="monotone" 
-                      dataKey={() => medianSharpe}
-                      stroke="#fbbf24" 
-                      strokeWidth={1}
-                      strokeDasharray="5 5"
-                      dot={false}
-                      name="Median"
-                    />
-                  )}
                 </LineChart>
               </ResponsiveContainer>
             </div>
 
             {/* Sortino Ratio Chart */}
             <div>
-              <div className="flex justify-between items-center mb-2">
-                <h4 className="text-sm font-medium">Rolling Sortino Ratio</h4>
-                {latestSortino !== null && latestSortino !== undefined && (
-                  <span className="text-sm font-semibold text-green-400">Current: {latestSortino.toFixed(2)}</span>
-                )}
-              </div>
+              <h4 className="text-sm font-medium mb-2">Rolling Sortino Ratio</h4>
               <ResponsiveContainer width="100%" height={200}>
                 <LineChart data={sampledData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                   <XAxis 
                     dataKey="date" 
-                    tick={{ fontSize: 14, fill: 'white' }}
+                    tick={{ fontSize: 11 }}
                     stroke="#9CA3AF"
                   />
                   <YAxis 
-                    tick={{ fontSize: 14, fill: 'white' }}
+                    tick={{ fontSize: 11 }}
                     stroke="#9CA3AF"
                   />
                   <Tooltip 
@@ -163,17 +123,6 @@ export function RollingMetricsChart({ rollingMetrics, timeRange }: RollingMetric
                     dot={false}
                     name="Sortino Ratio"
                   />
-                  {medianSortino !== null && (
-                    <Line 
-                      type="monotone" 
-                      dataKey={() => medianSortino}
-                      stroke="#fbbf24" 
-                      strokeWidth={1}
-                      strokeDasharray="5 5"
-                      dot={false}
-                      name="Median"
-                    />
-                  )}
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -185,7 +134,8 @@ export function RollingMetricsChart({ rollingMetrics, timeRange }: RollingMetric
                 <li><strong>Sortino Ratio:</strong> Like Sharpe but only penalizes downside volatility. Higher is better.</li>
               </ul>
             </div>
-        </div>
+          </TabsContent>
+        </Tabs>
       </CardContent>
     </Card>
   );

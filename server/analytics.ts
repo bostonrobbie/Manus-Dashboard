@@ -49,7 +49,6 @@ export interface PerformanceMetrics {
   sortinoRatio: number;
   calmarRatio: number; // NEW: Calmar ratio
   maxDrawdown: number; // percentage
-  maxDrawdownDollars: number; // NEW: Max drawdown in dollars (peak to trough)
   winRate: number; // percentage
   profitFactor: number;
   avgWin: number; // dollars
@@ -107,20 +106,6 @@ export function calculateEquityCurve(
   }
 
   return points;
-}
-
-/**
- * Recalculate drawdowns in an equity curve using a specific peak value
- * This is used to calculate drawdowns relative to all-time peak, not just peak within the time range
- */
-export function recalculateDrawdownsWithPeak(
-  equityCurve: EquityPoint[],
-  allTimePeak: number
-): EquityPoint[] {
-  return equityCurve.map(point => ({
-    ...point,
-    drawdown: allTimePeak > 0 ? ((allTimePeak - point.equity) / allTimePeak) * 100 : 0,
-  }));
 }
 
 /**
@@ -288,7 +273,6 @@ export function calculatePerformanceMetrics(
       sortinoRatio: 0,
       calmarRatio: 0,
       maxDrawdown: 0,
-      maxDrawdownDollars: 0,
       winRate: 0,
       profitFactor: 0,
       avgWin: 0,
@@ -334,19 +318,6 @@ export function calculatePerformanceMetrics(
   // Calculate equity curve for drawdown and Sharpe
   const equityCurve = calculateEquityCurve(trades, startingCapital);
   const maxDrawdown = Math.max(...equityCurve.map(p => p.drawdown), 0);
-
-  // Calculate max drawdown in dollars (peak to trough)
-  let maxEquity = equityCurve[0].equity;
-  let maxDrawdownDollars = 0;
-  for (const point of equityCurve) {
-    if (point.equity > maxEquity) {
-      maxEquity = point.equity;
-    }
-    const drawdownDollars = maxEquity - point.equity;
-    if (drawdownDollars > maxDrawdownDollars) {
-      maxDrawdownDollars = drawdownDollars;
-    }
-  }
 
   // Calculate daily returns for Sharpe and Sortino
   const dailyReturns: number[] = [];
@@ -398,7 +369,6 @@ export function calculatePerformanceMetrics(
     sortinoRatio,
     calmarRatio,
     maxDrawdown,
-    maxDrawdownDollars,
     winRate,
     profitFactor,
     avgWin,
@@ -1279,77 +1249,6 @@ export function calculateDayOfWeekBreakdown(
   return results;
 }
 
-
-/**
- * Calculate performance breakdown by week of month
- */
-export interface WeekOfMonthPerformance {
-  weekNumber: number; // 1-5
-  weekLabel: string; // "Week 1", "Week 2", etc.
-  trades: number;
-  totalPnL: number;
-  avgPnL: number;
-  winRate: number;
-  avgWin: number;
-  avgLoss: number;
-}
-
-export function calculateWeekOfMonthBreakdown(
-  trades: Trade[]
-): WeekOfMonthPerformance[] {
-  const weekGroups = new Map<number, Trade[]>();
-
-  // Initialize all weeks (1-5)
-  for (let i = 1; i <= 5; i++) {
-    weekGroups.set(i, []);
-  }
-
-  // Group trades by week of month
-  for (const trade of trades) {
-    const dayOfMonth = trade.exitDate.getDate();
-    let weekNum: number;
-    
-    // Determine week of month based on day of month
-    if (dayOfMonth <= 7) {
-      weekNum = 1;
-    } else if (dayOfMonth <= 14) {
-      weekNum = 2;
-    } else if (dayOfMonth <= 21) {
-      weekNum = 3;
-    } else if (dayOfMonth <= 28) {
-      weekNum = 4;
-    } else {
-      weekNum = 5; // Days 29-31
-    }
-    
-    weekGroups.get(weekNum)!.push(trade);
-  }
-
-  // Calculate metrics for each week
-  const results: WeekOfMonthPerformance[] = [];
-  for (let weekNum = 1; weekNum <= 5; weekNum++) {
-    const weekTrades = weekGroups.get(weekNum)!;
-    const winningTrades = weekTrades.filter(t => t.pnl > 0);
-    const losingTrades = weekTrades.filter(t => t.pnl < 0);
-
-    const totalPnL = weekTrades.reduce((sum, t) => sum + (t.pnl / 100), 0);
-    const totalWins = winningTrades.reduce((sum, t) => sum + (t.pnl / 100), 0);
-    const totalLosses = Math.abs(losingTrades.reduce((sum, t) => sum + (t.pnl / 100), 0));
-
-    results.push({
-      weekNumber: weekNum,
-      weekLabel: `Week ${weekNum}`,
-      trades: weekTrades.length,
-      totalPnL,
-      avgPnL: weekTrades.length > 0 ? totalPnL / weekTrades.length : 0,
-      winRate: weekTrades.length > 0 ? (winningTrades.length / weekTrades.length) * 100 : 0,
-      avgWin: winningTrades.length > 0 ? totalWins / winningTrades.length : 0,
-      avgLoss: losingTrades.length > 0 ? totalLosses / losingTrades.length : 0,
-    });
-  }
-
-  return results;
-}
 
 /**
  * Rolling Metrics Interface

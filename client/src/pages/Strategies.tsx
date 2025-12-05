@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Loader2, TrendingUp, ArrowRight } from "lucide-react";
+import { Loader2, TrendingUp, ArrowRight, TrendingDown, Bitcoin, Zap, Fuel, Coins, Landmark } from "lucide-react";
 import { Link } from "wouter";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
@@ -24,7 +24,15 @@ const STRATEGY_COLORS = [
 export default function Strategies() {
   const [timeRange, setTimeRange] = useState<TimeRange>('1Y');
   const [hiddenStrategies, setHiddenStrategies] = useState<Set<string>>(new Set());
+  const [showBenchmark, setShowBenchmark] = useState(false);
+  
   const { data: strategies, isLoading, error } = trpc.portfolio.listStrategies.useQuery();
+  
+  // Get benchmark data for S&P 500 toggle
+  const { data: benchmarkData } = trpc.portfolio.overview.useQuery(
+    { timeRange, startingCapital: 100000 },
+    { enabled: showBenchmark }
+  );
   
   // Get all strategies comparison data for the chart
   const { data: comparisonData, isLoading: isLoadingComparison, error: comparisonError } = trpc.portfolio.compareStrategies.useQuery(
@@ -35,8 +43,8 @@ export default function Strategies() {
     },
     {
       enabled: !!strategies && strategies.length > 0,
-      retry: false, // Don't retry on timeout
-      staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+      retry: false,
+      staleTime: 5 * 60 * 1000,
     }
   );
   
@@ -53,6 +61,11 @@ export default function Strategies() {
       comparisonData.strategies.forEach((strat, stratIndex) => {
         point[strat.symbol || `strategy${stratIndex}`] = strat.equityCurve![actualIndex]?.equity || 0;
       });
+      
+      // Add S&P 500 benchmark if enabled
+      if (showBenchmark && benchmarkData?.benchmarkEquity?.[actualIndex]) {
+        point['S&P 500'] = benchmarkData.benchmarkEquity[actualIndex].equity;
+      }
       
       return point;
     }) || [];
@@ -107,20 +120,31 @@ export default function Strategies() {
               <CardTitle>All Strategies Performance</CardTitle>
               <CardDescription>Compare all strategy equity curves</CardDescription>
             </div>
-            <div className="w-[180px]">
-              <Label htmlFor="chart-time-range" className="sr-only">Time Range</Label>
-              <Select value={timeRange} onValueChange={(v) => setTimeRange(v as TimeRange)}>
-                <SelectTrigger id="chart-time-range">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="YTD">Year to Date</SelectItem>
-                  <SelectItem value="1Y">1 Year</SelectItem>
-                  <SelectItem value="3Y">3 Years</SelectItem>
-                  <SelectItem value="5Y">5 Years</SelectItem>
-                  <SelectItem value="ALL">All Time</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="flex items-center gap-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={showBenchmark}
+                  onChange={(e) => setShowBenchmark(e.target.checked)}
+                  className="w-4 h-4 rounded border-gray-300"
+                />
+                <span className="text-sm">Show S&P 500</span>
+              </label>
+              <div className="w-[180px]">
+                <Label htmlFor="chart-time-range" className="sr-only">Time Range</Label>
+                <Select value={timeRange} onValueChange={(v) => setTimeRange(v as TimeRange)}>
+                  <SelectTrigger id="chart-time-range">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="YTD">Year to Date</SelectItem>
+                    <SelectItem value="1Y">1 Year</SelectItem>
+                    <SelectItem value="3Y">3 Years</SelectItem>
+                    <SelectItem value="5Y">5 Years</SelectItem>
+                    <SelectItem value="ALL">All Time</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
         </CardHeader>
@@ -199,6 +223,17 @@ export default function Strategies() {
                         hide={hiddenStrategies.has(strat.symbol || `strategy${index}`)}
                       />
                     ))}
+                    {showBenchmark && benchmarkData && (
+                      <Line
+                        type="monotone"
+                        dataKey="S&P 500"
+                        stroke="#fb923c"
+                        strokeWidth={2}
+                        dot={false}
+                        name="S&P 500"
+                        strokeDasharray="5 5"
+                      />
+                    )}
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -210,43 +245,122 @@ export default function Strategies() {
       <div>
         <h2 className="text-xl font-semibold mb-4">Individual Strategies</h2>
       </div>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {strategies?.map((strategy) => (
-          <Card key={strategy.id} className="hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <div>
-                  <CardTitle className="flex items-center gap-2">
-                    <TrendingUp className="h-5 w-5 text-primary" />
-                    {strategy.name}
-                  </CardTitle>
-                  <CardDescription className="mt-2">
-                    {strategy.market} • {strategy.strategyType}
-                  </CardDescription>
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {strategies?.map((strategy, index) => {
+          // Get strategy data from comparison data
+          const strategyData = comparisonData?.strategies.find(s => s.id === strategy.id);
+          const metrics = strategyData?.metrics;
+          const equityCurve = strategyData?.equityCurve || [];
+          
+          // Get market icon
+          const getMarketIcon = (market: string) => {
+            switch(market) {
+              case 'ES': return <TrendingUp className="h-6 w-6" />;
+              case 'NQ': return <Zap className="h-6 w-6" />;
+              case 'CL': return <Fuel className="h-6 w-6" />;
+              case 'BTC': return <Bitcoin className="h-6 w-6" />;
+              case 'GC': return <Coins className="h-6 w-6" />;
+              case 'YM': return <Landmark className="h-6 w-6" />;
+              default: return <TrendingUp className="h-6 w-6" />;
+            }
+          };
+          
+          // Sample equity curve for sparkline (take every 10th point)
+          const sparklineData = equityCurve.filter((_, i: number) => i % 10 === 0).map((p: any) => p.equity);
+          const minEquity = Math.min(...sparklineData);
+          const maxEquity = Math.max(...sparklineData);
+          const range = maxEquity - minEquity || 1;
+          
+          return (
+            <Card key={strategy.id} className="hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-2 hover:border-primary/50">
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                      {getMarketIcon(strategy.market || 'ES')}
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg">{strategy.name}</CardTitle>
+                      <CardDescription className="mt-1">
+                        {strategy.market} • {strategy.strategyType}
+                      </CardDescription>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Symbol:</span>
-                  <span className="font-medium">{strategy.symbol}</span>
-                </div>
-                {strategy.description && (
-                  <p className="text-sm text-muted-foreground">
-                    {strategy.description}
-                  </p>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Mini Sparkline */}
+                {sparklineData.length > 0 && (
+                  <div className="h-16 w-full">
+                    <svg width="100%" height="100%" viewBox="0 0 200 60" preserveAspectRatio="none">
+                      <polyline
+                        points={sparklineData.map((equity: number, i: number) => {
+                          const x = (i / (sparklineData.length - 1)) * 200;
+                          const y = 60 - ((equity - minEquity) / range) * 55;
+                          return `${x},${y}`;
+                        }).join(' ')}
+                        fill="none"
+                        stroke="hsl(var(--primary))"
+                        strokeWidth="2"
+                        vectorEffect="non-scaling-stroke"
+                      />
+                      <polyline
+                        points={`0,60 ${sparklineData.map((equity: number, i: number) => {
+                          const x = (i / (sparklineData.length - 1)) * 200;
+                          const y = 60 - ((equity - minEquity) / range) * 55;
+                          return `${x},${y}`;
+                        }).join(' ')} 200,60`}
+                        fill="hsl(var(--primary))"
+                        fillOpacity="0.1"
+                      />
+                    </svg>
+                  </div>
                 )}
+                
+                {/* Key Stats */}
+                {metrics ? (
+                  <div className="grid grid-cols-3 gap-3 text-center">
+                    <div className="space-y-1">
+                      <div className="text-xs text-muted-foreground">Return</div>
+                      <div className={`text-sm font-bold ${metrics.totalReturn >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                        {metrics.totalReturn >= 0 ? '+' : ''}{(metrics.totalReturn * 100).toFixed(1)}%
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <div className="text-xs text-muted-foreground">Sharpe</div>
+                      <div className="text-sm font-bold">
+                        {metrics.sharpeRatio.toFixed(2)}
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <div className="text-xs text-muted-foreground">Win Rate</div>
+                      <div className="text-sm font-bold">
+                        {(metrics.winRate * 100).toFixed(0)}%
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center h-16">
+                    <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                  </div>
+                )}
+                
+                {/* Symbol Badge */}
+                <div className="flex items-center justify-between pt-2 border-t">
+                  <span className="text-xs text-muted-foreground">Symbol</span>
+                  <span className="text-sm font-mono font-bold bg-muted px-2 py-1 rounded">{strategy.symbol}</span>
+                </div>
+                
                 <Link href={`/strategy/${strategy.id}`}>
-                  <Button className="w-full mt-4" variant="outline">
+                  <Button variant="outline" className="w-full group">
                     View Details
-                    <ArrowRight className="ml-2 h-4 w-4" />
+                    <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
                   </Button>
                 </Link>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
     </div>
   );

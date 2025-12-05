@@ -72,40 +72,40 @@ export function DayOfWeekHeatmap({ data }: DayOfWeekHeatmapProps) {
           >
             <div className="space-y-2">
               <div className="text-center">
-                <p className="text-base font-semibold text-white">{day.dayName.slice(0, 3)}</p>
-                <p className="text-sm text-white/90">{day.trades} trades</p>
+                <p className="text-sm font-medium">{day.dayName.slice(0, 3)}</p>
+                <p className="text-xs text-muted-foreground">{day.trades} trades</p>
               </div>
               
               <div className="space-y-1 text-center">
-                <p className="text-2xl font-bold text-white">
+                <p className={`text-lg font-bold ${day.avgPnL >= 0 ? 'text-green-700' : 'text-red-700'}`}>
                   ${day.avgPnL.toFixed(0)}
                 </p>
-                <p className="text-sm text-white/90">
+                <p className="text-xs text-muted-foreground">
                   Avg P&L
                 </p>
               </div>
 
               <div className="space-y-1 text-center">
-                <p className="text-lg font-semibold text-white">
+                <p className="text-sm font-semibold">
                   {day.winRate.toFixed(1)}%
                 </p>
-                <p className="text-sm text-white/90">
+                <p className="text-xs text-muted-foreground">
                   Win Rate
                 </p>
               </div>
 
-              <div className="grid grid-cols-2 gap-2 text-sm">
+              <div className="grid grid-cols-2 gap-2 text-xs">
                 <div>
-                  <p className="text-white font-semibold">
+                  <p className="text-green-700 font-medium">
                     ${day.avgWin.toFixed(0)}
                   </p>
-                  <p className="text-white/80">Avg Win</p>
+                  <p className="text-muted-foreground">Avg Win</p>
                 </div>
                 <div>
-                  <p className="text-white font-semibold">
+                  <p className="text-red-700 font-medium">
                     -${day.avgLoss.toFixed(0)}
                   </p>
-                  <p className="text-white/80">Avg Loss</p>
+                  <p className="text-muted-foreground">Avg Loss</p>
                 </div>
               </div>
             </div>

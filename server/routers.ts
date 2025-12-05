@@ -110,27 +110,16 @@ export const appRouter = router({
           startingCapital
         );
 
-        // Calculate full history equity curve first to get all-time peak
-        const rawPortfolioEquityFull = analytics.calculateEquityCurve(
-          allTradesFullHistory,
-          startingCapital
-        );
-        
-        // Find all-time peak from full history
-        const allTimePeak = rawPortfolioEquityFull.length > 0
-          ? Math.max(...rawPortfolioEquityFull.map(p => p.equity))
-          : startingCapital;
-
-        // Calculate equity curves for selected time range (mini contracts)
-        const rawPortfolioEquityTemp = analytics.calculateEquityCurve(
+        // Calculate equity curves (mini contracts)
+        const rawPortfolioEquity = analytics.calculateEquityCurve(
           allTrades,
           startingCapital
         );
-        
-        // Recalculate drawdowns using all-time peak (not just peak within time range)
-        const rawPortfolioEquity = analytics.recalculateDrawdownsWithPeak(
-          rawPortfolioEquityTemp,
-          allTimePeak
+
+        // Calculate full history equity curve for rolling metrics
+        const rawPortfolioEquityFull = analytics.calculateEquityCurve(
+          allTradesFullHistory,
+          startingCapital
         );
         const rawBenchmarkEquity = analytics.calculateBenchmarkEquityCurve(
           benchmarkData,
@@ -171,11 +160,11 @@ export const appRouter = router({
           fullHistoryStartDate,
           equityEndDate
         );
-        // Forward-fill benchmark to match portfolio end date for chart alignment
+        // Forward-fill benchmark only to its last available date
         const benchmarkEquity = analytics.forwardFillEquityCurve(
           rawBenchmarkEquity,
           benchmarkStartDate,
-          equityEndDate // Use same end date as portfolio for proper alignment
+          benchmarkEndDate
         );
 
         // Calculate performance by period
@@ -188,7 +177,6 @@ export const appRouter = router({
         // Calculate underwater data for portfolio and benchmark
         const underwater = analytics.calculatePortfolioUnderwater(portfolioEquity);
         const dayOfWeekBreakdown = analytics.calculateDayOfWeekBreakdown(allTrades);
-        const weekOfMonthBreakdown = analytics.calculateWeekOfMonthBreakdown(allTrades);
 
         // Calculate strategy correlation matrix
         const strategyEquityCurves = new Map<string, analytics.EquityPoint[]>();
@@ -245,7 +233,6 @@ export const appRouter = router({
           majorDrawdowns,
           distribution,
           dayOfWeekBreakdown,
-          weekOfMonthBreakdown,
           strategyCorrelationMatrix,
           rollingMetrics,
           monthlyReturnsCalendar,
@@ -425,72 +412,37 @@ export const appRouter = router({
           .map(p => p.date)
           .sort((a, b) => a.getTime() - b.getTime());
         
-        // Handle case where there are no trades
-        if (allDates.length === 0) {
-          return {
-            strategies: strategies.map((s) => ({
-              id: s?.id,
-              name: s?.name,
-              symbol: s?.symbol,
-              market: s?.market,
-              metrics: {
-                totalReturn: 0,
-                annualizedReturn: 0,
-                sharpeRatio: 0,
-                sortino: 0,
-                maxDrawdown: 0,
-                winRate: 0,
-                profitFactor: 0,
-                expectancy: 0,
-                totalTrades: 0,
-                winningTrades: 0,
-                losingTrades: 0,
-              },
-              equityCurve: [],
-            })),
-            combinedEquity: [],
-            combinedMetrics: {
-              totalReturn: 0,
-              annualizedReturn: 0,
-              sharpeRatio: 0,
-              sortino: 0,
-              maxDrawdown: 0,
-              winRate: 0,
-              profitFactor: 0,
-              expectancy: 0,
-              totalTrades: 0,
-              winningTrades: 0,
-              losingTrades: 0,
-            },
-            correlationMatrix: [],
-          };
-        }
-        
-        const minDate = allDates[0]!;
-        const maxDate = allDates[allDates.length - 1]!;
+        const minDate = allDates[0] || new Date();
+        const maxDate = allDates[allDates.length - 1] || new Date();
 
         // Forward-fill all equity curves
         const forwardFilledCurves = equityCurvesPerStrategy.map(curve =>
           analytics.forwardFillEquityCurve(curve, minDate, maxDate)
         );
 
-        // Calculate combined equity curve by simulating actual combined trading
-        // This merges all trades and calculates equity as if trading all strategies from one account
-        const allCombinedTrades = tradesPerStrategy.flat();
-        const rawCombinedEquity = analytics.calculateEquityCurve(
-          allCombinedTrades,
-          startingCapital // Use same starting capital, not scaled
-        );
-        const combinedEquity = analytics.forwardFillEquityCurve(
-          rawCombinedEquity,
-          minDate,
-          maxDate
-        );
+        // Calculate combined equity curve (equal-weighted)
+        const combinedEquity: analytics.EquityPoint[] = [];
+        if (forwardFilledCurves.length > 0 && forwardFilledCurves[0]!.length > 0) {
+          for (let i = 0; i < forwardFilledCurves[0]!.length; i++) {
+            const date = forwardFilledCurves[0]![i]!.date;
+            const avgEquity = forwardFilledCurves.reduce(
+              (sum, curve) => sum + (curve[i]?.equity || 0),
+              0
+            ) / forwardFilledCurves.length;
+
+            combinedEquity.push({
+              date,
+              equity: avgEquity,
+              drawdown: 0, // Calculate if needed
+            });
+          }
+        }
 
         // Calculate combined metrics from combined trades
+        const allCombinedTrades = tradesPerStrategy.flat();
         const combinedMetrics = analytics.calculatePerformanceMetrics(
           allCombinedTrades,
-          startingCapital // Use same starting capital
+          startingCapital * forwardFilledCurves.length // Scale capital by number of strategies
         );
 
         // Calculate correlation matrix

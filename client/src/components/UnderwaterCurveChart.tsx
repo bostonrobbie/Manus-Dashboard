@@ -79,14 +79,14 @@ export function UnderwaterCurveChart({ data }: UnderwaterCurveChartProps) {
           <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
           <XAxis
             dataKey="date"
-            tick={{ fontSize: 14, fill: 'white' }}
+            tick={{ fontSize: 12 }}
             tickFormatter={(value) => {
               const date = new Date(value);
               return date.toLocaleDateString(undefined, { month: 'short', year: '2-digit' });
             }}
           />
           <YAxis
-            tick={{ fontSize: 14, fill: 'white' }}
+            tick={{ fontSize: 12 }}
             tickFormatter={(value) => `${value.toFixed(1)}%`}
             domain={['dataMin', 0]}
           />
@@ -108,7 +108,7 @@ export function UnderwaterCurveChart({ data }: UnderwaterCurveChartProps) {
             type="monotone"
             dataKey="drawdown"
             name="Portfolio Drawdown"
-            stroke="#ef4444"
+            stroke="oklch(var(--destructive))"
             fill="url(#drawdownGradient)"
             strokeWidth={2}
           />

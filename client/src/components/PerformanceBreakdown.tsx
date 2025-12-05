@@ -80,7 +80,7 @@ export function PerformanceBreakdown({ data, isLoading }: PerformanceBreakdownPr
           </TabsContent>
 
           <TabsContent value="weekly" className="mt-4">
-            <BreakdownTable data={data.weekly} periodType="weekly" />
+            <EnhancedWeeklyView data={data.weekly} />
           </TabsContent>
 
           <TabsContent value="monthly" className="mt-4">
@@ -197,6 +197,118 @@ function BreakdownTable({ data, periodType }: BreakdownTableProps) {
 /**
  * Format period string for display
  */
+/**
+ * Enhanced Weekly Calendar View
+ * Groups weeks by month with summary statistics
+ */
+function EnhancedWeeklyView({ data }: { data: TimePeriodPerformance[] }) {
+  if (data.length === 0) {
+    return (
+      <div className="text-center py-8 text-muted-foreground">
+        No weekly data available for the selected time range
+      </div>
+    );
+  }
+
+  // Group weeks by month
+  const monthGroups = data.reduce((acc, item) => {
+    // Parse week period (format: "YYYY-Www" or "YYYY-MM-DD")
+    const year = item.period.substring(0, 4);
+    let month: string;
+    
+    if (item.period.includes('W')) {
+      // ISO week format: extract approximate month from week number
+      const weekNum = parseInt(item.period.substring(6));
+      const approxMonth = Math.floor((weekNum - 1) / 4.3) + 1;
+      month = `${year}-${String(approxMonth).padStart(2, '0')}`;
+    } else {
+      // Date format
+      month = item.period.substring(0, 7);
+    }
+    
+    if (!acc[month]) acc[month] = [];
+    acc[month].push(item);
+    return acc;
+  }, {} as Record<string, TimePeriodPerformance[]>);
+
+  // Helper to get color based on P&L
+  const getColor = (pnl: number, returnPct: number) => {
+    if (pnl === 0) return 'bg-muted text-muted-foreground';
+    const intensity = Math.min(Math.abs(returnPct) / 10, 1); // Cap at 10% for max intensity
+    if (pnl > 0) {
+      return intensity > 0.5 ? 'bg-green-600 text-white' : 'bg-green-400 text-white';
+    } else {
+      return intensity > 0.5 ? 'bg-red-600 text-white' : 'bg-red-400 text-white';
+    }
+  };
+
+  const formatCurrency = (value: number) => {
+    return value >= 0 
+      ? `$${(value / 1000).toFixed(1)}k`
+      : `-$${Math.abs(value / 1000).toFixed(1)}k`;
+  };
+
+  return (
+    <div className="space-y-8">
+      {Object.entries(monthGroups).map(([month, weeks]) => {
+        const [year, monthNum] = month.split("-");
+        const monthName = new Date(parseInt(year!), parseInt(monthNum!) - 1).toLocaleString("default", { month: "long", year: "numeric" });
+        
+        // Calculate monthly summary
+        const monthlyTotal = weeks.reduce((sum, w) => sum + w.totalPnL, 0);
+        const monthlyTrades = weeks.reduce((sum, w) => sum + w.trades, 0);
+        const monthlyReturn = weeks.reduce((sum, w) => sum + w.returnPercent, 0);
+        const avgWinRate = weeks.reduce((sum, w) => sum + w.winRate, 0) / weeks.length;
+
+        return (
+          <div key={month} className="space-y-3">
+            {/* Month header with summary */}
+            <div className="flex items-center justify-between pb-3 border-b-2 border-border">
+              <div>
+                <h3 className="text-xl font-bold">{monthName}</h3>
+                <p className="text-sm text-muted-foreground">{weeks.length} weeks • {monthlyTrades} trades</p>
+              </div>
+              <div className="text-right">
+                <div className={`text-2xl font-bold ${monthlyTotal >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                  {formatCurrency(monthlyTotal)}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  {monthlyReturn.toFixed(1)}% • WR: {avgWinRate.toFixed(0)}%
+                </div>
+              </div>
+            </div>
+            
+            {/* Week cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">
+              {weeks.map((week, idx) => {
+                // Format week label
+                let weekLabel = `Week ${idx + 1}`;
+                if (week.period.includes('W')) {
+                  const weekNum = week.period.substring(6);
+                  weekLabel = `Week ${weekNum}`;
+                }
+                
+                return (
+                  <div
+                    key={week.period}
+                    className={`p-3 rounded-lg ${getColor(week.totalPnL, week.returnPercent)} transition-all hover:scale-105`}
+                  >
+                    <div className="text-xs font-medium opacity-90">{weekLabel}</div>
+                    <div className="text-xl font-bold mt-1">{formatCurrency(week.totalPnL)}</div>
+                    <div className="text-sm mt-1">{week.returnPercent.toFixed(1)}%</div>
+                    <div className="text-xs mt-1 opacity-80">{week.trades} trades</div>
+                    <div className="text-xs opacity-75">WR: {week.winRate.toFixed(0)}%</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function formatPeriod(period: string, periodType: string): string {
   switch (periodType) {
     case 'daily':
