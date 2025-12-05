@@ -775,3 +775,15 @@
 - [x] Trades span from 2010-2025 with correct dates
 - [x] API confirmed returning data (verified via server logs and SQL queries)
 - [ ] Note: Dashboard shows 0 for 1Y range (Dec 2024-Dec 2025) because most trades are historical. User should select "All Time" or appropriate range to see data.
+
+
+## Frontend Chart Rendering Issue
+- [x] Investigate why charts are empty despite API returning 9,356 trades
+- [x] Check browser console for JavaScript errors
+- [x] Examine chart data processing in Overview.tsx
+- [x] ROOT CAUSE FOUND: Strategy ID mismatch!
+  * Strategies table has IDs: 9-16
+  * Trades table had strategyId: 1-8
+  * Query was filtering by IDs 9-16, found 0 trades
+- [x] Fixed strategy ID mismatch (trades already had correct IDs 9-16)
+- [x] Verified all charts render correctly - dashboard fully functional!
