@@ -72,6 +72,8 @@ function calculateDailyBreakdown(
   trades: Trade[],
   startingCapital: number
 ): TimePeriodPerformance[] {
+  if (trades.length === 0) return [];
+  
   const grouped = new Map<string, Trade[]>();
   
   for (const trade of trades) {
@@ -82,21 +84,52 @@ function calculateDailyBreakdown(
     grouped.get(dateKey)!.push(trade);
   }
 
-  return Array.from(grouped.entries())
-    .map(([dateKey, dayTrades]) => calculatePeriodMetrics(
-      dateKey,
-      'daily',
-      dayTrades,
-      startingCapital
-    ))
-    .sort((a, b) => b.startDate.getTime() - a.startDate.getTime())
-    .slice(0, 20); // Limit to most recent 20
+  // Get date range
+  const dates = Array.from(grouped.keys()).sort();
+  const firstDate = new Date(dates[0]!);
+  const lastDate = new Date(dates[dates.length - 1]!);
+  
+  // Fill in all calendar days
+  const allDays: TimePeriodPerformance[] = [];
+  const currentDate = new Date(firstDate);
+  
+  while (currentDate <= lastDate) {
+    const dateKey = currentDate.toISOString().split('T')[0]!;
+    const dayTrades = grouped.get(dateKey) || [];
+    
+    if (dayTrades.length > 0) {
+      allDays.push(calculatePeriodMetrics(dateKey, 'daily', dayTrades, startingCapital));
+    } else {
+      // Add zero-trade day
+      allDays.push({
+        period: dateKey,
+        periodType: 'daily',
+        startDate: new Date(currentDate),
+        endDate: new Date(currentDate),
+        trades: 0,
+        winningTrades: 0,
+        losingTrades: 0,
+        totalPnL: 0,
+        returnPercent: 0,
+        winRate: 0,
+        avgWin: 0,
+        avgLoss: 0,
+        profitFactor: 0,
+      });
+    }
+    
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
+
+  return allDays.sort((a, b) => b.startDate.getTime() - a.startDate.getTime());
 }
 
 function calculateWeeklyBreakdown(
   trades: Trade[],
   startingCapital: number
 ): TimePeriodPerformance[] {
+  if (trades.length === 0) return [];
+  
   const grouped = new Map<string, Trade[]>();
   
   for (const trade of trades) {
@@ -111,15 +144,52 @@ function calculateWeeklyBreakdown(
     grouped.get(weekKey)!.push(trade);
   }
 
-  return Array.from(grouped.entries())
-    .map(([weekKey, weekTrades]) => calculatePeriodMetrics(
-      weekKey,
-      'weekly',
-      weekTrades,
-      startingCapital
-    ))
-    .sort((a, b) => b.startDate.getTime() - a.startDate.getTime())
-    .slice(0, 20);
+  // Get date range
+  const sortedTrades = [...trades].sort((a, b) => a.exitDate.getTime() - b.exitDate.getTime());
+  const firstDate = new Date(sortedTrades[0]!.exitDate);
+  const lastDate = new Date(sortedTrades[sortedTrades.length - 1]!.exitDate);
+  
+  // Fill in all weeks
+  const allWeeks: TimePeriodPerformance[] = [];
+  const currentDate = new Date(firstDate);
+  // Start from beginning of week
+  currentDate.setDate(currentDate.getDate() - currentDate.getDay());
+  
+  while (currentDate <= lastDate) {
+    const year = currentDate.getFullYear();
+    const week = getWeekNumber(currentDate);
+    const weekKey = `${year}-W${week.toString().padStart(2, '0')}`;
+    const weekTrades = grouped.get(weekKey) || [];
+    
+    if (weekTrades.length > 0) {
+      allWeeks.push(calculatePeriodMetrics(weekKey, 'weekly', weekTrades, startingCapital));
+    } else {
+      // Add zero-trade week
+      const weekStart = new Date(currentDate);
+      const weekEnd = new Date(currentDate);
+      weekEnd.setDate(weekEnd.getDate() + 6);
+      
+      allWeeks.push({
+        period: weekKey,
+        periodType: 'weekly',
+        startDate: weekStart,
+        endDate: weekEnd,
+        trades: 0,
+        winningTrades: 0,
+        losingTrades: 0,
+        totalPnL: 0,
+        returnPercent: 0,
+        winRate: 0,
+        avgWin: 0,
+        avgLoss: 0,
+        profitFactor: 0,
+      });
+    }
+    
+    currentDate.setDate(currentDate.getDate() + 7);
+  }
+
+  return allWeeks.sort((a, b) => b.startDate.getTime() - a.startDate.getTime());
 }
 
 function calculateMonthlyBreakdown(
@@ -145,8 +215,7 @@ function calculateMonthlyBreakdown(
       monthTrades,
       startingCapital
     ))
-    .sort((a, b) => b.startDate.getTime() - a.startDate.getTime())
-    .slice(0, 20);
+    .sort((a, b) => b.startDate.getTime() - a.startDate.getTime());
 }
 
 function calculateQuarterlyBreakdown(
@@ -173,8 +242,7 @@ function calculateQuarterlyBreakdown(
       quarterTrades,
       startingCapital
     ))
-    .sort((a, b) => b.startDate.getTime() - a.startDate.getTime())
-    .slice(0, 20);
+    .sort((a, b) => b.startDate.getTime() - a.startDate.getTime());
 }
 
 function calculateYearlyBreakdown(

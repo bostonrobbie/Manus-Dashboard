@@ -63,23 +63,29 @@ export function CalendarPnL({ data, periodType, onPeriodTypeChange }: CalendarPn
           const [year, monthNum] = month.split("-");
           const monthName = new Date(parseInt(year), parseInt(monthNum) - 1).toLocaleString("default", { month: "long", year: "numeric" });
           
+          // Create a map of day number to data
+          const dayMap = new Map<number, BreakdownPeriod>();
+          days.forEach(day => {
+            const dayNum = parseInt(day.period.split("-")[2]);
+            dayMap.set(dayNum, day);
+          });
+          
           // Get first day of month and total days
           const firstDay = new Date(parseInt(year), parseInt(monthNum) - 1, 1).getDay();
           const daysInMonth = new Date(parseInt(year), parseInt(monthNum), 0).getDate();
           
-          // Create calendar grid
-          const weeks: (BreakdownPeriod | null)[][] = [];
-          let currentWeek: (BreakdownPeriod | null)[] = Array(firstDay).fill(null);
+          // Create calendar grid with all days
+          const calendarCells: (BreakdownPeriod | null)[] = [];
           
-          days.forEach((day) => {
-            const dayNum = parseInt(day.period.split("-")[2]);
-            currentWeek[dayNum - 1 + firstDay - (weeks.length * 7)] = day;
-            
-            if (currentWeek.filter(Boolean).length === 7 - firstDay || dayNum === daysInMonth) {
-              weeks.push([...currentWeek]);
-              currentWeek = Array(7).fill(null);
-            }
-          });
+          // Add empty cells for days before month starts
+          for (let i = 0; i < firstDay; i++) {
+            calendarCells.push(null);
+          }
+          
+          // Add all days of the month
+          for (let dayNum = 1; dayNum <= daysInMonth; dayNum++) {
+            calendarCells.push(dayMap.get(dayNum) || null);
+          }
 
           return (
             <div key={month} className="space-y-2">
@@ -90,11 +96,11 @@ export function CalendarPnL({ data, periodType, onPeriodTypeChange }: CalendarPn
                     {day}
                   </div>
                 ))}
-                {weeks.flat().map((day, idx) => (
+                {calendarCells.map((day, idx) => (
                   <div
                     key={idx}
                     className={`min-h-[80px] p-2 rounded-md ${
-                      day ? getColor(day.totalPnL, day.returnPercent) : "bg-transparent"
+                      day ? getColor(day.totalPnL, day.returnPercent) : "bg-muted/20"
                     }`}
                   >
                     {day && (
@@ -102,6 +108,7 @@ export function CalendarPnL({ data, periodType, onPeriodTypeChange }: CalendarPn
                         <div className="text-xs font-medium">{day.period.split("-")[2]}</div>
                         <div className="text-sm font-bold mt-auto">{formatCurrency(day.totalPnL)}</div>
                         <div className="text-xs">{day.returnPercent.toFixed(1)}%</div>
+                        <div className="text-xs text-muted-foreground">{day.trades} trades</div>
                       </div>
                     )}
                   </div>
@@ -110,6 +117,102 @@ export function CalendarPnL({ data, periodType, onPeriodTypeChange }: CalendarPn
             </div>
           );
         })}
+      </div>
+    );
+  };
+
+  // Render weekly calendar (for weekly view)
+  const renderWeeklyCalendar = () => {
+    // Group weeks by month
+    const monthGroups = data.reduce((acc, item) => {
+      // Parse week format: YYYY-Wxx
+      const [yearStr, weekStr] = item.period.split('-W');
+      const year = parseInt(yearStr);
+      const week = parseInt(weekStr);
+      
+      // Get the first day of the week
+      const firstDayOfYear = new Date(year, 0, 1);
+      const daysOffset = (week - 1) * 7;
+      const weekStart = new Date(firstDayOfYear);
+      weekStart.setDate(firstDayOfYear.getDate() + daysOffset - firstDayOfYear.getDay());
+      
+      const monthKey = `${year}-${(weekStart.getMonth() + 1).toString().padStart(2, '0')}`;
+      if (!acc[monthKey]) {
+        acc[monthKey] = {
+          weeks: [],
+          monthName: weekStart.toLocaleString('default', { month: 'long', year: 'numeric' }),
+        };
+      }
+      acc[monthKey].weeks.push({ ...item, weekStart });
+      return acc;
+    }, {} as Record<string, { weeks: (BreakdownPeriod & { weekStart: Date })[]; monthName: string }>);
+
+    // Calculate month summaries
+    const monthSummaries = Object.entries(monthGroups).map(([key, { weeks, monthName }]) => {
+      const totalPnL = weeks.reduce((sum, w) => sum + w.totalPnL, 0);
+      const totalTrades = weeks.reduce((sum, w) => sum + w.trades, 0);
+      const avgWinRate = weeks.length > 0 ? weeks.reduce((sum, w) => sum + w.winRate, 0) / weeks.length : 0;
+      const avgReturn = weeks.length > 0 ? weeks.reduce((sum, w) => sum + w.returnPercent, 0) / weeks.length : 0;
+      
+      return {
+        key,
+        monthName,
+        weeks: weeks.sort((a, b) => b.weekStart.getTime() - a.weekStart.getTime()),
+        totalPnL,
+        totalTrades,
+        winRate: avgWinRate,
+        avgReturn,
+      };
+    });
+
+    return (
+      <div className="space-y-8">
+        {monthSummaries
+          .sort((a, b) => b.key.localeCompare(a.key))
+          .map(({ key, monthName, weeks, totalPnL, totalTrades, winRate, avgReturn }) => (
+            <div key={key} className="space-y-3">
+              {/* Month header with summary */}
+              <div className="flex items-baseline justify-between border-b pb-2">
+                <h3 className="text-xl font-bold">{monthName}</h3>
+                <div className="flex items-center gap-4 text-sm">
+                  <span className={`font-bold ${
+                    totalPnL > 0 ? 'text-green-500' : totalPnL < 0 ? 'text-red-500' : 'text-muted-foreground'
+                  }`}>
+                    {formatCurrency(totalPnL)}
+                  </span>
+                  <span className="text-muted-foreground">
+                    {weeks.length} weeks • {totalTrades} trades
+                  </span>
+                  <span className="text-muted-foreground">
+                    {avgReturn.toFixed(1)}% • WR: {winRate.toFixed(0)}%
+                  </span>
+                </div>
+              </div>
+              
+              {/* Week cards */}
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                {weeks.map((week) => {
+                  const weekEnd = new Date(week.weekStart);
+                  weekEnd.setDate(weekEnd.getDate() + 6);
+                  const dateRange = `${week.weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+                  
+                  return (
+                    <div
+                      key={week.period}
+                      className={`p-3 rounded-md ${getColor(week.totalPnL, week.returnPercent)} hover:opacity-90 transition-opacity`}
+                    >
+                      <div className="text-xs font-medium opacity-80">{week.period}</div>
+                      <div className="text-xs opacity-70 mb-2">{dateRange}</div>
+                      <div className="text-lg font-bold">{formatCurrency(week.totalPnL)}</div>
+                      <div className="text-sm">{week.returnPercent.toFixed(1)}%</div>
+                      <div className="text-xs mt-1 opacity-80">{week.trades} trades</div>
+                      <div className="text-xs opacity-80">WR: {week.winRate.toFixed(0)}%</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
       </div>
     );
   };
@@ -201,7 +304,7 @@ export function CalendarPnL({ data, periodType, onPeriodTypeChange }: CalendarPn
 
         {/* Calendar view */}
         <div className="mt-6">
-          {periodType === "daily" ? renderMonthlyCalendar() : renderYearGrid()}
+          {periodType === "daily" ? renderMonthlyCalendar() : periodType === "weekly" ? renderWeeklyCalendar() : renderYearGrid()}
         </div>
 
         {/* Legend */}

@@ -1135,3 +1135,16 @@
 
 ## Restore to Published Version (Current Session)
 - [x] Add S&P 500 toggle to Drawdown Comparison chart on Compare page
+
+
+## Calendar P&L Improvements (Current Session)
+- [ ] Investigate Calendar P&L data pipeline for missing days
+- [ ] Fix backend to populate all trading days in calendar
+- [ ] Redesign Weekly tab for better year-view organization
+- [ ] Move Portfolio Sizing Calculator below Calendar P&L on Overview page
+
+
+## Calendar P&L Improvements (Session 2025-12-05)
+- [x] Fix Calendar P&L backend to populate all trading days (not just days with trades)
+- [x] Redesign Weekly tab with month groupings and date ranges
+- [x] Move Portfolio Sizing Calculator below Calendar P&L on Overview page
