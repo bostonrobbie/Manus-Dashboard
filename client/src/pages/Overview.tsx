@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceArea } from "recharts";
 import { Loader2, TrendingUp, TrendingDown, Activity, Target, Gauge } from "lucide-react";
 import { CalendarPnL } from "@/components/CalendarPnL";
 import { UnderwaterCurveChart } from "@/components/UnderwaterCurveChart";
@@ -96,6 +96,25 @@ export default function Overview() {
     portfolio: point.equity,
     benchmark: benchmarkEquity[index]?.equity ?? null, // Use null for missing values (don't plot)
   }));
+
+  // Find max drawdown period for highlighting
+  const maxDrawdownPeriod = data.majorDrawdowns && data.majorDrawdowns.length > 0 
+    ? data.majorDrawdowns.reduce((max: any, dd: any) => 
+        dd.depth < max.depth ? dd : max, data.majorDrawdowns[0])
+    : null;
+  
+  // Find indices for drawdown period
+  let drawdownStartIndex = -1;
+  let drawdownEndIndex = -1;
+  if (maxDrawdownPeriod) {
+    const startDate = new Date(maxDrawdownPeriod.startDate).toLocaleDateString();
+    const endDate = maxDrawdownPeriod.recoveryDate 
+      ? new Date(maxDrawdownPeriod.recoveryDate).toLocaleDateString()
+      : chartData[chartData.length - 1]!.date;
+    drawdownStartIndex = chartData.findIndex(d => d.date === startDate);
+    drawdownEndIndex = chartData.findIndex(d => d.date === endDate);
+    if (drawdownEndIndex === -1) drawdownEndIndex = chartData.length - 1;
+  }
 
   // Calculate domain boundaries for X-axis to ensure chart extends full width
   const minTimestamp = chartData.length > 0 ? chartData[0]!.timestamp : 0;
@@ -262,7 +281,7 @@ export default function Overview() {
           <div className="h-[400px]">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted-foreground))" strokeOpacity={0.15} />
                 <XAxis 
                   dataKey="date" 
                   tick={{ fontSize: 13, fill: '#e5e7eb' }}
@@ -282,6 +301,16 @@ export default function Overview() {
                   labelStyle={{ color: 'black' }}
                 />
                 <Legend />
+                {/* Highlight max drawdown period */}
+                {drawdownStartIndex >= 0 && drawdownEndIndex >= 0 && (
+                  <ReferenceArea
+                    x1={chartData[drawdownStartIndex]!.date}
+                    x2={chartData[drawdownEndIndex]!.date}
+                    fill="#ef4444"
+                    fillOpacity={0.1}
+                    label={{ value: 'Max Drawdown Period', position: 'insideTop', fill: '#ef4444', fontSize: 12 }}
+                  />
+                )}
                 <Line 
                   type="monotone" 
                   dataKey="portfolio" 
@@ -304,18 +333,21 @@ export default function Overview() {
         </CardContent>
       </Card>
 
-      {/* Additional Metrics */}
-      {/* Trade & Risk Statistics - Combined panel with comprehensive metrics */}
-      {data.tradeStats && <TradeAndRiskStats tradeStats={data.tradeStats} />}
-
       {/* Underwater Curve */}
       {data.underwater && (
         <Card>
           <CardContent className="pt-6">
-            <UnderwaterCurveChart data={data.underwater} />
+            <UnderwaterCurveChart 
+              data={data.underwater} 
+              benchmarkData={(data as any).benchmarkUnderwater}
+            />
           </CardContent>
         </Card>
       )}
+
+      {/* Additional Metrics */}
+      {/* Trade & Risk Statistics - Combined panel with comprehensive metrics */}
+      {data.tradeStats && <TradeAndRiskStats tradeStats={data.tradeStats} />}
 
       {/* Major Drawdowns Table */}
       {data.majorDrawdowns && (

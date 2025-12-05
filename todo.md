@@ -1148,3 +1148,15 @@
 - [x] Fix Calendar P&L backend to populate all trading days (not just days with trades)
 - [x] Redesign Weekly tab with month groupings and date ranges
 - [x] Move Portfolio Sizing Calculator below Calendar P&L on Overview page
+
+
+## Overview & Strategies Page Enhancements (Session 2025-12-05)
+- [ ] Reduce chart grid opacity for cleaner look
+- [ ] Highlight max drawdown period on equity curve
+- [ ] Move Underwater Equity Curve above Trade & Risk Statistics
+- [ ] Add S&P 500 toggle to Underwater Equity Curve
+- [ ] Remove Major Drawdowns section
+- [ ] Enhance Daily Returns Distribution with more insights
+- [ ] Redesign Strategies page cards with visual appeal
+- [ ] Add performance stats and sparklines to strategy cards
+- [ ] Add market icons/symbols to strategy cards

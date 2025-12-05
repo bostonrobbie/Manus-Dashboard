@@ -1,5 +1,8 @@
-import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { useState } from "react";
+import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend } from "recharts";
 import { Card } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 
 interface UnderwaterPoint {
   date: Date;
@@ -18,21 +21,39 @@ interface UnderwaterMetrics {
 
 interface UnderwaterCurveChartProps {
   data: UnderwaterMetrics;
+  benchmarkData?: UnderwaterMetrics;
 }
 
-export function UnderwaterCurveChart({ data }: UnderwaterCurveChartProps) {
-  const chartData = data.curve.map(point => ({
+export function UnderwaterCurveChart({ data, benchmarkData }: UnderwaterCurveChartProps) {
+  const [showBenchmark, setShowBenchmark] = useState(false);
+
+  const chartData = data.curve.map((point, index) => ({
     date: point.date.toLocaleDateString(),
     drawdown: point.drawdownPercent,
+    benchmarkDrawdown: benchmarkData && showBenchmark ? benchmarkData.curve[index]?.drawdownPercent : undefined,
   }));
 
   return (
     <div className="space-y-4">
-      <div>
-        <h3 className="text-lg font-semibold">Underwater Equity Curve</h3>
-        <p className="text-sm text-muted-foreground">
-          Drawdown from peak over time - understanding your portfolio's risk profile
-        </p>
+      <div className="flex justify-between items-start">
+        <div>
+          <h3 className="text-lg font-semibold">Underwater Equity Curve</h3>
+          <p className="text-sm text-muted-foreground">
+            Drawdown from peak over time - understanding your portfolio's risk profile
+          </p>
+        </div>
+        {benchmarkData && (
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="show-benchmark-underwater"
+              checked={showBenchmark}
+              onCheckedChange={(checked) => setShowBenchmark(checked as boolean)}
+            />
+            <Label htmlFor="show-benchmark-underwater" className="text-sm cursor-pointer">
+              Show S&P 500
+            </Label>
+          </div>
+        )}
       </div>
 
       {/* Statistics Grid */}
@@ -76,7 +97,7 @@ export function UnderwaterCurveChart({ data }: UnderwaterCurveChartProps) {
               <stop offset="100%" stopColor="oklch(var(--destructive))" stopOpacity={0.05} />
             </linearGradient>
           </defs>
-          <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted-foreground))" strokeOpacity={0.15} />
           <XAxis
             dataKey="date"
             tick={{ fontSize: 14, fill: 'white' }}
@@ -98,20 +119,37 @@ export function UnderwaterCurveChart({ data }: UnderwaterCurveChartProps) {
                 <div className="rounded-lg border bg-background p-3 shadow-lg">
                   <p className="text-sm font-medium mb-1">{data.date}</p>
                   <p className="text-sm text-red-600">
-                    Drawdown: {data.drawdown.toFixed(2)}%
+                    Portfolio: {data.drawdown.toFixed(2)}%
                   </p>
+                  {data.benchmarkDrawdown !== undefined && (
+                    <p className="text-sm text-orange-500">
+                      S&P 500: {data.benchmarkDrawdown.toFixed(2)}%
+                    </p>
+                  )}
                 </div>
               );
             }}
           />
+          <Legend />
           <Area
             type="monotone"
             dataKey="drawdown"
-            name="Portfolio Drawdown"
+            name="Portfolio"
             stroke="#ef4444"
             fill="url(#drawdownGradient)"
             strokeWidth={2}
           />
+          {showBenchmark && benchmarkData && (
+            <Area
+              type="monotone"
+              dataKey="benchmarkDrawdown"
+              name="S&P 500"
+              stroke="#FF8C00"
+              fill="none"
+              strokeWidth={2}
+              strokeDasharray="5 5"
+            />
+          )}
         </AreaChart>
       </ResponsiveContainer>
     </div>

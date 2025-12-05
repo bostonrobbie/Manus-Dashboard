@@ -94,7 +94,7 @@ export function RollingMetricsChart({ rollingMetrics, timeRange }: RollingMetric
               </div>
               <ResponsiveContainer width="100%" height={200}>
                 <LineChart data={sampledData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted-foreground))" strokeOpacity={0.15} />
                   <XAxis 
                     dataKey="date" 
                     tick={{ fontSize: 14, fill: 'white' }}
@@ -141,7 +141,7 @@ export function RollingMetricsChart({ rollingMetrics, timeRange }: RollingMetric
               </div>
               <ResponsiveContainer width="100%" height={200}>
                 <LineChart data={sampledData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted-foreground))" strokeOpacity={0.15} />
                   <XAxis 
                     dataKey="date" 
                     tick={{ fontSize: 14, fill: 'white' }}

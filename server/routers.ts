@@ -187,6 +187,7 @@ export const appRouter = router({
 
         // Calculate underwater data for portfolio and benchmark
         const underwater = analytics.calculatePortfolioUnderwater(portfolioEquity);
+        const benchmarkUnderwater = analytics.calculatePortfolioUnderwater(benchmarkEquity);
         const dayOfWeekBreakdown = analytics.calculateDayOfWeekBreakdown(allTrades);
         const weekOfMonthBreakdown = analytics.calculateWeekOfMonthBreakdown(allTrades);
 
@@ -242,6 +243,7 @@ export const appRouter = router({
           portfolioEquity,
           benchmarkEquity,
           underwater,
+          benchmarkUnderwater,
           majorDrawdowns,
           distribution,
           dayOfWeekBreakdown,
