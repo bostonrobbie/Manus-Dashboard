@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { Loader2, TrendingUp, TrendingDown, Activity, Target, Gauge } from "lucide-react";
-import { PerformanceBreakdown } from "@/components/PerformanceBreakdown";
+import { CalendarPnL } from "@/components/CalendarPnL";
 import { UnderwaterCurveChart } from "@/components/UnderwaterCurveChart";
 import { DayOfWeekHeatmap } from "@/components/DayOfWeekHeatmap";
 import { WeekOfMonthHeatmap } from "@/components/WeekOfMonthHeatmap";
@@ -24,6 +24,7 @@ type TimeRange = 'YTD' | '1Y' | '3Y' | '5Y' | 'ALL';
 export default function Overview() {
   const [timeRange, setTimeRange] = useState<TimeRange>('1Y');
   const [startingCapital, setStartingCapital] = useState(100000);
+  const [calendarPeriodType, setCalendarPeriodType] = useState<'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly'>('monthly');
 
   // Helper to format date range
   const getDateRangeText = (range: TimeRange) => {
@@ -466,11 +467,14 @@ export default function Overview() {
         </CardContent>
       </Card>
 
-      {/* Performance Breakdown */}
-      <PerformanceBreakdown 
-        data={breakdownData || { daily: [], weekly: [], monthly: [], quarterly: [], yearly: [] }} 
-        isLoading={breakdownLoading}
-      />
+      {/* Calendar P&L */}
+      {breakdownData && (
+        <CalendarPnL
+          data={breakdownData[calendarPeriodType]}
+          periodType={calendarPeriodType}
+          onPeriodTypeChange={setCalendarPeriodType}
+        />
+      )}
     </div>
   );
 }

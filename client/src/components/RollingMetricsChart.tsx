@@ -97,11 +97,11 @@ export function RollingMetricsChart({ rollingMetrics, timeRange }: RollingMetric
                   <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                   <XAxis 
                     dataKey="date" 
-                    tick={{ fontSize: 11 }}
+                    tick={{ fontSize: 14, fill: 'white' }}
                     stroke="#9CA3AF"
                   />
                   <YAxis 
-                    tick={{ fontSize: 11 }}
+                    tick={{ fontSize: 14, fill: 'white' }}
                     stroke="#9CA3AF"
                   />
                   <Tooltip 
@@ -144,11 +144,11 @@ export function RollingMetricsChart({ rollingMetrics, timeRange }: RollingMetric
                   <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                   <XAxis 
                     dataKey="date" 
-                    tick={{ fontSize: 11 }}
+                    tick={{ fontSize: 14, fill: 'white' }}
                     stroke="#9CA3AF"
                   />
                   <YAxis 
-                    tick={{ fontSize: 11 }}
+                    tick={{ fontSize: 14, fill: 'white' }}
                     stroke="#9CA3AF"
                   />
                   <Tooltip 
