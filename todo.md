@@ -1076,3 +1076,58 @@
 - [x] Enhance equity curve axis labels (14px font, white color)
 - [x] Change rolling metrics to match selected time range (dynamic window based on time range)
 - [x] Add current value label to rolling metrics charts
+
+
+## Current Sprint: Calendar P&L & Premium UI Polish
+
+### Performance Breakdown → Calendar P&L
+- [ ] Create CalendarPnL component with grid layout
+- [ ] Implement daily calendar view (month grid with P&L in each cell)
+- [ ] Implement weekly calendar view
+- [ ] Implement monthly calendar view (year grid with monthly P&L)
+- [ ] Implement quarterly calendar view
+- [ ] Implement yearly calendar view
+- [ ] Add color coding (green for positive, red for negative, intensity based on magnitude)
+- [ ] Keep Daily/Weekly/Monthly/Quarterly/Yearly tabs
+- [ ] Replace PerformanceBreakdown table with CalendarPnL on Overview page
+- [ ] Ensure accessibility (proper contrast, keyboard navigation)
+
+### Chart Label Visibility Enhancement
+- [ ] Apply white/bright labels to all Overview page charts (underwater, day-of-week, rolling metrics, monthly returns)
+- [ ] Fix Compare page equity curve chart labels
+- [ ] Fix Compare page drawdown chart labels
+- [ ] Add S&P 500 benchmark to Drawdown Comparison chart
+- [ ] Ensure consistent 14px white labels across all charts
+
+### Premium UX/UI Polish
+- [ ] Improve section spacing and grouping on Overview page
+- [ ] Add visual separators between major sections
+- [ ] Enhance visual hierarchy (section titles, descriptions)
+- [ ] Improve "story flow" - logical progression from high-level to detailed metrics
+- [ ] Polish card shadows, borders, and hover states
+- [ ] Ensure consistent padding and margins throughout
+- [ ] Add subtle animations/transitions where appropriate
+- [ ] Review and enhance color palette consistency
+
+
+## Calendar P&L & UI Polish ✅ COMPLETE
+
+### Overview Page
+- [x] Transform Performance Breakdown table into visual Calendar P&L
+- [x] Add Daily/Weekly/Monthly/Quarterly/Yearly tabs to Calendar P&L
+- [x] Enhance chart label visibility across all charts (14px white labels)
+- [x] Enhanced Underwater Curve chart labels
+- [x] Enhanced Rolling Metrics chart labels
+
+### Compare Page
+- [x] Fix chart labels to be more readable (14px white color)
+- [x] Add S&P 500 to Drawdown Comparison chart
+- [x] S&P 500 shown in bright orange (#FF8C00) for visibility
+- [x] Drawdown chart includes individual, combined, and benchmark drawdowns
+
+### Calendar P&L Component
+- [x] Created CalendarPnL.tsx with grid-based visual calendar
+- [x] Color-coded cells (green for gains, red for losses)
+- [x] Shows P&L amount, percentage, and trade count per period
+- [x] Supports daily, weekly, monthly, quarterly, yearly views
+- [x] Legend showing color intensity meanings

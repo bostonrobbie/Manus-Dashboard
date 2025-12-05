@@ -93,6 +93,14 @@ export default function StrategyComparison() {
     const combinedDD = combinedPeak > 0 ? ((combinedEquity - combinedPeak) / combinedPeak) * 100 : 0;
     point.combinedDD = combinedDD;
     
+    // Benchmark drawdown (S&P 500)
+    if (showBenchmark && benchmarkData?.benchmarkEquity[index]) {
+      const benchmarkEquity = benchmarkData.benchmarkEquity[index].equity;
+      const benchmarkPeak = Math.max(...benchmarkData.benchmarkEquity.slice(0, index + 1).map(p => p.equity));
+      const benchmarkDD = benchmarkPeak > 0 ? ((benchmarkEquity - benchmarkPeak) / benchmarkPeak) * 100 : 0;
+      point.benchmarkDD = benchmarkDD;
+    }
+    
     return point;
   }) || [];
 
@@ -237,13 +245,13 @@ export default function StrategyComparison() {
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis 
                       dataKey="date" 
-                      tick={{ fontSize: 12 }}
+                      tick={{ fontSize: 14, fill: 'white' }}
                       angle={-45}
                       textAnchor="end"
                       height={80}
                     />
                     <YAxis 
-                      tick={{ fontSize: 12 }}
+                      tick={{ fontSize: 14, fill: 'white' }}
                       tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
                     />
                     <Tooltip 
@@ -311,13 +319,13 @@ export default function StrategyComparison() {
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis 
                       dataKey="date" 
-                      tick={{ fontSize: 12 }}
+                      tick={{ fontSize: 14, fill: 'white' }}
                       angle={-45}
                       textAnchor="end"
                       height={80}
                     />
                     <YAxis 
-                      tick={{ fontSize: 12 }}
+                      tick={{ fontSize: 14, fill: 'white' }}
                       tickFormatter={(value) => `${value.toFixed(1)}%`}
                     />
                     <Tooltip 
@@ -351,9 +359,18 @@ export default function StrategyComparison() {
                       stroke="#3b82f6"
                       strokeWidth={3}
                       dot={false}
-                      name="Combined DD"
-                      hide={hiddenStrategies.has('combined')}
                     />
+                    {showBenchmark && (
+                      <Line
+                        type="monotone"
+                        dataKey="benchmarkDD"
+                        stroke="#FF8C00"
+                        strokeWidth={2}
+                        strokeDasharray="5 5"
+                        dot={false}
+                        name="S&P 500 DD"
+                      />
+                    )}
                   </LineChart>
                 </ResponsiveContainer>
               </div>
