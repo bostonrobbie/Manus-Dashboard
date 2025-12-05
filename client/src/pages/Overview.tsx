@@ -66,12 +66,17 @@ export default function Overview() {
 
   const { metrics, portfolioEquity, benchmarkEquity } = data;
 
-  // Prepare chart data
+  // Prepare chart data with timestamps for proper domain calculation
   const chartData = portfolioEquity.map((point, index) => ({
     date: new Date(point.date).toLocaleDateString(),
+    timestamp: new Date(point.date).getTime(), // Add timestamp for domain
     portfolio: point.equity,
     benchmark: benchmarkEquity[index]?.equity ?? null, // Use null for missing values (don't plot)
   }));
+
+  // Calculate domain boundaries for X-axis to ensure chart extends full width
+  const minTimestamp = chartData.length > 0 ? chartData[0]!.timestamp : 0;
+  const maxTimestamp = chartData.length > 0 ? chartData[chartData.length - 1]!.timestamp : 0;
 
   return (
     <div className="space-y-6">
@@ -210,6 +215,9 @@ export default function Overview() {
                   angle={-45}
                   textAnchor="end"
                   height={80}
+                  domain={[0, chartData.length - 1]}
+                  type="category"
+                  padding={{ left: 0, right: 0 }}
                 />
                 <YAxis 
                   tick={{ fontSize: 12 }}
