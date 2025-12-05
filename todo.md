@@ -1043,3 +1043,36 @@
 - [x] Find largest historical drawdown across all time periods ($45,554)
 - [x] Update Portfolio Sizing Calculator with actual max drawdown dollar amount
 - [x] Update margin requirements for micro and mini contracts
+
+
+## Current Sprint: UI/UX Enhancements (Dec 5, 2025)
+
+### Strategy Comparison Page
+- [ ] Change S&P 500 line color to bright yellow/orange for better visibility
+- [ ] Fix individual strategy curves visibility (make solid lines with better opacity)
+- [ ] Verify correlation calculation accuracy (confirm low correlation is correct)
+- [ ] Add drawdown chart below equity curves (individual + combined drawdowns)
+
+### Portfolio Overview Page
+- [ ] Add date range subtitle to each metric card (e.g., "Dec 2024 - Dec 2025")
+- [ ] Add Sortino Ratio as its own metric card
+- [ ] Enhance equity curve axis labels (larger font, better color contrast)
+- [ ] Update rolling metrics to match selected time range (remove 30/90/365 toggles)
+- [ ] Add median line to rolling metrics charts
+- [ ] Add end label showing current value on rolling metrics charts
+
+
+## UI/UX Enhancements ✅ COMPLETE (Dec 5, 2025)
+
+### Strategy Comparison Page
+- [x] Change S&P 500 color to bright orange for better visibility
+- [x] Fix individual strategy curves visibility (solid lines with 70% opacity)
+- [x] Verify correlation calculation is correct (confirmed - low correlation is accurate)
+- [x] Add drawdown chart below equity curves showing individual + combined drawdowns
+
+### Portfolio Overview Page
+- [x] Add date range subtitle to each metric card (e.g., "Dec 2024 - Dec 2025")
+- [x] Add Sortino Ratio as its own card (6 metric cards total)
+- [x] Enhance equity curve axis labels (14px font, white color)
+- [x] Change rolling metrics to match selected time range (dynamic window based on time range)
+- [x] Add current value label to rolling metrics charts

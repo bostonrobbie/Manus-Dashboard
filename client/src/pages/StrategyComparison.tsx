@@ -68,6 +68,7 @@ export default function StrategyComparison() {
       date: new Date(data.strategies[0]!.equityCurve[index]!.date).toLocaleDateString(),
     };
     
+    // Add equity curves
     data.strategies.forEach((strat, stratIndex) => {
       point[`strategy${stratIndex}`] = strat.equityCurve[index]?.equity || 0;
     });
@@ -77,6 +78,20 @@ export default function StrategyComparison() {
     if (showBenchmark && benchmarkData?.benchmarkEquity[index]) {
       point.benchmark = benchmarkData.benchmarkEquity[index].equity;
     }
+    
+    // Calculate drawdowns (as percentages)
+    data.strategies.forEach((strat, stratIndex) => {
+      const equity = strat.equityCurve[index]?.equity || 0;
+      const peak = Math.max(...strat.equityCurve.slice(0, index + 1).map(p => p.equity));
+      const dd = peak > 0 ? ((equity - peak) / peak) * 100 : 0;
+      point[`dd${stratIndex}`] = dd;
+    });
+    
+    // Combined drawdown
+    const combinedEquity = data.combinedEquity[index]?.equity || 0;
+    const combinedPeak = Math.max(...data.combinedEquity.slice(0, index + 1).map(p => p.equity));
+    const combinedDD = combinedPeak > 0 ? ((combinedEquity - combinedPeak) / combinedPeak) * 100 : 0;
+    point.combinedDD = combinedDD;
     
     return point;
   }) || [];
@@ -249,11 +264,11 @@ export default function StrategyComparison() {
                         type="monotone"
                         dataKey={`strategy${index}`}
                         stroke={COLORS[index]}
-                        strokeWidth={1.5}
+                        strokeWidth={2}
                         dot={false}
                         name={strat.name || ''}
                         hide={hiddenStrategies.has(`strategy${index}`)}
-                        strokeDasharray="5 5"
+                        opacity={0.7}
                       />
                     ))}
                     <Line
@@ -269,7 +284,7 @@ export default function StrategyComparison() {
                       <Line
                         type="monotone"
                         dataKey="benchmark"
-                        stroke="#9ca3af"
+                        stroke="#fbbf24"
                         strokeWidth={2}
                         dot={false}
                         name="S&P 500"
@@ -277,6 +292,68 @@ export default function StrategyComparison() {
                         strokeDasharray="3 3"
                       />
                     )}
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Drawdown Chart */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Drawdown Comparison</CardTitle>
+              <CardDescription>Individual and combined portfolio drawdowns</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="h-[400px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis 
+                      dataKey="date" 
+                      tick={{ fontSize: 12 }}
+                      angle={-45}
+                      textAnchor="end"
+                      height={80}
+                    />
+                    <YAxis 
+                      tick={{ fontSize: 12 }}
+                      tickFormatter={(value) => `${value.toFixed(1)}%`}
+                    />
+                    <Tooltip 
+                      formatter={(value: number) => `${value.toFixed(2)}%`}
+                      labelStyle={{ color: 'black' }}
+                    />
+                    <Legend 
+                      wrapperStyle={{ paddingTop: '20px', cursor: 'pointer' }}
+                      onClick={(e: any) => {
+                        if (e.dataKey) {
+                          toggleStrategyVisibility(e.dataKey);
+                        }
+                      }}
+                    />
+                    {data.strategies.map((strat, index) => (
+                      <Line
+                        key={strat.id}
+                        type="monotone"
+                        dataKey={`dd${index}`}
+                        stroke={COLORS[index]}
+                        strokeWidth={2}
+                        dot={false}
+                        name={`${strat.name} DD`}
+                        hide={hiddenStrategies.has(`strategy${index}`)}
+                        opacity={0.7}
+                      />
+                    ))}
+                    <Line
+                      type="monotone"
+                      dataKey="combinedDD"
+                      stroke="#3b82f6"
+                      strokeWidth={3}
+                      dot={false}
+                      name="Combined DD"
+                      hide={hiddenStrategies.has('combined')}
+                    />
                   </LineChart>
                 </ResponsiveContainer>
               </div>

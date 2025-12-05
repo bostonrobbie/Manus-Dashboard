@@ -25,6 +25,28 @@ export default function Overview() {
   const [timeRange, setTimeRange] = useState<TimeRange>('1Y');
   const [startingCapital, setStartingCapital] = useState(100000);
 
+  // Helper to format date range
+  const getDateRangeText = (range: TimeRange) => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.toLocaleString('default', { month: 'short' });
+    
+    switch (range) {
+      case 'YTD':
+        return `Jan ${year} - ${month} ${year}`;
+      case '1Y':
+        return `${month} ${year - 1} - ${month} ${year}`;
+      case '3Y':
+        return `${year - 3} - ${year}`;
+      case '5Y':
+        return `${year - 5} - ${year}`;
+      case 'ALL':
+        return '2010 - 2025';
+      default:
+        return '';
+    }
+  };
+
   const { data, isLoading, error } = trpc.portfolio.overview.useQuery({
     timeRange,
     startingCapital,
@@ -122,7 +144,7 @@ export default function Overview() {
 
 
       {/* Key Metrics Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Return</CardTitle>
@@ -135,6 +157,9 @@ export default function Overview() {
             <p className="text-xs text-muted-foreground">
               Annualized: {metrics.annualizedReturn.toFixed(2)}%
             </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {getDateRangeText(timeRange)}
+            </p>
           </CardContent>
         </Card>
 
@@ -146,7 +171,26 @@ export default function Overview() {
           <CardContent>
             <div className="text-2xl font-bold">{metrics.sharpeRatio.toFixed(2)}</div>
             <p className="text-xs text-muted-foreground">
-              Sortino: {metrics.sortinoRatio.toFixed(2)}
+              Risk-adjusted return
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {getDateRangeText(timeRange)}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Sortino Ratio</CardTitle>
+            <Activity className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{metrics.sortinoRatio.toFixed(2)}</div>
+            <p className="text-xs text-muted-foreground">
+              Downside risk-adjusted
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {getDateRangeText(timeRange)}
             </p>
           </CardContent>
         </Card>
@@ -163,6 +207,9 @@ export default function Overview() {
             <p className="text-xs text-muted-foreground">
               Peak to trough decline ({metrics.maxDrawdown.toFixed(2)}%)
             </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {getDateRangeText(timeRange)}
+            </p>
           </CardContent>
         </Card>
 
@@ -174,7 +221,10 @@ export default function Overview() {
           <CardContent>
             <div className="text-2xl font-bold">{metrics.winRate.toFixed(1)}%</div>
             <p className="text-xs text-muted-foreground">
-              {metrics.winningTrades} / {metrics.totalTrades} trades
+              {metrics.totalTrades.toLocaleString()} / {data.tradeStats.totalTrades.toLocaleString()} trades
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {getDateRangeText(timeRange)}
             </p>
           </CardContent>
         </Card>
@@ -188,6 +238,9 @@ export default function Overview() {
             <div className="text-2xl font-bold">{metrics.calmarRatio.toFixed(2)}</div>
             <p className="text-xs text-muted-foreground">
               Return / Drawdown
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {getDateRangeText(timeRange)}
             </p>
           </CardContent>
         </Card>
@@ -211,7 +264,7 @@ export default function Overview() {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis 
                   dataKey="date" 
-                  tick={{ fontSize: 12 }}
+                  tick={{ fontSize: 13, fill: '#e5e7eb' }}
                   angle={-45}
                   textAnchor="end"
                   height={80}
@@ -220,7 +273,7 @@ export default function Overview() {
                   padding={{ left: 0, right: 0 }}
                 />
                 <YAxis 
-                  tick={{ fontSize: 12 }}
+                  tick={{ fontSize: 13, fill: '#e5e7eb' }}
                   tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
                 />
                 <Tooltip 
@@ -313,7 +366,7 @@ export default function Overview() {
 
       {/* Rolling Metrics */}
       {data.rollingMetrics && data.rollingMetrics.length > 0 && (
-        <RollingMetricsChart rollingMetrics={data.rollingMetrics} />
+        <RollingMetricsChart rollingMetrics={data.rollingMetrics} timeRange={timeRange} />
       )}
 
       {/* Monthly Returns Calendar */}
