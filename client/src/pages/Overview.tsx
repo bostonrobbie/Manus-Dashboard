@@ -10,6 +10,8 @@ import { PerformanceBreakdown } from "@/components/PerformanceBreakdown";
 import { UnderwaterCurveChart } from "@/components/UnderwaterCurveChart";
 import { DayOfWeekHeatmap } from "@/components/DayOfWeekHeatmap";
 import { CorrelationChart } from "@/components/CorrelationChart";
+import { RollingMetricsChart } from "@/components/RollingMetricsChart";
+import { MonthlyReturnsCalendar } from "@/components/MonthlyReturnsCalendar";
 
 type TimeRange = 'YTD' | '1Y' | '3Y' | '5Y' | 'ALL';
 
@@ -311,6 +313,16 @@ export default function Overview() {
             />
           </CardContent>
         </Card>
+      )}
+
+      {/* Rolling Metrics */}
+      {data.rollingMetrics && data.rollingMetrics.length > 0 && (
+        <RollingMetricsChart rollingMetrics={data.rollingMetrics} />
+      )}
+
+      {/* Monthly Returns Calendar */}
+      {data.monthlyReturnsCalendar && data.monthlyReturnsCalendar.length > 0 && (
+        <MonthlyReturnsCalendar monthlyReturns={data.monthlyReturnsCalendar} />
       )}
 
       {/* Performance Breakdown */}

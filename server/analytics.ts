@@ -884,3 +884,189 @@ export function calculateDayOfWeekBreakdown(
 
   return results;
 }
+
+
+/**
+ * Rolling Metrics Interface
+ */
+export interface RollingMetricsData {
+  window: number; // Days in rolling window
+  data: Array<{
+    date: Date;
+    sharpe: number | null;
+    sortino: number | null;
+    maxDrawdown: number | null;
+  }>;
+}
+
+/**
+ * Calculate rolling metrics (Sharpe, Sortino, Max Drawdown) over different windows
+ */
+export function calculateRollingMetrics(
+  equityCurve: EquityPoint[],
+  windows: number[] = [30, 90, 365]
+): RollingMetricsData[] {
+  const results: RollingMetricsData[] = [];
+
+  for (const window of windows) {
+    const windowData: Array<{
+      date: Date;
+      sharpe: number | null;
+      sortino: number | null;
+      maxDrawdown: number | null;
+    }> = [];
+
+    // For each point in the equity curve, calculate metrics for the trailing window
+    for (let i = window; i < equityCurve.length; i++) {
+      const windowSlice = equityCurve.slice(i - window, i + 1);
+      
+      // Calculate daily returns for the window
+      const returns: number[] = [];
+      for (let j = 1; j < windowSlice.length; j++) {
+        const prevEquity = windowSlice[j - 1]!.equity;
+        const currEquity = windowSlice[j]!.equity;
+        if (prevEquity > 0) {
+          returns.push((currEquity - prevEquity) / prevEquity);
+        }
+      }
+
+      // Calculate Sharpe ratio
+      let sharpe: number | null = null;
+      if (returns.length > 0) {
+        const mean = returns.reduce((sum, r) => sum + r, 0) / returns.length;
+        const variance = returns.reduce((sum, r) => sum + Math.pow(r - mean, 2), 0) / returns.length;
+        const stdDev = Math.sqrt(variance);
+        if (stdDev > 0) {
+          sharpe = (mean / stdDev) * Math.sqrt(252); // Annualized
+        }
+      }
+
+      // Calculate Sortino ratio (downside deviation only)
+      let sortino: number | null = null;
+      if (returns.length > 0) {
+        const mean = returns.reduce((sum, r) => sum + r, 0) / returns.length;
+        const downsideReturns = returns.filter(r => r < 0);
+        if (downsideReturns.length > 0) {
+          const downsideVariance = downsideReturns.reduce((sum, r) => sum + Math.pow(r, 2), 0) / downsideReturns.length;
+          const downsideStdDev = Math.sqrt(downsideVariance);
+          if (downsideStdDev > 0) {
+            sortino = (mean / downsideStdDev) * Math.sqrt(252); // Annualized
+          }
+        }
+      }
+
+      // Calculate max drawdown
+      let maxDrawdown: number | null = null;
+      let peak = windowSlice[0]!.equity;
+      let maxDD = 0;
+      for (const point of windowSlice) {
+        if (point.equity > peak) {
+          peak = point.equity;
+        }
+        const drawdown = (point.equity - peak) / peak;
+        if (drawdown < maxDD) {
+          maxDD = drawdown;
+        }
+      }
+      maxDrawdown = maxDD * 100; // Convert to percentage
+
+      windowData.push({
+        date: equityCurve[i]!.date,
+        sharpe,
+        sortino,
+        maxDrawdown,
+      });
+    }
+
+    results.push({ window, data: windowData });
+  }
+
+  return results;
+}
+
+/**
+ * Monthly Returns Calendar Interface
+ */
+export interface MonthlyReturn {
+  year: number;
+  month: number; // 1-12
+  monthName: string;
+  return: number; // Percentage
+  startEquity: number;
+  endEquity: number;
+}
+
+/**
+ * Calculate monthly returns for calendar heatmap
+ */
+export function calculateMonthlyReturnsCalendar(
+  equityCurve: EquityPoint[]
+): MonthlyReturn[] {
+  if (equityCurve.length === 0) return [];
+
+  const monthlyData: Map<string, {
+    year: number;
+    month: number;
+    startEquity: number;
+    endEquity: number;
+    firstDate: Date;
+    lastDate: Date;
+  }> = new Map();
+
+  // Group equity points by year-month
+  for (const point of equityCurve) {
+    const year = point.date.getFullYear();
+    const month = point.date.getMonth() + 1; // 1-12
+    const key = `${year}-${month}`;
+
+    const existing = monthlyData.get(key);
+    if (!existing) {
+      monthlyData.set(key, {
+        year,
+        month,
+        startEquity: point.equity,
+        endEquity: point.equity,
+        firstDate: point.date,
+        lastDate: point.date,
+      });
+    } else {
+      // Update end equity if this is a later date
+      if (point.date > existing.lastDate) {
+        existing.endEquity = point.equity;
+        existing.lastDate = point.date;
+      }
+      // Update start equity if this is an earlier date
+      if (point.date < existing.firstDate) {
+        existing.startEquity = point.equity;
+        existing.firstDate = point.date;
+      }
+    }
+  }
+
+  // Calculate returns and format
+  const results: MonthlyReturn[] = [];
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+  for (const [_, data] of Array.from(monthlyData.entries())) {
+    const returnPct = data.startEquity > 0
+      ? ((data.endEquity - data.startEquity) / data.startEquity) * 100
+      : 0;
+
+    results.push({
+      year: data.year,
+      month: data.month,
+      monthName: monthNames[data.month - 1]!,
+      return: returnPct,
+      startEquity: data.startEquity,
+      endEquity: data.endEquity,
+    });
+  }
+
+  // Sort by year and month
+  results.sort((a, b) => {
+    if (a.year !== b.year) return a.year - b.year;
+    return a.month - b.month;
+  });
+
+  return results;
+}

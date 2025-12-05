@@ -350,3 +350,39 @@
 - [x] Add correlation section to Overview page
 - [x] Display correlation coefficient with interpretation
 - [x] All 57 tests passing
+
+
+## Current Sprint: Fix Scatter Plot & Add Rolling Metrics + Calendar Heatmap
+
+### Fix Correlation Scatter Plot Visibility
+- [x] Investigate why scatter plot points are invisible (using LineChart with strokeWidth=0)
+- [x] Fix scatter plot to use ScatterChart instead of LineChart
+- [x] Set fill color and opacity for visibility
+- [x] Points now visible with 60% opacity
+- [x] Test scatter plot displays correctly
+
+### Rolling Metrics Implementation
+- [x] Create calculateRollingMetrics function in analytics
+- [x] Implement 30-day rolling Sharpe calculation
+- [x] Implement 90-day rolling Sharpe calculation
+- [x] Implement 365-day rolling Sharpe calculation
+- [x] Implement 30-day rolling Sortino calculation
+- [x] Implement 90-day rolling Sortino calculation
+- [x] Implement 365-day rolling Sortino calculation
+- [x] Implement 30-day rolling max drawdown calculation
+- [x] Implement 90-day rolling max drawdown calculation
+- [x] Implement 365-day rolling max drawdown calculation
+- [x] Add rollingMetrics to portfolio.overview response
+- [x] Create RollingMetricsChart component with tabs
+- [x] Add rolling metrics section to Overview page
+- [x] Write tests for rolling metrics calculations (9 tests)
+
+### Monthly Returns Calendar Heatmap
+- [x] Create calculateMonthlyReturnsCalendar function in analytics
+- [x] Calculate monthly returns for each month in time range
+- [x] Format data for calendar heatmap visualization
+- [x] Add monthlyReturnsCalendar to portfolio.overview response
+- [x] Create MonthlyReturnsCalendar component
+- [x] Add calendar heatmap section to Overview page
+- [x] Style heatmap with color gradients (green=positive, red=negative)
+- [x] Write tests for monthly returns calendar calculations (6 tests)

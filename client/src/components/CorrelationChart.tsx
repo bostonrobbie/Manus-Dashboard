@@ -1,5 +1,5 @@
 import { Card } from "@/components/ui/card";
-import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { ResponsiveContainer, Scatter, ScatterChart, Tooltip, XAxis, YAxis } from "recharts";
 
 interface EquityPoint {
   date: Date;
@@ -75,8 +75,7 @@ export function CorrelationChart({ portfolioEquity, benchmarkEquity, correlation
           <div className="space-y-2">
             <p className="text-sm text-muted-foreground">Daily Returns Scatter</p>
             <ResponsiveContainer width="100%" height={200}>
-              <LineChart
-                data={scatterData.map((d, i) => ({ ...d, index: i }))}
+              <ScatterChart
                 margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
               >
                 <XAxis
@@ -111,14 +110,12 @@ export function CorrelationChart({ portfolioEquity, benchmarkEquity, correlation
                     );
                   }}
                 />
-                <Line
-                  type="monotone"
-                  dataKey="portfolioReturn"
-                  stroke="oklch(var(--primary))"
-                  dot={{ r: 1 }}
-                  strokeWidth={0}
+                <Scatter
+                  data={scatterData}
+                  fill="oklch(var(--primary))"
+                  fillOpacity={0.6}
                 />
-              </LineChart>
+              </ScatterChart>
             </ResponsiveContainer>
           </div>
         </Card>

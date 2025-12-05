@@ -152,6 +152,12 @@ export const appRouter = router({
         // Calculate correlation between portfolio and benchmark
         const correlation = analytics.calculateCorrelation(portfolioEquity, benchmarkEquity);
 
+        // Calculate rolling metrics (30, 90, 365 day windows)
+        const rollingMetrics = analytics.calculateRollingMetrics(portfolioEquity, [30, 90, 365]);
+
+        // Calculate monthly returns calendar
+        const monthlyReturnsCalendar = analytics.calculateMonthlyReturnsCalendar(portfolioEquity);
+
         return {
           metrics,
           portfolioEquity,
@@ -159,6 +165,8 @@ export const appRouter = router({
           underwaterCurve,
           dayOfWeekBreakdown,
           correlation,
+          rollingMetrics,
+          monthlyReturnsCalendar,
           periodPerformance: {
             daily: dailyPerf,
             weekly: weeklyPerf,
