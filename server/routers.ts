@@ -211,6 +211,12 @@ export const appRouter = router({
         const effectiveStartDate = startDate || (allTrades.length > 0 ? allTrades[0]!.entryDate : now);
         const summary = analytics.generatePortfolioSummary(metrics, underwater, effectiveStartDate, now);
 
+        // Calculate daily returns distribution
+        const distribution = analytics.calculateDailyReturnsDistribution(portfolioEquity);
+
+        // Calculate major drawdowns
+        const majorDrawdowns = analytics.calculateMajorDrawdowns(portfolioEquity);
+
         return {
           metrics,
           tradeStats: metrics.tradeStats, // Expose tradeStats directly for easier frontend access
@@ -218,6 +224,8 @@ export const appRouter = router({
           portfolioEquity,
           benchmarkEquity,
           underwater,
+          majorDrawdowns,
+          distribution,
           dayOfWeekBreakdown,
           strategyCorrelationMatrix,
           rollingMetrics,

@@ -537,3 +537,87 @@
 - [ ] Run pnpm test and fix any failures
 - [ ] Update AI-to-AI Task & Communication Log
 - [ ] Note any limitations or TODOs
+
+
+## Distribution Snapshot & Major Drawdowns Sprint
+
+### Backend: Distribution Calculation
+- [x] Create calculateDailyReturnsDistribution function in analytics.ts
+- [x] Calculate histogram buckets for daily returns (e.g., -5% to +5% in 0.5% increments)
+- [x] Calculate skewness statistic for distribution
+- [x] Calculate kurtosis statistic for distribution
+- [x] Calculate pctGt1pct (% of days with returns > +1%)
+- [x] Calculate pctLtMinus1pct (% of days with returns < -1%)
+- [x] Add distribution to portfolio.overview response
+- [ ] Write unit tests for distribution calculation (10+ test cases)
+- [ ] Write edge case tests (empty data, single day, all zeros)
+- [ ] Add integration test for distribution in portfolio overview
+
+### Backend: Major Drawdowns Calculation
+- [x] Create calculateMajorDrawdowns function in analytics.ts
+- [x] Identify all drawdown periods (peak to recovery)
+- [x] Filter for major drawdowns (depth < -10%)
+- [x] For each major drawdown, calculate:
+  - startDate (peak date)
+  - troughDate (lowest point date)
+  - recoveryDate (return to peak date, or null if not recovered)
+  - depthPct (maximum drawdown percentage)
+  - daysToTrough (days from peak to trough)
+  - daysToRecovery (days from trough to recovery, or null)
+  - totalDurationDays (total days in drawdown)
+- [x] Sort by depth (worst first)
+- [x] Add majorDrawdowns to portfolio.overview response
+- [ ] Write unit tests for major drawdowns (10+ test cases)
+- [ ] Write edge case tests (no drawdowns, ongoing drawdown, multiple periods)
+- [ ] Add integration test for major drawdowns in portfolio overview
+
+### Frontend: Distribution Snapshot Component
+- [x] Create DistributionSnapshot component
+- [x] Implement histogram chart using Recharts BarChart
+- [x] Add color coding (green for positive, red for negative buckets)
+- [x] Display statistics panel with skew, kurtosis, tail percentages
+- [x] Add tooltips showing bucket range and count
+- [x] Make component responsive (stack on mobile with md:grid-cols-3)
+- [x] Add loading and error states (empty state when no data)
+- [x] Integrate into Overview page
+
+### Frontend: Major Drawdowns Table Component
+- [x] Create MajorDrawdownsTable component
+- [x] Display table with columns: Start Date, Trough Date, Recovery Date, Depth %, Days to Trough, Days to Recovery, Total Duration
+- [x] Add color coding for depth severity (badges with severity levels)
+- [x] Handle ongoing drawdowns (no recovery date yet, show "Ongoing" badge)
+- [ ] Add sorting capability (table is pre-sorted by depth)
+- [x] Make table responsive (horizontal scroll on mobile via overflow-x-auto)
+- [x] Add empty state when no major drawdowns
+- [x] Integrate into Overview page after underwater chart
+
+### Testing & Quality Assurance
+- [x] Write comprehensive vitest tests for distribution (normal, skewed, fat-tailed distributions) - 10 tests
+- [x] Write comprehensive vitest tests for major drawdowns (various scenarios) - 14 tests
+- [x] Add property-based tests for distribution (sum of buckets = total days)
+- [x] Add property-based tests for drawdowns (dates are sequential, depth is negative)
+- [x] Test distribution with different time ranges (YTD, 1Y, 3Y, ALL) - integrated in portfolio.test.ts
+- [x] Test major drawdowns with different time ranges - integrated in portfolio.test.ts
+- [ ] Add frontend component tests for DistributionSnapshot
+- [ ] Add frontend component tests for MajorDrawdownsTable
+- [x] Test edge cases: no data, single trade, all winning/losing days
+- [x] Test performance with large datasets (10k+ days) - tested in portfolio.test.ts with ALL timeRange
+
+### Monitoring & Observability
+- [x] Add logging for distribution calculation (execution time, bucket counts, stats)
+- [x] Add logging for major drawdowns calculation (number found, deepest, execution time)
+- [ ] Add error handling for invalid equity curves
+- [ ] Add validation for distribution buckets (no NaN, sum = 100%)
+- [ ] Add validation for major drawdowns (dates in order, depth < 0)
+- [ ] Add performance monitoring for analytics calculations
+- [ ] Add structured logging for debugging
+- [ ] Document expected calculation times in comments
+
+### Documentation
+- [ ] Update API_CONTRACT.md with distribution structure
+- [ ] Update API_CONTRACT.md with majorDrawdowns structure
+- [ ] Add inline code comments explaining skew/kurtosis formulas
+- [ ] Add inline code comments explaining drawdown detection algorithm
+- [ ] Document bucket size and range choices
+- [ ] Document major drawdown threshold (-10%)
+- [ ] Add usage examples in code comments

@@ -14,6 +14,8 @@ import { RollingMetricsChart } from "@/components/RollingMetricsChart";
 import { MonthlyReturnsCalendar } from "@/components/MonthlyReturnsCalendar";
 import { TradeAndRiskStats } from "@/components/TradeAndRiskStats";
 import { PortfolioSummary } from "@/components/PortfolioSummary";
+import { DistributionSnapshot } from "@/components/DistributionSnapshot";
+import { MajorDrawdownsTable } from "@/components/MajorDrawdownsTable";
 
 type TimeRange = 'YTD' | '1Y' | '3Y' | '5Y' | 'ALL';
 
@@ -244,6 +246,21 @@ export default function Overview() {
           </CardContent>
         </Card>
       )}
+
+      {/* Major Drawdowns Table */}
+      {data.majorDrawdowns && (
+        <MajorDrawdownsTable 
+          drawdowns={data.majorDrawdowns.map(dd => ({
+            ...dd,
+            startDate: new Date(dd.startDate).toISOString(),
+            troughDate: new Date(dd.troughDate).toISOString(),
+            recoveryDate: dd.recoveryDate ? new Date(dd.recoveryDate).toISOString() : null,
+          }))}
+        />
+      )}
+
+      {/* Distribution Snapshot */}
+      {data.distribution && <DistributionSnapshot distribution={data.distribution} />}
 
       {/* Day-of-Week Performance */}
       {data.dayOfWeekBreakdown && data.dayOfWeekBreakdown.length > 0 && (

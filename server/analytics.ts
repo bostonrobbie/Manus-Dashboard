@@ -1451,3 +1451,343 @@ export function calculateMonthlyReturnsCalendar(
 
   return results;
 }
+
+/**
+ * Distribution bucket for histogram
+ */
+export interface DistributionBucket {
+  from: number;
+  to: number;
+  count: number;
+  percentage: number;
+}
+
+/**
+ * Daily returns distribution with statistical measures
+ */
+export interface DailyReturnsDistribution {
+  buckets: DistributionBucket[];
+  skewness: number;
+  kurtosis: number;
+  pctGt1pct: number; // % of days with returns > +1%
+  pctLtMinus1pct: number; // % of days with returns < -1%
+  mean: number;
+  stdDev: number;
+  totalDays: number;
+}
+
+/**
+ * Calculate skewness of a dataset
+ * Skewness measures asymmetry of the distribution
+ * - Positive skew: right tail is longer (more extreme positive values)
+ * - Negative skew: left tail is longer (more extreme negative values)
+ * - Zero skew: symmetric distribution
+ */
+function calculateSkewness(values: number[]): number {
+  if (values.length === 0) return 0;
+  
+  const n = values.length;
+  const mean = values.reduce((sum, v) => sum + v, 0) / n;
+  const variance = values.reduce((sum, v) => sum + Math.pow(v - mean, 2), 0) / n;
+  const stdDev = Math.sqrt(variance);
+  
+  if (stdDev === 0) return 0;
+  
+  const m3 = values.reduce((sum, v) => sum + Math.pow((v - mean) / stdDev, 3), 0) / n;
+  
+  return m3;
+}
+
+/**
+ * Calculate excess kurtosis of a dataset
+ * Kurtosis measures "tailedness" of the distribution
+ * - Positive kurtosis (leptokurtic): fat tails, more extreme values than normal distribution
+ * - Negative kurtosis (platykurtic): thin tails, fewer extreme values
+ * - Zero kurtosis (mesokurtic): similar to normal distribution
+ * 
+ * We return excess kurtosis (kurtosis - 3) so normal distribution = 0
+ */
+function calculateKurtosis(values: number[]): number {
+  if (values.length === 0) return 0;
+  
+  const n = values.length;
+  const mean = values.reduce((sum, v) => sum + v, 0) / n;
+  const variance = values.reduce((sum, v) => sum + Math.pow(v - mean, 2), 0) / n;
+  const stdDev = Math.sqrt(variance);
+  
+  if (stdDev === 0) return 0;
+  
+  const m4 = values.reduce((sum, v) => sum + Math.pow((v - mean) / stdDev, 4), 0) / n;
+  
+  // Return excess kurtosis (subtract 3 to make normal distribution = 0)
+  return m4 - 3;
+}
+
+/**
+ * Calculate daily returns distribution from equity curve
+ * 
+ * Performance: O(n) where n is number of equity points
+ * Expected execution time: <10ms for 10,000 days
+ * 
+ * @param equityCurve - Array of equity points
+ * @param bucketSize - Size of each histogram bucket in percentage points (default: 0.5%)
+ * @param rangeMin - Minimum bucket value (default: -5%)
+ * @param rangeMax - Maximum bucket value (default: +5%)
+ * @returns Distribution with buckets and statistical measures
+ */
+export function calculateDailyReturnsDistribution(
+  equityCurve: EquityPoint[],
+  bucketSize: number = 0.5,
+  rangeMin: number = -5,
+  rangeMax: number = 5
+): DailyReturnsDistribution {
+  const startTime = Date.now();
+  
+  if (equityCurve.length < 2) {
+    console.log('[Distribution] Insufficient data points:', equityCurve.length);
+    return {
+      buckets: [],
+      skewness: 0,
+      kurtosis: 0,
+      pctGt1pct: 0,
+      pctLtMinus1pct: 0,
+      mean: 0,
+      stdDev: 0,
+      totalDays: 0,
+    };
+  }
+  
+  // Calculate daily returns
+  const dailyReturns: number[] = [];
+  for (let i = 1; i < equityCurve.length; i++) {
+    const prevEquity = equityCurve[i - 1]!.equity;
+    const currEquity = equityCurve[i]!.equity;
+    
+    if (prevEquity > 0) {
+      const returnPct = ((currEquity - prevEquity) / prevEquity) * 100;
+      dailyReturns.push(returnPct);
+    }
+  }
+  
+  if (dailyReturns.length === 0) {
+    console.log('[Distribution] No valid returns calculated');
+    return {
+      buckets: [],
+      skewness: 0,
+      kurtosis: 0,
+      pctGt1pct: 0,
+      pctLtMinus1pct: 0,
+      mean: 0,
+      stdDev: 0,
+      totalDays: 0,
+    };
+  }
+  
+  // Calculate statistics
+  const mean = dailyReturns.reduce((sum, r) => sum + r, 0) / dailyReturns.length;
+  const variance = dailyReturns.reduce((sum, r) => sum + Math.pow(r - mean, 2), 0) / dailyReturns.length;
+  const stdDev = Math.sqrt(variance);
+  const skewness = calculateSkewness(dailyReturns);
+  const kurtosis = calculateKurtosis(dailyReturns);
+  
+  // Calculate tail percentages
+  const gt1pct = dailyReturns.filter(r => r > 1).length;
+  const ltMinus1pct = dailyReturns.filter(r => r < -1).length;
+  const pctGt1pct = (gt1pct / dailyReturns.length) * 100;
+  const pctLtMinus1pct = (ltMinus1pct / dailyReturns.length) * 100;
+  
+  // Create histogram buckets
+  const buckets: DistributionBucket[] = [];
+  const bucketCounts = new Map<string, number>();
+  
+  // Initialize all buckets
+  for (let edge = rangeMin; edge < rangeMax; edge += bucketSize) {
+    const from = edge;
+    const to = edge + bucketSize;
+    const key = `${from.toFixed(2)}_${to.toFixed(2)}`;
+    bucketCounts.set(key, 0);
+    buckets.push({ from, to, count: 0, percentage: 0 });
+  }
+  
+  // Count returns into buckets
+  for (const returnPct of dailyReturns) {
+    // Clamp to range
+    const clampedReturn = Math.max(rangeMin, Math.min(rangeMax - 0.01, returnPct));
+    
+    // Find bucket
+    const bucketIndex = Math.floor((clampedReturn - rangeMin) / bucketSize);
+    const safeBucketIndex = Math.max(0, Math.min(buckets.length - 1, bucketIndex));
+    
+    buckets[safeBucketIndex]!.count++;
+  }
+  
+  // Calculate percentages
+  for (const bucket of buckets) {
+    bucket.percentage = (bucket.count / dailyReturns.length) * 100;
+  }
+  
+  const executionTime = Date.now() - startTime;
+  console.log(`[Distribution] Calculated for ${dailyReturns.length} days in ${executionTime}ms`);
+  console.log(`[Distribution] Stats: mean=${mean.toFixed(3)}%, stdDev=${stdDev.toFixed(3)}%, skew=${skewness.toFixed(3)}, kurtosis=${kurtosis.toFixed(3)}`);
+  
+  // Validation
+  const totalPercentage = buckets.reduce((sum, b) => sum + b.percentage, 0);
+  if (Math.abs(totalPercentage - 100) > 0.1) {
+    console.warn(`[Distribution] Validation warning: bucket percentages sum to ${totalPercentage.toFixed(2)}%, expected 100%`);
+  }
+  
+  return {
+    buckets,
+    skewness,
+    kurtosis,
+    pctGt1pct,
+    pctLtMinus1pct,
+    mean,
+    stdDev,
+    totalDays: dailyReturns.length,
+  };
+}
+
+/**
+ * Major drawdown period information
+ */
+export interface MajorDrawdown {
+  startDate: Date; // Peak date before drawdown
+  troughDate: Date; // Lowest point date
+  recoveryDate: Date | null; // Return to peak date (null if not recovered)
+  depthPct: number; // Maximum drawdown percentage (negative value)
+  daysToTrough: number; // Days from peak to trough
+  daysToRecovery: number | null; // Days from trough to recovery (null if not recovered)
+  totalDurationDays: number; // Total days in drawdown (peak to recovery or to present)
+  isOngoing: boolean; // True if drawdown hasn't recovered yet
+}
+
+/**
+ * Calculate major drawdowns from equity curve
+ * 
+ * A major drawdown is defined as any drawdown period where the depth exceeds the threshold (default -10%).
+ * 
+ * Algorithm:
+ * 1. Track running peak equity
+ * 2. When equity drops below peak, start a drawdown period
+ * 3. Track trough (lowest point) during the period
+ * 4. When equity returns to peak, end the period
+ * 5. Filter for major drawdowns (depth < threshold)
+ * 
+ * Performance: O(n) where n is number of equity points
+ * Expected execution time: <5ms for 10,000 days
+ * 
+ * @param equityCurve - Array of equity points
+ * @param depthThreshold - Minimum depth to be considered "major" (default: -10%)
+ * @returns Array of major drawdown periods, sorted by depth (worst first)
+ */
+export function calculateMajorDrawdowns(
+  equityCurve: EquityPoint[],
+  depthThreshold: number = -10
+): MajorDrawdown[] {
+  const startTime = Date.now();
+  
+  if (equityCurve.length < 2) {
+    console.log('[MajorDrawdowns] Insufficient data points:', equityCurve.length);
+    return [];
+  }
+  
+  const allDrawdowns: MajorDrawdown[] = [];
+  let peak = equityCurve[0]!.equity;
+  let peakDate = equityCurve[0]!.date;
+  let inDrawdown = false;
+  let troughEquity = peak;
+  let troughDate = peakDate;
+  
+  for (let i = 1; i < equityCurve.length; i++) {
+    const point = equityCurve[i]!;
+    
+    if (point.equity > peak) {
+      // New peak - if we were in a drawdown, it has recovered
+      if (inDrawdown) {
+        const depthPct = ((troughEquity - peak) / peak) * 100;
+        const daysToTrough = Math.floor((troughDate.getTime() - peakDate.getTime()) / (1000 * 60 * 60 * 24));
+        const daysToRecovery = Math.floor((point.date.getTime() - troughDate.getTime()) / (1000 * 60 * 60 * 24));
+        const totalDurationDays = Math.floor((point.date.getTime() - peakDate.getTime()) / (1000 * 60 * 60 * 24));
+        
+        allDrawdowns.push({
+          startDate: peakDate,
+          troughDate,
+          recoveryDate: point.date,
+          depthPct,
+          daysToTrough,
+          daysToRecovery,
+          totalDurationDays,
+          isOngoing: false,
+        });
+        
+        inDrawdown = false;
+      }
+      
+      // Update peak
+      peak = point.equity;
+      peakDate = point.date;
+      troughEquity = peak;
+      troughDate = peakDate;
+    } else if (point.equity < peak) {
+      // Below peak - in drawdown
+      if (!inDrawdown) {
+        inDrawdown = true;
+        troughEquity = point.equity;
+        troughDate = point.date;
+      } else if (point.equity < troughEquity) {
+        // New trough
+        troughEquity = point.equity;
+        troughDate = point.date;
+      }
+    }
+  }
+  
+  // Handle ongoing drawdown (hasn't recovered yet)
+  if (inDrawdown) {
+    const depthPct = ((troughEquity - peak) / peak) * 100;
+    const daysToTrough = Math.floor((troughDate.getTime() - peakDate.getTime()) / (1000 * 60 * 60 * 24));
+    const lastDate = equityCurve[equityCurve.length - 1]!.date;
+    const totalDurationDays = Math.floor((lastDate.getTime() - peakDate.getTime()) / (1000 * 60 * 60 * 24));
+    
+    allDrawdowns.push({
+      startDate: peakDate,
+      troughDate,
+      recoveryDate: null,
+      depthPct,
+      daysToTrough,
+      daysToRecovery: null,
+      totalDurationDays,
+      isOngoing: true,
+    });
+  }
+  
+  // Filter for major drawdowns (depth < threshold)
+  const majorDrawdowns = allDrawdowns.filter(dd => dd.depthPct < depthThreshold);
+  
+  // Sort by depth (worst first)
+  majorDrawdowns.sort((a, b) => a.depthPct - b.depthPct);
+  
+  const executionTime = Date.now() - startTime;
+  console.log(`[MajorDrawdowns] Found ${majorDrawdowns.length} major drawdowns (threshold: ${depthThreshold}%) in ${executionTime}ms`);
+  
+  if (majorDrawdowns.length > 0) {
+    const worstDD = majorDrawdowns[0]!;
+    console.log(`[MajorDrawdowns] Worst: ${worstDD.depthPct.toFixed(2)}% from ${worstDD.startDate.toISOString().split('T')[0]} to ${worstDD.troughDate.toISOString().split('T')[0]}`);
+  }
+  
+  // Validation
+  for (const dd of majorDrawdowns) {
+    if (dd.depthPct >= 0) {
+      console.warn(`[MajorDrawdowns] Validation warning: drawdown depth is positive: ${dd.depthPct}%`);
+    }
+    if (dd.troughDate < dd.startDate) {
+      console.warn(`[MajorDrawdowns] Validation warning: trough date before start date`);
+    }
+    if (dd.recoveryDate && dd.recoveryDate < dd.troughDate) {
+      console.warn(`[MajorDrawdowns] Validation warning: recovery date before trough date`);
+    }
+  }
+  
+  return majorDrawdowns;
+}
