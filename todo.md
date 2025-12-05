@@ -1187,3 +1187,13 @@
 - [x] Reverse Calendar P&L chronological order (most recent dates at top)
 - [x] Swap Rolling Performance Metrics and Strategy Correlation sections (Rolling on top)
 - [x] Further enhance individual strategy cards design for even better aesthetics
+
+
+## Portfolio Overview Redesign (Current Session)
+- [x] Move Underwater Equity Curve chart above stats section (chart first, stats below)
+- [x] Remove Max Drawdown stat card (redundant with underwater chart)
+- [x] Center Portfolio Overview title prominently
+- [x] Minimize and hide Starting Capital and Time Range controls (smaller, less prominent)
+- [x] Create uniform stat boxes with consistent neutral styling (no varied colors)
+- [x] Improve stat formatting and centering for professional appearance
+- [x] Remove AI-generated look - make design cohesive and intentional
