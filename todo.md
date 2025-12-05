@@ -1160,3 +1160,9 @@
 - [ ] Redesign Strategies page cards with visual appeal
 - [ ] Add performance stats and sparklines to strategy cards
 - [ ] Add market icons/symbols to strategy cards
+
+
+## Compare Page & Performance Fixes (Current Session)
+- [x] Fix Compare page max drawdown to show dollar amounts (not %) based on starting capital input
+- [x] Fix Strategies page chart Y-axis scaling so equity curves start from bottom-left
+- [x] Optimize dashboard performance for faster page loading and responsiveness

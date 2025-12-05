@@ -494,11 +494,11 @@ export default function StrategyComparison() {
                     <tr>
                       <td className="border p-2 font-medium">Max Drawdown</td>
                       <td className="border p-2 bg-primary/5 text-right font-semibold text-destructive">
-                        -{data.combinedMetrics?.maxDrawdown.toFixed(2)}%
+                        -${((data.combinedMetrics?.maxDrawdown || 0) * startingCapital / 100).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                       </td>
                       {data.strategies.map((strat) => (
                         <td key={strat.id} className="border p-2 text-right text-destructive">
-                          -{strat.metrics?.maxDrawdown.toFixed(2)}%
+                          -${((strat.metrics?.maxDrawdown || 0) * startingCapital / 100).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                         </td>
                       ))}
                     </tr>

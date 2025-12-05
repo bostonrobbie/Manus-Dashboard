@@ -146,6 +146,7 @@ export default function Strategies() {
                     stroke="hsl(var(--muted-foreground))"
                   />
                   <YAxis 
+                    domain={['dataMin', 'dataMax']}
                     tick={{ fontSize: 12, fill: 'hsl(var(--foreground))' }}
                     tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
                     stroke="hsl(var(--muted-foreground))"

@@ -51,17 +51,23 @@ export default function Overview() {
   const { data, isLoading, error } = trpc.portfolio.overview.useQuery({
     timeRange,
     startingCapital,
+  }, {
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
 
   // Fetch all-time max drawdown for portfolio sizing calculator
   const { data: allTimeData } = trpc.portfolio.overview.useQuery({
     timeRange: 'ALL',
     startingCapital,
+  }, {
+    staleTime: 10 * 60 * 1000, // Cache for 10 minutes (less frequent updates)
   });
 
   const { data: breakdownData, isLoading: breakdownLoading } = trpc.portfolio.performanceBreakdown.useQuery({
     timeRange,
     startingCapital,
+  }, {
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
 
   if (isLoading) {
