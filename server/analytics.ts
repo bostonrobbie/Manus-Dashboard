@@ -109,6 +109,20 @@ export function calculateEquityCurve(
 }
 
 /**
+ * Recalculate drawdowns in an equity curve using a specific peak value
+ * This is used to calculate drawdowns relative to all-time peak, not just peak within the time range
+ */
+export function recalculateDrawdownsWithPeak(
+  equityCurve: EquityPoint[],
+  allTimePeak: number
+): EquityPoint[] {
+  return equityCurve.map(point => ({
+    ...point,
+    drawdown: allTimePeak > 0 ? ((allTimePeak - point.equity) / allTimePeak) * 100 : 0,
+  }));
+}
+
+/**
  * Forward-fill equity curve to create continuous daily series
  */
 export function forwardFillEquityCurve(

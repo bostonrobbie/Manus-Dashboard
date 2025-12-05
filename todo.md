@@ -787,3 +787,13 @@
   * Query was filtering by IDs 9-16, found 0 trades
 - [x] Fixed strategy ID mismatch (trades already had correct IDs 9-16)
 - [x] Verified all charts render correctly - dashboard fully functional!
+
+
+## New Feature Requests & Bug Fixes
+- [x] Fix underwater equity chart visibility (changed stroke color to bright red #ef4444)
+- [x] Investigate max drawdown calculation discrepancy (fixed - now uses all-time peak for drawdown calculation)
+- [x] Individual strategy curves already shown on comparison page (verified)
+- [x] Fixed combined performance calculation (now uses proper trade simulation instead of averaging equity curves)
+- [x] Add all-strategies equity chart to strategies page (shows all 8 strategies with time range selector)
+  * Note: Chart loading slowly due to large dataset (9,356 trades). May need optimization.
+- [x] Add portfolio sizing calculator to overview page (calculates min account size for micros/minis based on max drawdown + margin requirements)

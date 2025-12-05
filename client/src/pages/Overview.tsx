@@ -293,6 +293,98 @@ export default function Overview() {
         <MonthlyReturnsCalendar monthlyReturns={data.monthlyReturnsCalendar} />
       )}
 
+      {/* Portfolio Sizing Calculator */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Portfolio Sizing Calculator</CardTitle>
+          <CardDescription>
+            Calculate minimum account size for micros and minis at Interactive Brokers
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              {/* Micro Contracts */}
+              <Card className="bg-muted/30">
+                <CardHeader>
+                  <CardTitle className="text-lg">Micro Contracts</CardTitle>
+                  <CardDescription>1/10th the size of mini contracts</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Max Drawdown:</span>
+                    <span className="font-semibold text-red-600">
+                      ${((metrics.maxDrawdown / 100) * startingCapital / 10).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">IBKR Margin Requirement:</span>
+                    <span className="font-semibold">$500</span>
+                  </div>
+                  <div className="border-t pt-3 mt-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium">Minimum Account Size:</span>
+                      <span className="text-lg font-bold text-primary">
+                        ${Math.max(
+                          500,
+                          Math.ceil(((metrics.maxDrawdown / 100) * startingCapital / 10 + 500) / 100) * 100
+                        ).toLocaleString()}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Based on max drawdown + margin requirement with 0% risk of ruin
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Mini Contracts */}
+              <Card className="bg-muted/30">
+                <CardHeader>
+                  <CardTitle className="text-lg">Mini Contracts</CardTitle>
+                  <CardDescription>Standard contract size for retail traders</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Max Drawdown:</span>
+                    <span className="font-semibold text-red-600">
+                      ${((metrics.maxDrawdown / 100) * startingCapital).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">IBKR Margin Requirement:</span>
+                    <span className="font-semibold">$5,000</span>
+                  </div>
+                  <div className="border-t pt-3 mt-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium">Minimum Account Size:</span>
+                      <span className="text-lg font-bold text-primary">
+                        ${Math.max(
+                          5000,
+                          Math.ceil(((metrics.maxDrawdown / 100) * startingCapital + 5000) / 1000) * 1000
+                        ).toLocaleString()}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Based on max drawdown + margin requirement with 0% risk of ruin
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+            
+            <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900 rounded-lg p-4">
+              <p className="text-sm text-blue-900 dark:text-blue-100">
+                <strong>Note:</strong> These calculations assume trading with the same position sizing as your backtest 
+                (${startingCapital.toLocaleString()} starting capital). The minimum account size ensures you can survive 
+                the maximum historical drawdown ({metrics.maxDrawdown.toFixed(2)}%) plus maintain required margin. 
+                For 0% risk of ruin, your actual trading capital should exceed these minimums.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Performance Breakdown */}
       <PerformanceBreakdown 
         data={breakdownData || { daily: [], weekly: [], monthly: [], quarterly: [], yearly: [] }} 
