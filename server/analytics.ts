@@ -395,3 +395,172 @@ export function calculatePerformanceByPeriod(
 
   return results.sort((a, b) => a.period.localeCompare(b.period));
 }
+
+/**
+ * Time Period Performance Interface
+ */
+export interface TimePeriodPerformance {
+  period: string;
+  periodType: 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly';
+  startDate: Date;
+  endDate: Date;
+  trades: number;
+  winningTrades: number;
+  losingTrades: number;
+  totalPnL: number;
+  returnPercent: number;
+  winRate: number;
+  avgWin: number;
+  avgLoss: number;
+  profitFactor: number;
+}
+
+export interface PerformanceBreakdownData {
+  daily: TimePeriodPerformance[];
+  weekly: TimePeriodPerformance[];
+  monthly: TimePeriodPerformance[];
+  quarterly: TimePeriodPerformance[];
+  yearly: TimePeriodPerformance[];
+}
+
+/**
+ * Calculate performance breakdown by time periods
+ */
+export function calculatePerformanceBreakdown(
+  trades: Trade[],
+  startingCapital: number
+): PerformanceBreakdownData {
+  if (trades.length === 0) {
+    return {
+      daily: [],
+      weekly: [],
+      monthly: [],
+      quarterly: [],
+      yearly: [],
+    };
+  }
+
+  return {
+    daily: calculatePeriodBreakdown(trades, startingCapital, 'daily'),
+    weekly: calculatePeriodBreakdown(trades, startingCapital, 'weekly'),
+    monthly: calculatePeriodBreakdown(trades, startingCapital, 'monthly'),
+    quarterly: calculatePeriodBreakdown(trades, startingCapital, 'quarterly'),
+    yearly: calculatePeriodBreakdown(trades, startingCapital, 'yearly'),
+  };
+}
+
+/**
+ * Calculate breakdown for a specific period type
+ */
+function calculatePeriodBreakdown(
+  trades: Trade[],
+  startingCapital: number,
+  periodType: 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly'
+): TimePeriodPerformance[] {
+  // Group trades by period
+  const periods = new Map<string, Trade[]>();
+
+  for (const trade of trades) {
+    const date = trade.exitDate;
+    let key: string;
+    let startDate: Date;
+    let endDate: Date;
+
+    switch (periodType) {
+      case 'daily':
+        key = date.toISOString().split('T')[0]!;
+        startDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+        endDate = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59);
+        break;
+      case 'weekly':
+        const weekStart = new Date(date);
+        weekStart.setDate(date.getDate() - date.getDay());
+        weekStart.setHours(0, 0, 0, 0);
+        const weekEnd = new Date(weekStart);
+        weekEnd.setDate(weekStart.getDate() + 6);
+        weekEnd.setHours(23, 59, 59);
+        key = `${weekStart.getFullYear()}-W${getWeekNumber(weekStart)}`;
+        startDate = weekStart;
+        endDate = weekEnd;
+        break;
+      case 'monthly':
+        key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        startDate = new Date(date.getFullYear(), date.getMonth(), 1);
+        endDate = new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59);
+        break;
+      case 'quarterly':
+        const quarter = Math.floor(date.getMonth() / 3) + 1;
+        key = `${date.getFullYear()}-Q${quarter}`;
+        const quarterStartMonth = (quarter - 1) * 3;
+        startDate = new Date(date.getFullYear(), quarterStartMonth, 1);
+        endDate = new Date(date.getFullYear(), quarterStartMonth + 3, 0, 23, 59, 59);
+        break;
+      case 'yearly':
+        key = String(date.getFullYear());
+        startDate = new Date(date.getFullYear(), 0, 1);
+        endDate = new Date(date.getFullYear(), 11, 31, 23, 59, 59);
+        break;
+    }
+
+    if (!periods.has(key)) {
+      periods.set(key, []);
+    }
+    periods.get(key)!.push(trade);
+
+    // Store dates for this period (will be overwritten with same values)
+    if (!periods.has(`${key}_dates`)) {
+      (periods as any).set(`${key}_dates`, { startDate, endDate });
+    }
+  }
+
+  // Calculate metrics for each period
+  const results: TimePeriodPerformance[] = [];
+
+  for (const [period, periodTrades] of Array.from(periods.entries())) {
+    if (period.endsWith('_dates')) continue;
+
+    const dates = (periods as any).get(`${period}_dates`);
+    const totalPnL = periodTrades.reduce((sum, t) => sum + t.pnl / 100, 0);
+    const returnPercent = (totalPnL / startingCapital) * 100;
+
+    const winningTradesList = periodTrades.filter(t => t.pnl > 0);
+    const losingTradesList = periodTrades.filter(t => t.pnl < 0);
+
+    const totalWins = winningTradesList.reduce((sum, t) => sum + t.pnl / 100, 0);
+    const totalLosses = Math.abs(losingTradesList.reduce((sum, t) => sum + t.pnl / 100, 0));
+
+    const avgWin = winningTradesList.length > 0 ? totalWins / winningTradesList.length : 0;
+    const avgLoss = losingTradesList.length > 0 ? totalLosses / losingTradesList.length : 0;
+    const profitFactor = totalLosses > 0 ? totalWins / totalLosses : (totalWins > 0 ? Infinity : 0);
+
+    results.push({
+      period,
+      periodType,
+      startDate: dates.startDate,
+      endDate: dates.endDate,
+      trades: periodTrades.length,
+      winningTrades: winningTradesList.length,
+      losingTrades: losingTradesList.length,
+      totalPnL,
+      returnPercent,
+      winRate: (winningTradesList.length / periodTrades.length) * 100,
+      avgWin,
+      avgLoss,
+      profitFactor: profitFactor === Infinity ? 0 : profitFactor,
+    });
+  }
+
+  // Sort by period descending (most recent first)
+  return results.sort((a, b) => b.period.localeCompare(a.period));
+}
+
+/**
+ * Get ISO week number for a date
+ */
+function getWeekNumber(date: Date): number {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+}

@@ -5,6 +5,7 @@ import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { z } from "zod";
 import * as db from "./db";
 import * as analytics from "./analytics";
+import * as breakdown from "./breakdown";
 
 // Time range enum for filtering
 const TimeRange = z.enum(['YTD', '1Y', '3Y', '5Y', 'ALL']);
@@ -351,6 +352,61 @@ export const appRouter = router({
           combinedEquity,
           correlationMatrix,
         };
+      }),
+
+    /**
+     * Get performance breakdown by time periods
+     */
+    performanceBreakdown: protectedProcedure
+      .input(z.object({
+        strategyId: z.number().optional(),
+        timeRange: TimeRange.optional(),
+        startingCapital: z.number().optional().default(100000),
+      }))
+      .query(async ({ input }) => {        const { strategyId, timeRange, startingCapital } = input;
+
+        // Calculate date range
+        const now = new Date();
+        let startDate: Date | undefined;
+
+        if (timeRange) {
+          const year = now.getFullYear();
+          switch (timeRange) {
+            case 'YTD':
+              startDate = new Date(year, 0, 1);
+              break;
+            case '1Y':
+              startDate = new Date(now);
+              startDate.setFullYear(year - 1);
+              break;
+            case '3Y':
+              startDate = new Date(now);
+              startDate.setFullYear(year - 3);
+              break;
+            case '5Y':
+              startDate = new Date(now);
+              startDate.setFullYear(year - 5);
+              break;
+            case 'ALL':
+              startDate = undefined;
+              break;
+          }
+        }
+
+        // Get trades
+        const trades = await db.getTrades({
+          strategyIds: strategyId ? [strategyId] : undefined,
+          startDate,
+          endDate: now,
+        });
+
+        // Calculate breakdown
+        const performanceBreakdown = breakdown.calculatePerformanceBreakdown(
+          trades,
+          startingCapital
+        );
+
+        return performanceBreakdown;
       }),
 
     /**

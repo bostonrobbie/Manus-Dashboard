@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { Loader2, TrendingUp, TrendingDown, Activity, Target } from "lucide-react";
+import { PerformanceBreakdown } from "@/components/PerformanceBreakdown";
 
 type TimeRange = 'YTD' | '1Y' | '3Y' | '5Y' | 'ALL';
 
@@ -14,6 +15,11 @@ export default function Overview() {
   const [startingCapital, setStartingCapital] = useState(100000);
 
   const { data, isLoading, error } = trpc.portfolio.overview.useQuery({
+    timeRange,
+    startingCapital,
+  });
+
+  const { data: breakdownData, isLoading: breakdownLoading } = trpc.portfolio.performanceBreakdown.useQuery({
     timeRange,
     startingCapital,
   });
@@ -257,6 +263,12 @@ export default function Overview() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Performance Breakdown */}
+      <PerformanceBreakdown 
+        data={breakdownData || { daily: [], weekly: [], monthly: [], quarterly: [], yearly: [] }} 
+        isLoading={breakdownLoading}
+      />
     </div>
   );
 }
