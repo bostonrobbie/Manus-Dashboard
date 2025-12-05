@@ -621,3 +621,43 @@
 - [ ] Document bucket size and range choices
 - [ ] Document major drawdown threshold (-10%)
 - [ ] Add usage examples in code comments
+
+
+## Compare Page & Benchmark Upgrades
+
+### Compare Page: Add Combined Column
+- [x] Calculate combined performance metrics for selected strategies
+- [x] Add "Combined" column to Performance Comparison table
+- [x] Show combined Total Return, Annualized Return, Sharpe, Max DD, Win Rate, Total Trades
+- [x] Position Combined column as first column (before individual strategies)
+- [x] Update compare.strategyComparison endpoint to return combined metrics
+- [ ] Write tests for combined metrics calculation
+
+### Compare Page: Multi-Strategy Equity Curves
+- [x] Calculate individual equity curves for each selected strategy (already implemented)
+- [x] Calculate combined equity curve for selected strategies (already implemented)
+- [x] Update EquityCurveChart to support multiple series (already implemented)
+- [x] Plot all selected strategy curves + combined curve (already implemented)
+- [x] Add legend with color coding for each strategy (already implemented)
+- [x] Make chart responsive with proper line styling (already implemented)
+- [x] Update compare.strategyComparison endpoint to return all equity curves (already implemented)
+- [ ] Write tests for multi-strategy equity curve calculation
+
+### Overview Page: Fix S&P 500 Chart Distortion
+- [x] Investigate why S&P 500 drops to 0 at the end (benchmark data ends 2024-12-20, portfolio continues to today)
+- [x] Check benchmark data fetching and filtering logic
+- [x] Ensure S&P 500 data aligns with portfolio date range (stop at last available benchmark date)
+- [x] Handle missing benchmark data gracefully (stop forward-fill at last valid point)
+- [ ] Test with different time ranges to ensure no distortion
+
+### Automated S&P 500 Data Updates
+- [x] Research yfinance Python library for ES futures data
+- [x] Determine correct ticker symbol for S&P 500 (^GSPC for index)
+- [x] Create scheduled job to fetch daily S&P 500 data at midnight (cron setup script)
+- [x] Store fetched data in database (uses existing benchmarks table)
+- [x] Update benchmark data fetching logic to use database (already implemented)
+- [x] Handle missing days (weekends, holidays) gracefully (yfinance handles this)
+- [x] Add error handling and retry logic for API failures (try/except in script)
+- [x] Add logging for data fetch operations (logs to benchmark-update.log)
+- [ ] Write tests for yfinance integration
+- [ ] Write tests for scheduled job execution

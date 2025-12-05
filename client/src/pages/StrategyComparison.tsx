@@ -287,6 +287,7 @@ export default function StrategyComparison() {
                   <thead>
                     <tr>
                       <th className="border p-2 bg-muted text-left">Metric</th>
+                      <th className="border p-2 bg-primary/10 text-right font-bold">Combined</th>
                       {data.strategies.map((strat) => (
                         <th key={strat.id} className="border p-2 bg-muted text-right">
                           {strat.symbol}
@@ -297,6 +298,9 @@ export default function StrategyComparison() {
                   <tbody>
                     <tr>
                       <td className="border p-2 font-medium">Total Return</td>
+                      <td className="border p-2 bg-primary/5 text-right font-semibold">
+                        {data.combinedMetrics?.totalReturn.toFixed(2)}%
+                      </td>
                       {data.strategies.map((strat) => (
                         <td key={strat.id} className="border p-2 text-right">
                           {strat.metrics?.totalReturn.toFixed(2)}%
@@ -305,6 +309,9 @@ export default function StrategyComparison() {
                     </tr>
                     <tr>
                       <td className="border p-2 font-medium">Annualized Return</td>
+                      <td className="border p-2 bg-primary/5 text-right font-semibold">
+                        {data.combinedMetrics?.annualizedReturn.toFixed(2)}%
+                      </td>
                       {data.strategies.map((strat) => (
                         <td key={strat.id} className="border p-2 text-right">
                           {strat.metrics?.annualizedReturn.toFixed(2)}%
@@ -313,6 +320,9 @@ export default function StrategyComparison() {
                     </tr>
                     <tr>
                       <td className="border p-2 font-medium">Sharpe Ratio</td>
+                      <td className="border p-2 bg-primary/5 text-right font-semibold">
+                        {data.combinedMetrics?.sharpeRatio.toFixed(2)}
+                      </td>
                       {data.strategies.map((strat) => (
                         <td key={strat.id} className="border p-2 text-right">
                           {strat.metrics?.sharpeRatio.toFixed(2)}
@@ -321,6 +331,9 @@ export default function StrategyComparison() {
                     </tr>
                     <tr>
                       <td className="border p-2 font-medium">Max Drawdown</td>
+                      <td className="border p-2 bg-primary/5 text-right font-semibold text-destructive">
+                        -{data.combinedMetrics?.maxDrawdown.toFixed(2)}%
+                      </td>
                       {data.strategies.map((strat) => (
                         <td key={strat.id} className="border p-2 text-right text-destructive">
                           -{strat.metrics?.maxDrawdown.toFixed(2)}%
@@ -329,6 +342,9 @@ export default function StrategyComparison() {
                     </tr>
                     <tr>
                       <td className="border p-2 font-medium">Win Rate</td>
+                      <td className="border p-2 bg-primary/5 text-right font-semibold">
+                        {data.combinedMetrics?.winRate.toFixed(1)}%
+                      </td>
                       {data.strategies.map((strat) => (
                         <td key={strat.id} className="border p-2 text-right">
                           {strat.metrics?.winRate.toFixed(1)}%
@@ -337,6 +353,9 @@ export default function StrategyComparison() {
                     </tr>
                     <tr>
                       <td className="border p-2 font-medium">Total Trades</td>
+                      <td className="border p-2 bg-primary/5 text-right font-semibold">
+                        {data.combinedMetrics?.totalTrades}
+                      </td>
                       {data.strategies.map((strat) => (
                         <td key={strat.id} className="border p-2 text-right">
                           {strat.metrics?.totalTrades}

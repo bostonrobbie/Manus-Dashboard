@@ -138,6 +138,11 @@ export const appRouter = router({
         const benchmarkStartDate = rawBenchmarkEquity.length > 0
           ? rawBenchmarkEquity[0]!.date
           : equityStartDate;
+        
+        // Benchmark should end at its last available data point (not portfolio end)
+        const benchmarkEndDate = rawBenchmarkEquity.length > 0
+          ? rawBenchmarkEquity[rawBenchmarkEquity.length - 1]!.date
+          : equityEndDate;
 
         // Forward-fill to create continuous daily series
         const portfolioEquity = analytics.forwardFillEquityCurve(
@@ -155,10 +160,11 @@ export const appRouter = router({
           fullHistoryStartDate,
           equityEndDate
         );
+        // Forward-fill benchmark only to its last available date
         const benchmarkEquity = analytics.forwardFillEquityCurve(
           rawBenchmarkEquity,
           benchmarkStartDate,
-          equityEndDate
+          benchmarkEndDate
         );
 
         // Calculate performance by period
@@ -432,6 +438,13 @@ export const appRouter = router({
           }
         }
 
+        // Calculate combined metrics from combined trades
+        const allCombinedTrades = tradesPerStrategy.flat();
+        const combinedMetrics = analytics.calculatePerformanceMetrics(
+          allCombinedTrades,
+          startingCapital * forwardFilledCurves.length // Scale capital by number of strategies
+        );
+
         // Calculate correlation matrix
         const correlationMatrix: number[][] = [];
         for (let i = 0; i < forwardFilledCurves.length; i++) {
@@ -455,6 +468,7 @@ export const appRouter = router({
             equityCurve: forwardFilledCurves[i],
           })),
           combinedEquity,
+          combinedMetrics,
           correlationMatrix,
         };
       }),
