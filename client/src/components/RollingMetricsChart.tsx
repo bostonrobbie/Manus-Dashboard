@@ -53,7 +53,7 @@ export function RollingMetricsChart({ rollingMetrics }: RollingMetricsChartProps
       <CardHeader>
         <CardTitle>Rolling Performance Metrics</CardTitle>
         <CardDescription>
-          {selectedWindow}-day rolling window showing Sharpe, Sortino, and Max Drawdown trends
+          {selectedWindow}-day rolling window showing Sharpe and Sortino ratio trends
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -87,7 +87,7 @@ export function RollingMetricsChart({ rollingMetrics }: RollingMetricsChartProps
                   <Line 
                     type="monotone" 
                     dataKey="sharpe" 
-                    stroke="#3B82F6" 
+                    stroke="#60a5fa" 
                     strokeWidth={2}
                     dot={false}
                     name="Sharpe Ratio"
@@ -118,42 +118,10 @@ export function RollingMetricsChart({ rollingMetrics }: RollingMetricsChartProps
                   <Line 
                     type="monotone" 
                     dataKey="sortino" 
-                    stroke="#10B981" 
+                    stroke="#34d399" 
                     strokeWidth={2}
                     dot={false}
                     name="Sortino Ratio"
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-
-            {/* Max Drawdown Chart */}
-            <div>
-              <h4 className="text-sm font-medium mb-2">Rolling Max Drawdown</h4>
-              <ResponsiveContainer width="100%" height={200}>
-                <LineChart data={sampledData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                  <XAxis 
-                    dataKey="date" 
-                    tick={{ fontSize: 11 }}
-                    stroke="#9CA3AF"
-                  />
-                  <YAxis 
-                    tick={{ fontSize: 11 }}
-                    stroke="#9CA3AF"
-                    domain={['auto', 0]}
-                  />
-                  <Tooltip 
-                    contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151' }}
-                    formatter={(value: number) => `${value?.toFixed(2) ?? 'N/A'}%`}
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="maxDrawdown" 
-                    stroke="#EF4444" 
-                    strokeWidth={2}
-                    dot={false}
-                    name="Max Drawdown"
                   />
                 </LineChart>
               </ResponsiveContainer>
@@ -164,7 +132,6 @@ export function RollingMetricsChart({ rollingMetrics }: RollingMetricsChartProps
               <ul className="list-disc list-inside space-y-1 mt-2">
                 <li><strong>Sharpe Ratio:</strong> Risk-adjusted return. Higher is better. &gt;1 is good, &gt;2 is excellent.</li>
                 <li><strong>Sortino Ratio:</strong> Like Sharpe but only penalizes downside volatility. Higher is better.</li>
-                <li><strong>Max Drawdown:</strong> Largest peak-to-trough decline in the window. Lower (closer to 0) is better.</li>
               </ul>
             </div>
           </TabsContent>

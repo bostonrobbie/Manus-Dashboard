@@ -215,7 +215,7 @@ export default function Overview() {
                 <Line 
                   type="monotone" 
                   dataKey="portfolio" 
-                  stroke="#3b82f6" 
+                  stroke="#60a5fa" 
                   strokeWidth={2}
                   dot={false}
                   name="Portfolio"
@@ -223,7 +223,7 @@ export default function Overview() {
                 <Line 
                   type="monotone" 
                   dataKey="benchmark" 
-                  stroke="#94a3b8" 
+                  stroke="#a3a3a3" 
                   strokeWidth={2}
                   dot={false}
                   name="S&P 500"
@@ -250,7 +250,7 @@ export default function Overview() {
       {/* Major Drawdowns Table */}
       {data.majorDrawdowns && (
         <MajorDrawdownsTable 
-          drawdowns={data.majorDrawdowns.map(dd => ({
+          drawdowns={data.majorDrawdowns.map((dd: any) => ({
             ...dd,
             startDate: new Date(dd.startDate).toISOString(),
             troughDate: new Date(dd.troughDate).toISOString(),

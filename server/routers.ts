@@ -220,8 +220,8 @@ export const appRouter = router({
         // Calculate daily returns distribution
         const distribution = analytics.calculateDailyReturnsDistribution(portfolioEquity);
 
-        // Calculate major drawdowns
-        const majorDrawdowns = analytics.calculateMajorDrawdowns(portfolioEquity);
+        // Major drawdowns (calculate on FULL history, not filtered by timeRange)
+        const majorDrawdowns = analytics.calculateMajorDrawdowns(portfolioEquityFull, -10);
 
         return {
           metrics,
