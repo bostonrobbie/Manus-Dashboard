@@ -9,6 +9,11 @@ import * as schema from '../drizzle/schema.js';
 import { sql } from 'drizzle-orm';
 import * as fs from 'fs';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 interface CSVRow {
   tradeNum: string;
@@ -162,7 +167,7 @@ async function main() {
   console.log('All trades deleted.\n');
   
   // Re-import each CSV
-  const csvDir = '/home/ubuntu/upload';
+  const csvDir = '/home/ubuntu/intraday-dashboard/data/seed';
   
   for (const [filename, strategy] of Object.entries(strategyMapping)) {
     const csvPath = path.join(csvDir, filename);

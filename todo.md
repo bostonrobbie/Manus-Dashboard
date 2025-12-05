@@ -762,3 +762,16 @@
 - [x] Check dashboard status and health
 - [x] Capture screenshot of dark mode dashboard
 - [x] Verify all enhancements working correctly
+
+
+## Database Connection Issue (Post-Sandbox Reset)
+- [x] Diagnose database connection problem
+- [x] Check if database tables exist
+- [x] Verify trade data is present in database
+- [x] Fix connection issues (Drizzle mysql2 pool initialization)
+- [x] Re-import trades (9,356 trades loaded successfully)
+- [x] Verify all trades are loaded
+- [x] Database connection fixed - 9,356 trades successfully loaded
+- [x] Trades span from 2010-2025 with correct dates
+- [x] API confirmed returning data (verified via server logs and SQL queries)
+- [ ] Note: Dashboard shows 0 for 1Y range (Dec 2024-Dec 2025) because most trades are historical. User should select "All Time" or appropriate range to see data.
