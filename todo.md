@@ -167,3 +167,49 @@
 - [ ] Improve error handling for strategies with no trades
 - [ ] Add data quality checks in seed scripts
 - [ ] Implement database constraints for data integrity
+
+
+## Current Sprint: P&L Verification & Contract Integration
+
+### P&L Calculation Verification
+- [x] Verify CSV data format and P&L values
+- [x] Trace P&L calculation from seed script to database
+- [x] Verify analytics calculations use correct P&L values
+- [x] Cross-check sample calculations manually
+- [x] Document P&L calculation methodology (TradingView Mini → CSV $ → DB ¢ → Analytics $)
+- [x] Verify contract multipliers are correct for each instrument
+
+### Contract Conversion Integration (PRIORITY)
+- [x] Add contractSize parameter to portfolio.overview procedure
+- [ ] Add contractSize parameter to portfolio.strategyDetail procedure
+- [ ] Add contractSize parameter to portfolio.compareStrategies procedure
+- [x] Add contractSize parameter to portfolio.performanceBreakdown procedure
+- [x] Update calculateEquityCurve to support contract conversion
+- [x] Update calculatePerformanceMetrics to support contract conversion
+- [x] Update calculatePerformanceBreakdown to support contract conversion
+- [x] Update all frontend components to pass contractSize from context
+- [x] Test Mini vs Micro toggle updates all values correctly
+- [x] Verify equity curves scale correctly with contract size
+- [x] Verify all metrics (Sharpe, Sortino, etc.) calculate correctly
+- [x] Verify Performance Breakdown table updates with contract size
+
+### Enhanced Performance Breakdown UI
+- [ ] Add tRPC procedure for top performers
+- [ ] Add tRPC procedure for worst performers
+- [ ] Add tRPC procedure for day-of-week analysis
+- [ ] Add tRPC procedure for month-of-year analysis
+- [ ] Redesign PerformanceBreakdown component with new tabs
+- [ ] Add "Top Performers" tab with best 10 periods
+- [ ] Add "Worst Performers" tab with worst 10 periods
+- [ ] Add "Patterns" tab with day/month heatmaps
+- [ ] Test all tabs display correct data
+
+### Rolling Metrics Implementation
+- [ ] Create rolling-metrics.ts utility file
+- [ ] Implement rolling Sharpe calculation
+- [ ] Implement rolling Sortino calculation
+- [ ] Implement rolling drawdown calculation
+- [ ] Add tRPC procedure for rolling metrics
+- [ ] Create RollingMetricsChart component
+- [ ] Add rolling metrics section to Overview page
+- [ ] Test rolling calculations accuracy

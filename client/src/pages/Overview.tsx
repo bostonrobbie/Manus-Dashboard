@@ -8,21 +8,25 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 import { Loader2, TrendingUp, TrendingDown, Activity, Target } from "lucide-react";
 import { PerformanceBreakdown } from "@/components/PerformanceBreakdown";
 import { ContractSizeToggle } from "@/components/ContractSizeToggle";
+import { useContractSize } from "@/contexts/ContractSizeContext";
 
 type TimeRange = 'YTD' | '1Y' | '3Y' | '5Y' | 'ALL';
 
 export default function Overview() {
   const [timeRange, setTimeRange] = useState<TimeRange>('1Y');
   const [startingCapital, setStartingCapital] = useState(100000);
+  const { contractSize } = useContractSize();
 
   const { data, isLoading, error } = trpc.portfolio.overview.useQuery({
     timeRange,
     startingCapital,
+    contractSize,
   });
 
   const { data: breakdownData, isLoading: breakdownLoading } = trpc.portfolio.performanceBreakdown.useQuery({
     timeRange,
     startingCapital,
+    contractSize,
   });
 
   if (isLoading) {

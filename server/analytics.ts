@@ -45,10 +45,16 @@ export interface EquityPoint {
 
 /**
  * Calculate equity curve from trades
+ * @param trades Array of trades
+ * @param startingCapital Starting capital in dollars
+ * @param contractSize Target contract size (mini or micro)
+ * @param conversionRatio Micro-to-mini ratio (default 10, BTC is 50)
  */
 export function calculateEquityCurve(
   trades: Trade[],
-  startingCapital: number = 100000
+  startingCapital: number = 100000,
+  contractSize: 'mini' | 'micro' = 'mini',
+  conversionRatio: number = 10
 ): EquityPoint[] {
   const sortedTrades = [...trades].sort((a, b) => 
     a.exitDate.getTime() - b.exitDate.getTime()
@@ -68,7 +74,12 @@ export function calculateEquityCurve(
   }
 
   for (const trade of sortedTrades) {
-    equity += trade.pnl / 100; // Convert cents to dollars
+    // Convert P&L from cents to dollars, then apply contract size conversion
+    let pnlDollars = trade.pnl / 100;
+    if (contractSize === 'micro') {
+      pnlDollars = pnlDollars / conversionRatio;
+    }
+    equity += pnlDollars;
     peak = Math.max(peak, equity);
     const drawdown = peak > 0 ? ((peak - equity) / peak) * 100 : 0;
 
@@ -126,11 +137,18 @@ export function forwardFillEquityCurve(
 
 /**
  * Calculate comprehensive performance metrics
+ * @param trades Array of trades
+ * @param startingCapital Starting capital in dollars
+ * @param daysInPeriod Optional period length in days
+ * @param contractSize Target contract size (mini or micro)
+ * @param conversionRatio Micro-to-mini ratio (default 10, BTC is 50)
  */
 export function calculatePerformanceMetrics(
   trades: Trade[],
   startingCapital: number = 100000,
-  daysInPeriod?: number
+  daysInPeriod?: number,
+  contractSize: 'mini' | 'micro' = 'mini',
+  conversionRatio: number = 10
 ): PerformanceMetrics {
   if (trades.length === 0) {
     return {
@@ -153,8 +171,14 @@ export function calculatePerformanceMetrics(
     a.exitDate.getTime() - b.exitDate.getTime()
   );
 
-  // Calculate total P&L
-  const totalPnl = trades.reduce((sum, t) => sum + t.pnl / 100, 0);
+  // Calculate total P&L with contract conversion
+  const totalPnl = trades.reduce((sum, t) => {
+    let pnl = t.pnl / 100; // Convert cents to dollars
+    if (contractSize === 'micro') {
+      pnl = pnl / conversionRatio;
+    }
+    return sum + pnl;
+  }, 0);
   const totalReturn = (totalPnl / startingCapital) * 100;
 
   // Calculate period length in years
@@ -174,16 +198,28 @@ export function calculatePerformanceMetrics(
   const losingTrades = trades.filter(t => t.pnl < 0);
   const winRate = (winningTrades.length / trades.length) * 100;
 
-  const totalWins = winningTrades.reduce((sum, t) => sum + t.pnl / 100, 0);
+  const totalWins = winningTrades.reduce((sum, t) => {
+    let pnl = t.pnl / 100;
+    if (contractSize === 'micro') {
+      pnl = pnl / conversionRatio;
+    }
+    return sum + pnl;
+  }, 0);
   const totalLosses = Math.abs(
-    losingTrades.reduce((sum, t) => sum + t.pnl / 100, 0)
+    losingTrades.reduce((sum, t) => {
+      let pnl = t.pnl / 100;
+      if (contractSize === 'micro') {
+        pnl = pnl / conversionRatio;
+      }
+      return sum + pnl;
+    }, 0)
   );
   const avgWin = winningTrades.length > 0 ? totalWins / winningTrades.length : 0;
   const avgLoss = losingTrades.length > 0 ? totalLosses / losingTrades.length : 0;
   const profitFactor = totalLosses > 0 ? totalWins / totalLosses : totalWins > 0 ? Infinity : 0;
 
-  // Calculate equity curve for drawdown and Sharpe
-  const equityCurve = calculateEquityCurve(trades, startingCapital);
+  // Calculate equity curve for drawdown and Sharpe with contract conversion
+  const equityCurve = calculateEquityCurve(trades, startingCapital, contractSize, conversionRatio);
   const maxDrawdown = Math.max(...equityCurve.map(p => p.drawdown), 0);
 
   // Calculate daily returns for Sharpe and Sortino
@@ -425,10 +461,16 @@ export interface PerformanceBreakdownData {
 
 /**
  * Calculate performance breakdown by time periods
+ * @param trades Array of trades
+ * @param startingCapital Starting capital in dollars
+ * @param contractSize Target contract size (mini or micro)
+ * @param conversionRatio Micro-to-mini ratio (default 10, BTC is 50)
  */
 export function calculatePerformanceBreakdown(
   trades: Trade[],
-  startingCapital: number
+  startingCapital: number,
+  contractSize: 'mini' | 'micro' = 'mini',
+  conversionRatio: number = 10
 ): PerformanceBreakdownData {
   if (trades.length === 0) {
     return {
@@ -441,11 +483,11 @@ export function calculatePerformanceBreakdown(
   }
 
   return {
-    daily: calculatePeriodBreakdown(trades, startingCapital, 'daily'),
-    weekly: calculatePeriodBreakdown(trades, startingCapital, 'weekly'),
-    monthly: calculatePeriodBreakdown(trades, startingCapital, 'monthly'),
-    quarterly: calculatePeriodBreakdown(trades, startingCapital, 'quarterly'),
-    yearly: calculatePeriodBreakdown(trades, startingCapital, 'yearly'),
+    daily: calculatePeriodBreakdown(trades, startingCapital, 'daily', contractSize, conversionRatio),
+    weekly: calculatePeriodBreakdown(trades, startingCapital, 'weekly', contractSize, conversionRatio),
+    monthly: calculatePeriodBreakdown(trades, startingCapital, 'monthly', contractSize, conversionRatio),
+    quarterly: calculatePeriodBreakdown(trades, startingCapital, 'quarterly', contractSize, conversionRatio),
+    yearly: calculatePeriodBreakdown(trades, startingCapital, 'yearly', contractSize, conversionRatio),
   };
 }
 
@@ -455,7 +497,9 @@ export function calculatePerformanceBreakdown(
 function calculatePeriodBreakdown(
   trades: Trade[],
   startingCapital: number,
-  periodType: 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly'
+  periodType: 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly',
+  contractSize: 'mini' | 'micro' = 'mini',
+  conversionRatio: number = 10
 ): TimePeriodPerformance[] {
   // Group trades by period
   const periods = new Map<string, Trade[]>();
@@ -520,14 +564,34 @@ function calculatePeriodBreakdown(
     if (period.endsWith('_dates')) continue;
 
     const dates = (periods as any).get(`${period}_dates`);
-    const totalPnL = periodTrades.reduce((sum, t) => sum + t.pnl / 100, 0);
+    
+    // Apply contract conversion to P&L
+    const totalPnL = periodTrades.reduce((sum, t) => {
+      let pnl = t.pnl / 100;
+      if (contractSize === 'micro') {
+        pnl = pnl / conversionRatio;
+      }
+      return sum + pnl;
+    }, 0);
     const returnPercent = (totalPnL / startingCapital) * 100;
 
     const winningTradesList = periodTrades.filter(t => t.pnl > 0);
     const losingTradesList = periodTrades.filter(t => t.pnl < 0);
 
-    const totalWins = winningTradesList.reduce((sum, t) => sum + t.pnl / 100, 0);
-    const totalLosses = Math.abs(losingTradesList.reduce((sum, t) => sum + t.pnl / 100, 0));
+    const totalWins = winningTradesList.reduce((sum, t) => {
+      let pnl = t.pnl / 100;
+      if (contractSize === 'micro') {
+        pnl = pnl / conversionRatio;
+      }
+      return sum + pnl;
+    }, 0);
+    const totalLosses = Math.abs(losingTradesList.reduce((sum, t) => {
+      let pnl = t.pnl / 100;
+      if (contractSize === 'micro') {
+        pnl = pnl / conversionRatio;
+      }
+      return sum + pnl;
+    }, 0));
 
     const avgWin = winningTradesList.length > 0 ? totalWins / winningTradesList.length : 0;
     const avgLoss = losingTradesList.length > 0 ? totalLosses / losingTradesList.length : 0;
