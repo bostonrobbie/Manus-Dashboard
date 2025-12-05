@@ -108,7 +108,7 @@ export function UnderwaterCurveChart({ data }: UnderwaterCurveChartProps) {
             type="monotone"
             dataKey="drawdown"
             name="Portfolio Drawdown"
-            stroke="oklch(var(--destructive))"
+            stroke="#ef4444"
             fill="url(#drawdownGradient)"
             strokeWidth={2}
           />

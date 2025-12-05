@@ -1,8 +1,8 @@
 import { Card } from "@/components/ui/card";
 
-interface DayOfWeekPerformance {
-  dayName: string;
-  dayNumber: number;
+interface WeekOfMonthPerformance {
+  weekNumber: number;
+  weekLabel: string;
   trades: number;
   totalPnL: number;
   avgPnL: number;
@@ -11,21 +11,19 @@ interface DayOfWeekPerformance {
   avgLoss: number;
 }
 
-interface DayOfWeekHeatmapProps {
-  data: DayOfWeekPerformance[];
+interface WeekOfMonthHeatmapProps {
+  data: WeekOfMonthPerformance[];
 }
 
-export function DayOfWeekHeatmap({ data }: DayOfWeekHeatmapProps) {
-  // Filter out days with no trades and sort Monday-Friday
-  const tradingDays = data
-    .filter(d => d.trades > 0 && d.dayNumber >= 1 && d.dayNumber <= 5)
-    .sort((a, b) => a.dayNumber - b.dayNumber);
+export function WeekOfMonthHeatmap({ data }: WeekOfMonthHeatmapProps) {
+  // Filter out weeks with no trades
+  const tradingWeeks = data.filter(w => w.trades > 0);
 
-  if (tradingDays.length === 0) {
+  if (tradingWeeks.length === 0) {
     return (
       <div className="space-y-4">
         <div>
-          <h3 className="text-lg font-semibold">Day-of-Week Performance</h3>
+          <h3 className="text-lg font-semibold">Week-of-Month Performance</h3>
           <p className="text-sm text-muted-foreground">
             No trading data available
           </p>
@@ -35,7 +33,7 @@ export function DayOfWeekHeatmap({ data }: DayOfWeekHeatmapProps) {
   }
 
   // Calculate min/max for color scaling
-  const avgPnLs = tradingDays.map(d => d.avgPnL);
+  const avgPnLs = tradingWeeks.map(w => w.avgPnL);
   const minAvg = Math.min(...avgPnLs);
   const maxAvg = Math.max(...avgPnLs);
   const absMax = Math.max(Math.abs(minAvg), Math.abs(maxAvg));
@@ -55,30 +53,30 @@ export function DayOfWeekHeatmap({ data }: DayOfWeekHeatmapProps) {
   return (
     <div className="space-y-4">
       <div>
-        <h3 className="text-lg font-semibold">Day-of-Week Performance</h3>
+        <h3 className="text-lg font-semibold">Week-of-Month Performance</h3>
         <p className="text-sm text-muted-foreground">
-          Average P&L and win rate by trading day
+          Average P&L and win rate by week of month (Week 1: days 1-7, Week 2: 8-14, etc.)
         </p>
       </div>
 
       <div className="grid grid-cols-5 gap-3">
-        {tradingDays.map((day) => (
+        {tradingWeeks.map((week) => (
           <Card
-            key={day.dayNumber}
+            key={week.weekNumber}
             className="p-4 transition-all hover:shadow-md"
             style={{
-              backgroundColor: getColor(day.avgPnL),
+              backgroundColor: getColor(week.avgPnL),
             }}
           >
             <div className="space-y-2">
               <div className="text-center">
-                <p className="text-base font-semibold text-white">{day.dayName.slice(0, 3)}</p>
-                <p className="text-sm text-white/90">{day.trades} trades</p>
+                <p className="text-base font-semibold text-white">{week.weekLabel}</p>
+                <p className="text-sm text-white/90">{week.trades} trades</p>
               </div>
               
               <div className="space-y-1 text-center">
                 <p className="text-2xl font-bold text-white">
-                  ${day.avgPnL.toFixed(0)}
+                  ${week.avgPnL.toFixed(0)}
                 </p>
                 <p className="text-sm text-white/90">
                   Avg P&L
@@ -87,7 +85,7 @@ export function DayOfWeekHeatmap({ data }: DayOfWeekHeatmapProps) {
 
               <div className="space-y-1 text-center">
                 <p className="text-lg font-semibold text-white">
-                  {day.winRate.toFixed(1)}%
+                  {week.winRate.toFixed(1)}%
                 </p>
                 <p className="text-sm text-white/90">
                   Win Rate
@@ -97,13 +95,13 @@ export function DayOfWeekHeatmap({ data }: DayOfWeekHeatmapProps) {
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <div>
                   <p className="text-white font-semibold">
-                    ${day.avgWin.toFixed(0)}
+                    ${week.avgWin.toFixed(0)}
                   </p>
                   <p className="text-white/80">Avg Win</p>
                 </div>
                 <div>
                   <p className="text-white font-semibold">
-                    -${day.avgLoss.toFixed(0)}
+                    -${week.avgLoss.toFixed(0)}
                   </p>
                   <p className="text-white/80">Avg Loss</p>
                 </div>
@@ -116,7 +114,7 @@ export function DayOfWeekHeatmap({ data }: DayOfWeekHeatmapProps) {
       <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground">
         <div className="flex items-center gap-2">
           <div className="h-4 w-4 rounded" style={{ backgroundColor: getColor(absMax) }} />
-          <span>Best Day</span>
+          <span>Best Week</span>
         </div>
         <div className="flex items-center gap-2">
           <div className="h-4 w-4 rounded bg-muted" />
@@ -124,7 +122,7 @@ export function DayOfWeekHeatmap({ data }: DayOfWeekHeatmapProps) {
         </div>
         <div className="flex items-center gap-2">
           <div className="h-4 w-4 rounded" style={{ backgroundColor: getColor(-absMax) }} />
-          <span>Worst Day</span>
+          <span>Worst Week</span>
         </div>
       </div>
     </div>
