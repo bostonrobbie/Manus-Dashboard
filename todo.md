@@ -315,3 +315,38 @@
 - [x] Verify Calmar ratio displays correctly (3.81 showing)
 - [x] Verify breakdown data displays correctly
 - [x] Check that removing micro didn't break anything
+
+
+## Current Sprint: Fix Benchmark & Add Advanced Visualizations ✅ COMPLETE
+
+### S&P 500 Benchmark Scaling Fix
+- [x] Investigate benchmark data alignment logic
+- [x] Check if benchmark dates match portfolio dates
+- [x] Verify forward-fill logic for benchmark
+- [x] Fix benchmark to use its own start date (not portfolio start)
+- [x] Test on different time ranges (1Y, 3Y, 5Y, ALL)
+- [x] Verify benchmark displays correctly on all time ranges
+
+### Underwater Equity Curve
+- [x] Create calculateUnderwaterCurve function in analytics
+- [x] Add underwaterCurve to portfolio.overview response
+- [x] Create UnderwaterCurveChart component
+- [x] Add underwater curve section to Overview page
+- [x] Style underwater curve visualization
+- [x] Write tests for underwater curve calculations (3 tests)
+
+### Day-of-Week Performance Heatmap
+- [x] Create calculateDayOfWeekBreakdown function in analytics
+- [x] Add dayOfWeekBreakdown to portfolio.overview response
+- [x] Create DayOfWeekHeatmap component
+- [x] Add heatmap section to Overview page
+- [x] Style heatmap with color gradients (green=best, red=worst)
+- [x] Write tests for day-of-week calculations (3 tests)
+
+### Portfolio-S&P 500 Correlation Chart
+- [x] Create calculateCorrelation function in analytics
+- [x] Add correlation data to portfolio.overview response
+- [x] Create CorrelationChart component with scatter plot
+- [x] Add correlation section to Overview page
+- [x] Display correlation coefficient with interpretation
+- [x] All 57 tests passing

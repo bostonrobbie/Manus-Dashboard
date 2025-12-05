@@ -121,6 +121,11 @@ export const appRouter = router({
         );
         const equityEndDate = now;
 
+        // Benchmark should use its own start date (earliest available data in range)
+        const benchmarkStartDate = rawBenchmarkEquity.length > 0
+          ? rawBenchmarkEquity[0]!.date
+          : equityStartDate;
+
         // Forward-fill to create continuous daily series
         const portfolioEquity = analytics.forwardFillEquityCurve(
           rawPortfolioEquity,
@@ -129,7 +134,7 @@ export const appRouter = router({
         );
         const benchmarkEquity = analytics.forwardFillEquityCurve(
           rawBenchmarkEquity,
-          equityStartDate,
+          benchmarkStartDate,
           equityEndDate
         );
 
@@ -140,10 +145,20 @@ export const appRouter = router({
         const quarterlyPerf = analytics.calculatePerformanceByPeriod(allTrades, 'quarter');
         const yearlyPerf = analytics.calculatePerformanceByPeriod(allTrades, 'year');
 
+        // Calculate underwater curve and day-of-week breakdown
+        const underwaterCurve = analytics.calculateUnderwaterCurve(portfolioEquity);
+        const dayOfWeekBreakdown = analytics.calculateDayOfWeekBreakdown(allTrades);
+
+        // Calculate correlation between portfolio and benchmark
+        const correlation = analytics.calculateCorrelation(portfolioEquity, benchmarkEquity);
+
         return {
           metrics,
           portfolioEquity,
           benchmarkEquity,
+          underwaterCurve,
+          dayOfWeekBreakdown,
+          correlation,
           periodPerformance: {
             daily: dailyPerf,
             weekly: weeklyPerf,

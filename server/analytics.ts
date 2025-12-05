@@ -786,3 +786,101 @@ export function getMonthOfYearAnalysis(trades: Trade[], startingCapital: number)
     };
   }).sort((a, b) => a.monthOfYear - b.monthOfYear);
 }
+
+
+/**
+ * Calculate underwater equity curve (drawdown over time)
+ * Shows how far below the peak the equity is at each point
+ */
+export interface UnderwaterPoint {
+  date: Date;
+  drawdownPercent: number; // Negative percentage
+  daysUnderwater: number; // Days since last peak
+}
+
+export function calculateUnderwaterCurve(
+  equityCurve: EquityPoint[]
+): UnderwaterPoint[] {
+  if (equityCurve.length === 0) return [];
+
+  const underwater: UnderwaterPoint[] = [];
+  let peak = equityCurve[0]!.equity;
+  let lastPeakDate = equityCurve[0]!.date;
+
+  for (const point of equityCurve) {
+    if (point.equity >= peak) {
+      peak = point.equity;
+      lastPeakDate = point.date;
+    }
+
+    const drawdownPercent = peak > 0 && point.equity < peak ? -((peak - point.equity) / peak) * 100 : 0;
+    const daysUnderwater = Math.floor(
+      (point.date.getTime() - lastPeakDate.getTime()) / (1000 * 60 * 60 * 24)
+    );
+
+    underwater.push({
+      date: point.date,
+      drawdownPercent,
+      daysUnderwater,
+    });
+  }
+
+  return underwater;
+}
+
+/**
+ * Calculate performance breakdown by day of week
+ */
+export interface DayOfWeekPerformance {
+  dayName: string;
+  dayNumber: number; // 0=Sunday, 6=Saturday
+  trades: number;
+  totalPnL: number;
+  avgPnL: number;
+  winRate: number;
+  avgWin: number;
+  avgLoss: number;
+}
+
+export function calculateDayOfWeekBreakdown(
+  trades: Trade[]
+): DayOfWeekPerformance[] {
+  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const dayGroups = new Map<number, Trade[]>();
+
+  // Initialize all days
+  for (let i = 0; i < 7; i++) {
+    dayGroups.set(i, []);
+  }
+
+  // Group trades by day of week
+  for (const trade of trades) {
+    const dayNum = trade.exitDate.getDay();
+    dayGroups.get(dayNum)!.push(trade);
+  }
+
+  // Calculate metrics for each day
+  const results: DayOfWeekPerformance[] = [];
+  for (let dayNum = 0; dayNum < 7; dayNum++) {
+    const dayTrades = dayGroups.get(dayNum)!;
+    const winningTrades = dayTrades.filter(t => t.pnl > 0);
+    const losingTrades = dayTrades.filter(t => t.pnl < 0);
+
+    const totalPnL = dayTrades.reduce((sum, t) => sum + (t.pnl / 100), 0);
+    const totalWins = winningTrades.reduce((sum, t) => sum + (t.pnl / 100), 0);
+    const totalLosses = Math.abs(losingTrades.reduce((sum, t) => sum + (t.pnl / 100), 0));
+
+    results.push({
+      dayName: dayNames[dayNum]!,
+      dayNumber: dayNum,
+      trades: dayTrades.length,
+      totalPnL,
+      avgPnL: dayTrades.length > 0 ? totalPnL / dayTrades.length : 0,
+      winRate: dayTrades.length > 0 ? (winningTrades.length / dayTrades.length) * 100 : 0,
+      avgWin: winningTrades.length > 0 ? totalWins / winningTrades.length : 0,
+      avgLoss: losingTrades.length > 0 ? totalLosses / losingTrades.length : 0,
+    });
+  }
+
+  return results;
+}

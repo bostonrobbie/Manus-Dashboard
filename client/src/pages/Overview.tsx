@@ -7,6 +7,9 @@ import { Label } from "@/components/ui/label";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { Loader2, TrendingUp, TrendingDown, Activity, Target, Gauge } from "lucide-react";
 import { PerformanceBreakdown } from "@/components/PerformanceBreakdown";
+import { UnderwaterCurveChart } from "@/components/UnderwaterCurveChart";
+import { DayOfWeekHeatmap } from "@/components/DayOfWeekHeatmap";
+import { CorrelationChart } from "@/components/CorrelationChart";
 
 type TimeRange = 'YTD' | '1Y' | '3Y' | '5Y' | 'ALL';
 
@@ -278,6 +281,37 @@ export default function Overview() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Underwater Curve */}
+      {data.underwaterCurve && data.underwaterCurve.length > 0 && (
+        <Card>
+          <CardContent className="pt-6">
+            <UnderwaterCurveChart data={data.underwaterCurve} />
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Day-of-Week Performance */}
+      {data.dayOfWeekBreakdown && data.dayOfWeekBreakdown.length > 0 && (
+        <Card>
+          <CardContent className="pt-6">
+            <DayOfWeekHeatmap data={data.dayOfWeekBreakdown} />
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Correlation Analysis */}
+      {data.correlation !== undefined && (
+        <Card>
+          <CardContent className="pt-6">
+            <CorrelationChart 
+              portfolioEquity={data.portfolioEquity}
+              benchmarkEquity={data.benchmarkEquity}
+              correlation={data.correlation}
+            />
+          </CardContent>
+        </Card>
+      )}
 
       {/* Performance Breakdown */}
       <PerformanceBreakdown 
