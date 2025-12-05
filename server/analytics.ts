@@ -1004,14 +1004,11 @@ export interface UnderwaterPoint {
 
 export interface UnderwaterMetrics {
   curve: UnderwaterPoint[];
-  longestDurationDays: number;
-  averageRecoveryDays: number;
-  pctDaysAtHighWater: number;
-}
-
-export interface UnderwaterData {
-  portfolio: UnderwaterMetrics;
-  benchmark: UnderwaterMetrics;
+  maxDrawdownPct: number;
+  longestDrawdownDays: number;
+  averageDrawdownDays: number;
+  pctTimeInDrawdown: number;    // % of days where drawdown < 0
+  pctTimeBelowMinus10: number;  // % of days where drawdown <= -10%
 }
 
 export function calculateUnderwaterCurve(
@@ -1055,18 +1052,22 @@ export function calculateUnderwaterMetrics(
   if (curve.length === 0) {
     return {
       curve: [],
-      longestDurationDays: 0,
-      averageRecoveryDays: 0,
-      pctDaysAtHighWater: 0,
+      maxDrawdownPct: 0,
+      longestDrawdownDays: 0,
+      averageDrawdownDays: 0,
+      pctTimeInDrawdown: 0,
+      pctTimeBelowMinus10: 0,
     };
   }
+
+  // Find max drawdown
+  const maxDrawdown = Math.min(...curve.map(p => p.drawdownPercent));
 
   // Find longest drawdown duration
   let longestDuration = 0;
   let currentDuration = 0;
-  const recoveryPeriods: number[] = [];
+  const drawdownPeriods: number[] = [];
   let inDrawdown = false;
-  let drawdownStart = 0;
 
   for (let i = 0; i < curve.length; i++) {
     const point = curve[i]!;
@@ -1074,48 +1075,121 @@ export function calculateUnderwaterMetrics(
     if (point.drawdownPercent < 0) {
       if (!inDrawdown) {
         inDrawdown = true;
-        drawdownStart = i;
       }
       currentDuration++;
       longestDuration = Math.max(longestDuration, currentDuration);
     } else {
       if (inDrawdown) {
         // Recovery complete
-        recoveryPeriods.push(currentDuration);
+        drawdownPeriods.push(currentDuration);
         inDrawdown = false;
         currentDuration = 0;
       }
     }
   }
 
-  // Calculate average recovery time
-  const averageRecovery = recoveryPeriods.length > 0
-    ? recoveryPeriods.reduce((sum, days) => sum + days, 0) / recoveryPeriods.length
+  // If still in drawdown at the end, add the current period
+  if (inDrawdown && currentDuration > 0) {
+    drawdownPeriods.push(currentDuration);
+  }
+
+  // Calculate average drawdown duration
+  const averageDrawdown = drawdownPeriods.length > 0
+    ? drawdownPeriods.reduce((sum, days) => sum + days, 0) / drawdownPeriods.length
     : 0;
 
-  // Calculate percentage of days at high water (zero drawdown)
-  const daysAtHighWater = curve.filter(p => p.drawdownPercent === 0).length;
-  const pctAtHighWater = (daysAtHighWater / curve.length) * 100;
+  // Calculate percentage of time in drawdown (drawdown < 0)
+  const daysInDrawdown = curve.filter(p => p.drawdownPercent < 0).length;
+  const pctInDrawdown = (daysInDrawdown / curve.length) * 100;
+
+  // Calculate percentage of time below -10%
+  const daysBelowMinus10 = curve.filter(p => p.drawdownPercent <= -10).length;
+  const pctBelowMinus10 = (daysBelowMinus10 / curve.length) * 100;
 
   return {
     curve,
-    longestDurationDays: longestDuration,
-    averageRecoveryDays: Math.round(averageRecovery),
-    pctDaysAtHighWater: pctAtHighWater,
+    maxDrawdownPct: maxDrawdown,
+    longestDrawdownDays: longestDuration,
+    averageDrawdownDays: Math.round(averageDrawdown),
+    pctTimeInDrawdown: pctInDrawdown,
+    pctTimeBelowMinus10: pctBelowMinus10,
   };
 }
 
 /**
- * Calculate underwater data for both portfolio and benchmark
+ * Calculate underwater metrics for portfolio only
  */
-export function calculateUnderwaterData(
-  portfolioEquity: EquityPoint[],
-  benchmarkEquity: EquityPoint[]
-): UnderwaterData {
-  return {
-    portfolio: calculateUnderwaterMetrics(portfolioEquity),
-    benchmark: calculateUnderwaterMetrics(benchmarkEquity),
-  };
+export function calculatePortfolioUnderwater(
+  portfolioEquity: EquityPoint[]
+): UnderwaterMetrics {
+  return calculateUnderwaterMetrics(portfolioEquity);
+}
+
+/**
+ * Generate a narrative summary of portfolio performance
+ */
+export function generatePortfolioSummary(
+  metrics: PerformanceMetrics,
+  underwater: UnderwaterMetrics,
+  startDate: Date,
+  endDate: Date
+): string {
+  const daysDuration = Math.floor((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+  const yearsDuration = (daysDuration / 365).toFixed(1);
+  
+  // Format dates
+  const startStr = startDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+  const endStr = endDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+  
+  // Build summary
+  const parts: string[] = [];
+  
+  // Time period
+  parts.push(`Over ${yearsDuration} years (${startStr} to ${endStr})`);
+  
+  // Return performance
+  const returnSign = metrics.totalReturn >= 0 ? 'gained' : 'lost';
+  parts.push(`the portfolio ${returnSign} ${Math.abs(metrics.totalReturn).toFixed(1)}%`);
+  
+  // Annualized return
+  if (daysDuration >= 365) {
+    parts.push(`(${metrics.annualizedReturn.toFixed(1)}% annualized)`);
+  }
+  
+  // Risk metrics
+  parts.push(`with a maximum drawdown of ${Math.abs(underwater.maxDrawdownPct).toFixed(1)}%`);
+  
+  // Time in drawdown context
+  if (underwater.pctTimeInDrawdown > 90) {
+    parts.push(`The portfolio spent ${underwater.pctTimeInDrawdown.toFixed(0)}% of the time below its peak`);
+  } else if (underwater.pctTimeInDrawdown > 70) {
+    parts.push(`and was underwater ${underwater.pctTimeInDrawdown.toFixed(0)}% of the time`);
+  } else {
+    parts.push(`spending ${underwater.pctTimeInDrawdown.toFixed(0)}% of days in drawdown`);
+  }
+  
+  // Deep drawdown context
+  if (underwater.pctTimeBelowMinus10 > 30) {
+    parts.push(`with ${underwater.pctTimeBelowMinus10.toFixed(0)}% of days experiencing drawdowns exceeding -10%`);
+  } else if (underwater.pctTimeBelowMinus10 > 10) {
+    parts.push(`including ${underwater.pctTimeBelowMinus10.toFixed(0)}% of days below -10%`);
+  }
+  
+  // Trade efficiency
+  if (metrics.tradeStats) {
+    const { winRate, profitFactor, expectancyPnL } = metrics.tradeStats;
+    parts.push(`Trading ${metrics.tradeStats.totalTrades} times with a ${winRate.toFixed(1)}% win rate`);
+    
+    if (profitFactor > 1.5) {
+      parts.push(`the strategy showed strong profit factor of ${profitFactor.toFixed(2)}`);
+    } else if (profitFactor > 1.0) {
+      parts.push(`achieving a profit factor of ${profitFactor.toFixed(2)}`);
+    }
+    
+    parts.push(`and an average expectancy of $${expectancyPnL.toFixed(0)} per trade`);
+  }
+  
+  return parts.join(', ') + '.';
 }
 
 /**

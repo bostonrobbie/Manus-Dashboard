@@ -483,3 +483,57 @@
 - [ ] Verify correlation heatmap displays all strategies
 - [ ] Verify underwater chart shows both portfolio and SPX
 - [ ] Verify trade statistics show enhanced metrics
+
+
+## Portfolio Overview Refinement Sprint
+
+### Step 1: Strictly Link Rolling Metrics to TimeRange
+- [x] Review current rolling metrics calculation and timeRange filtering
+- [x] Ensure rolling metrics compute on full history then filter to timeRange
+- [x] Verify first valid rolling point is within timeRange window
+- [x] Handle edge cases for short timeRanges with large rolling windows
+- [x] Frontend rolling charts already match equity curve date range
+- [ ] Add integration test for timeRange consistency across all series
+- [ ] Add client test for rolling charts rerendering with different timeRanges
+
+### Step 2: Upgrade Trade Statistics to Trade & Risk Stats Panel
+- [x] Verify all TradeStats fields are already calculated (done in previous sprint)
+- [x] Expose tradeStats object in portfolio.overview response
+- [x] Create new TradeAndRiskStats component combining both sections
+- [x] Design left column layout (totals, win rate, profit factor, expectancy)
+- [x] Design right column layout (distribution highlights, best/worst, streaks)
+- [x] Make panel responsive (stack vertically on mobile via grid-cols-1 md:grid-cols-2)
+- [x] Replace existing Trade Statistics and Average Trade P&L cards
+- [ ] Add backend unit test for TradeStats with synthetic fixture
+- [ ] Add frontend test for TradeAndRiskStats rendering
+
+### Step 3: Rework Underwater Section (Portfolio-Only)
+- [x] Remove SPX comparison from underwater data structure
+- [x] Calculate pctTimeInDrawdown (% of days with drawdown < 0)
+- [x] Calculate pctTimeBelowMinus10 (% of days with drawdown <= -10%)
+- [x] Calculate averageDrawdownDays statistic
+- [x] Update underwater response structure to portfolio-only
+- [x] Update UnderwaterCurveChart to show single portfolio curve
+- [x] Display key stats: max DD, longest DD, avg DD, % time in DD, % time below -10%
+- [x] Remove SPX-specific text and focus on portfolio risk profile
+- [ ] Add integration test for underwater response structure
+- [ ] Add frontend test for underwater stats rendering
+
+### Step 4: Add Portfolio Summary Narrative
+- [x] Create generatePortfolioSummary function in analytics
+- [x] Build parameterized summary string from metrics
+- [x] Include: startDate, annualizedReturn, maxDD, pctTimeInDrawdown, pctTimeBelowMinus10, trade stats
+- [x] Add summary field to portfolio.overview response
+- [x] Create PortfolioSummary card component for frontend
+- [x] Place Summary card under KPI row
+- [x] Style as single short paragraph with Info icon
+- [ ] Add test for summary text generation
+
+### Step 5: Documentation & Testing
+- [ ] Update API_CONTRACT.md with TradeStats structure
+- [ ] Document underwater portfolio-only structure
+- [ ] Document summary field
+- [ ] Clarify timeRange behavior for all series
+- [ ] Run pnpm test and fix any failures
+- [ ] Update AI-to-AI Task & Communication Log
+- [ ] Note any limitations or TODOs

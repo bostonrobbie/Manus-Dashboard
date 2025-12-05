@@ -12,6 +12,8 @@ import { DayOfWeekHeatmap } from "@/components/DayOfWeekHeatmap";
 import { StrategyCorrelationHeatmap } from "@/components/StrategyCorrelationHeatmap";
 import { RollingMetricsChart } from "@/components/RollingMetricsChart";
 import { MonthlyReturnsCalendar } from "@/components/MonthlyReturnsCalendar";
+import { TradeAndRiskStats } from "@/components/TradeAndRiskStats";
+import { PortfolioSummary } from "@/components/PortfolioSummary";
 
 type TimeRange = 'YTD' | '1Y' | '3Y' | '5Y' | 'ALL';
 
@@ -176,6 +178,9 @@ export default function Overview() {
         </Card>
       </div>
 
+      {/* Portfolio Summary */}
+      {data.summary && <PortfolioSummary summary={data.summary} />}
+
       {/* Equity Curve Chart */}
       <Card>
         <CardHeader>
@@ -228,67 +233,14 @@ export default function Overview() {
       </Card>
 
       {/* Additional Metrics */}
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Trade Statistics</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Total Trades:</span>
-                <span className="font-medium">{metrics.totalTrades}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Winning Trades:</span>
-                <span className="font-medium text-green-600">{metrics.winningTrades}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Losing Trades:</span>
-                <span className="font-medium text-red-600">{metrics.losingTrades}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Profit Factor:</span>
-                <span className="font-medium">{metrics.profitFactor.toFixed(2)}</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Average Trade P&L</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Average Win:</span>
-                <span className="font-medium text-green-600">
-                  ${metrics.avgWin.toFixed(2)}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Average Loss:</span>
-                <span className="font-medium text-red-600">
-                  -${metrics.avgLoss.toFixed(2)}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Win/Loss Ratio:</span>
-                <span className="font-medium">
-                  {metrics.avgLoss > 0 ? (metrics.avgWin / metrics.avgLoss).toFixed(2) : 'N/A'}
-                </span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Trade & Risk Statistics - Combined panel with comprehensive metrics */}
+      {data.tradeStats && <TradeAndRiskStats tradeStats={data.tradeStats} />}
 
       {/* Underwater Curve */}
-      {data.underwaterData && (
+      {data.underwater && (
         <Card>
           <CardContent className="pt-6">
-            <UnderwaterCurveChart data={data.underwaterData} />
+            <UnderwaterCurveChart data={data.underwater} />
           </CardContent>
         </Card>
       )}

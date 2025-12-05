@@ -3,7 +3,6 @@ import {
   calculateTradeStats,
   calculateStrategyCorrelationMatrix,
   calculateUnderwaterMetrics,
-  calculateUnderwaterData,
   type Trade,
   type EquityPoint,
 } from './analytics';
@@ -236,42 +235,20 @@ describe('Enhanced Analytics Features', () => {
       expect(metrics.curve[2]!.drawdownPercent).toBeCloseTo(-4.55, 1); // Below peak
       expect(metrics.curve[4]!.drawdownPercent).toBe(0); // Recovered
       
-      expect(metrics.longestDurationDays).toBeGreaterThan(0);
-      expect(metrics.pctDaysAtHighWater).toBeGreaterThan(0);
+      expect(metrics.longestDrawdownDays).toBeGreaterThan(0);
+      expect(metrics.pctTimeInDrawdown).toBeGreaterThan(0);
     });
 
     it('should handle empty equity curve', () => {
       const metrics = calculateUnderwaterMetrics([]);
 
       expect(metrics.curve).toEqual([]);
-      expect(metrics.longestDurationDays).toBe(0);
-      expect(metrics.averageRecoveryDays).toBe(0);
-      expect(metrics.pctDaysAtHighWater).toBe(0);
+      expect(metrics.longestDrawdownDays).toBe(0);
+      expect(metrics.averageDrawdownDays).toBe(0);
+      expect(metrics.pctTimeInDrawdown).toBe(0);
+      expect(metrics.pctTimeBelowMinus10).toBe(0);
     });
   });
 
-  describe('calculateUnderwaterData', () => {
-    it('should calculate underwater data for both portfolio and benchmark', () => {
-      const portfolioEquity: EquityPoint[] = [
-        { date: new Date('2025-01-01'), equity: 100000, drawdown: 0 },
-        { date: new Date('2025-01-02'), equity: 105000, drawdown: 0 },
-        { date: new Date('2025-01-03'), equity: 95000, drawdown: 0 },
-      ];
-
-      const benchmarkEquity: EquityPoint[] = [
-        { date: new Date('2025-01-01'), equity: 100000, drawdown: 0 },
-        { date: new Date('2025-01-02'), equity: 102000, drawdown: 0 },
-        { date: new Date('2025-01-03'), equity: 98000, drawdown: 0 },
-      ];
-
-      const data = calculateUnderwaterData(portfolioEquity, benchmarkEquity);
-
-      expect(data.portfolio).toBeDefined();
-      expect(data.benchmark).toBeDefined();
-      expect(data.portfolio.curve.length).toBe(3);
-      expect(data.benchmark.curve.length).toBe(3);
-      expect(data.portfolio.longestDurationDays).toBeGreaterThanOrEqual(0);
-      expect(data.benchmark.longestDurationDays).toBeGreaterThanOrEqual(0);
-    });
-  });
+  // Note: calculateUnderwaterData was removed - now using calculatePortfolioUnderwater for portfolio-only metrics
 });

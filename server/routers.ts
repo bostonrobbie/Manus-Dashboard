@@ -169,7 +169,7 @@ export const appRouter = router({
         const yearlyPerf = analytics.calculatePerformanceByPeriod(allTrades, 'year');
 
         // Calculate underwater data for portfolio and benchmark
-        const underwaterData = analytics.calculateUnderwaterData(portfolioEquity, benchmarkEquity);
+        const underwater = analytics.calculatePortfolioUnderwater(portfolioEquity);
         const dayOfWeekBreakdown = analytics.calculateDayOfWeekBreakdown(allTrades);
 
         // Calculate strategy correlation matrix
@@ -206,11 +206,18 @@ export const appRouter = router({
         // Calculate monthly returns calendar
         const monthlyReturnsCalendar = analytics.calculateMonthlyReturnsCalendar(portfolioEquity);
 
+        // Generate portfolio summary narrative
+        // For ALL time range, use the earliest trade date as start
+        const effectiveStartDate = startDate || (allTrades.length > 0 ? allTrades[0]!.entryDate : now);
+        const summary = analytics.generatePortfolioSummary(metrics, underwater, effectiveStartDate, now);
+
         return {
           metrics,
+          tradeStats: metrics.tradeStats, // Expose tradeStats directly for easier frontend access
+          summary, // Portfolio narrative summary
           portfolioEquity,
           benchmarkEquity,
-          underwaterData,
+          underwater,
           dayOfWeekBreakdown,
           strategyCorrelationMatrix,
           rollingMetrics,
