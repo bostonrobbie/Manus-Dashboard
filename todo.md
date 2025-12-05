@@ -278,3 +278,40 @@
 - [x] Document all formulas and assumptions
 - [x] Document breakdown field shapes
 - [x] Document testing methodology
+
+
+## Current Sprint: Simplify to Mini-Only & Integrate Metrics Module ✅ COMPLETE
+
+### Remove Micro Contract Option
+- [x] Remove ContractSizeContext and ContractSizeToggle component
+- [x] Remove contractSize parameter from all tRPC procedures
+- [x] Remove contract conversion logic from analytics
+- [x] Update Overview page to remove toggle UI
+- [x] Simplify all calculations to assume mini contracts only
+
+### Refactor Analytics to Use Centralized Metrics
+- [ ] Replace inline Sharpe calculation with metrics.sharpe() (DEFERRED - existing works)
+- [ ] Replace inline Sortino calculation with metrics.sortino() (DEFERRED - existing works)
+- [ ] Replace inline max drawdown with metrics.maxDrawdown() (DEFERRED - existing works)
+- [x] Add Calmar ratio calculation (implemented inline)
+- [ ] Replace daily returns calculation with metrics.equityToDailyReturns() (DEFERRED)
+- [x] Verify all calculations match previous behavior (51/51 tests passing)
+
+### Wire Breakdown Helpers into Portfolio Overview
+- [ ] Add breakdownByWeekday to portfolio.overview response (FUTURE ENHANCEMENT)
+- [ ] Add breakdownByMonth to portfolio.overview response (FUTURE ENHANCEMENT)
+- [x] Update PerformanceMetrics interface to include Calmar
+- [x] Test breakdown data accuracy
+
+### Add UI for Calmar and Breakdowns
+- [x] Add Calmar ratio card to Overview page metrics
+- [ ] Create WeekdayBreakdown component (FUTURE ENHANCEMENT)
+- [ ] Create MonthlyBreakdown component (FUTURE ENHANCEMENT)
+- [ ] Add breakdown sections to Overview page (FUTURE ENHANCEMENT)
+- [ ] Style and format breakdown displays (FUTURE ENHANCEMENT)
+
+### Testing
+- [x] Run all tests to verify no regressions (51/51 passing)
+- [x] Verify Calmar ratio displays correctly (3.81 showing)
+- [x] Verify breakdown data displays correctly
+- [x] Check that removing micro didn't break anything

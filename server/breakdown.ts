@@ -1,7 +1,7 @@
 /**
  * Performance Breakdown Analytics
  * 
- * Calculates performance metrics broken down by time periods with contract size support
+ * Calculates performance metrics broken down by time periods (mini contracts only)
  */
 
 export interface TimePeriodPerformance {
@@ -34,13 +34,11 @@ interface Trade {
 }
 
 /**
- * Calculate performance breakdown by time periods
+ * Calculate performance breakdown by time periods (mini contracts only)
  */
 export function calculatePerformanceBreakdown(
   trades: Trade[],
-  startingCapital: number,
-  contractSize: 'mini' | 'micro' = 'mini',
-  conversionRatio: number = 10
+  startingCapital: number
 ): PerformanceBreakdown {
   if (trades.length === 0) {
     return {
@@ -57,243 +55,189 @@ export function calculatePerformanceBreakdown(
   );
 
   return {
-    daily: calculateDailyBreakdown(sortedTrades, startingCapital, contractSize, conversionRatio),
-    weekly: calculateWeeklyBreakdown(sortedTrades, startingCapital, contractSize, conversionRatio),
-    monthly: calculateMonthlyBreakdown(sortedTrades, startingCapital, contractSize, conversionRatio),
-    quarterly: calculateQuarterlyBreakdown(sortedTrades, startingCapital, contractSize, conversionRatio),
-    yearly: calculateYearlyBreakdown(sortedTrades, startingCapital, contractSize, conversionRatio),
+    daily: calculateDailyBreakdown(sortedTrades, startingCapital),
+    weekly: calculateWeeklyBreakdown(sortedTrades, startingCapital),
+    monthly: calculateMonthlyBreakdown(sortedTrades, startingCapital),
+    quarterly: calculateQuarterlyBreakdown(sortedTrades, startingCapital),
+    yearly: calculateYearlyBreakdown(sortedTrades, startingCapital),
   };
 }
 
-// Helper function to apply contract conversion
-function convertPnL(pnl: number, contractSize: 'mini' | 'micro', ratio: number): number {
-  const dollars = pnl / 100;
-  return contractSize === 'micro' ? dollars / ratio : dollars;
+// Helper function to convert P&L from cents to dollars
+function convertPnL(pnl: number): number {
+  return pnl / 100;
 }
 
 function calculateDailyBreakdown(
   trades: Trade[],
-  startingCapital: number,
-  contractSize: 'mini' | 'micro',
-  conversionRatio: number
+  startingCapital: number
 ): TimePeriodPerformance[] {
-  const periods = new Map<string, Trade[]>();
-
+  const grouped = new Map<string, Trade[]>();
+  
   for (const trade of trades) {
-    const key = trade.exitDate.toISOString().split('T')[0]!;
-    if (!periods.has(key)) {
-      periods.set(key, []);
+    const dateKey = trade.exitDate.toISOString().split('T')[0]!;
+    if (!grouped.has(dateKey)) {
+      grouped.set(dateKey, []);
     }
-    periods.get(key)!.push(trade);
+    grouped.get(dateKey)!.push(trade);
   }
 
-  return Array.from(periods.entries())
-    .map(([period, periodTrades]) => calculatePeriodMetrics(
-      period,
+  return Array.from(grouped.entries())
+    .map(([dateKey, dayTrades]) => calculatePeriodMetrics(
+      dateKey,
       'daily',
-      periodTrades,
-      startingCapital,
-      contractSize,
-      conversionRatio
+      dayTrades,
+      startingCapital
     ))
-    .sort((a, b) => b.period.localeCompare(a.period))
-    .slice(0, 20);
+    .sort((a, b) => b.startDate.getTime() - a.startDate.getTime())
+    .slice(0, 20); // Limit to most recent 20
 }
 
 function calculateWeeklyBreakdown(
   trades: Trade[],
-  startingCapital: number,
-  contractSize: 'mini' | 'micro',
-  conversionRatio: number
+  startingCapital: number
 ): TimePeriodPerformance[] {
-  const periods = new Map<string, Trade[]>();
-
+  const grouped = new Map<string, Trade[]>();
+  
   for (const trade of trades) {
-    const date = trade.exitDate;
-    const weekStart = new Date(date);
-    weekStart.setDate(date.getDate() - date.getDay());
-    const key = `${weekStart.getFullYear()}-W${getWeekNumber(weekStart)}`;
+    const date = new Date(trade.exitDate);
+    const year = date.getFullYear();
+    const week = getWeekNumber(date);
+    const weekKey = `${year}-W${week.toString().padStart(2, '0')}`;
     
-    if (!periods.has(key)) {
-      periods.set(key, []);
+    if (!grouped.has(weekKey)) {
+      grouped.set(weekKey, []);
     }
-    periods.get(key)!.push(trade);
+    grouped.get(weekKey)!.push(trade);
   }
 
-  return Array.from(periods.entries())
-    .map(([period, periodTrades]) => calculatePeriodMetrics(
-      period,
+  return Array.from(grouped.entries())
+    .map(([weekKey, weekTrades]) => calculatePeriodMetrics(
+      weekKey,
       'weekly',
-      periodTrades,
-      startingCapital,
-      contractSize,
-      conversionRatio
+      weekTrades,
+      startingCapital
     ))
-    .sort((a, b) => b.period.localeCompare(a.period))
+    .sort((a, b) => b.startDate.getTime() - a.startDate.getTime())
     .slice(0, 20);
 }
 
 function calculateMonthlyBreakdown(
   trades: Trade[],
-  startingCapital: number,
-  contractSize: 'mini' | 'micro',
-  conversionRatio: number
+  startingCapital: number
 ): TimePeriodPerformance[] {
-  const periods = new Map<string, Trade[]>();
-
+  const grouped = new Map<string, Trade[]>();
+  
   for (const trade of trades) {
-    const date = trade.exitDate;
-    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    const date = new Date(trade.exitDate);
+    const monthKey = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
     
-    if (!periods.has(key)) {
-      periods.set(key, []);
+    if (!grouped.has(monthKey)) {
+      grouped.set(monthKey, []);
     }
-    periods.get(key)!.push(trade);
+    grouped.get(monthKey)!.push(trade);
   }
 
-  return Array.from(periods.entries())
-    .map(([period, periodTrades]) => calculatePeriodMetrics(
-      period,
+  return Array.from(grouped.entries())
+    .map(([monthKey, monthTrades]) => calculatePeriodMetrics(
+      monthKey,
       'monthly',
-      periodTrades,
-      startingCapital,
-      contractSize,
-      conversionRatio
+      monthTrades,
+      startingCapital
     ))
-    .sort((a, b) => b.period.localeCompare(a.period))
+    .sort((a, b) => b.startDate.getTime() - a.startDate.getTime())
     .slice(0, 20);
 }
 
 function calculateQuarterlyBreakdown(
   trades: Trade[],
-  startingCapital: number,
-  contractSize: 'mini' | 'micro',
-  conversionRatio: number
+  startingCapital: number
 ): TimePeriodPerformance[] {
-  const periods = new Map<string, Trade[]>();
-
+  const grouped = new Map<string, Trade[]>();
+  
   for (const trade of trades) {
-    const date = trade.exitDate;
+    const date = new Date(trade.exitDate);
     const quarter = Math.floor(date.getMonth() / 3) + 1;
-    const key = `${date.getFullYear()}-Q${quarter}`;
+    const quarterKey = `${date.getFullYear()}-Q${quarter}`;
     
-    if (!periods.has(key)) {
-      periods.set(key, []);
+    if (!grouped.has(quarterKey)) {
+      grouped.set(quarterKey, []);
     }
-    periods.get(key)!.push(trade);
+    grouped.get(quarterKey)!.push(trade);
   }
 
-  return Array.from(periods.entries())
-    .map(([period, periodTrades]) => calculatePeriodMetrics(
-      period,
+  return Array.from(grouped.entries())
+    .map(([quarterKey, quarterTrades]) => calculatePeriodMetrics(
+      quarterKey,
       'quarterly',
-      periodTrades,
-      startingCapital,
-      contractSize,
-      conversionRatio
+      quarterTrades,
+      startingCapital
     ))
-    .sort((a, b) => b.period.localeCompare(a.period))
+    .sort((a, b) => b.startDate.getTime() - a.startDate.getTime())
     .slice(0, 20);
 }
 
 function calculateYearlyBreakdown(
   trades: Trade[],
-  startingCapital: number,
-  contractSize: 'mini' | 'micro',
-  conversionRatio: number
+  startingCapital: number
 ): TimePeriodPerformance[] {
-  const periods = new Map<string, Trade[]>();
-
+  const grouped = new Map<string, Trade[]>();
+  
   for (const trade of trades) {
-    const key = trade.exitDate.getFullYear().toString();
+    const yearKey = trade.exitDate.getFullYear().toString();
     
-    if (!periods.has(key)) {
-      periods.set(key, []);
+    if (!grouped.has(yearKey)) {
+      grouped.set(yearKey, []);
     }
-    periods.get(key)!.push(trade);
+    grouped.get(yearKey)!.push(trade);
   }
 
-  return Array.from(periods.entries())
-    .map(([period, periodTrades]) => calculatePeriodMetrics(
-      period,
+  return Array.from(grouped.entries())
+    .map(([yearKey, yearTrades]) => calculatePeriodMetrics(
+      yearKey,
       'yearly',
-      periodTrades,
-      startingCapital,
-      contractSize,
-      conversionRatio
+      yearTrades,
+      startingCapital
     ))
-    .sort((a, b) => b.period.localeCompare(a.period))
-    .slice(0, 20);
+    .sort((a, b) => b.startDate.getTime() - a.startDate.getTime());
 }
 
 function calculatePeriodMetrics(
   period: string,
   periodType: 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly',
-  periodTrades: Trade[],
-  startingCapital: number,
-  contractSize: 'mini' | 'micro',
-  conversionRatio: number
+  trades: Trade[],
+  startingCapital: number
 ): TimePeriodPerformance {
-  const totalPnL = periodTrades.reduce((sum, t) => sum + convertPnL(t.pnl, contractSize, conversionRatio), 0);
-  const returnPercent = (totalPnL / startingCapital) * 100;
-
-  const winningTrades = periodTrades.filter(t => t.pnl > 0);
-  const losingTrades = periodTrades.filter(t => t.pnl < 0);
-
-  const totalWins = winningTrades.reduce((sum, t) => sum + convertPnL(t.pnl, contractSize, conversionRatio), 0);
-  const totalLosses = Math.abs(losingTrades.reduce((sum, t) => sum + convertPnL(t.pnl, contractSize, conversionRatio), 0));
-
+  const winningTrades = trades.filter(t => t.pnl > 0);
+  const losingTrades = trades.filter(t => t.pnl < 0);
+  
+  const totalPnL = trades.reduce((sum, t) => sum + convertPnL(t.pnl), 0);
+  const totalWins = winningTrades.reduce((sum, t) => sum + convertPnL(t.pnl), 0);
+  const totalLosses = Math.abs(losingTrades.reduce((sum, t) => sum + convertPnL(t.pnl), 0));
+  
   const avgWin = winningTrades.length > 0 ? totalWins / winningTrades.length : 0;
   const avgLoss = losingTrades.length > 0 ? totalLosses / losingTrades.length : 0;
   const profitFactor = totalLosses > 0 ? totalWins / totalLosses : (totalWins > 0 ? Infinity : 0);
-
-  // Determine period dates
-  let startDate: Date;
-  let endDate: Date;
-
-  const firstTrade = periodTrades[0]!.exitDate;
-  const lastTrade = periodTrades[periodTrades.length - 1]!.exitDate;
-
-  switch (periodType) {
-    case 'daily':
-      startDate = new Date(firstTrade.getFullYear(), firstTrade.getMonth(), firstTrade.getDate());
-      endDate = new Date(firstTrade.getFullYear(), firstTrade.getMonth(), firstTrade.getDate(), 23, 59, 59);
-      break;
-    case 'weekly':
-      startDate = new Date(firstTrade);
-      startDate.setDate(firstTrade.getDate() - firstTrade.getDay());
-      endDate = new Date(startDate);
-      endDate.setDate(startDate.getDate() + 6);
-      break;
-    case 'monthly':
-      startDate = new Date(firstTrade.getFullYear(), firstTrade.getMonth(), 1);
-      endDate = new Date(firstTrade.getFullYear(), firstTrade.getMonth() + 1, 0, 23, 59, 59);
-      break;
-    case 'quarterly':
-      const quarter = Math.floor(firstTrade.getMonth() / 3);
-      startDate = new Date(firstTrade.getFullYear(), quarter * 3, 1);
-      endDate = new Date(firstTrade.getFullYear(), (quarter + 1) * 3, 0, 23, 59, 59);
-      break;
-    case 'yearly':
-      startDate = new Date(firstTrade.getFullYear(), 0, 1);
-      endDate = new Date(firstTrade.getFullYear(), 11, 31, 23, 59, 59);
-      break;
-  }
-
+  const winRate = trades.length > 0 ? (winningTrades.length / trades.length) * 100 : 0;
+  const returnPercent = (totalPnL / startingCapital) * 100;
+  
+  const startDate = new Date(Math.min(...trades.map(t => t.exitDate.getTime())));
+  const endDate = new Date(Math.max(...trades.map(t => t.exitDate.getTime())));
+  
   return {
     period,
     periodType,
     startDate,
     endDate,
-    trades: periodTrades.length,
+    trades: trades.length,
     winningTrades: winningTrades.length,
     losingTrades: losingTrades.length,
     totalPnL,
     returnPercent,
-    winRate: (winningTrades.length / periodTrades.length) * 100,
+    winRate,
     avgWin,
     avgLoss,
-    profitFactor: profitFactor === Infinity ? 0 : profitFactor,
+    profitFactor,
   };
 }
 

@@ -27,6 +27,7 @@ export interface PerformanceMetrics {
   annualizedReturn: number; // percentage
   sharpeRatio: number;
   sortinoRatio: number;
+  calmarRatio: number; // NEW: Calmar ratio
   maxDrawdown: number; // percentage
   winRate: number; // percentage
   profitFactor: number;
@@ -44,17 +45,13 @@ export interface EquityPoint {
 }
 
 /**
- * Calculate equity curve from trades
+ * Calculate equity curve from trades (mini contracts only)
  * @param trades Array of trades
  * @param startingCapital Starting capital in dollars
- * @param contractSize Target contract size (mini or micro)
- * @param conversionRatio Micro-to-mini ratio (default 10, BTC is 50)
  */
 export function calculateEquityCurve(
   trades: Trade[],
-  startingCapital: number = 100000,
-  contractSize: 'mini' | 'micro' = 'mini',
-  conversionRatio: number = 10
+  startingCapital: number = 100000
 ): EquityPoint[] {
   const sortedTrades = [...trades].sort((a, b) => 
     a.exitDate.getTime() - b.exitDate.getTime()
@@ -74,11 +71,8 @@ export function calculateEquityCurve(
   }
 
   for (const trade of sortedTrades) {
-    // Convert P&L from cents to dollars, then apply contract size conversion
-    let pnlDollars = trade.pnl / 100;
-    if (contractSize === 'micro') {
-      pnlDollars = pnlDollars / conversionRatio;
-    }
+    // Convert P&L from cents to dollars (mini contracts)
+    const pnlDollars = trade.pnl / 100;
     equity += pnlDollars;
     peak = Math.max(peak, equity);
     const drawdown = peak > 0 ? ((peak - equity) / peak) * 100 : 0;
@@ -136,19 +130,15 @@ export function forwardFillEquityCurve(
 }
 
 /**
- * Calculate comprehensive performance metrics
+ * Calculate comprehensive performance metrics (mini contracts only)
  * @param trades Array of trades
  * @param startingCapital Starting capital in dollars
  * @param daysInPeriod Optional period length in days
- * @param contractSize Target contract size (mini or micro)
- * @param conversionRatio Micro-to-mini ratio (default 10, BTC is 50)
  */
 export function calculatePerformanceMetrics(
   trades: Trade[],
   startingCapital: number = 100000,
-  daysInPeriod?: number,
-  contractSize: 'mini' | 'micro' = 'mini',
-  conversionRatio: number = 10
+  daysInPeriod?: number
 ): PerformanceMetrics {
   if (trades.length === 0) {
     return {
@@ -156,6 +146,7 @@ export function calculatePerformanceMetrics(
       annualizedReturn: 0,
       sharpeRatio: 0,
       sortinoRatio: 0,
+      calmarRatio: 0,
       maxDrawdown: 0,
       winRate: 0,
       profitFactor: 0,
@@ -171,14 +162,8 @@ export function calculatePerformanceMetrics(
     a.exitDate.getTime() - b.exitDate.getTime()
   );
 
-  // Calculate total P&L with contract conversion
-  const totalPnl = trades.reduce((sum, t) => {
-    let pnl = t.pnl / 100; // Convert cents to dollars
-    if (contractSize === 'micro') {
-      pnl = pnl / conversionRatio;
-    }
-    return sum + pnl;
-  }, 0);
+  // Calculate total P&L (mini contracts)
+  const totalPnl = trades.reduce((sum, t) => sum + (t.pnl / 100), 0);
   const totalReturn = (totalPnl / startingCapital) * 100;
 
   // Calculate period length in years
@@ -198,28 +183,14 @@ export function calculatePerformanceMetrics(
   const losingTrades = trades.filter(t => t.pnl < 0);
   const winRate = (winningTrades.length / trades.length) * 100;
 
-  const totalWins = winningTrades.reduce((sum, t) => {
-    let pnl = t.pnl / 100;
-    if (contractSize === 'micro') {
-      pnl = pnl / conversionRatio;
-    }
-    return sum + pnl;
-  }, 0);
-  const totalLosses = Math.abs(
-    losingTrades.reduce((sum, t) => {
-      let pnl = t.pnl / 100;
-      if (contractSize === 'micro') {
-        pnl = pnl / conversionRatio;
-      }
-      return sum + pnl;
-    }, 0)
-  );
+  const totalWins = winningTrades.reduce((sum, t) => sum + (t.pnl / 100), 0);
+  const totalLosses = Math.abs(losingTrades.reduce((sum, t) => sum + (t.pnl / 100), 0));
   const avgWin = winningTrades.length > 0 ? totalWins / winningTrades.length : 0;
   const avgLoss = losingTrades.length > 0 ? totalLosses / losingTrades.length : 0;
   const profitFactor = totalLosses > 0 ? totalWins / totalLosses : totalWins > 0 ? Infinity : 0;
 
-  // Calculate equity curve for drawdown and Sharpe with contract conversion
-  const equityCurve = calculateEquityCurve(trades, startingCapital, contractSize, conversionRatio);
+  // Calculate equity curve for drawdown and Sharpe
+  const equityCurve = calculateEquityCurve(trades, startingCapital);
   const maxDrawdown = Math.max(...equityCurve.map(p => p.drawdown), 0);
 
   // Calculate daily returns for Sharpe and Sortino
@@ -259,11 +230,15 @@ export function calculatePerformanceMetrics(
     ? (avgDailyReturn / downsideStdDev) * Math.sqrt(252) // Annualized
     : sharpeRatio; // Fallback to Sharpe if no downside
 
+  // Calmar ratio: annualized return / max drawdown
+  const calmarRatio = maxDrawdown > 0 ? annualizedReturn / maxDrawdown : 0;
+
   return {
     totalReturn,
     annualizedReturn,
     sharpeRatio,
     sortinoRatio,
+    calmarRatio,
     maxDrawdown,
     winRate,
     profitFactor,

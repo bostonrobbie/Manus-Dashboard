@@ -5,28 +5,23 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import { Loader2, TrendingUp, TrendingDown, Activity, Target } from "lucide-react";
+import { Loader2, TrendingUp, TrendingDown, Activity, Target, Gauge } from "lucide-react";
 import { PerformanceBreakdown } from "@/components/PerformanceBreakdown";
-import { ContractSizeToggle } from "@/components/ContractSizeToggle";
-import { useContractSize } from "@/contexts/ContractSizeContext";
 
 type TimeRange = 'YTD' | '1Y' | '3Y' | '5Y' | 'ALL';
 
 export default function Overview() {
   const [timeRange, setTimeRange] = useState<TimeRange>('1Y');
   const [startingCapital, setStartingCapital] = useState(100000);
-  const { contractSize } = useContractSize();
 
   const { data, isLoading, error } = trpc.portfolio.overview.useQuery({
     timeRange,
     startingCapital,
-    contractSize,
   });
 
   const { data: breakdownData, isLoading: breakdownLoading } = trpc.portfolio.performanceBreakdown.useQuery({
     timeRange,
     startingCapital,
-    contractSize,
   });
 
   if (isLoading) {
@@ -102,11 +97,10 @@ export default function Overview() {
         </div>
       </div>
 
-      {/* Contract Size Toggle */}
-      <ContractSizeToggle />
+
 
       {/* Key Metrics Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Return</CardTitle>
@@ -159,6 +153,19 @@ export default function Overview() {
             <div className="text-2xl font-bold">{metrics.winRate.toFixed(1)}%</div>
             <p className="text-xs text-muted-foreground">
               {metrics.winningTrades} / {metrics.totalTrades} trades
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Calmar Ratio</CardTitle>
+            <Gauge className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{metrics.calmarRatio.toFixed(2)}</div>
+            <p className="text-xs text-muted-foreground">
+              Return / Drawdown
             </p>
           </CardContent>
         </Card>

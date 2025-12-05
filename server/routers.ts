@@ -32,10 +32,9 @@ export const appRouter = router({
       .input(z.object({
         timeRange: TimeRange.optional(),
         startingCapital: z.number().optional().default(100000),
-        contractSize: z.enum(['mini', 'micro']).optional().default('mini'),
       }))
       .query(async ({ input }) => {
-        const { timeRange, startingCapital, contractSize } = input;
+        const { timeRange, startingCapital } = input;
 
         // Calculate date range
         const now = new Date();
@@ -98,21 +97,16 @@ export const appRouter = router({
         }
         const avgRatio = totalTrades > 0 ? totalRatio / totalTrades : 10;
 
-        // Calculate portfolio metrics with contract conversion
+        // Calculate portfolio metrics (mini contracts)
         const metrics = analytics.calculatePerformanceMetrics(
           allTrades,
-          startingCapital,
-          undefined,
-          contractSize,
-          avgRatio
+          startingCapital
         );
 
-        // Calculate equity curves with contract conversion
+        // Calculate equity curves (mini contracts)
         const rawPortfolioEquity = analytics.calculateEquityCurve(
           allTrades,
-          startingCapital,
-          contractSize,
-          avgRatio
+          startingCapital
         );
         const rawBenchmarkEquity = analytics.calculateBenchmarkEquityCurve(
           benchmarkData,
@@ -387,10 +381,9 @@ export const appRouter = router({
         strategyId: z.number().optional(),
         timeRange: TimeRange.optional(),
         startingCapital: z.number().optional().default(100000),
-        contractSize: z.enum(['mini', 'micro']).optional().default('mini'),
       }))
       .query(async ({ input }) => {
-        const { strategyId, timeRange, startingCapital, contractSize } = input;
+        const { strategyId, timeRange, startingCapital } = input;
 
         // Calculate date range
         const now = new Date();
@@ -427,31 +420,10 @@ export const appRouter = router({
           endDate: now,
         });
 
-        // Get strategy ratios for contract conversion
-        const strategies = await db.getAllStrategies();
-        let avgRatio = 10;
-        
-        if (strategyId) {
-          const strategy = strategies.find(s => s.id === strategyId);
-          avgRatio = strategy?.microToMiniRatio || 10;
-        } else {
-          // Calculate weighted average for all strategies
-          let totalRatio = 0;
-          let totalTrades = 0;
-          for (const strategy of strategies) {
-            const stratTrades = trades.filter(t => t.strategyId === strategy.id);
-            totalRatio += strategy.microToMiniRatio * stratTrades.length;
-            totalTrades += stratTrades.length;
-          }
-          avgRatio = totalTrades > 0 ? totalRatio / totalTrades : 10;
-        }
-
-        // Calculate breakdown with contract conversion
+        // Calculate breakdown (mini contracts)
         const performanceBreakdown = breakdown.calculatePerformanceBreakdown(
           trades,
-          startingCapital,
-          contractSize,
-          avgRatio
+          startingCapital
         );
 
         return performanceBreakdown;
