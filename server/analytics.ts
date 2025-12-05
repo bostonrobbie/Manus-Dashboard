@@ -22,6 +22,26 @@ export interface BenchmarkData {
   close: number; // in cents
 }
 
+export interface TradeStats {
+  totalTrades: number;
+  winningTrades: number;
+  losingTrades: number;
+  winRate: number; // percentage
+  averageTradePnL: number; // dollars
+  medianTradePnL: number; // dollars
+  bestTradePnL: number; // dollars
+  worstTradePnL: number; // dollars
+  profitFactor: number;
+  expectancyPnL: number; // dollars per trade
+  expectancyPct: number; // percentage per trade
+  averageHoldingTimeMinutes: number;
+  medianHoldingTimeMinutes: number;
+  longestWinStreak: number;
+  longestLossStreak: number;
+  avgWin: number; // dollars
+  avgLoss: number; // dollars
+}
+
 export interface PerformanceMetrics {
   totalReturn: number; // percentage
   annualizedReturn: number; // percentage
@@ -36,6 +56,7 @@ export interface PerformanceMetrics {
   totalTrades: number;
   winningTrades: number;
   losingTrades: number;
+  tradeStats: TradeStats; // Enhanced trade statistics
 }
 
 export interface EquityPoint {
@@ -130,6 +151,110 @@ export function forwardFillEquityCurve(
 }
 
 /**
+ * Calculate enhanced trade statistics
+ */
+export function calculateTradeStats(trades: Trade[]): TradeStats {
+  if (trades.length === 0) {
+    return {
+      totalTrades: 0,
+      winningTrades: 0,
+      losingTrades: 0,
+      winRate: 0,
+      averageTradePnL: 0,
+      medianTradePnL: 0,
+      bestTradePnL: 0,
+      worstTradePnL: 0,
+      profitFactor: 0,
+      expectancyPnL: 0,
+      expectancyPct: 0,
+      averageHoldingTimeMinutes: 0,
+      medianHoldingTimeMinutes: 0,
+      longestWinStreak: 0,
+      longestLossStreak: 0,
+      avgWin: 0,
+      avgLoss: 0,
+    };
+  }
+
+  const winningTrades = trades.filter(t => t.pnl > 0);
+  const losingTrades = trades.filter(t => t.pnl < 0);
+  const winRate = (winningTrades.length / trades.length) * 100;
+
+  // P&L statistics
+  const pnlValues = trades.map(t => t.pnl / 100); // Convert to dollars
+  const sortedPnl = [...pnlValues].sort((a, b) => a - b);
+  const averageTradePnL = pnlValues.reduce((sum, p) => sum + p, 0) / pnlValues.length;
+  const medianTradePnL = sortedPnl[Math.floor(sortedPnl.length / 2)]!;
+  const bestTradePnL = Math.max(...pnlValues);
+  const worstTradePnL = Math.min(...pnlValues);
+
+  // Profit factor
+  const totalWins = winningTrades.reduce((sum, t) => sum + (t.pnl / 100), 0);
+  const totalLosses = Math.abs(losingTrades.reduce((sum, t) => sum + (t.pnl / 100), 0));
+  const profitFactor = totalLosses > 0 ? totalWins / totalLosses : totalWins > 0 ? Infinity : 0;
+
+  // Average win/loss
+  const avgWin = winningTrades.length > 0 ? totalWins / winningTrades.length : 0;
+  const avgLoss = losingTrades.length > 0 ? totalLosses / losingTrades.length : 0;
+
+  // Expectancy
+  const expectancyPnL = (avgWin * (winRate / 100)) - (avgLoss * ((100 - winRate) / 100));
+  
+  // Expectancy percentage (based on average trade size)
+  const avgTradeSize = Math.abs(averageTradePnL);
+  const expectancyPct = avgTradeSize > 0 ? (expectancyPnL / avgTradeSize) * 100 : 0;
+
+  // Holding time statistics
+  const holdingTimes = trades.map(t => {
+    const entryTime = t.entryDate.getTime();
+    const exitTime = t.exitDate.getTime();
+    return (exitTime - entryTime) / (1000 * 60); // Minutes
+  });
+  const averageHoldingTimeMinutes = holdingTimes.reduce((sum, t) => sum + t, 0) / holdingTimes.length;
+  const sortedHoldingTimes = [...holdingTimes].sort((a, b) => a - b);
+  const medianHoldingTimeMinutes = sortedHoldingTimes[Math.floor(sortedHoldingTimes.length / 2)]!;
+
+  // Win/Loss streaks
+  let longestWinStreak = 0;
+  let longestLossStreak = 0;
+  let currentWinStreak = 0;
+  let currentLossStreak = 0;
+
+  const sortedTrades = [...trades].sort((a, b) => a.exitDate.getTime() - b.exitDate.getTime());
+  for (const trade of sortedTrades) {
+    if (trade.pnl > 0) {
+      currentWinStreak++;
+      currentLossStreak = 0;
+      longestWinStreak = Math.max(longestWinStreak, currentWinStreak);
+    } else if (trade.pnl < 0) {
+      currentLossStreak++;
+      currentWinStreak = 0;
+      longestLossStreak = Math.max(longestLossStreak, currentLossStreak);
+    }
+  }
+
+  return {
+    totalTrades: trades.length,
+    winningTrades: winningTrades.length,
+    losingTrades: losingTrades.length,
+    winRate,
+    averageTradePnL,
+    medianTradePnL,
+    bestTradePnL,
+    worstTradePnL,
+    profitFactor,
+    expectancyPnL,
+    expectancyPct,
+    averageHoldingTimeMinutes,
+    medianHoldingTimeMinutes,
+    longestWinStreak,
+    longestLossStreak,
+    avgWin,
+    avgLoss,
+  };
+}
+
+/**
  * Calculate comprehensive performance metrics (mini contracts only)
  * @param trades Array of trades
  * @param startingCapital Starting capital in dollars
@@ -155,6 +280,7 @@ export function calculatePerformanceMetrics(
       totalTrades: 0,
       winningTrades: 0,
       losingTrades: 0,
+      tradeStats: calculateTradeStats([]),
     };
   }
 
@@ -233,6 +359,9 @@ export function calculatePerformanceMetrics(
   // Calmar ratio: annualized return / max drawdown
   const calmarRatio = maxDrawdown > 0 ? annualizedReturn / maxDrawdown : 0;
 
+  // Calculate enhanced trade statistics
+  const tradeStats = calculateTradeStats(trades);
+
   return {
     totalReturn,
     annualizedReturn,
@@ -247,6 +376,7 @@ export function calculatePerformanceMetrics(
     totalTrades: trades.length,
     winningTrades: winningTrades.length,
     losingTrades: losingTrades.length,
+    tradeStats,
   };
 }
 
@@ -317,6 +447,80 @@ export function calculateCorrelation(
 
   const denominator = Math.sqrt(sumSq1 * sumSq2);
   return denominator > 0 ? numerator / denominator : 0;
+}
+
+/**
+ * Calculate correlation matrix for multiple strategies
+ * @param strategiesData Map of strategy ID/name to equity curve
+ * @returns Correlation matrix with labels and values
+ */
+export interface CorrelationMatrix {
+  labels: string[];
+  matrix: number[][];
+}
+
+export function calculateStrategyCorrelationMatrix(
+  strategiesData: Map<string, EquityPoint[]>
+): CorrelationMatrix {
+  const labels = Array.from(strategiesData.keys());
+  const n = labels.length;
+  const matrix: number[][] = Array(n).fill(0).map(() => Array(n).fill(0));
+
+  // Calculate daily returns for each strategy
+  const returnsMap = new Map<string, number[]>();
+  for (const [label, curve] of Array.from(strategiesData.entries())) {
+    const returns: number[] = [];
+    for (let i = 1; i < curve.length; i++) {
+      const prevEquity = curve[i - 1]!.equity;
+      const currEquity = curve[i]!.equity;
+      if (prevEquity > 0) {
+        returns.push((currEquity - prevEquity) / prevEquity);
+      }
+    }
+    returnsMap.set(label, returns);
+  }
+
+  // Calculate correlation for each pair
+  for (let i = 0; i < n; i++) {
+    for (let j = 0; j < n; j++) {
+      if (i === j) {
+        matrix[i]![j] = 1.0; // Perfect correlation with self
+      } else {
+        const returns1 = returnsMap.get(labels[i]!)!;
+        const returns2 = returnsMap.get(labels[j]!)!;
+        
+        // Use minimum length to handle different curve lengths
+        const minLen = Math.min(returns1.length, returns2.length);
+        if (minLen === 0) {
+          matrix[i]![j] = 0;
+          continue;
+        }
+
+        const r1 = returns1.slice(0, minLen);
+        const r2 = returns2.slice(0, minLen);
+
+        const mean1 = r1.reduce((sum, r) => sum + r, 0) / r1.length;
+        const mean2 = r2.reduce((sum, r) => sum + r, 0) / r2.length;
+
+        let numerator = 0;
+        let sumSq1 = 0;
+        let sumSq2 = 0;
+
+        for (let k = 0; k < r1.length; k++) {
+          const diff1 = r1[k]! - mean1;
+          const diff2 = r2[k]! - mean2;
+          numerator += diff1 * diff2;
+          sumSq1 += diff1 * diff1;
+          sumSq2 += diff2 * diff2;
+        }
+
+        const denominator = Math.sqrt(sumSq1 * sumSq2);
+        matrix[i]![j] = denominator > 0 ? numerator / denominator : 0;
+      }
+    }
+  }
+
+  return { labels, matrix };
 }
 
 /**
@@ -798,6 +1002,18 @@ export interface UnderwaterPoint {
   daysUnderwater: number; // Days since last peak
 }
 
+export interface UnderwaterMetrics {
+  curve: UnderwaterPoint[];
+  longestDurationDays: number;
+  averageRecoveryDays: number;
+  pctDaysAtHighWater: number;
+}
+
+export interface UnderwaterData {
+  portfolio: UnderwaterMetrics;
+  benchmark: UnderwaterMetrics;
+}
+
 export function calculateUnderwaterCurve(
   equityCurve: EquityPoint[]
 ): UnderwaterPoint[] {
@@ -826,6 +1042,80 @@ export function calculateUnderwaterCurve(
   }
 
   return underwater;
+}
+
+/**
+ * Calculate underwater metrics including duration statistics
+ */
+export function calculateUnderwaterMetrics(
+  equityCurve: EquityPoint[]
+): UnderwaterMetrics {
+  const curve = calculateUnderwaterCurve(equityCurve);
+  
+  if (curve.length === 0) {
+    return {
+      curve: [],
+      longestDurationDays: 0,
+      averageRecoveryDays: 0,
+      pctDaysAtHighWater: 0,
+    };
+  }
+
+  // Find longest drawdown duration
+  let longestDuration = 0;
+  let currentDuration = 0;
+  const recoveryPeriods: number[] = [];
+  let inDrawdown = false;
+  let drawdownStart = 0;
+
+  for (let i = 0; i < curve.length; i++) {
+    const point = curve[i]!;
+    
+    if (point.drawdownPercent < 0) {
+      if (!inDrawdown) {
+        inDrawdown = true;
+        drawdownStart = i;
+      }
+      currentDuration++;
+      longestDuration = Math.max(longestDuration, currentDuration);
+    } else {
+      if (inDrawdown) {
+        // Recovery complete
+        recoveryPeriods.push(currentDuration);
+        inDrawdown = false;
+        currentDuration = 0;
+      }
+    }
+  }
+
+  // Calculate average recovery time
+  const averageRecovery = recoveryPeriods.length > 0
+    ? recoveryPeriods.reduce((sum, days) => sum + days, 0) / recoveryPeriods.length
+    : 0;
+
+  // Calculate percentage of days at high water (zero drawdown)
+  const daysAtHighWater = curve.filter(p => p.drawdownPercent === 0).length;
+  const pctAtHighWater = (daysAtHighWater / curve.length) * 100;
+
+  return {
+    curve,
+    longestDurationDays: longestDuration,
+    averageRecoveryDays: Math.round(averageRecovery),
+    pctDaysAtHighWater: pctAtHighWater,
+  };
+}
+
+/**
+ * Calculate underwater data for both portfolio and benchmark
+ */
+export function calculateUnderwaterData(
+  portfolioEquity: EquityPoint[],
+  benchmarkEquity: EquityPoint[]
+): UnderwaterData {
+  return {
+    portfolio: calculateUnderwaterMetrics(portfolioEquity),
+    benchmark: calculateUnderwaterMetrics(benchmarkEquity),
+  };
 }
 
 /**
@@ -901,10 +1191,16 @@ export interface RollingMetricsData {
 
 /**
  * Calculate rolling metrics (Sharpe, Sortino, Max Drawdown) over different windows
+ * @param equityCurve Full equity curve (should be complete history for accurate rolling windows)
+ * @param windows Array of window sizes in days (e.g., [30, 90, 365])
+ * @param startDate Optional start date to filter results (compute on full history, then filter)
+ * @param endDate Optional end date to filter results
  */
 export function calculateRollingMetrics(
   equityCurve: EquityPoint[],
-  windows: number[] = [30, 90, 365]
+  windows: number[] = [30, 90, 365],
+  startDate?: Date,
+  endDate?: Date
 ): RollingMetricsData[] {
   const results: RollingMetricsData[] = [];
 
@@ -978,7 +1274,18 @@ export function calculateRollingMetrics(
       });
     }
 
-    results.push({ window, data: windowData });
+    // Filter windowData to the specified date range if provided
+    let filteredData = windowData;
+    if (startDate || endDate) {
+      filteredData = windowData.filter(point => {
+        const pointTime = point.date.getTime();
+        if (startDate && pointTime < startDate.getTime()) return false;
+        if (endDate && pointTime > endDate.getTime()) return false;
+        return true;
+      });
+    }
+
+    results.push({ window, data: filteredData });
   }
 
   return results;

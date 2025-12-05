@@ -386,3 +386,100 @@
 - [x] Add calendar heatmap section to Overview page
 - [x] Style heatmap with color gradients (green=positive, red=negative)
 - [x] Write tests for monthly returns calendar calculations (6 tests)
+
+
+## Current Sprint: Analytics Refinement & Enhancement
+
+### Step 1: Make Rolling Metrics Respect Time Range
+- [x] Analyze current rolling metrics calculation in server/analytics.ts
+- [x] Verify rolling metrics are computed over full history first
+- [x] Filter rolling metrics to selected timeRange after computation
+- [x] Ensure consistent date ranges across equity, drawdown, and rolling series
+- [x] Update portfolio.overview to apply timeRange filter to rolling metrics
+- [ ] Test rolling metrics with different time ranges (YTD, 1Y, 3Y, 5Y, ALL)
+- [ ] Verify frontend displays correct data for each time range
+- [ ] Add server tests for rolling metrics time range filtering
+- [ ] Add client tests for rolling metrics chart updates
+
+### Step 2: Replace SPX Correlation with Strategy Correlation Heatmap
+- [x] Create correlation matrix calculation helper in analytics
+- [x] Extract daily returns for all strategies
+- [x] Compute Pearson correlation matrix (strategy x strategy)
+- [x] Add strategyCorrelationMatrix to portfolio.overview response
+- [x] Remove old portfolioVsBenchmarkCorrelation field
+- [ ] Update API_CONTRACT.md with new correlation matrix structure
+- [x] Create StrategyCorrelationHeatmap component for strategy matrix
+- [x] Replace correlation scatter plot with heatmap on Overview page
+- [x] Add tooltips showing strategy pairs and coefficients
+- [x] Add interpretation text below heatmap
+- [ ] Test correlation matrix is symmetric with 1.0 diagonal
+- [ ] Test all values are between -1 and 1
+- [ ] Add frontend tests for heatmap rendering
+
+### Step 3: Overlay SPX on Underwater Equity Chart
+- [x] Extend underwater calculation to include benchmark
+- [x] Calculate SPX underwater curve (drawdown from peak)
+- [x] Add benchmark underwater metrics (longest duration, recovery time)
+- [x] Update underwater response structure with portfolio + benchmark
+- [x] Update UnderwaterCurveChart component to show both curves
+- [x] Add legend distinguishing portfolio vs SPX
+- [x] Style both curves with different colors
+- [x] Add statistics cards showing metrics for both portfolio and SPX
+- [ ] Test underwater chart displays both curves correctly
+- [ ] Verify benchmark underwater metrics are accurate
+
+### Step 4: Enhance Trade Statistics with Risk/Expectancy Metrics
+- [ ] Add expectancy calculation (avg win * win rate - avg loss * loss rate)
+- [ ] Add Kelly Criterion calculation
+- [ ] Add risk-reward ratio calculation
+- [ ] Add consecutive wins/losses tracking
+- [ ] Add largest winning/losing streaks
+- [ ] Update trade statistics section on Overview page
+- [ ] Update trade statistics on Strategy Detail pages
+- [ ] Add tooltips explaining each metric
+- [ ] Test all new metrics calculations
+- [ ] Verify metrics display correctly in UI
+
+### Testing & Verification
+- [ ] Run all existing tests to ensure no regressions
+- [ ] Add new tests for correlation matrix
+- [ ] Add new tests for underwater benchmark overlay
+- [ ] Add new tests for enhanced trade statistics
+- [ ] Test all time range filters work correctly
+- [ ] Verify all charts update when time range changes
+- [ ] Check mobile responsiveness of new components
+- [ ] Verify all 66+ tests still pass
+
+### Step 4: Enhance Trade Statistics with Risk/Expectancy Metrics
+- [x] Add medianTradePnL calculation
+- [x] Add bestTradePnL and worstTradePnL tracking
+- [x] Add expectancyPnL calculation (average PnL per trade)
+- [x] Add expectancyPct calculation (average % return per trade)
+- [x] Add averageHoldingTime calculation (entry→exit in minutes/hours)
+- [x] Add medianHoldingTime calculation
+- [x] Add longestWinStreak tracking
+- [x] Add longestLossStreak tracking
+- [x] Create TradeStats interface with all metrics
+- [x] Update portfolio overview to include enhanced trade statistics (via PerformanceMetrics.tradeStats)
+- [ ] Update strategy detail to include enhanced trade statistics
+- [ ] Update API_CONTRACT.md with TradeStats object definition
+- [x] Add unit tests for profitFactor calculation
+- [x] Add unit tests for expectancy calculation
+- [x] Add unit tests for win/loss streak calculation
+- [x] Add unit tests for holding time calculation (11 tests total, all passing)
+- [ ] Add frontend tests for TradeStats rendering
+
+### Step 5: Testing, Documentation & Verification
+- [x] Run pnpm test to verify all tests pass (77 tests passing)
+- [x] Fix any test failures introduced by changes
+- [ ] Update API_CONTRACT.md with timeRange behavior documentation
+- [ ] Document strategyCorrelationMatrix structure in API_CONTRACT.md
+- [ ] Document underwater.portfolio and underwater.benchmark in API_CONTRACT.md
+- [ ] Document TradeStats structure in API_CONTRACT.md
+- [ ] Create or update AI-to-AI Task & Communication Log
+- [ ] Add completion entries for all 4 steps
+- [ ] Note any limitations or assumptions made
+- [ ] Verify rolling metrics change with timeRange in browser
+- [ ] Verify correlation heatmap displays all strategies
+- [ ] Verify underwater chart shows both portfolio and SPX
+- [ ] Verify trade statistics show enhanced metrics

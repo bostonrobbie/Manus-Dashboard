@@ -68,10 +68,17 @@ export const appRouter = router({
         const strategies = await db.getAllStrategies();
         const strategyIds = strategies.map(s => s.id);
 
-        // Get trades for all strategies
+        // Get trades for all strategies (filtered by time range)
         const allTrades = await db.getTrades({
           strategyIds,
           startDate,
+          endDate: now,
+        });
+
+        // Also get ALL trades (full history) for rolling metrics calculation
+        const allTradesFullHistory = await db.getTrades({
+          strategyIds,
+          startDate: undefined, // No filter - get everything
           endDate: now,
         });
 
@@ -108,6 +115,12 @@ export const appRouter = router({
           allTrades,
           startingCapital
         );
+
+        // Calculate full history equity curve for rolling metrics
+        const rawPortfolioEquityFull = analytics.calculateEquityCurve(
+          allTradesFullHistory,
+          startingCapital
+        );
         const rawBenchmarkEquity = analytics.calculateBenchmarkEquityCurve(
           benchmarkData,
           startingCapital
@@ -132,6 +145,16 @@ export const appRouter = router({
           equityStartDate,
           equityEndDate
         );
+
+        // Forward-fill full history for rolling metrics
+        const fullHistoryStartDate = rawPortfolioEquityFull.length > 0
+          ? rawPortfolioEquityFull[0]!.date
+          : new Date();
+        const portfolioEquityFull = analytics.forwardFillEquityCurve(
+          rawPortfolioEquityFull,
+          fullHistoryStartDate,
+          equityEndDate
+        );
         const benchmarkEquity = analytics.forwardFillEquityCurve(
           rawBenchmarkEquity,
           benchmarkStartDate,
@@ -145,15 +168,40 @@ export const appRouter = router({
         const quarterlyPerf = analytics.calculatePerformanceByPeriod(allTrades, 'quarter');
         const yearlyPerf = analytics.calculatePerformanceByPeriod(allTrades, 'year');
 
-        // Calculate underwater curve and day-of-week breakdown
-        const underwaterCurve = analytics.calculateUnderwaterCurve(portfolioEquity);
+        // Calculate underwater data for portfolio and benchmark
+        const underwaterData = analytics.calculateUnderwaterData(portfolioEquity, benchmarkEquity);
         const dayOfWeekBreakdown = analytics.calculateDayOfWeekBreakdown(allTrades);
 
-        // Calculate correlation between portfolio and benchmark
-        const correlation = analytics.calculateCorrelation(portfolioEquity, benchmarkEquity);
+        // Calculate strategy correlation matrix
+        const strategyEquityCurves = new Map<string, analytics.EquityPoint[]>();
+        for (const strategy of strategies) {
+          const strategyTrades = allTrades.filter(t => t.strategyId === strategy.id);
+          if (strategyTrades.length > 0) {
+            const rawEquity = analytics.calculateEquityCurve(strategyTrades, startingCapital);
+            const strategyStartDate = rawEquity.length > 0 ? rawEquity[0]!.date : equityStartDate;
+            const forwardFilled = analytics.forwardFillEquityCurve(
+              rawEquity,
+              strategyStartDate,
+              equityEndDate
+            );
+            strategyEquityCurves.set(strategy.name, forwardFilled);
+          }
+        }
+        
+        // Add portfolio and benchmark to correlation matrix
+        strategyEquityCurves.set('Portfolio', portfolioEquity);
+        strategyEquityCurves.set('S&P 500', benchmarkEquity);
+        
+        const strategyCorrelationMatrix = analytics.calculateStrategyCorrelationMatrix(strategyEquityCurves);
 
         // Calculate rolling metrics (30, 90, 365 day windows)
-        const rollingMetrics = analytics.calculateRollingMetrics(portfolioEquity, [30, 90, 365]);
+        // Compute on full history, then filter to time range
+        const rollingMetrics = analytics.calculateRollingMetrics(
+          portfolioEquityFull,
+          [30, 90, 365],
+          startDate,
+          now
+        );
 
         // Calculate monthly returns calendar
         const monthlyReturnsCalendar = analytics.calculateMonthlyReturnsCalendar(portfolioEquity);
@@ -162,9 +210,9 @@ export const appRouter = router({
           metrics,
           portfolioEquity,
           benchmarkEquity,
-          underwaterCurve,
+          underwaterData,
           dayOfWeekBreakdown,
-          correlation,
+          strategyCorrelationMatrix,
           rollingMetrics,
           monthlyReturnsCalendar,
           periodPerformance: {

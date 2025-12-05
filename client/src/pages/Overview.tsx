@@ -9,7 +9,7 @@ import { Loader2, TrendingUp, TrendingDown, Activity, Target, Gauge } from "luci
 import { PerformanceBreakdown } from "@/components/PerformanceBreakdown";
 import { UnderwaterCurveChart } from "@/components/UnderwaterCurveChart";
 import { DayOfWeekHeatmap } from "@/components/DayOfWeekHeatmap";
-import { CorrelationChart } from "@/components/CorrelationChart";
+import { StrategyCorrelationHeatmap } from "@/components/StrategyCorrelationHeatmap";
 import { RollingMetricsChart } from "@/components/RollingMetricsChart";
 import { MonthlyReturnsCalendar } from "@/components/MonthlyReturnsCalendar";
 
@@ -285,10 +285,10 @@ export default function Overview() {
       </div>
 
       {/* Underwater Curve */}
-      {data.underwaterCurve && data.underwaterCurve.length > 0 && (
+      {data.underwaterData && (
         <Card>
           <CardContent className="pt-6">
-            <UnderwaterCurveChart data={data.underwaterCurve} />
+            <UnderwaterCurveChart data={data.underwaterData} />
           </CardContent>
         </Card>
       )}
@@ -302,14 +302,13 @@ export default function Overview() {
         </Card>
       )}
 
-      {/* Correlation Analysis */}
-      {data.correlation !== undefined && (
+      {/* Strategy Correlation Matrix */}
+      {data.strategyCorrelationMatrix && (
         <Card>
           <CardContent className="pt-6">
-            <CorrelationChart 
-              portfolioEquity={data.portfolioEquity}
-              benchmarkEquity={data.benchmarkEquity}
-              correlation={data.correlation}
+            <StrategyCorrelationHeatmap 
+              labels={data.strategyCorrelationMatrix.labels}
+              matrix={data.strategyCorrelationMatrix.matrix}
             />
           </CardContent>
         </Card>
