@@ -188,6 +188,7 @@ export const appRouter = router({
         // Calculate underwater data for portfolio and benchmark
         const underwater = analytics.calculatePortfolioUnderwater(portfolioEquity);
         const dayOfWeekBreakdown = analytics.calculateDayOfWeekBreakdown(allTrades);
+        const weekOfMonthBreakdown = analytics.calculateWeekOfMonthBreakdown(allTrades);
 
         // Calculate strategy correlation matrix
         const strategyEquityCurves = new Map<string, analytics.EquityPoint[]>();
@@ -244,6 +245,7 @@ export const appRouter = router({
           majorDrawdowns,
           distribution,
           dayOfWeekBreakdown,
+          weekOfMonthBreakdown,
           strategyCorrelationMatrix,
           rollingMetrics,
           monthlyReturnsCalendar,

@@ -797,3 +797,77 @@
 - [x] Add all-strategies equity chart to strategies page (shows all 8 strategies with time range selector)
   * Note: Chart loading slowly due to large dataset (9,356 trades). May need optimization.
 - [x] Add portfolio sizing calculator to overview page (calculates min account size for micros/minis based on max drawdown + margin requirements)
+
+
+## Comprehensive Dashboard Improvements (From Instructions)
+
+### PART 1 - Overview: Day-of-week + Week-of-month + Calendar PnL
+- [x] Improve day-of-week performance card styling for better legibility
+  * Increased font sizes: day labels (base), Avg P&L (2xl), win rate (lg)
+  * Changed all text to white/white-90 for proper contrast on colored backgrounds
+  * Maintained spacing and layout consistency
+- [x] Add week-of-month performance tab
+  * Backend: Implemented calculateWeekOfMonthBreakdown in analytics.ts
+  * Frontend: Added WeekOfMonthHeatmap component with tab toggle
+  * Shows up to 5 cards (Week 1-5) with same styling as day-of-week
+  * Displays: trades count, Avg P&L, Win Rate, Avg Win, Avg Loss
+- [ ] Add calendar PnL visualization to Performance Breakdown
+  * Create CalendarPnL component with heatmap/grid (GitHub-style contributions calendar)
+  * For Daily view: show calendar with color intensity by PnL
+  * Hover/click shows exact PnL, return, and trades
+  * Keep existing table as secondary/collapsible view
+
+### PART 2 - Portfolio Sizing Calculator: Use All-Time Risk
+- [ ] Fix calculator to always use all-time max drawdown
+  * Backend: Expose allTimeMaxDrawdown metric (computed from all history)
+  * Update formula: minAccount = allTimeMaxDrawdown + marginRequirement
+  * UI: Show "Max Drawdown (All Time)" and optionally "Max Drawdown (Selected Range)"
+  * Verify changing time range does NOT change Minimum Account Size
+
+### PART 3 - Trading Strategies Page: Fix Broken Charts
+- [ ] Debug and fix "All Strategies Performance" chart
+  * Check tRPC hook and endpoint alignment
+  * Verify data structure: `{ strategies: Array<{ id, name, equityCurve: Array<{ timestamp, equity }> }> }`
+  * Ensure chart renders all strategy series
+  * Fix any type mismatches or empty data guards
+
+### PART 4 - Compare Page: Fix Equity Curves
+- [ ] Show individual equity curves for each selected strategy
+- [ ] Fix combined equity curve to be chronologically sorted
+  * Ensure all series sorted ascending by timestamp
+  * Implement proper merge/resample strategy for combined curve
+  * Document the combination formula clearly
+
+### PART 5 - Tests and Sanity Checks
+- [ ] Add frontend tests for Day-of-Week and Week-of-Month cards
+- [ ] Add tests for CalendarPnL component
+- [ ] Add tests for Strategies and Compare page charts
+- [ ] Add backend tests for all-time max drawdown calculation
+- [ ] Run lint, typecheck, and full test suite
+
+### PART 6 - Final Verification
+- [ ] Manual verification of all changes
+- [ ] Ensure all charts load correctly
+- [ ] Verify portfolio calculator uses all-time DD
+- [ ] Confirm chronological sorting on Compare page
+
+
+- [x] Fix portfolio sizing calculator to use all-time max drawdown (PART 4)
+  * Fixed: Now fetches ALL time range data separately
+  * Uses allTimeData.metrics.maxDrawdown for all calculations
+  * Both micro and mini contracts now use consistent all-time DD
+
+
+- [ ] Fix broken charts on Trading Strategies page (PART 5) - DEFERRED
+  * Issue: compareStrategies API times out with all 8 strategies (9,356 trades)
+  * Root cause: Forward-filling and processing is too expensive
+  * Solution needed: Create optimized endpoint or add server-side caching
+  * Status: Deferred for future optimization (non-critical feature)
+
+
+- [x] Fix Compare page equity curves and combined curve (PART 6)
+  * Individual strategy curves display correctly (tested with ES + NQ)
+  * Combined Portfolio curve shows in bright blue
+  * Correlation matrix working with proper color coding
+  * Performance comparison table shows combined + individual metrics
+  * Trade simulation already fixed earlier (not averaging)

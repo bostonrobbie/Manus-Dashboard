@@ -9,6 +9,8 @@ import { Loader2, TrendingUp, TrendingDown, Activity, Target, Gauge } from "luci
 import { PerformanceBreakdown } from "@/components/PerformanceBreakdown";
 import { UnderwaterCurveChart } from "@/components/UnderwaterCurveChart";
 import { DayOfWeekHeatmap } from "@/components/DayOfWeekHeatmap";
+import { WeekOfMonthHeatmap } from "@/components/WeekOfMonthHeatmap";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StrategyCorrelationHeatmap } from "@/components/StrategyCorrelationHeatmap";
 import { RollingMetricsChart } from "@/components/RollingMetricsChart";
 import { MonthlyReturnsCalendar } from "@/components/MonthlyReturnsCalendar";
@@ -25,6 +27,12 @@ export default function Overview() {
 
   const { data, isLoading, error } = trpc.portfolio.overview.useQuery({
     timeRange,
+    startingCapital,
+  });
+
+  // Fetch all-time max drawdown for portfolio sizing calculator
+  const { data: allTimeData } = trpc.portfolio.overview.useQuery({
+    timeRange: 'ALL',
     startingCapital,
   });
 
@@ -262,11 +270,23 @@ export default function Overview() {
       {/* Distribution Snapshot */}
       {data.distribution && <DistributionSnapshot distribution={data.distribution} />}
 
-      {/* Day-of-Week Performance */}
-      {data.dayOfWeekBreakdown && data.dayOfWeekBreakdown.length > 0 && (
+      {/* Day-of-Week and Week-of-Month Performance */}
+      {((data.dayOfWeekBreakdown && data.dayOfWeekBreakdown.length > 0) || 
+        (data.weekOfMonthBreakdown && data.weekOfMonthBreakdown.length > 0)) && (
         <Card>
           <CardContent className="pt-6">
-            <DayOfWeekHeatmap data={data.dayOfWeekBreakdown} />
+            <Tabs defaultValue="day-of-week" className="w-full">
+              <TabsList className="mb-4">
+                <TabsTrigger value="day-of-week">Day of Week</TabsTrigger>
+                <TabsTrigger value="week-of-month">Week of Month</TabsTrigger>
+              </TabsList>
+              <TabsContent value="day-of-week">
+                {data.dayOfWeekBreakdown && <DayOfWeekHeatmap data={data.dayOfWeekBreakdown} />}
+              </TabsContent>
+              <TabsContent value="week-of-month">
+                {data.weekOfMonthBreakdown && <WeekOfMonthHeatmap data={data.weekOfMonthBreakdown} />}
+              </TabsContent>
+            </Tabs>
           </CardContent>
         </Card>
       )}
@@ -314,7 +334,7 @@ export default function Overview() {
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-muted-foreground">Max Drawdown:</span>
                     <span className="font-semibold text-red-600">
-                      ${((metrics.maxDrawdown / 100) * startingCapital / 10).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                      ${((Math.abs(allTimeData?.metrics.maxDrawdown ?? metrics.maxDrawdown) / 100) * startingCapital / 10).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
@@ -327,7 +347,7 @@ export default function Overview() {
                       <span className="text-lg font-bold text-primary">
                         ${Math.max(
                           500,
-                          Math.ceil(((metrics.maxDrawdown / 100) * startingCapital / 10 + 500) / 100) * 100
+                          Math.ceil(((Math.abs(allTimeData?.metrics.maxDrawdown ?? metrics.maxDrawdown) / 100) * startingCapital / 10 + 500) / 100) * 100
                         ).toLocaleString()}
                       </span>
                     </div>
@@ -348,7 +368,7 @@ export default function Overview() {
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-muted-foreground">Max Drawdown:</span>
                     <span className="font-semibold text-red-600">
-                      ${((metrics.maxDrawdown / 100) * startingCapital).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                      ${((Math.abs(allTimeData?.metrics.maxDrawdown ?? metrics.maxDrawdown) / 100) * startingCapital).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
@@ -361,7 +381,7 @@ export default function Overview() {
                       <span className="text-lg font-bold text-primary">
                         ${Math.max(
                           5000,
-                          Math.ceil(((metrics.maxDrawdown / 100) * startingCapital + 5000) / 1000) * 1000
+                          Math.ceil(((Math.abs(allTimeData?.metrics.maxDrawdown ?? metrics.maxDrawdown) / 100) * startingCapital + 5000) / 1000) * 1000
                         ).toLocaleString()}
                       </span>
                     </div>
@@ -377,7 +397,7 @@ export default function Overview() {
               <p className="text-sm text-blue-900 dark:text-blue-100">
                 <strong>Note:</strong> These calculations assume trading with the same position sizing as your backtest 
                 (${startingCapital.toLocaleString()} starting capital). The minimum account size ensures you can survive 
-                the maximum historical drawdown ({metrics.maxDrawdown.toFixed(2)}%) plus maintain required margin. 
+                the maximum historical drawdown ({Math.abs(allTimeData?.metrics.maxDrawdown ?? metrics.maxDrawdown).toFixed(2)}%) plus maintain required margin. 
                 For 0% risk of ruin, your actual trading capital should exceed these minimums.
               </p>
             </div>
