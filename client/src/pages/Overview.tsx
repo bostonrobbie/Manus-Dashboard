@@ -13,11 +13,9 @@ import { WeekOfMonthHeatmap } from "@/components/WeekOfMonthHeatmap";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StrategyCorrelationHeatmap } from "@/components/StrategyCorrelationHeatmap";
 import { RollingMetricsChart } from "@/components/RollingMetricsChart";
-import { MonthlyReturnsCalendar } from "@/components/MonthlyReturnsCalendar";
 import { TradeAndRiskStats } from "@/components/TradeAndRiskStats";
 import { PortfolioSummary } from "@/components/PortfolioSummary";
 import { DistributionSnapshot } from "@/components/DistributionSnapshot";
-import { MajorDrawdownsTable } from "@/components/MajorDrawdownsTable";
 
 type TimeRange = 'YTD' | '1Y' | '3Y' | '5Y' | 'ALL';
 
@@ -169,103 +167,117 @@ export default function Overview() {
 
 
 
-      {/* Key Metrics Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Return</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+      {/* Key Metrics Cards - Modern Design */}
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-6">
+        <Card className="hover:shadow-lg transition-shadow duration-200">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+            <CardTitle className="text-sm font-semibold text-muted-foreground">Total Return</CardTitle>
+            <div className="p-2 bg-primary/10 rounded-lg">
+              <TrendingUp className="h-5 w-5 text-primary" />
+            </div>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
+          <CardContent className="space-y-2">
+            <div className={`text-4xl font-bold tracking-tight ${
+              metrics.totalReturn >= 0 ? 'text-green-500' : 'text-red-500'
+            }`}>
               {metrics.totalReturn >= 0 ? '+' : ''}{metrics.totalReturn.toFixed(2)}%
             </div>
-            <p className="text-xs text-muted-foreground">
-              Annualized: {metrics.annualizedReturn.toFixed(2)}%
+            <p className="text-sm text-muted-foreground font-medium">
+              {metrics.annualizedReturn.toFixed(2)}% annualized
             </p>
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="text-xs text-muted-foreground/70">
               {getDateRangeText(timeRange)}
             </p>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Sharpe Ratio</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
+        <Card className="hover:shadow-lg transition-shadow duration-200">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+            <CardTitle className="text-sm font-semibold text-muted-foreground">Sharpe Ratio</CardTitle>
+            <div className="p-2 bg-blue-500/10 rounded-lg">
+              <Activity className="h-5 w-5 text-blue-500" />
+            </div>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{metrics.sharpeRatio.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground">
+          <CardContent className="space-y-2">
+            <div className="text-4xl font-bold tracking-tight">{metrics.sharpeRatio.toFixed(2)}</div>
+            <p className="text-sm text-muted-foreground font-medium">
               Risk-adjusted return
             </p>
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="text-xs text-muted-foreground/70">
               {getDateRangeText(timeRange)}
             </p>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Sortino Ratio</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
+        <Card className="hover:shadow-lg transition-shadow duration-200">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+            <CardTitle className="text-sm font-semibold text-muted-foreground">Sortino Ratio</CardTitle>
+            <div className="p-2 bg-purple-500/10 rounded-lg">
+              <Activity className="h-5 w-5 text-purple-500" />
+            </div>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{metrics.sortinoRatio.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground">
+          <CardContent className="space-y-2">
+            <div className="text-4xl font-bold tracking-tight">{metrics.sortinoRatio.toFixed(2)}</div>
+            <p className="text-sm text-muted-foreground font-medium">
               Downside risk-adjusted
             </p>
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="text-xs text-muted-foreground/70">
               {getDateRangeText(timeRange)}
             </p>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Max Drawdown</CardTitle>
-            <TrendingDown className="h-4 w-4 text-muted-foreground" />
+        <Card className="hover:shadow-lg transition-shadow duration-200">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+            <CardTitle className="text-sm font-semibold text-muted-foreground">Max Drawdown</CardTitle>
+            <div className="p-2 bg-red-500/10 rounded-lg">
+              <TrendingDown className="h-5 w-5 text-red-500" />
+            </div>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-destructive">
+          <CardContent className="space-y-2">
+            <div className="text-4xl font-bold tracking-tight text-red-500">
               -${metrics.maxDrawdownDollars.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
             </div>
-            <p className="text-xs text-muted-foreground">
-              Peak to trough decline ({metrics.maxDrawdown.toFixed(2)}%)
+            <p className="text-sm text-muted-foreground font-medium">
+              {metrics.maxDrawdown.toFixed(2)}% peak to trough
             </p>
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="text-xs text-muted-foreground/70">
               {getDateRangeText(timeRange)}
             </p>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Win Rate</CardTitle>
-            <Target className="h-4 w-4 text-muted-foreground" />
+        <Card className="hover:shadow-lg transition-shadow duration-200">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+            <CardTitle className="text-sm font-semibold text-muted-foreground">Win Rate</CardTitle>
+            <div className="p-2 bg-emerald-500/10 rounded-lg">
+              <Target className="h-5 w-5 text-emerald-500" />
+            </div>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{metrics.winRate.toFixed(1)}%</div>
-            <p className="text-xs text-muted-foreground">
+          <CardContent className="space-y-2">
+            <div className="text-4xl font-bold tracking-tight">{metrics.winRate.toFixed(1)}%</div>
+            <p className="text-sm text-muted-foreground font-medium">
               {metrics.totalTrades.toLocaleString()} / {data.tradeStats.totalTrades.toLocaleString()} trades
             </p>
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="text-xs text-muted-foreground/70">
               {getDateRangeText(timeRange)}
             </p>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Calmar Ratio</CardTitle>
-            <Gauge className="h-4 w-4 text-muted-foreground" />
+        <Card className="hover:shadow-lg transition-shadow duration-200">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+            <CardTitle className="text-sm font-semibold text-muted-foreground">Calmar Ratio</CardTitle>
+            <div className="p-2 bg-amber-500/10 rounded-lg">
+              <Gauge className="h-5 w-5 text-amber-500" />
+            </div>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{metrics.calmarRatio.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground">
+          <CardContent className="space-y-2">
+            <div className="text-4xl font-bold tracking-tight">{metrics.calmarRatio.toFixed(2)}</div>
+            <p className="text-sm text-muted-foreground font-medium">
               Return / Drawdown
             </p>
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="text-xs text-muted-foreground/70">
               {getDateRangeText(timeRange)}
             </p>
           </CardContent>
@@ -355,17 +367,7 @@ export default function Overview() {
       {/* Trade & Risk Statistics - Combined panel with comprehensive metrics */}
       {data.tradeStats && <TradeAndRiskStats tradeStats={data.tradeStats} />}
 
-      {/* Major Drawdowns Table */}
-      {data.majorDrawdowns && (
-        <MajorDrawdownsTable 
-          drawdowns={data.majorDrawdowns.map((dd: any) => ({
-            ...dd,
-            startDate: new Date(dd.startDate).toISOString(),
-            troughDate: new Date(dd.troughDate).toISOString(),
-            recoveryDate: dd.recoveryDate ? new Date(dd.recoveryDate).toISOString() : null,
-          }))}
-        />
-      )}
+      {/* Major Drawdowns Table - REMOVED per user request */}
 
       {/* Distribution Snapshot */}
       {data.distribution && <DistributionSnapshot distribution={data.distribution} />}
@@ -408,10 +410,7 @@ export default function Overview() {
         <RollingMetricsChart rollingMetrics={data.rollingMetrics} timeRange={timeRange} />
       )}
 
-      {/* Monthly Returns Calendar */}
-      {data.monthlyReturnsCalendar && data.monthlyReturnsCalendar.length > 0 && (
-        <MonthlyReturnsCalendar monthlyReturns={data.monthlyReturnsCalendar} />
-      )}
+      {/* Monthly Returns Calendar - REMOVED per user request (redundant with Calendar P&L) */}
 
       {/* Calendar P&L */}
       {breakdownData && (

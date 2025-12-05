@@ -1166,3 +1166,15 @@
 - [x] Fix Compare page max drawdown to show dollar amounts (not %) based on starting capital input
 - [x] Fix Strategies page chart Y-axis scaling so equity curves start from bottom-left
 - [x] Optimize dashboard performance for faster page loading and responsiveness
+
+
+## UI/UX Enhancements (Current Session)
+- [x] Remove Monthly Returns Calendar from Overview page (keep Calendar P&L only)
+- [x] Remove Major Drawdowns section from Overview page
+- [x] Redesign Overview page top metrics section for cleaner, modern aesthetic
+- [x] Research modern dashboard design patterns (2025/2026 trends)
+- [x] Optimize Overview page layout for better visual hierarchy
+- [x] Enhance Strategies page individual strategy cards with performance stats and sparklines
+- [x] Reduce grid opacity on Compare page Equity Curves chart
+- [x] Reduce grid opacity on Compare page Drawdown Comparison chart
+- [x] General aesthetic improvements to Compare page

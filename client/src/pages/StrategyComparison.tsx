@@ -242,7 +242,7 @@ export default function StrategyComparison() {
               <div className="h-[400px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" />
+                    <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
                     <XAxis 
                       dataKey="date" 
                       tick={{ fontSize: 14, fill: 'white' }}
@@ -316,7 +316,7 @@ export default function StrategyComparison() {
               <div className="h-[400px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" />
+                    <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
                     <XAxis 
                       dataKey="date" 
                       tick={{ fontSize: 14, fill: 'white' }}

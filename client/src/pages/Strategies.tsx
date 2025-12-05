@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Loader2, TrendingUp, ArrowRight } from "lucide-react";
+import { Loader2, TrendingUp, ArrowRight, Zap, Fuel, Bitcoin, Coins, Landmark, Activity } from "lucide-react";
 import { Link } from "wouter";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
@@ -209,45 +209,75 @@ export default function Strategies() {
 
       {/* Strategy Cards */}
       <div>
-        <h2 className="text-xl font-semibold mb-4">Individual Strategies</h2>
+        <h2 className="text-2xl font-bold mb-6">Individual Strategies</h2>
       </div>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {strategies?.map((strategy) => (
-          <Card key={strategy.id} className="hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <div>
-                  <CardTitle className="flex items-center gap-2">
-                    <TrendingUp className="h-5 w-5 text-primary" />
-                    {strategy.name}
-                  </CardTitle>
-                  <CardDescription className="mt-2">
-                    {strategy.market} • {strategy.strategyType}
-                  </CardDescription>
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {strategies?.map((strategy) => {
+          // Get market-specific icon
+          const getMarketIcon = (market: string) => {
+            const m = market.toLowerCase();
+            if (m.includes('es') || m.includes('s&p')) return Activity;
+            if (m.includes('nq') || m.includes('nasdaq')) return Zap;
+            if (m.includes('cl') || m.includes('crude')) return Fuel;
+            if (m.includes('btc') || m.includes('bitcoin')) return Bitcoin;
+            if (m.includes('gc') || m.includes('gold')) return Coins;
+            if (m.includes('ym') || m.includes('dow')) return Landmark;
+            return TrendingUp;
+          };
+          
+          const MarketIcon = getMarketIcon(strategy.market || 'Unknown');
+          
+          return (
+            <Card key={strategy.id} className="hover:shadow-xl transition-all duration-200 border-2 hover:border-primary/30 group">
+              <CardHeader className="pb-4">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="p-2.5 bg-primary/10 rounded-xl group-hover:bg-primary/20 transition-colors">
+                        <MarketIcon className="h-6 w-6 text-primary" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-lg leading-tight">
+                          {strategy.name}
+                        </CardTitle>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-xs font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                            {strategy.symbol}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {strategy.strategyType}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <CardDescription className="text-sm mt-2">
+                      {strategy.description || `${strategy.market} ${strategy.strategyType?.toLowerCase() || 'trading'} strategy`}
+                    </CardDescription>
+                  </div>
                 </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Symbol:</span>
-                  <span className="font-medium">{strategy.symbol}</span>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-muted/30 rounded-lg p-3">
+                    <div className="text-xs text-muted-foreground mb-1">Market</div>
+                    <div className="text-sm font-semibold">{strategy.market}</div>
+                  </div>
+                  <div className="bg-muted/30 rounded-lg p-3">
+                    <div className="text-xs text-muted-foreground mb-1">Type</div>
+                    <div className="text-sm font-semibold">{strategy.strategyType}</div>
+                  </div>
                 </div>
-                {strategy.description && (
-                  <p className="text-sm text-muted-foreground">
-                    {strategy.description}
-                  </p>
-                )}
+                
                 <Link href={`/strategy/${strategy.id}`}>
-                  <Button className="w-full mt-4" variant="outline">
+                  <Button className="w-full group-hover:bg-primary group-hover:text-primary-foreground transition-colors" variant="outline">
                     View Details
-                    <ArrowRight className="ml-2 h-4 w-4" />
+                    <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
                   </Button>
                 </Link>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
     </div>
   );
