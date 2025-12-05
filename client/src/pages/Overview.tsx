@@ -375,6 +375,15 @@ export default function Overview() {
         <MonthlyReturnsCalendar monthlyReturns={data.monthlyReturnsCalendar} />
       )}
 
+      {/* Calendar P&L */}
+      {breakdownData && (
+        <CalendarPnL
+          data={breakdownData[calendarPeriodType]}
+          periodType={calendarPeriodType}
+          onPeriodTypeChange={setCalendarPeriodType}
+        />
+      )}
+
       {/* Portfolio Sizing Calculator */}
       <Card>
         <CardHeader>
@@ -466,15 +475,6 @@ export default function Overview() {
           </div>
         </CardContent>
       </Card>
-
-      {/* Calendar P&L */}
-      {breakdownData && (
-        <CalendarPnL
-          data={breakdownData[calendarPeriodType]}
-          periodType={calendarPeriodType}
-          onPeriodTypeChange={setCalendarPeriodType}
-        />
-      )}
     </div>
   );
 }

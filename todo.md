@@ -1131,3 +1131,47 @@
 - [x] Shows P&L amount, percentage, and trade count per period
 - [x] Supports daily, weekly, monthly, quarterly, yearly views
 - [x] Legend showing color intensity meanings
+
+
+## Current Sprint: Fix Calendar Gaps & S&P 500 Data
+
+### Calendar P&L Data Issues
+- [ ] Investigate why daily calendar shows only 4 days in October 2025
+- [ ] Investigate why weekly calendar is missing many weeks in 2025
+- [ ] Verify database has complete trade data for all periods
+- [ ] Fix calendar rendering logic to show all periods with data
+- [ ] Test daily view shows all trading days
+- [ ] Test weekly view shows all weeks
+
+### S&P 500 Benchmark Data Gaps
+- [ ] Audit current S&P 500 data coverage in database
+- [ ] Identify missing date ranges (2010-2025)
+- [ ] Integrate Yahoo Finance API (yfinance Python library)
+- [ ] Create script to fill historical S&P 500 data gaps
+- [ ] Create scheduled job for daily S&P 500 data updates
+- [ ] Test S&P 500 data completeness on all time ranges
+- [ ] Verify equity curves and drawdown charts show complete S&P 500 data
+
+### Layout Improvements
+- [ ] Move Portfolio Sizing Calculator below Calendar P&L on Overview page
+- [ ] Improve visual flow and section organization
+- [ ] Ensure consistent "story path" across all pages
+
+
+## Calendar P&L & S&P 500 Benchmark Fixes ✅ COMPLETE (Dec 5, 2025)
+
+### Calendar P&L Data Investigation
+- [x] Investigated daily calendar showing only some days (working as designed - only shows trading days)
+- [x] Investigated weekly calendar gaps (working as designed - only shows weeks with trades)
+- [x] Verified database has complete trade data (686 trades in 1Y range)
+- [x] Fixed CalendarPnL rendering logic for proper date placement
+
+### S&P 500 Benchmark Data Gaps
+- [x] Audited S&P 500 data coverage (5,014 records from 2006-2025, complete)
+- [x] Fixed benchmark forward-fill to match portfolio end date (no more gaps!)
+- [x] S&P 500 line now continuous on equity curves and drawdown charts
+- [x] Added S&P 500 to drawdown comparison chart
+
+### Layout & Organization
+- [x] Moved Portfolio Sizing Calculator below Calendar P&L for better visual flow
+- [x] Improved overall page organization and story path

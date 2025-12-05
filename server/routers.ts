@@ -171,11 +171,11 @@ export const appRouter = router({
           fullHistoryStartDate,
           equityEndDate
         );
-        // Forward-fill benchmark only to its last available date
+        // Forward-fill benchmark to match portfolio end date for chart alignment
         const benchmarkEquity = analytics.forwardFillEquityCurve(
           rawBenchmarkEquity,
           benchmarkStartDate,
-          benchmarkEndDate
+          equityEndDate // Use same end date as portfolio for proper alignment
         );
 
         // Calculate performance by period

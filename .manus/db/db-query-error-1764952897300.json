@@ -1,0 +1,8 @@
+{
+  "query": "SELECT DATE(entryTime) as trade_date, COUNT(*) as trade_count, SUM(pnl) as daily_pnl\nFROM trades\nWHERE entryTime >= '2025-10-01' AND entryTime < '2025-11-01'\nGROUP BY DATE(entryTime)\nORDER BY trade_date;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2Wv7ueKqB8G6f57.b62a6ae065f5 --database jFmY8c2b9B6TEBRxmcJws8 --execute SELECT DATE(entryTime) as trade_date, COUNT(*) as trade_count, SUM(pnl) as daily_pnl\nFROM trades\nWHERE entryTime >= '2025-10-01' AND entryTime < '2025-11-01'\nGROUP BY DATE(entryTime)\nORDER BY trade_date;",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 1: Unknown column 'entrytime' in 'group statement'"
+  ]
+}

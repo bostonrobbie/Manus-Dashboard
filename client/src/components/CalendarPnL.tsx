@@ -67,19 +67,25 @@ export function CalendarPnL({ data, periodType, onPeriodTypeChange }: CalendarPn
           const firstDay = new Date(parseInt(year), parseInt(monthNum) - 1, 1).getDay();
           const daysInMonth = new Date(parseInt(year), parseInt(monthNum), 0).getDate();
           
-          // Create calendar grid
-          const weeks: (BreakdownPeriod | null)[][] = [];
-          let currentWeek: (BreakdownPeriod | null)[] = Array(firstDay).fill(null);
-          
+          // Create calendar grid - create a map of day number to data
+          const dayMap = new Map<number, BreakdownPeriod>();
           days.forEach((day) => {
             const dayNum = parseInt(day.period.split("-")[2]);
-            currentWeek[dayNum - 1 + firstDay - (weeks.length * 7)] = day;
-            
-            if (currentWeek.filter(Boolean).length === 7 - firstDay || dayNum === daysInMonth) {
-              weeks.push([...currentWeek]);
-              currentWeek = Array(7).fill(null);
-            }
+            dayMap.set(dayNum, day);
           });
+          
+          // Build calendar grid
+          const calendarCells: (BreakdownPeriod | null)[] = [];
+          
+          // Add empty cells for days before the first of the month
+          for (let i = 0; i < firstDay; i++) {
+            calendarCells.push(null);
+          }
+          
+          // Add all days of the month
+          for (let day = 1; day <= daysInMonth; day++) {
+            calendarCells.push(dayMap.get(day) || null);
+          }
 
           return (
             <div key={month} className="space-y-2">
@@ -90,7 +96,7 @@ export function CalendarPnL({ data, periodType, onPeriodTypeChange }: CalendarPn
                     {day}
                   </div>
                 ))}
-                {weeks.flat().map((day, idx) => (
+                {calendarCells.map((day, idx) => (
                   <div
                     key={idx}
                     className={`min-h-[80px] p-2 rounded-md ${

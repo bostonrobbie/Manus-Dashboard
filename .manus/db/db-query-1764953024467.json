@@ -1,0 +1,15 @@
+{
+  "query": "SELECT \n  MIN(DATE(entryDate)) as first_trade,\n  MAX(DATE(exitDate)) as last_trade,\n  COUNT(*) as total_trades\nFROM trades;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2Wv7ueKqB8G6f57.b62a6ae065f5 --database jFmY8c2b9B6TEBRxmcJws8 --execute SELECT \n  MIN(DATE(entryDate)) as first_trade,\n  MAX(DATE(exitDate)) as last_trade,\n  COUNT(*) as total_trades\nFROM trades;",
+  "rows": [
+    {
+      "first_trade": "2010-10-19",
+      "last_trade": "2025-10-10",
+      "total_trades": "9356"
+    }
+  ],
+  "messages": [],
+  "stdout": "first_trade\tlast_trade\ttotal_trades\n2010-10-19\t2025-10-10\t9356\n",
+  "stderr": "",
+  "execution_time_ms": 60
+}
