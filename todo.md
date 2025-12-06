@@ -1225,9 +1225,10 @@
 - [x] Change default time range to All-Time
 - [x] Implement 1M and 6M time range filtering in backend
 - [x] Complete time period selector on Equity Curve chart (1M, 6M, YTD, 1Y, ALL)
-- [ ] Unify S&P 500 toggle - legend on equity curve controls both charts
-- [ ] Remove separate S&P 500 toggle from underwater curve
-- [ ] Convert S&P 500 benchmark data to ES futures contract equivalent
+- [x] Unify S&P 500 toggle - legend on equity curve controls both charts
+- [x] Remove separate S&P 500 toggle from underwater curve
+- [x] Convert S&P 500 benchmark data to ES futures contract equivalent
+- [x] Remove 1M time range option (keep 6M as minimum)
 - [ ] Move Trade & Risk Statistics below Calendar P&L section
 - [ ] Add Risk of Ruin calculation to Trade & Risk Statistics
 - [ ] Add Kelly Criterion optimal position sizing

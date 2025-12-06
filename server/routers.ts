@@ -8,7 +8,7 @@ import * as analytics from "./analytics";
 import * as breakdown from "./breakdown";
 
 // Time range enum for filtering
-const TimeRange = z.enum(['1M', '6M', 'YTD', '1Y', '3Y', '5Y', 'ALL']);
+const TimeRange = z.enum(['6M', 'YTD', '1Y', '3Y', '5Y', 'ALL']);
 
 export const appRouter = router({
   system: systemRouter,
@@ -43,10 +43,6 @@ export const appRouter = router({
         if (timeRange) {
           const year = now.getFullYear();
           switch (timeRange) {
-            case '1M':
-              startDate = new Date(now);
-              startDate.setMonth(now.getMonth() - 1);
-              break;
             case '6M':
               startDate = new Date(now);
               startDate.setMonth(now.getMonth() - 6);
@@ -300,10 +296,6 @@ export const appRouter = router({
         if (timeRange) {
           const year = now.getFullYear();
           switch (timeRange) {
-            case '1M':
-              startDate = new Date(now);
-              startDate.setMonth(now.getMonth() - 1);
-              break;
             case '6M':
               startDate = new Date(now);
               startDate.setMonth(now.getMonth() - 6);
@@ -392,10 +384,6 @@ export const appRouter = router({
         if (timeRange) {
           const year = now.getFullYear();
           switch (timeRange) {
-            case '1M':
-              startDate = new Date(now);
-              startDate.setMonth(now.getMonth() - 1);
-              break;
             case '6M':
               startDate = new Date(now);
               startDate.setMonth(now.getMonth() - 6);
@@ -566,10 +554,6 @@ export const appRouter = router({
         if (timeRange) {
           const year = now.getFullYear();
           switch (timeRange) {
-            case '1M':
-              startDate = new Date(now);
-              startDate.setMonth(now.getMonth() - 1);
-              break;
             case '6M':
               startDate = new Date(now);
               startDate.setMonth(now.getMonth() - 6);

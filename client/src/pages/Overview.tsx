@@ -20,13 +20,14 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { Button } from "@/components/ui/button";
 import { DistributionSnapshot } from "@/components/DistributionSnapshot";
 
-type TimeRange = '1M' | '6M' | 'YTD' | '1Y' | '3Y' | '5Y' | 'ALL';
+type TimeRange = '6M' | 'YTD' | '1Y' | '3Y' | '5Y' | 'ALL';
 
 export default function Overview() {
   const [timeRange, setTimeRange] = useState<TimeRange>('ALL');
   const [startingCapital, setStartingCapital] = useState(100000);
   const [contractSize, setContractSize] = useState<'mini' | 'micro'>('mini');
   const [calendarPeriodType, setCalendarPeriodType] = useState<'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly'>('monthly');
+  const [showBenchmark, setShowBenchmark] = useState(true);
 
   // Helper to format date range
   const getDateRangeText = (range: TimeRange) => {
@@ -35,12 +36,6 @@ export default function Overview() {
     const month = now.toLocaleString('default', { month: 'short' });
     
     switch (range) {
-      case '1M': {
-        const oneMonthAgo = new Date(now);
-        oneMonthAgo.setMonth(now.getMonth() - 1);
-        const prevMonth = oneMonthAgo.toLocaleString('default', { month: 'short' });
-        return `${prevMonth} ${oneMonthAgo.getFullYear()} - ${month} ${year}`;
-      }
       case '6M': {
         const sixMonthsAgo = new Date(now);
         sixMonthsAgo.setMonth(now.getMonth() - 6);
@@ -272,12 +267,12 @@ export default function Overview() {
             <div>
               <CardTitle>Equity Curve</CardTitle>
               <CardDescription>
-                Portfolio performance vs S&P 500 benchmark
+                Portfolio performance vs ES Futures benchmark
               </CardDescription>
             </div>
             {/* Time Range Selector */}
             <div className="flex gap-1">
-              {(['1M', '6M', 'YTD', '1Y', 'ALL'] as const).map((range) => (
+              {(['6M', 'YTD', '1Y', 'ALL'] as const).map((range) => (
                 <Button
                   key={range}
                   variant={timeRange === range ? 'default' : 'outline'}
@@ -314,7 +309,14 @@ export default function Overview() {
                   formatter={(value: number) => `$${value.toFixed(2)}`}
                   labelStyle={{ color: 'black' }}
                 />
-                <Legend />
+                <Legend 
+                  onClick={(e) => {
+                    if (e.dataKey === 'benchmark') {
+                      setShowBenchmark(!showBenchmark);
+                    }
+                  }}
+                  wrapperStyle={{ cursor: 'pointer' }}
+                />
                 {/* Highlight max drawdown period */}
                 {drawdownStartIndex >= 0 && drawdownEndIndex >= 0 && (
                   <ReferenceArea
@@ -333,14 +335,16 @@ export default function Overview() {
                   dot={false}
                   name="Portfolio"
                 />
-                <Line 
-                  type="monotone" 
-                  dataKey="benchmark" 
-                  stroke="#a3a3a3" 
-                  strokeWidth={2}
-                  dot={false}
-                  name="S&P 500"
-                />
+                {showBenchmark && (
+                  <Line 
+                    type="monotone" 
+                    dataKey="benchmark" 
+                    stroke="#a3a3a3" 
+                    strokeWidth={2}
+                    dot={false}
+                    name="ES Futures"
+                  />
+                )}
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -351,21 +355,10 @@ export default function Overview() {
       {data.underwater && (
         <Card>
           <CardHeader className="pb-2">
-            <div className="flex justify-between items-center">
-              <CardTitle className="text-base">Underwater Equity Curve</CardTitle>
-              {(data as any).benchmarkUnderwater && (
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="show-benchmark-underwater"
-                    checked={false}
-                    onCheckedChange={() => {}}
-                  />
-                  <Label htmlFor="show-benchmark-underwater" className="text-xs cursor-pointer">
-                    Show S&P 500
-                  </Label>
-                </div>
-              )}
-            </div>
+            <CardTitle className="text-base">Underwater Equity Curve</CardTitle>
+            <CardDescription className="text-xs">
+              Drawdown from peak over time vs ES Futures benchmark
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="h-[250px]">
@@ -374,6 +367,7 @@ export default function Overview() {
                   data={data.underwater.curve.map((point, index) => ({
                     date: chartData[index]?.date || point.date.toLocaleDateString(),
                     drawdown: point.drawdownPercent,
+                    benchmarkDrawdown: (data as any).benchmarkUnderwater?.[index]?.drawdownPercent || 0,
                   }))}
                 >
                   <defs>
@@ -411,6 +405,16 @@ export default function Overview() {
                     fill="url(#drawdownGradient)"
                     name="Portfolio"
                   />
+                  {showBenchmark && (data as any).benchmarkUnderwater && (
+                    <Area
+                      type="monotone"
+                      dataKey="benchmarkDrawdown"
+                      stroke="#a3a3a3"
+                      strokeWidth={2}
+                      fill="none"
+                      name="ES Futures"
+                    />
+                  )}
                 </AreaChart>
               </ResponsiveContainer>
             </div>
