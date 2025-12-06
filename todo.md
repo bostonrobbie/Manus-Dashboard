@@ -1263,3 +1263,8 @@
 - [ ] Change Max Drawdown to dollar amount on individual strategy pages
 - [ ] Change Total Return to dollar amount on individual strategy pages
 - [ ] Sync Mini/Micro contract toggle across Overview and Strategies pages
+
+
+## Quick Fixes (Current Session)
+- [x] Fix Monte Carlo chart axis label colors (too dark, not visible)
+- [x] Change Calendar P&L default tab from Monthly to Yearly

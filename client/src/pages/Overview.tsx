@@ -26,7 +26,7 @@ export default function Overview() {
   const [timeRange, setTimeRange] = useState<TimeRange>('ALL');
   const [startingCapital, setStartingCapital] = useState(100000);
   const [contractSize, setContractSize] = useState<'mini' | 'micro'>('mini');
-  const [calendarPeriodType, setCalendarPeriodType] = useState<'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly'>('monthly');
+  const [calendarPeriodType, setCalendarPeriodType] = useState<'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly'>('yearly');
   const [showBenchmark, setShowBenchmark] = useState(true);
 
   // Helper to format date range
