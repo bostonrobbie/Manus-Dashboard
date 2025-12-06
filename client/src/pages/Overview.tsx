@@ -20,7 +20,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { Button } from "@/components/ui/button";
 import { DistributionSnapshot } from "@/components/DistributionSnapshot";
 
-type TimeRange = '6M' | 'YTD' | '1Y' | '3Y' | '5Y' | 'ALL';
+type TimeRange = '6M' | 'YTD' | '1Y' | '3Y' | '5Y' | '10Y' | 'ALL';
 
 export default function Overview() {
   const [timeRange, setTimeRange] = useState<TimeRange>('ALL');
@@ -50,6 +50,8 @@ export default function Overview() {
         return `${year - 3} - ${year}`;
       case '5Y':
         return `${year - 5} - ${year}`;
+      case '10Y':
+        return `${year - 10} - ${year}`;
       case 'ALL':
         return '2010 - 2025';
       default:
@@ -294,7 +296,7 @@ export default function Overview() {
             </div>
             {/* Time Range Selector */}
             <div className="flex gap-1">
-              {(['6M', 'YTD', '1Y', 'ALL'] as const).map((range) => (
+              {(['6M', 'YTD', '1Y', '5Y', '10Y', 'ALL'] as const).map((range) => (
                 <Button
                   key={range}
                   variant={timeRange === range ? 'default' : 'outline'}

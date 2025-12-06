@@ -54,6 +54,10 @@ export default function Strategies() {
   
   // Prepare chart data with sampling for performance
   const sampleInterval = (comparisonData?.strategies[0]?.equityCurve?.length || 0) > 500 ? 3 : 1;
+  
+  // Track last known equity for each strategy to handle missing data points
+  const lastKnownEquity: Record<string, number> = {};
+  
   const chartData = comparisonData?.strategies[0]?.equityCurve
     ?.filter((_, index) => index % sampleInterval === 0)
     .map((_, index) => {
@@ -63,7 +67,20 @@ export default function Strategies() {
       };
       
       comparisonData.strategies.forEach((strat, stratIndex) => {
-        point[strat.symbol || `strategy${stratIndex}`] = strat.equityCurve![actualIndex]?.equity || 0;
+        const stratKey = strat.symbol || `strategy${stratIndex}`;
+        const equityPoint = strat.equityCurve![actualIndex];
+        
+        if (equityPoint && equityPoint.equity !== undefined && equityPoint.equity !== null) {
+          // Use actual equity value and update last known
+          lastKnownEquity[stratKey] = equityPoint.equity;
+          point[stratKey] = equityPoint.equity;
+        } else if (lastKnownEquity[stratKey] !== undefined) {
+          // Use last known equity value instead of 0
+          point[stratKey] = lastKnownEquity[stratKey];
+        } else {
+          // No data yet, use undefined to not plot
+          point[stratKey] = undefined;
+        }
       });
       
       return point;

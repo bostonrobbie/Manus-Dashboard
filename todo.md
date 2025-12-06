@@ -1458,3 +1458,29 @@
 - [x] Max Drawdown updates correctly with contract size changes
 - [x] All metrics recalculate properly
 - [x] 192/197 tests passing (3 pre-existing failures unrelated to changes)
+
+
+## URGENT: Critical Bugs (User Reported - Dec 6, 2025)
+
+### Strategies Page Equity Curves Dropping to Zero
+- [x] Investigate why multiple strategies show equity curves dropping to zero
+- [x] Check NQ Opening Range Breakout equity curve calculation
+- [x] Check YM Opening Range Breakout equity curve calculation
+- [x] Check GC Trend Following equity curve calculation
+- [x] Identify root cause (data issue vs calculation bug)
+- [x] Fix equity curve calculation to prevent zero drops
+- [x] Test all 8 strategies for correct equity curve rendering
+
+### Portfolio Overview Missing 5Y/10Y Buttons
+- [x] Add 5Y button to Overview page equity curve chart
+- [x] Add 10Y button to Overview page equity curve chart
+- [x] Ensure buttons match Strategy Detail page styling
+- [x] Test 5Y and 10Y data retrieval on Overview page
+- [x] Verify chart renders correctly for 5Y and 10Y timeframes
+
+### Zero RoR Implementation Verification
+- [x] Verify "Zero RoR" button exists on Strategy Detail pages
+- [x] Check if Zero RoR calculation is correct (Kelly Criterion formula)
+- [x] Test Zero RoR button sets starting capital correctly
+- [x] Verify Zero RoR amount displays correctly for each strategy
+- [x] Ensure clicking Zero RoR button updates all metrics
