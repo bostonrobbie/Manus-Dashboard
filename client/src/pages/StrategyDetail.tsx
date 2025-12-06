@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { Loader2, ArrowLeft } from "lucide-react";
 import { TradeFilters, TradeFilterState } from "@/components/TradeFilters";
 import { exportTradesToCSV } from "@/lib/csvExport";
@@ -23,6 +23,7 @@ export default function StrategyDetail() {
   const [startingCapital, setStartingCapital] = useState(100000);
   const [contractSize, setContractSize] = useState<'mini' | 'micro'>('mini');
   const [filters, setFilters] = useState<TradeFilterState>({});
+  const [showBenchmark, setShowBenchmark] = useState(true);
 
   const { data, isLoading, error } = trpc.portfolio.strategyDetail.useQuery({
     strategyId,
@@ -86,10 +87,18 @@ export default function StrategyDetail() {
 
   // Prepare chart data with contract size multiplier
   const multiplier = contractSize === 'micro' ? 0.1 : 1;
-  const chartData = equityCurve.map((point) => ({
+  const chartData = equityCurve.map((point, index) => ({
     date: new Date(point.date).toLocaleDateString(),
     equity: point.equity * multiplier,
+    benchmark: data.benchmarkData?.[index]?.close ?? null,
   }));
+
+  // Prepare underwater curve data
+  const underwaterData = data.underwaterCurve?.map((point, index) => ({
+    date: new Date(point.date).toLocaleDateString(),
+    drawdown: point.drawdownPercent, // Already in percentage
+    benchmarkDrawdown: data.benchmarkUnderwater?.[index]?.drawdownPercent ?? null,
+  })) ?? [];
 
   return (
     <div className="space-y-6">
@@ -221,7 +230,7 @@ export default function StrategyDetail() {
       <Card>
         <CardHeader>
           <CardTitle>Equity Curve</CardTitle>
-          <CardDescription>Strategy performance over time</CardDescription>
+          <CardDescription>Strategy performance vs S&P 500 benchmark</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="h-[400px]">
@@ -230,19 +239,28 @@ export default function StrategyDetail() {
                 <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
                 <XAxis 
                   dataKey="date" 
-                  tick={{ fontSize: 12 }}
+                  tick={{ fontSize: 12, fill: '#9ca3af' }}
                   angle={-45}
                   textAnchor="end"
                   height={80}
                 />
                 <YAxis 
-                  tick={{ fontSize: 12 }}
+                  tick={{ fontSize: 12, fill: '#9ca3af' }}
                   tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
                   domain={['auto', 'auto']}
                 />
                 <Tooltip 
                   formatter={(value: number) => `$${value.toFixed(2)}`}
                   labelStyle={{ color: 'black' }}
+                  contentStyle={{ backgroundColor: 'rgba(0, 0, 0, 0.8)', border: 'none' }}
+                />
+                <Legend 
+                  onClick={(e: any) => {
+                    if (e.dataKey === 'benchmark') {
+                      setShowBenchmark(!showBenchmark);
+                    }
+                  }}
+                  wrapperStyle={{ cursor: 'pointer' }}
                 />
                 <Line 
                   type="monotone" 
@@ -250,7 +268,77 @@ export default function StrategyDetail() {
                   stroke="#3b82f6" 
                   strokeWidth={2}
                   dot={false}
+                  name="Strategy"
                 />
+                {showBenchmark && data?.benchmarkData && (
+                  <Line 
+                    type="monotone" 
+                    dataKey="benchmark" 
+                    stroke="#6b7280" 
+                    strokeWidth={1.5}
+                    dot={false}
+                    name="S&P 500"
+                  />
+                )}
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Underwater Equity Curve */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Underwater Equity Curve</CardTitle>
+          <CardDescription>Drawdown from peak equity over time</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="h-[300px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={underwaterData}>
+                <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
+                <XAxis 
+                  dataKey="date" 
+                  tick={{ fontSize: 12, fill: '#9ca3af' }}
+                  angle={-45}
+                  textAnchor="end"
+                  height={80}
+                />
+                <YAxis 
+                  tick={{ fontSize: 12, fill: '#9ca3af' }}
+                  tickFormatter={(value) => `${value.toFixed(1)}%`}
+                />
+                <Tooltip 
+                  formatter={(value: number) => `${value.toFixed(2)}%`}
+                  labelStyle={{ color: 'black' }}
+                  contentStyle={{ backgroundColor: 'rgba(0, 0, 0, 0.8)', border: 'none' }}
+                />
+                <Legend 
+                  onClick={(e: any) => {
+                    if (e.dataKey === 'benchmarkDrawdown') {
+                      setShowBenchmark(!showBenchmark);
+                    }
+                  }}
+                  wrapperStyle={{ cursor: 'pointer' }}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="drawdown" 
+                  stroke="#ef4444" 
+                  strokeWidth={2}
+                  dot={false}
+                  name="Strategy Drawdown"
+                />
+                {showBenchmark && data?.benchmarkUnderwater && (
+                  <Line 
+                    type="monotone" 
+                    dataKey="benchmarkDrawdown" 
+                    stroke="#fb923c" 
+                    strokeWidth={1.5}
+                    dot={false}
+                    name="S&P 500 Drawdown"
+                  />
+                )}
               </LineChart>
             </ResponsiveContainer>
           </div>

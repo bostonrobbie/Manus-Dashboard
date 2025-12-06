@@ -19,13 +19,13 @@
 - [ ] Write integration tests for breakdown API
 
 ### Phase 3: Drawdown Visualization
-- [ ] Implement drawdown calculation function in analytics engine
-- [ ] Create DrawdownChart component using Recharts
-- [ ] Add drawdown chart to Overview page (below equity curve)
-- [ ] Add drawdown chart to Strategy Detail page
-- [ ] Add drawdown metrics (max drawdown duration, recovery time)
-- [ ] Write tests for drawdown calculations
-- [ ] Verify drawdown visualization accuracy
+- [x] Implement drawdown calculation function in analytics engine
+- [x] Create DrawdownChart component using Recharts
+- [x] Add drawdown chart to Overview page (below equity curve)
+- [x] Add drawdown chart to Strategy Detail page
+- [x] Add drawdown metrics (max drawdown duration, recovery time)
+- [x] Write tests for drawdown calculations
+- [x] Verify drawdown visualization accuracy
 
 ### Phase 4: Trade Filtering & Export
 - [ ] Design trade filtering UI (date range, direction, P&L range, strategy)
@@ -1338,3 +1338,39 @@
 - [x] Verify all stats are displaying correctly
 - [x] Ensure all strategy cards have identical formatting (h-full flex flex-col)
 - [x] Make card heights and layouts consistent across rows
+
+## New Issues and Enhancements (Current Session)
+
+### Strategy Cards (Strategies Page)
+- [ ] Make card backgrounds less bold and more transparent (match Overview page)
+- [ ] Ensure uniform transparency across all strategy cards
+- [ ] Fix return display to show K/M suffix (currently shows $103 instead of $103K)
+- [ ] Ensure all card tabs are uniform and formatted identically
+
+### Individual Strategy Pages
+- [ ] Add S&P 500 toggle option (like Overview page)
+- [ ] Add underwater drawdown chart below equity curve
+- [ ] Fix chart axis labels visibility (currently black, need contrast)
+- [ ] Ensure Y-axis and X-axis labels are readable
+
+### Account Settings (Overview Page)
+- [ ] Label "Set to Zero RoR Capital" button with contract type (Mini/Micro)
+- [ ] Auto-set starting capital AND contract size when clicking Zero RoR button
+- [ ] Fix Total Return not updating when switching contracts/capital
+- [ ] Ensure all dollar values update correctly with contract size changes
+
+### Equity Curve Enhancements
+- [ ] Add 5-year timeframe option
+- [ ] Add 10-year timeframe option
+- [ ] Maintain existing 6M, YTD, 1Y, ALL options
+
+### Underwater Equity Curve
+- [ ] Fix S&P 500 drawdown scaling (currently shows <0% which is incorrect)
+- [ ] Properly represent S&P 500 historical crashes (2020, etc.)
+- [ ] Implement correct drawdown logic for benchmark comparison
+
+### Portfolio Sizing Calculator
+- [ ] Verify minimum account size calculation accuracy
+- [ ] Reconcile contradiction between calculator subtitle and Risk Analysis
+- [ ] Update subtitle to match actual 0% risk of ruin calculation
+- [ ] Ensure position sizing aligns with Risk of Ruin methodology

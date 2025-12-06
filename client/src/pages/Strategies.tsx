@@ -240,7 +240,7 @@ export default function Strategies() {
           const MarketIcon = getMarketIcon(strategy.market || 'Unknown');
           
           return (
-            <Card key={strategy.id} className="relative overflow-hidden hover:shadow-2xl transition-all duration-300 border-2 hover:border-primary/40 group bg-gradient-to-br from-card via-card to-card/80 h-full flex flex-col">
+            <Card key={strategy.id} className="relative overflow-hidden hover:shadow-2xl transition-all duration-300 border hover:border-primary/40 group bg-card/40 backdrop-blur-sm h-full flex flex-col">
               <CardHeader className="pb-4 relative z-10">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
@@ -274,7 +274,7 @@ export default function Strategies() {
               <CardContent className="space-y-4 relative z-10 flex-1 flex flex-col">
                 {/* Performance Metrics Grid */}
                 <div className="grid grid-cols-3 gap-2.5">
-                  <div className="bg-gradient-to-br from-blue-500/10 to-blue-500/5 rounded-lg p-2.5 border border-blue-500/20">
+                  <div className="bg-blue-500/5 rounded-lg p-2.5 border border-border/40">
                     <div className="text-[9px] text-muted-foreground mb-0.5 uppercase tracking-wide font-semibold">Return</div>
                     <div className="text-sm font-bold text-blue-600 truncate">
                       {strategy.totalReturn !== undefined 
@@ -283,7 +283,7 @@ export default function Strategies() {
                       }
                     </div>
                   </div>
-                  <div className="bg-gradient-to-br from-blue-500/10 to-blue-500/5 rounded-lg p-2.5 border border-blue-500/20">
+                  <div className="bg-blue-500/5 rounded-lg p-2.5 border border-border/40">
                     <div className="text-[9px] text-muted-foreground mb-0.5 uppercase tracking-wide font-semibold">Max DD</div>
                     <div className="text-sm font-bold text-blue-600 truncate">
                       {strategy.maxDrawdown !== undefined
@@ -292,7 +292,7 @@ export default function Strategies() {
                       }
                     </div>
                   </div>
-                  <div className="bg-gradient-to-br from-blue-500/10 to-blue-500/5 rounded-lg p-2.5 border border-blue-500/20">
+                  <div className="bg-blue-500/5 rounded-lg p-2.5 border border-border/40">
                     <div className="text-[9px] text-muted-foreground mb-0.5 uppercase tracking-wide font-semibold">Sharpe</div>
                     <div className="text-sm font-bold text-blue-600 truncate">
                       {strategy.sharpeRatio !== undefined
@@ -305,11 +305,11 @@ export default function Strategies() {
 
                 {/* Market & Type Info */}
                 <div className="grid grid-cols-2 gap-2.5">
-                  <div className="bg-muted/30 rounded-lg p-2.5 border border-muted/40">
+                  <div className="bg-muted/10 rounded-lg p-2.5 border border-border/40">
                     <div className="text-[9px] text-muted-foreground mb-0.5 uppercase tracking-wide font-semibold">Market</div>
                     <div className="text-sm font-bold">{strategy.market}</div>
                   </div>
-                  <div className="bg-muted/30 rounded-lg p-2.5 border border-muted/40">
+                  <div className="bg-muted/10 rounded-lg p-2.5 border border-border/40">
                     <div className="text-[9px] text-muted-foreground mb-0.5 uppercase tracking-wide font-semibold">Type</div>
                     <div className="text-sm font-bold">{strategy.strategyType}</div>
                   </div>

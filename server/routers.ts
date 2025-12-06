@@ -358,10 +358,30 @@ export const appRouter = router({
           .sort((a, b) => b.exitDate.getTime() - a.exitDate.getTime())
           .slice(0, 50);
 
+        // Get benchmark data (S&P 500)
+        const benchmarkData = await db.getBenchmarkData({
+          startDate: equityStartDate,
+          endDate: equityEndDate,
+        });
+        
+        // Calculate underwater curve
+        const underwaterCurve = analytics.calculateUnderwaterCurve(equityCurve);
+        
+        // Convert benchmark to equity curve format for underwater calculation
+        const benchmarkEquityCurve = benchmarkData.map((b, idx) => ({
+          date: b.date,
+          equity: b.close,
+          drawdown: 0, // Will be calculated by underwater curve
+        }));
+        const benchmarkUnderwater = analytics.calculateUnderwaterCurve(benchmarkEquityCurve);
+
         return {
           strategy,
           metrics,
           equityCurve,
+          benchmarkData,
+          underwaterCurve,
+          benchmarkUnderwater,
           recentTrades,
         };
       }),
