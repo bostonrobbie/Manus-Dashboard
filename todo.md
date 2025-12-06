@@ -1243,3 +1243,23 @@
 - [x] Add Total Return ($), Max Drawdown ($), Sharpe Ratio to strategy cards
 - [x] Implement Monte Carlo simulation on Compare page
 - [x] Ensure Monte Carlo loads quickly and calculates accurately
+
+
+## Bug Fixes & Improvements (Current Session)
+- [x] Fix Monte Carlo chart colors for better visibility and contrast
+- [x] Change strategy card metric boxes to uniform blue color
+- [x] Fix text overflow in strategy card metric boxes
+- [x] Fix Total Return calculation on strategy cards (removed incorrect *1000 multiplier)
+- [x] Fix Max Drawdown calculation on strategy cards (removed incorrect *1000 multiplier)
+- [x] Add top 3 maximum drawdown periods to Overview equity curve
+- [x] Revert ES Futures back to S&P 500 benchmark (imported 6783 daily data points 2000-2025)
+- [x] Fix underwater curve toggle - clicking legend should toggle both charts (verified working)
+- [ ] Fix Risk of Ruin calculation (verify 23% vs 5% discrepancy)
+- [ ] Add Risk of Ruin calculation explainer
+- [ ] Add minimum account balance suggestion for 0% risk of ruin
+- [ ] Ensure risk metrics update when Starting Capital changes
+- [ ] Reduce grid opacity on individual strategy page equity curves
+- [ ] Fix equity curve auto-scaling on individual strategy pages
+- [ ] Change Max Drawdown to dollar amount on individual strategy pages
+- [ ] Change Total Return to dollar amount on individual strategy pages
+- [ ] Sync Mini/Micro contract toggle across Overview and Strategies pages

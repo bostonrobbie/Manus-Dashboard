@@ -112,24 +112,26 @@ export default function Overview() {
     benchmark: benchmarkEquity[index]?.equity ?? null, // Use null for missing values (don't plot)
   }));
 
-  // Find max drawdown period for highlighting
-  const maxDrawdownPeriod = data.majorDrawdowns && data.majorDrawdowns.length > 0 
-    ? data.majorDrawdowns.reduce((max: any, dd: any) => 
-        dd.depth < max.depth ? dd : max, data.majorDrawdowns[0])
-    : null;
-  
-  // Find indices for drawdown period
-  let drawdownStartIndex = -1;
-  let drawdownEndIndex = -1;
-  if (maxDrawdownPeriod) {
-    const startDate = new Date(maxDrawdownPeriod.startDate).toLocaleDateString();
-    const endDate = maxDrawdownPeriod.recoveryDate 
-      ? new Date(maxDrawdownPeriod.recoveryDate).toLocaleDateString()
-      : chartData[chartData.length - 1]!.date;
-    drawdownStartIndex = chartData.findIndex(d => d.date === startDate);
-    drawdownEndIndex = chartData.findIndex(d => d.date === endDate);
-    if (drawdownEndIndex === -1) drawdownEndIndex = chartData.length - 1;
-  }
+  // Get top 3 major drawdown periods for highlighting
+  const top3Drawdowns = data.majorDrawdowns && data.majorDrawdowns.length > 0
+    ? data.majorDrawdowns.slice(0, 3).map((dd: any, index: number) => {
+        const startDate = new Date(dd.startDate).toLocaleDateString();
+        const endDate = dd.recoveryDate 
+          ? new Date(dd.recoveryDate).toLocaleDateString()
+          : chartData[chartData.length - 1]!.date;
+        const startIndex = chartData.findIndex(d => d.date === startDate);
+        let endIndex = chartData.findIndex(d => d.date === endDate);
+        if (endIndex === -1) endIndex = chartData.length - 1;
+        
+        return {
+          startIndex,
+          endIndex,
+          depthPct: dd.depthPct,
+          label: index === 0 ? 'Max Drawdown' : index === 1 ? '2nd Drawdown' : '3rd Drawdown',
+          color: index === 0 ? '#ef4444' : index === 1 ? '#f97316' : '#f59e0b',
+        };
+      }).filter((dd: any) => dd.startIndex >= 0 && dd.endIndex >= 0)
+    : [];
 
   // Calculate domain boundaries for X-axis to ensure chart extends full width
   const minTimestamp = chartData.length > 0 ? chartData[0]!.timestamp : 0;
@@ -267,7 +269,7 @@ export default function Overview() {
             <div>
               <CardTitle>Equity Curve</CardTitle>
               <CardDescription>
-                Portfolio performance vs ES Futures benchmark
+                Portfolio performance vs S&P 500 benchmark
               </CardDescription>
             </div>
             {/* Time Range Selector */}
@@ -317,16 +319,23 @@ export default function Overview() {
                   }}
                   wrapperStyle={{ cursor: 'pointer' }}
                 />
-                {/* Highlight max drawdown period */}
-                {drawdownStartIndex >= 0 && drawdownEndIndex >= 0 && (
+                {/* Highlight top 3 drawdown periods */}
+                {top3Drawdowns.map((dd: any, index: number) => (
                   <ReferenceArea
-                    x1={chartData[drawdownStartIndex]!.date}
-                    x2={chartData[drawdownEndIndex]!.date}
-                    fill="#ef4444"
+                    key={index}
+                    x1={chartData[dd.startIndex]!.date}
+                    x2={chartData[dd.endIndex]!.date}
+                    fill={dd.color}
                     fillOpacity={0.1}
-                    label={{ value: 'Max Drawdown Period', position: 'insideTop', fill: '#ef4444', fontSize: 12 }}
+                    label={{ 
+                      value: `${dd.label} (${dd.depthPct.toFixed(1)}%)`, 
+                      position: 'insideTop', 
+                      fill: dd.color, 
+                      fontSize: 11,
+                      offset: index * 15 // Offset labels vertically so they don't overlap
+                    }}
                   />
-                )}
+                ))}
                 <Line 
                   type="monotone" 
                   dataKey="portfolio" 
@@ -342,7 +351,7 @@ export default function Overview() {
                     stroke="#a3a3a3" 
                     strokeWidth={2}
                     dot={false}
-                    name="ES Futures"
+                    name="S&P 500"
                   />
                 )}
               </LineChart>
@@ -357,7 +366,7 @@ export default function Overview() {
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Underwater Equity Curve</CardTitle>
             <CardDescription className="text-xs">
-              Drawdown from peak over time vs ES Futures benchmark
+              Drawdown from peak over time vs S&P 500 benchmark
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -412,7 +421,7 @@ export default function Overview() {
                       stroke="#a3a3a3"
                       strokeWidth={2}
                       fill="none"
-                      name="ES Futures"
+                      name="S&P 500"
                     />
                   )}
                 </AreaChart>

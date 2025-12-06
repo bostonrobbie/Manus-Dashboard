@@ -265,24 +265,24 @@ export default function MonteCarloSimulation({ trades, startingCapital }: MonteC
                   type="monotone"
                   dataKey="p95"
                   stackId="1"
-                  stroke="hsl(var(--chart-1))"
-                  fill="hsl(var(--chart-1))"
-                  fillOpacity={0.1}
+                  stroke="#10b981"
+                  fill="#10b981"
+                  fillOpacity={0.3}
                   name="95th Percentile"
                 />
                 <Area
                   type="monotone"
                   dataKey="p75"
                   stackId="2"
-                  stroke="hsl(var(--chart-2))"
-                  fill="hsl(var(--chart-2))"
-                  fillOpacity={0.2}
+                  stroke="#3b82f6"
+                  fill="#3b82f6"
+                  fillOpacity={0.4}
                   name="75th Percentile"
                 />
                 <Line
                   type="monotone"
                   dataKey="p50"
-                  stroke="hsl(var(--primary))"
+                  stroke="#f59e0b"
                   strokeWidth={3}
                   dot={false}
                   name="Median (50th)"
@@ -291,18 +291,18 @@ export default function MonteCarloSimulation({ trades, startingCapital }: MonteC
                   type="monotone"
                   dataKey="p25"
                   stackId="3"
-                  stroke="hsl(var(--chart-3))"
-                  fill="hsl(var(--chart-3))"
-                  fillOpacity={0.2}
+                  stroke="#8b5cf6"
+                  fill="#8b5cf6"
+                  fillOpacity={0.4}
                   name="25th Percentile"
                 />
                 <Area
                   type="monotone"
                   dataKey="p5"
                   stackId="4"
-                  stroke="hsl(var(--chart-4))"
-                  fill="hsl(var(--chart-4))"
-                  fillOpacity={0.1}
+                  stroke="#ef4444"
+                  fill="#ef4444"
+                  fillOpacity={0.3}
                   name="5th Percentile"
                 />
               </AreaChart>

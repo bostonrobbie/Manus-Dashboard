@@ -262,27 +262,27 @@ export default function Strategies() {
               <CardContent className="space-y-4 relative z-10">
                 {/* Performance Metrics Grid */}
                 <div className="grid grid-cols-3 gap-2.5">
-                  <div className="bg-gradient-to-br from-green-500/10 to-green-500/5 rounded-lg p-2.5 border border-green-500/20">
+                  <div className="bg-gradient-to-br from-blue-500/10 to-blue-500/5 rounded-lg p-2.5 border border-blue-500/20">
                     <div className="text-[9px] text-muted-foreground mb-0.5 uppercase tracking-wide font-semibold">Return</div>
-                    <div className="text-base font-bold text-green-600">
+                    <div className="text-sm font-bold text-blue-600 truncate">
                       {strategy.totalReturn !== undefined 
-                        ? `$${(strategy.totalReturn * 1000).toLocaleString(undefined, { maximumFractionDigits: 0 })}`
+                        ? `$${strategy.totalReturn.toLocaleString(undefined, { maximumFractionDigits: 0 })}`
                         : 'N/A'
                       }
                     </div>
                   </div>
-                  <div className="bg-gradient-to-br from-red-500/10 to-red-500/5 rounded-lg p-2.5 border border-red-500/20">
+                  <div className="bg-gradient-to-br from-blue-500/10 to-blue-500/5 rounded-lg p-2.5 border border-blue-500/20">
                     <div className="text-[9px] text-muted-foreground mb-0.5 uppercase tracking-wide font-semibold">Max DD</div>
-                    <div className="text-base font-bold text-red-600">
+                    <div className="text-sm font-bold text-blue-600 truncate">
                       {strategy.maxDrawdown !== undefined
-                        ? `$${Math.abs(strategy.maxDrawdown * 1000).toLocaleString(undefined, { maximumFractionDigits: 0 })}`
+                        ? `$${Math.abs(strategy.maxDrawdown).toLocaleString(undefined, { maximumFractionDigits: 0 })}`
                         : 'N/A'
                       }
                     </div>
                   </div>
                   <div className="bg-gradient-to-br from-blue-500/10 to-blue-500/5 rounded-lg p-2.5 border border-blue-500/20">
                     <div className="text-[9px] text-muted-foreground mb-0.5 uppercase tracking-wide font-semibold">Sharpe</div>
-                    <div className="text-base font-bold text-blue-600">
+                    <div className="text-sm font-bold text-blue-600 truncate">
                       {strategy.sharpeRatio !== undefined
                         ? strategy.sharpeRatio.toFixed(2)
                         : 'N/A'
