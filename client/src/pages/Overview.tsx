@@ -423,9 +423,6 @@ export default function Overview() {
       )}
 
       {/* Additional Metrics */}
-      {/* Trade & Risk Statistics - Combined panel with comprehensive metrics */}
-      {data.tradeStats && <TradeAndRiskStats tradeStats={data.tradeStats} />}
-
       {/* Major Drawdowns Table - REMOVED per user request */}
 
       {/* Distribution Snapshot */}
@@ -479,6 +476,9 @@ export default function Overview() {
           onPeriodTypeChange={setCalendarPeriodType}
         />
       )}
+
+      {/* Trade & Risk Statistics - Moved below Calendar P&L */}
+      {data.tradeStats && <TradeAndRiskStats tradeStats={data.tradeStats} />}
 
       {/* Portfolio Sizing Calculator */}
       <Card>

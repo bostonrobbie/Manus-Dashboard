@@ -1229,13 +1229,13 @@
 - [x] Remove separate S&P 500 toggle from underwater curve
 - [x] Convert S&P 500 benchmark data to ES futures contract equivalent
 - [x] Remove 1M time range option (keep 6M as minimum)
-- [ ] Move Trade & Risk Statistics below Calendar P&L section
-- [ ] Add Risk of Ruin calculation to Trade & Risk Statistics
-- [ ] Add Kelly Criterion optimal position sizing
-- [ ] Add Recovery Factor (Net Profit / Max DD)
-- [ ] Add Payoff Ratio (Avg Win / Avg Loss)
-- [ ] Add Ulcer Index and MAR Ratio
-- [ ] Add Monthly/Quarterly consistency percentage
+- [x] Move Trade & Risk Statistics below Calendar P&L section
+- [x] Add Risk of Ruin calculation to Trade & Risk Statistics
+- [x] Add Kelly Criterion optimal position sizing
+- [x] Add Recovery Factor (Net Profit / Max DD)
+- [x] Add Payoff Ratio (Avg Win / Avg Loss)
+- [x] Add Ulcer Index and MAR Ratio
+- [x] Add Monthly/Quarterly consistency percentage
 - [ ] Add visual charts: Consecutive Wins/Losses Distribution
 - [ ] Add visual charts: Trade Duration Distribution histogram
 - [ ] Add visual charts: Win/Loss by Day of Week

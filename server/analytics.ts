@@ -40,6 +40,15 @@ export interface TradeStats {
   longestLossStreak: number;
   avgWin: number; // dollars
   avgLoss: number; // dollars
+  // Professional risk metrics
+  payoffRatio: number; // avgWin / avgLoss
+  riskOfRuin: number; // percentage
+  kellyPercentage: number; // optimal position size
+  recoveryFactor: number; // net profit / max drawdown
+  ulcerIndex: number; // volatility of drawdowns
+  marRatio: number; // return / max drawdown
+  monthlyConsistency: number; // percentage of profitable months
+  quarterlyConsistency: number; // percentage of profitable quarters
 }
 
 export interface PerformanceMetrics {
@@ -188,6 +197,14 @@ export function calculateTradeStats(trades: Trade[]): TradeStats {
       longestLossStreak: 0,
       avgWin: 0,
       avgLoss: 0,
+      payoffRatio: 0,
+      riskOfRuin: 100,
+      kellyPercentage: 0,
+      recoveryFactor: 0,
+      ulcerIndex: 0,
+      marRatio: 0,
+      monthlyConsistency: 0,
+      quarterlyConsistency: 0,
     };
   }
 
@@ -248,6 +265,71 @@ export function calculateTradeStats(trades: Trade[]): TradeStats {
     }
   }
 
+  // Professional risk metrics
+  const payoffRatio = avgLoss > 0 ? avgWin / avgLoss : 0;
+  
+  // Risk of Ruin (simplified formula: assumes fixed fractional betting)
+  // RoR = ((1 - W) / (1 + W))^Capital_Units where W = (WinRate * PayoffRatio - (1 - WinRate)) / PayoffRatio
+  const winProb = winRate / 100;
+  const lossProb = 1 - winProb;
+  const riskOfRuin = payoffRatio > 0 && winProb > 0 
+    ? Math.min(100, Math.pow((lossProb / winProb) * (1 / payoffRatio), 10) * 100)
+    : 100;
+  
+  // Kelly Criterion: f* = (p * b - q) / b, where p = win rate, q = loss rate, b = payoff ratio
+  const kellyPercentage = payoffRatio > 0 
+    ? Math.max(0, ((winProb * payoffRatio - lossProb) / payoffRatio) * 100)
+    : 0;
+  
+  // Calculate equity curve for additional metrics
+  const equityCurve = calculateEquityCurve(trades, 100000);
+  const finalEquity = equityCurve[equityCurve.length - 1]?.equity || 100000;
+  const netProfit = finalEquity - 100000;
+  
+  // Max drawdown in dollars
+  let peak = 100000;
+  let maxDD = 0;
+  for (const point of equityCurve) {
+    peak = Math.max(peak, point.equity);
+    const dd = peak - point.equity;
+    maxDD = Math.max(maxDD, dd);
+  }
+  
+  // Recovery Factor: Net Profit / Max Drawdown
+  const recoveryFactor = maxDD > 0 ? netProfit / maxDD : 0;
+  
+  // Ulcer Index: sqrt(mean(drawdown^2))
+  const drawdownSquares = equityCurve.map(p => Math.pow(p.drawdown, 2));
+  const meanDrawdownSquare = drawdownSquares.reduce((sum, d) => sum + d, 0) / drawdownSquares.length;
+  const ulcerIndex = Math.sqrt(meanDrawdownSquare);
+  
+  // MAR Ratio: Annualized Return / Max Drawdown %
+  const totalDays = equityCurve.length > 0 
+    ? (equityCurve[equityCurve.length - 1]!.date.getTime() - equityCurve[0]!.date.getTime()) / (1000 * 60 * 60 * 24)
+    : 1;
+  const totalReturnPct = ((finalEquity - 100000) / 100000) * 100;
+  const annualizedReturn = (Math.pow(1 + totalReturnPct / 100, 365 / totalDays) - 1) * 100;
+  const maxDrawdownPct = equityCurve.reduce((max, p) => Math.max(max, p.drawdown), 0);
+  const marRatio = maxDrawdownPct > 0 ? annualizedReturn / maxDrawdownPct : 0;
+  
+  // Monthly/Quarterly consistency
+  const monthlyPnL = new Map<string, number>();
+  const quarterlyPnL = new Map<string, number>();
+  
+  for (const trade of trades) {
+    const monthKey = `${trade.exitDate.getFullYear()}-${String(trade.exitDate.getMonth() + 1).padStart(2, '0')}`;
+    const quarter = Math.floor(trade.exitDate.getMonth() / 3) + 1;
+    const quarterKey = `${trade.exitDate.getFullYear()}-Q${quarter}`;
+    
+    monthlyPnL.set(monthKey, (monthlyPnL.get(monthKey) || 0) + (trade.pnl / 100));
+    quarterlyPnL.set(quarterKey, (quarterlyPnL.get(quarterKey) || 0) + (trade.pnl / 100));
+  }
+  
+  const profitableMonths = Array.from(monthlyPnL.values()).filter(p => p > 0).length;
+  const profitableQuarters = Array.from(quarterlyPnL.values()).filter(p => p > 0).length;
+  const monthlyConsistency = monthlyPnL.size > 0 ? (profitableMonths / monthlyPnL.size) * 100 : 0;
+  const quarterlyConsistency = quarterlyPnL.size > 0 ? (profitableQuarters / quarterlyPnL.size) * 100 : 0;
+
   return {
     totalTrades: trades.length,
     winningTrades: winningTrades.length,
@@ -266,6 +348,14 @@ export function calculateTradeStats(trades: Trade[]): TradeStats {
     longestLossStreak,
     avgWin,
     avgLoss,
+    payoffRatio,
+    riskOfRuin,
+    kellyPercentage,
+    recoveryFactor,
+    ulcerIndex,
+    marRatio,
+    monthlyConsistency,
+    quarterlyConsistency,
   };
 }
 

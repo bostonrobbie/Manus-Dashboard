@@ -1,4 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface TradeStats {
   totalTrades: number;
@@ -17,6 +18,15 @@ interface TradeStats {
   medianHoldingTimeMinutes: number | null;
   longestWinStreak: number | null;
   longestLossStreak: number | null;
+  // Professional risk metrics
+  payoffRatio: number;
+  riskOfRuin: number;
+  kellyPercentage: number;
+  recoveryFactor: number;
+  ulcerIndex: number;
+  marRatio: number;
+  monthlyConsistency: number;
+  quarterlyConsistency: number;
 }
 
 interface TradeAndRiskStatsProps {
@@ -40,121 +50,225 @@ function formatHoldingTime(minutes: number | null): string {
   return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
 }
 
+function formatPercent(value: number, decimals: number = 1): string {
+  return `${value.toFixed(decimals)}%`;
+}
+
 export function TradeAndRiskStats({ tradeStats }: TradeAndRiskStatsProps) {
   return (
     <Card>
       <CardHeader>
         <CardTitle>Trade & Risk Statistics</CardTitle>
-        <CardDescription>Comprehensive trading performance metrics</CardDescription>
+        <CardDescription>Comprehensive trading performance and risk metrics</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* Left Column: Totals & Core Metrics */}
-          <div className="space-y-4">
-            <div>
-              <div className="text-sm text-muted-foreground">Total Trades</div>
-              <div className="text-2xl font-bold">{tradeStats.totalTrades}</div>
-              <div className="text-xs text-muted-foreground mt-1">
-                {tradeStats.winningTrades}W / {tradeStats.losingTrades}L
-              </div>
-            </div>
+        <Tabs defaultValue="core" className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="core">Core Metrics</TabsTrigger>
+            <TabsTrigger value="risk">Risk Analysis</TabsTrigger>
+            <TabsTrigger value="consistency">Consistency</TabsTrigger>
+          </TabsList>
 
-            <div>
-              <div className="text-sm text-muted-foreground">Win Rate</div>
-              <div className="text-2xl font-bold">{tradeStats.winRate.toFixed(1)}%</div>
-              <div className="text-xs text-muted-foreground mt-1">
-                Percentage of winning trades
-              </div>
-            </div>
-
-            <div>
-              <div className="text-sm text-muted-foreground">Profit Factor</div>
-              <div className="text-2xl font-bold">{tradeStats.profitFactor.toFixed(2)}</div>
-              <div className="text-xs text-muted-foreground mt-1">
-                Gross profit / Gross loss
-              </div>
-            </div>
-
-            <div>
-              <div className="text-sm text-muted-foreground">Expectancy ($/trade)</div>
-              <div className={`text-2xl font-bold ${tradeStats.expectancyPnL >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {formatCurrency(tradeStats.expectancyPnL)}
-              </div>
-              <div className="text-xs text-muted-foreground mt-1">
-                Average P&L per trade
-              </div>
-            </div>
-          </div>
-
-          {/* Right Column: Distribution Highlights */}
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <div className="text-sm text-muted-foreground">Average Trade</div>
-                <div className={`text-lg font-semibold ${((tradeStats.avgWin * tradeStats.winningTrades - tradeStats.avgLoss * tradeStats.losingTrades) / tradeStats.totalTrades) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {formatCurrency((tradeStats.avgWin * tradeStats.winningTrades - tradeStats.avgLoss * tradeStats.losingTrades) / tradeStats.totalTrades)}
+          {/* Core Metrics Tab */}
+          <TabsContent value="core" className="space-y-6 mt-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              <div className="space-y-1">
+                <div className="text-xs text-muted-foreground uppercase tracking-wide">Total Trades</div>
+                <div className="text-3xl font-bold">{tradeStats.totalTrades}</div>
+                <div className="text-xs text-muted-foreground">
+                  {tradeStats.winningTrades}W / {tradeStats.losingTrades}L
                 </div>
               </div>
 
-              <div>
-                <div className="text-sm text-muted-foreground">Median Trade</div>
-                <div className={`text-lg font-semibold ${tradeStats.medianTradePnL >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {formatCurrency(tradeStats.medianTradePnL)}
+              <div className="space-y-1">
+                <div className="text-xs text-muted-foreground uppercase tracking-wide">Win Rate</div>
+                <div className="text-3xl font-bold">{formatPercent(tradeStats.winRate)}</div>
+                <div className="text-xs text-muted-foreground">Percentage of wins</div>
+              </div>
+
+              <div className="space-y-1">
+                <div className="text-xs text-muted-foreground uppercase tracking-wide">Profit Factor</div>
+                <div className="text-3xl font-bold">{tradeStats.profitFactor.toFixed(2)}</div>
+                <div className="text-xs text-muted-foreground">Gross profit / loss</div>
+              </div>
+
+              <div className="space-y-1">
+                <div className="text-xs text-muted-foreground uppercase tracking-wide">Expectancy</div>
+                <div className={`text-3xl font-bold ${tradeStats.expectancyPnL >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {formatCurrency(tradeStats.expectancyPnL)}
                 </div>
+                <div className="text-xs text-muted-foreground">Per trade</div>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <div className="text-sm text-muted-foreground">Best Trade</div>
-                <div className="text-lg font-semibold text-green-600">
-                  {formatCurrency(tradeStats.bestTradePnL)}
+            <div className="border-t pt-6">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                <div className="space-y-1">
+                  <div className="text-xs text-muted-foreground uppercase tracking-wide">Avg Win</div>
+                  <div className="text-xl font-semibold text-green-600">{formatCurrency(tradeStats.avgWin)}</div>
                 </div>
-              </div>
 
-              <div>
-                <div className="text-sm text-muted-foreground">Worst Trade</div>
-                <div className="text-lg font-semibold text-red-600">
-                  {formatCurrency(tradeStats.worstTradePnL)}
+                <div className="space-y-1">
+                  <div className="text-xs text-muted-foreground uppercase tracking-wide">Avg Loss</div>
+                  <div className="text-xl font-semibold text-red-600">{formatCurrency(tradeStats.avgLoss)}</div>
+                </div>
+
+                <div className="space-y-1">
+                  <div className="text-xs text-muted-foreground uppercase tracking-wide">Best Trade</div>
+                  <div className="text-xl font-semibold text-green-600">{formatCurrency(tradeStats.bestTradePnL)}</div>
+                </div>
+
+                <div className="space-y-1">
+                  <div className="text-xs text-muted-foreground uppercase tracking-wide">Worst Trade</div>
+                  <div className="text-xl font-semibold text-red-600">{formatCurrency(tradeStats.worstTradePnL)}</div>
                 </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <div className="text-sm text-muted-foreground">Longest Win Streak</div>
-                <div className="text-lg font-semibold text-green-600">
-                  {tradeStats.longestWinStreak ?? 'N/A'}
-                </div>
-              </div>
+            {(tradeStats.averageHoldingTimeMinutes !== null || tradeStats.longestWinStreak !== null) && (
+              <div className="border-t pt-6">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                  {tradeStats.averageHoldingTimeMinutes !== null && (
+                    <div className="space-y-1">
+                      <div className="text-xs text-muted-foreground uppercase tracking-wide">Avg Hold Time</div>
+                      <div className="text-xl font-semibold">{formatHoldingTime(tradeStats.averageHoldingTimeMinutes)}</div>
+                    </div>
+                  )}
 
-              <div>
-                <div className="text-sm text-muted-foreground">Longest Loss Streak</div>
-                <div className="text-lg font-semibold text-red-600">
-                  {tradeStats.longestLossStreak ?? 'N/A'}
-                </div>
-              </div>
-            </div>
+                  {tradeStats.medianHoldingTimeMinutes !== null && (
+                    <div className="space-y-1">
+                      <div className="text-xs text-muted-foreground uppercase tracking-wide">Median Hold</div>
+                      <div className="text-xl font-semibold">{formatHoldingTime(tradeStats.medianHoldingTimeMinutes)}</div>
+                    </div>
+                  )}
 
-            {(tradeStats.averageHoldingTimeMinutes !== null || tradeStats.medianHoldingTimeMinutes !== null) && (
-              <div className="grid grid-cols-2 gap-4 pt-2 border-t">
-                <div>
-                  <div className="text-sm text-muted-foreground">Avg Hold Time</div>
-                  <div className="text-lg font-semibold">
-                    {formatHoldingTime(tradeStats.averageHoldingTimeMinutes)}
-                  </div>
-                </div>
+                  {tradeStats.longestWinStreak !== null && (
+                    <div className="space-y-1">
+                      <div className="text-xs text-muted-foreground uppercase tracking-wide">Win Streak</div>
+                      <div className="text-xl font-semibold text-green-600">{tradeStats.longestWinStreak}</div>
+                    </div>
+                  )}
 
-                <div>
-                  <div className="text-sm text-muted-foreground">Median Hold Time</div>
-                  <div className="text-lg font-semibold">
-                    {formatHoldingTime(tradeStats.medianHoldingTimeMinutes)}
-                  </div>
+                  {tradeStats.longestLossStreak !== null && (
+                    <div className="space-y-1">
+                      <div className="text-xs text-muted-foreground uppercase tracking-wide">Loss Streak</div>
+                      <div className="text-xl font-semibold text-red-600">{tradeStats.longestLossStreak}</div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
-          </div>
-        </div>
+          </TabsContent>
+
+          {/* Risk Analysis Tab */}
+          <TabsContent value="risk" className="space-y-6 mt-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+              <div className="space-y-1">
+                <div className="text-xs text-muted-foreground uppercase tracking-wide">Payoff Ratio</div>
+                <div className="text-3xl font-bold">{tradeStats.payoffRatio.toFixed(2)}</div>
+                <div className="text-xs text-muted-foreground">Avg Win / Avg Loss</div>
+              </div>
+
+              <div className="space-y-1">
+                <div className="text-xs text-muted-foreground uppercase tracking-wide">Kelly %</div>
+                <div className="text-3xl font-bold text-blue-600">{formatPercent(tradeStats.kellyPercentage, 2)}</div>
+                <div className="text-xs text-muted-foreground">Optimal position size</div>
+              </div>
+
+              <div className="space-y-1">
+                <div className="text-xs text-muted-foreground uppercase tracking-wide">Risk of Ruin</div>
+                <div className={`text-3xl font-bold ${tradeStats.riskOfRuin < 5 ? 'text-green-600' : tradeStats.riskOfRuin < 20 ? 'text-yellow-600' : 'text-red-600'}`}>
+                  {formatPercent(tradeStats.riskOfRuin, 2)}
+                </div>
+                <div className="text-xs text-muted-foreground">Account depletion risk</div>
+              </div>
+            </div>
+
+            <div className="border-t pt-6">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+                <div className="space-y-1">
+                  <div className="text-xs text-muted-foreground uppercase tracking-wide">Recovery Factor</div>
+                  <div className="text-2xl font-bold">{tradeStats.recoveryFactor.toFixed(2)}</div>
+                  <div className="text-xs text-muted-foreground">Net Profit / Max DD</div>
+                </div>
+
+                <div className="space-y-1">
+                  <div className="text-xs text-muted-foreground uppercase tracking-wide">MAR Ratio</div>
+                  <div className="text-2xl font-bold">{tradeStats.marRatio.toFixed(2)}</div>
+                  <div className="text-xs text-muted-foreground">Return / Max DD</div>
+                </div>
+
+                <div className="space-y-1">
+                  <div className="text-xs text-muted-foreground uppercase tracking-wide">Ulcer Index</div>
+                  <div className="text-2xl font-bold">{tradeStats.ulcerIndex.toFixed(2)}</div>
+                  <div className="text-xs text-muted-foreground">DD volatility</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="border-t pt-6">
+              <div className="bg-muted/30 p-4 rounded-lg space-y-2">
+                <div className="text-sm font-semibold">Risk Interpretation</div>
+                <div className="text-xs text-muted-foreground space-y-1">
+                  <div>• <strong>Kelly %:</strong> Suggests risking {tradeStats.kellyPercentage.toFixed(1)}% of capital per trade for optimal growth</div>
+                  <div>• <strong>Risk of Ruin:</strong> {tradeStats.riskOfRuin < 5 ? 'Very low' : tradeStats.riskOfRuin < 20 ? 'Moderate' : 'High'} probability of account depletion</div>
+                  <div>• <strong>Recovery Factor:</strong> {tradeStats.recoveryFactor > 2 ? 'Excellent' : tradeStats.recoveryFactor > 1 ? 'Good' : 'Needs improvement'} - higher is better</div>
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* Consistency Tab */}
+          <TabsContent value="consistency" className="space-y-6 mt-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-3">
+                <div className="text-xs text-muted-foreground uppercase tracking-wide">Monthly Consistency</div>
+                <div className="flex items-end gap-3">
+                  <div className="text-4xl font-bold">{formatPercent(tradeStats.monthlyConsistency)}</div>
+                  <div className="text-sm text-muted-foreground pb-1">of months profitable</div>
+                </div>
+                <div className="w-full bg-muted rounded-full h-3">
+                  <div 
+                    className="bg-green-600 h-3 rounded-full transition-all" 
+                    style={{ width: `${Math.min(100, tradeStats.monthlyConsistency)}%` }}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <div className="text-xs text-muted-foreground uppercase tracking-wide">Quarterly Consistency</div>
+                <div className="flex items-end gap-3">
+                  <div className="text-4xl font-bold">{formatPercent(tradeStats.quarterlyConsistency)}</div>
+                  <div className="text-sm text-muted-foreground pb-1">of quarters profitable</div>
+                </div>
+                <div className="w-full bg-muted rounded-full h-3">
+                  <div 
+                    className="bg-blue-600 h-3 rounded-full transition-all" 
+                    style={{ width: `${Math.min(100, tradeStats.quarterlyConsistency)}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="border-t pt-6">
+              <div className="bg-muted/30 p-4 rounded-lg space-y-2">
+                <div className="text-sm font-semibold">Consistency Benchmarks</div>
+                <div className="text-xs text-muted-foreground space-y-1">
+                  <div>• <strong>Excellent:</strong> &gt;70% monthly, &gt;80% quarterly consistency</div>
+                  <div>• <strong>Good:</strong> 50-70% monthly, 60-80% quarterly consistency</div>
+                  <div>• <strong>Needs Work:</strong> &lt;50% monthly, &lt;60% quarterly consistency</div>
+                  <div className="pt-2 border-t mt-2">
+                    <strong>Your Performance:</strong> {
+                      tradeStats.monthlyConsistency > 70 && tradeStats.quarterlyConsistency > 80 ? 'Excellent - Very consistent returns' :
+                      tradeStats.monthlyConsistency > 50 && tradeStats.quarterlyConsistency > 60 ? 'Good - Reasonably consistent' :
+                      'Room for improvement - Focus on reducing volatility'
+                    }
+                  </div>
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
       </CardContent>
     </Card>
   );
