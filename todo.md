@@ -1400,3 +1400,12 @@
 - [x] Test quick-select button calculations
 - [x] Verify all charts update correctly when controls change
 - [x] Monitor chart performance with large datasets
+
+
+## URGENT: Strategy Not Found Error (User Reported)
+- [x] Investigate "Strategy not found" error on /strategies page
+- [x] Check strategies page query logic
+- [x] Verify strategy IDs in database
+- [x] Fix query to handle missing or invalid strategies
+- [x] Add error handling for strategy queries
+- [x] Test fix on /strategies page

@@ -431,13 +431,22 @@ export const appRouter = router({
         }
 
         // Get strategy info
-        const strategies = await Promise.all(
+        const strategiesWithNulls = await Promise.all(
           strategyIds.map(id => db.getStrategyById(id))
         );
+        
+        // Filter out null strategies and track which IDs are invalid
+        const strategies = strategiesWithNulls.filter((s): s is NonNullable<typeof s> => s !== null);
+        const validStrategyIds = strategies.map(s => s.id);
+        
+        // If no valid strategies found, return early
+        if (strategies.length === 0) {
+          throw new Error("No valid strategies found");
+        }
 
-        // Get trades for each strategy
+        // Get trades for each strategy (only valid ones)
         const tradesPerStrategy = await Promise.all(
-          strategyIds.map(id => db.getTrades({
+          validStrategyIds.map(id => db.getTrades({
             strategyIds: [id],
             startDate,
             endDate: now,
@@ -464,10 +473,10 @@ export const appRouter = router({
         if (allDates.length === 0) {
           return {
             strategies: strategies.map((s) => ({
-              id: s?.id,
-              name: s?.name,
-              symbol: s?.symbol,
-              market: s?.market,
+              id: s.id,
+              name: s.name,
+              symbol: s.symbol,
+              market: s.market,
               metrics: {
                 totalReturn: 0,
                 annualizedReturn: 0,
@@ -543,10 +552,10 @@ export const appRouter = router({
 
         return {
           strategies: strategies.map((s, i) => ({
-            id: s?.id,
-            name: s?.name,
-            symbol: s?.symbol,
-            market: s?.market,
+            id: s.id,
+            name: s.name,
+            symbol: s.symbol,
+            market: s.market,
             metrics: metricsPerStrategy[i],
             equityCurve: forwardFilledCurves[i],
           })),
