@@ -1374,3 +1374,29 @@
 - [ ] Reconcile contradiction between calculator subtitle and Risk Analysis
 - [ ] Update subtitle to match actual 0% risk of ruin calculation
 - [ ] Ensure position sizing aligns with Risk of Ruin methodology
+
+
+## URGENT: Strategy Detail Page Fixes (User Reported)
+
+### Chart Display Issues
+- [x] Fix equity curve not extending full width of chart area
+- [x] Fix S&P 500 benchmark line discontinuities/gaps
+- [x] Fix underwater curve not extending full width
+- [x] Ensure all charts use proper domain and padding settings
+- [x] Verify data alignment between strategy and benchmark
+
+### Header Controls Redesign
+- [x] Redesign Starting Capital, Time Range, Contract Size layout for better aesthetics
+- [x] Add quick-select buttons for Starting Capital (Zero RoR, 10K, 25K, 50K, 100K)
+- [x] Calculate and display Zero RoR capital amount for current strategy
+- [x] Improve visual hierarchy and spacing of controls
+- [x] Add hover states and better button styling
+- [x] Ensure controls are responsive on mobile
+
+### Testing & Verification
+- [x] Create comprehensive test suite for chart rendering
+- [x] Test chart width calculations across different screen sizes
+- [x] Test benchmark data continuity and forward-fill logic
+- [x] Test quick-select button calculations
+- [x] Verify all charts update correctly when controls change
+- [x] Monitor chart performance with large datasets

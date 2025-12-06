@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useRoute } from "wouter";
+import { useState, useMemo } from "react";
+import { useRoute, Link } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -11,9 +11,8 @@ import { Loader2, ArrowLeft } from "lucide-react";
 import { TradeFilters, TradeFilterState } from "@/components/TradeFilters";
 import { exportTradesToCSV } from "@/lib/csvExport";
 import { Button } from "@/components/ui/button";
-import { Link } from "wouter";
 
-type TimeRange = 'YTD' | '1Y' | '3Y' | '5Y' | 'ALL';
+type TimeRange = '6M' | 'YTD' | '1Y' | 'ALL';
 
 export default function StrategyDetail() {
   const [, params] = useRoute("/strategy/:id");
@@ -30,6 +29,30 @@ export default function StrategyDetail() {
     timeRange,
     startingCapital,
   });
+
+  // Calculate Zero RoR capital
+  const zeroRoRCapital = useMemo(() => {
+    if (!data?.metrics) return null;
+    
+    const { winRate, avgWin, avgLoss } = data.metrics;
+    
+    if (avgLoss === 0) return null;
+    
+    // Calculate trading advantage: A = (WinRate × AvgWin - LossRate × AvgLoss) / AvgLoss
+    const lossRate = 1 - (winRate / 100);
+    const payoffRatio = Math.abs(avgWin / avgLoss);
+    const tradingAdvantage = ((winRate / 100) * payoffRatio - lossRate) / payoffRatio;
+    
+    if (tradingAdvantage <= 0) return null; // Negative expectancy system
+    
+    // Calculate capital units for <0.01% RoR: U = ln(0.0001) / ln((1-A)/(1+A))
+    const capitalUnits = Math.log(0.0001) / Math.log((1 - tradingAdvantage) / (1 + tradingAdvantage));
+    
+    // Minimum balance = Capital Units × Average Loss
+    const minBalance = capitalUnits * Math.abs(avgLoss);
+    
+    return Math.ceil(minBalance / 1000) * 1000; // Round up to nearest 1000
+  }, [data?.metrics]);
 
   if (isLoading) {
     return (
@@ -78,9 +101,7 @@ export default function StrategyDetail() {
       pnl: trade.pnl,
       pnlPercent: trade.pnlPercent,
       commission: trade.commission,
-      strategyName: strategy.name,
     }));
-    
     const filename = `${strategy.name.replace(/\s+/g, '_')}_trades_${new Date().toISOString().split('T')[0]}.csv`;
     exportTradesToCSV(tradesForExport, filename);
   };
@@ -90,14 +111,14 @@ export default function StrategyDetail() {
   const chartData = equityCurve.map((point, index) => ({
     date: new Date(point.date).toLocaleDateString(),
     equity: point.equity * multiplier,
-    benchmark: data.benchmarkData?.[index]?.close ?? null,
+    benchmark: data.benchmarkData?.[index]?.close,
   }));
 
   // Prepare underwater curve data
   const underwaterData = data.underwaterCurve?.map((point, index) => ({
     date: new Date(point.date).toLocaleDateString(),
     drawdown: point.drawdownPercent, // Already in percentage
-    benchmarkDrawdown: data.benchmarkUnderwater?.[index]?.drawdownPercent ?? null,
+    benchmarkDrawdown: data.benchmarkUnderwater?.[index]?.drawdownPercent,
   })) ?? [];
 
   return (
@@ -111,85 +132,185 @@ export default function StrategyDetail() {
           </Button>
         </Link>
         
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">{strategy.name}</h1>
-            <p className="text-muted-foreground">
-              {strategy.market} • {strategy.strategyType}
-            </p>
-          </div>
-          
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <div className="space-y-2">
-              <Label htmlFor="starting-capital">Starting Capital</Label>
-              <Input
-                id="starting-capital"
-                type="number"
-                value={startingCapital}
-                onChange={(e) => setStartingCapital(Number(e.target.value))}
-                className="w-full sm:w-[180px]"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="time-range">Time Range</Label>
-              <Select value={timeRange} onValueChange={(v) => setTimeRange(v as TimeRange)}>
-                <SelectTrigger id="time-range" className="w-full sm:w-[180px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="YTD">Year to Date</SelectItem>
-                  <SelectItem value="1Y">1 Year</SelectItem>
-                  <SelectItem value="3Y">3 Years</SelectItem>
-                  <SelectItem value="5Y">5 Years</SelectItem>
-                  <SelectItem value="ALL">All Time</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="contract-size">Contract Size</Label>
-              <Select value={contractSize} onValueChange={(v) => setContractSize(v as 'mini' | 'micro')}>
-                <SelectTrigger id="contract-size" className="w-full sm:w-[180px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="mini">Mini Contracts</SelectItem>
-                  <SelectItem value="micro">Micro Contracts</SelectItem>
-                </SelectContent>
-              </Select>
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">{strategy.name}</h1>
+              <p className="text-muted-foreground">
+                {strategy.market} • {strategy.strategyType}
+              </p>
             </div>
           </div>
+
+          {/* Controls Card */}
+          <Card className="bg-muted/30">
+            <CardContent className="pt-6">
+              <div className="grid gap-6 md:grid-cols-3">
+                {/* Starting Capital */}
+                <div className="space-y-3">
+                  <Label className="text-sm font-semibold">Starting Capital</Label>
+                  <Input
+                    type="number"
+                    value={startingCapital}
+                    onChange={(e) => setStartingCapital(Number(e.target.value))}
+                    className="text-lg font-medium"
+                  />
+                  <div className="flex flex-wrap gap-2">
+                    {zeroRoRCapital && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setStartingCapital(zeroRoRCapital)}
+                        className="text-xs"
+                      >
+                        Zero RoR (${(zeroRoRCapital / 1000).toFixed(0)}K)
+                      </Button>
+                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setStartingCapital(10000)}
+                      className="text-xs"
+                    >
+                      $10K
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setStartingCapital(25000)}
+                      className="text-xs"
+                    >
+                      $25K
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setStartingCapital(50000)}
+                      className="text-xs"
+                    >
+                      $50K
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setStartingCapital(100000)}
+                      className="text-xs"
+                    >
+                      $100K
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Time Range */}
+                <div className="space-y-3">
+                  <Label className="text-sm font-semibold">Time Range</Label>
+                  <Select value={timeRange} onValueChange={(v) => setTimeRange(v as TimeRange)}>
+                    <SelectTrigger className="text-lg">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="6M">6 Months</SelectItem>
+                      <SelectItem value="YTD">Year to Date</SelectItem>
+                      <SelectItem value="1Y">1 Year</SelectItem>
+                      <SelectItem value="ALL">All Time</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      variant={timeRange === '6M' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setTimeRange('6M')}
+                      className="text-xs"
+                    >
+                      6M
+                    </Button>
+                    <Button
+                      variant={timeRange === 'YTD' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setTimeRange('YTD')}
+                      className="text-xs"
+                    >
+                      YTD
+                    </Button>
+                    <Button
+                      variant={timeRange === '1Y' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setTimeRange('1Y')}
+                      className="text-xs"
+                    >
+                      1Y
+                    </Button>
+                    <Button
+                      variant={timeRange === 'ALL' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setTimeRange('ALL')}
+                      className="text-xs"
+                    >
+                      ALL
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Contract Size */}
+                <div className="space-y-3">
+                  <Label className="text-sm font-semibold">Contract Size</Label>
+                  <Select value={contractSize} onValueChange={(v) => setContractSize(v as 'mini' | 'micro')}>
+                    <SelectTrigger className="text-lg">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="mini">Mini Contracts</SelectItem>
+                      <SelectItem value="micro">Micro Contracts</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      variant={contractSize === 'mini' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setContractSize('mini')}
+                      className="text-xs"
+                    >
+                      Mini
+                    </Button>
+                    <Button
+                      variant={contractSize === 'micro' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setContractSize('micro')}
+                      className="text-xs"
+                    >
+                      Micro
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
 
-      {/* Key Metrics */}
+      {/* Performance Metrics */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total Return</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total Return</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {(() => {
-                const multiplier = contractSize === 'micro' ? 0.1 : 1;
-                const dollarReturn = (startingCapital * metrics.totalReturn / 100) * multiplier;
-                return `${dollarReturn >= 0 ? '+' : ''}$${Math.abs(dollarReturn).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
-              })()}
+            <div className="text-3xl font-bold text-green-500">
+              +${((metrics.totalReturn / 100) * startingCapital * multiplier).toLocaleString()}
             </div>
-            <p className="text-xs text-muted-foreground">
-              {metrics.totalReturn >= 0 ? '+' : ''}{metrics.totalReturn.toFixed(2)}% • Ann: {metrics.annualizedReturn.toFixed(2)}%
+            <p className="text-xs text-muted-foreground mt-1">
+              +{metrics.totalReturn.toFixed(2)}% • Ann: {metrics.annualizedReturn.toFixed(2)}%
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Sharpe Ratio</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Sharpe Ratio</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{metrics.sharpeRatio.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground">
+            <div className="text-3xl font-bold">{metrics.sharpeRatio.toFixed(2)}</div>
+            <p className="text-xs text-muted-foreground mt-1">
               Sortino: {metrics.sortinoRatio.toFixed(2)}
             </p>
           </CardContent>
@@ -197,30 +318,26 @@ export default function StrategyDetail() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Max Drawdown</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Max Drawdown</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-destructive">
-              {(() => {
-                const multiplier = contractSize === 'micro' ? 0.1 : 1;
-                const dollarDD = metrics.maxDrawdownDollars * multiplier;
-                return `-$${dollarDD.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
-              })()}
+            <div className="text-3xl font-bold text-red-500">
+              -${Math.abs((metrics.maxDrawdown / 100) * startingCapital * multiplier).toLocaleString()}
             </div>
-            <p className="text-xs text-muted-foreground">
-              -{metrics.maxDrawdown.toFixed(2)}%
+            <p className="text-xs text-muted-foreground mt-1">
+              {metrics.maxDrawdown.toFixed(2)}%
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Win Rate</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Win Rate</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{metrics.winRate.toFixed(1)}%</div>
-            <p className="text-xs text-muted-foreground">
-              {metrics.winningTrades} / {metrics.totalTrades} trades
+            <div className="text-3xl font-bold">{metrics.winRate.toFixed(1)}%</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {Math.round(metrics.totalTrades * metrics.winRate / 100)} / {metrics.totalTrades} trades
             </p>
           </CardContent>
         </Card>
@@ -243,6 +360,8 @@ export default function StrategyDetail() {
                   angle={-45}
                   textAnchor="end"
                   height={80}
+                  domain={['dataMin', 'dataMax']}
+                  padding={{ left: 20, right: 20 }}
                 />
                 <YAxis 
                   tick={{ fontSize: 12, fill: '#9ca3af' }}
@@ -269,6 +388,7 @@ export default function StrategyDetail() {
                   strokeWidth={2}
                   dot={false}
                   name="Strategy"
+                  connectNulls
                 />
                 {showBenchmark && data?.benchmarkData && (
                   <Line 
@@ -278,6 +398,7 @@ export default function StrategyDetail() {
                     strokeWidth={1.5}
                     dot={false}
                     name="S&P 500"
+                    connectNulls
                   />
                 )}
               </LineChart>
@@ -303,6 +424,8 @@ export default function StrategyDetail() {
                   angle={-45}
                   textAnchor="end"
                   height={80}
+                  domain={['dataMin', 'dataMax']}
+                  padding={{ left: 20, right: 20 }}
                 />
                 <YAxis 
                   tick={{ fontSize: 12, fill: '#9ca3af' }}
@@ -328,6 +451,7 @@ export default function StrategyDetail() {
                   strokeWidth={2}
                   dot={false}
                   name="Strategy Drawdown"
+                  connectNulls
                 />
                 {showBenchmark && data?.benchmarkUnderwater && (
                   <Line 
@@ -337,6 +461,7 @@ export default function StrategyDetail() {
                     strokeWidth={1.5}
                     dot={false}
                     name="S&P 500 Drawdown"
+                    connectNulls
                   />
                 )}
               </LineChart>
@@ -374,33 +499,25 @@ export default function StrategyDetail() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredTrades.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                      No trades match the selected filters
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredTrades.map((trade) => (
+                {filteredTrades.map((trade) => (
                   <TableRow key={trade.id}>
                     <TableCell>{new Date(trade.entryDate).toLocaleDateString()}</TableCell>
                     <TableCell>{new Date(trade.exitDate).toLocaleDateString()}</TableCell>
                     <TableCell>
-                      <span className={trade.direction === 'Long' ? 'text-green-600' : 'text-red-600'}>
+                      <span className={trade.direction === 'Long' ? 'text-green-500' : 'text-red-500'}>
                         {trade.direction}
                       </span>
                     </TableCell>
-                    <TableCell className="text-right">${(trade.entryPrice / 100).toFixed(2)}</TableCell>
-                    <TableCell className="text-right">${(trade.exitPrice / 100).toFixed(2)}</TableCell>
-                    <TableCell className={`text-right ${trade.pnl >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    <TableCell className="text-right">${trade.entryPrice.toFixed(2)}</TableCell>
+                    <TableCell className="text-right">${trade.exitPrice.toFixed(2)}</TableCell>
+                    <TableCell className={`text-right ${trade.pnl >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                       ${(trade.pnl / 100).toFixed(2)}
                     </TableCell>
-                    <TableCell className={`text-right ${trade.pnlPercent >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {(trade.pnlPercent / 10000).toFixed(2)}%
+                    <TableCell className={`text-right ${trade.pnlPercent >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                      {trade.pnlPercent.toFixed(2)}%
                     </TableCell>
                   </TableRow>
-                  ))
-                )}
+                ))}
               </TableBody>
             </Table>
           </div>
