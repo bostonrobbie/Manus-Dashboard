@@ -1270,3 +1270,10 @@
 - [x] Change Calendar P&L default tab from Monthly to Yearly
 
 - [x] Change Monte Carlo X and Y axis labels to white color
+
+## Performance Optimization (Current Session)
+- [x] Increase query cache times (15-30 minutes for historical data)
+- [x] Add lazy loading for heavy chart components
+- [x] Wrap all lazy components with Suspense fallbacks
+- [x] Add React.memo to prevent unnecessary re-renders
+- [x] Test loading performance improvements

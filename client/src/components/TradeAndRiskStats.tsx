@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
@@ -54,7 +55,7 @@ function formatPercent(value: number, decimals: number = 1): string {
   return `${value.toFixed(decimals)}%`;
 }
 
-export function TradeAndRiskStats({ tradeStats }: TradeAndRiskStatsProps) {
+export const TradeAndRiskStats = memo(function TradeAndRiskStats({ tradeStats }: TradeAndRiskStatsProps) {
   return (
     <Card>
       <CardHeader>
@@ -272,4 +273,4 @@ export function TradeAndRiskStats({ tradeStats }: TradeAndRiskStatsProps) {
       </CardContent>
     </Card>
   );
-}
+});

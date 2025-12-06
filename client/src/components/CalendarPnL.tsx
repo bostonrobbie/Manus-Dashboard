@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, memo } from "react";
 import { Card } from "@/components/ui/card";
 
 type PeriodType = "daily" | "weekly" | "monthly" | "quarterly" | "yearly";
@@ -20,7 +20,7 @@ interface CalendarPnLProps {
   onPeriodTypeChange: (type: PeriodType) => void;
 }
 
-export function CalendarPnL({ data, periodType, onPeriodTypeChange }: CalendarPnLProps) {
+export const CalendarPnL = memo(function CalendarPnL({ data, periodType, onPeriodTypeChange }: CalendarPnLProps) {
   // Get color based on P&L value
   const getColor = (pnl: number, returnPct: number) => {
     if (pnl === 0) return "bg-muted/50 text-muted-foreground";
@@ -336,4 +336,4 @@ export function CalendarPnL({ data, periodType, onPeriodTypeChange }: CalendarPn
       </div>
     </Card>
   );
-}
+});
