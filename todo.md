@@ -1277,3 +1277,12 @@
 - [x] Wrap all lazy components with Suspense fallbacks
 - [x] Add React.memo to prevent unnecessary re-renders
 - [x] Test loading performance improvements
+
+## Individual Strategy Page Fixes (Current Session)
+- [x] Reduce chart grid opacity to 10% (match dashboard theme)
+- [x] Convert Max Drawdown from percentage to dollar amount
+- [x] Convert Total Return from percentage to dollar amount
+- [x] Add Mini/Micro contract size toggle to strategy pages
+- [x] Ensure dollar amounts sync with contract size toggle
+- [x] Fix equity curve auto-scaling and normalization
+- [x] Test all strategy pages for consistency

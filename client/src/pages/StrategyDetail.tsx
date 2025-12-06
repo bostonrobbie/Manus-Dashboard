@@ -21,6 +21,7 @@ export default function StrategyDetail() {
 
   const [timeRange, setTimeRange] = useState<TimeRange>('1Y');
   const [startingCapital, setStartingCapital] = useState(100000);
+  const [contractSize, setContractSize] = useState<'mini' | 'micro'>('mini');
   const [filters, setFilters] = useState<TradeFilterState>({});
 
   const { data, isLoading, error } = trpc.portfolio.strategyDetail.useQuery({
@@ -83,10 +84,11 @@ export default function StrategyDetail() {
     exportTradesToCSV(tradesForExport, filename);
   };
 
-  // Prepare chart data
+  // Prepare chart data with contract size multiplier
+  const multiplier = contractSize === 'micro' ? 0.1 : 1;
   const chartData = equityCurve.map((point) => ({
     date: new Date(point.date).toLocaleDateString(),
-    equity: point.equity,
+    equity: point.equity * multiplier,
   }));
 
   return (
@@ -135,6 +137,19 @@ export default function StrategyDetail() {
                 </SelectContent>
               </Select>
             </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="contract-size">Contract Size</Label>
+              <Select value={contractSize} onValueChange={(v) => setContractSize(v as 'mini' | 'micro')}>
+                <SelectTrigger id="contract-size" className="w-full sm:w-[180px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="mini">Mini Contracts</SelectItem>
+                  <SelectItem value="micro">Micro Contracts</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
       </div>
@@ -147,10 +162,14 @@ export default function StrategyDetail() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {metrics.totalReturn >= 0 ? '+' : ''}{metrics.totalReturn.toFixed(2)}%
+              {(() => {
+                const multiplier = contractSize === 'micro' ? 0.1 : 1;
+                const dollarReturn = (startingCapital * metrics.totalReturn / 100) * multiplier;
+                return `${dollarReturn >= 0 ? '+' : ''}$${Math.abs(dollarReturn).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+              })()}
             </div>
             <p className="text-xs text-muted-foreground">
-              Annualized: {metrics.annualizedReturn.toFixed(2)}%
+              {metrics.totalReturn >= 0 ? '+' : ''}{metrics.totalReturn.toFixed(2)}% • Ann: {metrics.annualizedReturn.toFixed(2)}%
             </p>
           </CardContent>
         </Card>
@@ -173,8 +192,15 @@ export default function StrategyDetail() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-destructive">
-              -{metrics.maxDrawdown.toFixed(2)}%
+              {(() => {
+                const multiplier = contractSize === 'micro' ? 0.1 : 1;
+                const dollarDD = metrics.maxDrawdownDollars * multiplier;
+                return `-$${dollarDD.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+              })()}
             </div>
+            <p className="text-xs text-muted-foreground">
+              -{metrics.maxDrawdown.toFixed(2)}%
+            </p>
           </CardContent>
         </Card>
 
@@ -201,7 +227,7 @@ export default function StrategyDetail() {
           <div className="h-[400px]">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" />
+                <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
                 <XAxis 
                   dataKey="date" 
                   tick={{ fontSize: 12 }}
@@ -212,6 +238,7 @@ export default function StrategyDetail() {
                 <YAxis 
                   tick={{ fontSize: 12 }}
                   tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
+                  domain={['auto', 'auto']}
                 />
                 <Tooltip 
                   formatter={(value: number) => `$${value.toFixed(2)}`}
