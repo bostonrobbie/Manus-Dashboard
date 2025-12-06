@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { VisualAnalyticsCharts } from './VisualAnalyticsCharts';
 
 interface TradeStats {
   totalTrades: number;
@@ -64,10 +65,11 @@ export const TradeAndRiskStats = memo(function TradeAndRiskStats({ tradeStats }:
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="core" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="core">Core Metrics</TabsTrigger>
             <TabsTrigger value="risk">Risk Analysis</TabsTrigger>
             <TabsTrigger value="consistency">Consistency</TabsTrigger>
+            <TabsTrigger value="visual">Visual Analytics</TabsTrigger>
           </TabsList>
 
           {/* Core Metrics Tab */}
@@ -268,6 +270,11 @@ export const TradeAndRiskStats = memo(function TradeAndRiskStats({ tradeStats }:
                 </div>
               </div>
             </div>
+          </TabsContent>
+
+          {/* Visual Analytics Tab */}
+          <TabsContent value="visual" className="space-y-6 mt-6">
+            <VisualAnalyticsCharts />
           </TabsContent>
         </Tabs>
       </CardContent>

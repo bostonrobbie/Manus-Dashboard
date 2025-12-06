@@ -1286,3 +1286,13 @@
 - [x] Ensure dollar amounts sync with contract size toggle
 - [x] Fix equity curve auto-scaling and normalization
 - [x] Test all strategy pages for consistency
+
+## Trade & Risk Statistics Visual Analytics (Current Session)
+- [x] Add backend support for consecutive wins/losses distribution data
+- [x] Implement Consecutive Wins/Losses distribution bar chart
+- [x] Add backend support for trade duration histogram data
+- [x] Implement Trade Duration histogram
+- [x] Add backend support for win/loss by day of week data
+- [x] Create Win/Loss by Day of Week breakdown chart
+- [x] Integrate all charts into Trade & Risk Statistics component
+- [x] Test all visualizations for accuracy

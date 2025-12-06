@@ -597,6 +597,67 @@ export const appRouter = router({
       }),
 
     /**
+     * Get visual analytics data for charts
+     */
+    visualAnalytics: protectedProcedure
+      .input(z.object({
+        timeRange: TimeRange.optional(),
+      }))
+      .query(async ({ input }) => {
+        const { timeRange } = input;
+        const visualAnalytics = await import('./analytics.visual.js');
+
+        // Calculate date range
+        const now = new Date();
+        let startDate: Date | undefined;
+
+        if (timeRange) {
+          const year = now.getFullYear();
+          switch (timeRange) {
+            case '6M':
+              startDate = new Date(now);
+              startDate.setMonth(now.getMonth() - 6);
+              break;
+            case 'YTD':
+              startDate = new Date(year, 0, 1);
+              break;
+            case '1Y':
+              startDate = new Date(now);
+              startDate.setFullYear(year - 1);
+              break;
+            case '3Y':
+              startDate = new Date(now);
+              startDate.setFullYear(year - 3);
+              break;
+            case '5Y':
+              startDate = new Date(now);
+              startDate.setFullYear(year - 5);
+              break;
+            case 'ALL':
+              startDate = undefined;
+              break;
+          }
+        }
+
+        // Get all trades
+        const trades = await db.getTrades({
+          startDate,
+          endDate: now,
+        });
+
+        // Calculate visual analytics
+        const streakDistribution = visualAnalytics.calculateStreakDistribution(trades);
+        const durationDistribution = visualAnalytics.calculateDurationDistribution(trades);
+        const dayOfWeekPerformance = visualAnalytics.calculateDayOfWeekPerformance(trades);
+
+        return {
+          streakDistribution,
+          durationDistribution,
+          dayOfWeekPerformance,
+        };
+      }),
+
+    /**
      * Get list of all strategies with performance metrics
      */
     listStrategies: protectedProcedure.query(async () => {
