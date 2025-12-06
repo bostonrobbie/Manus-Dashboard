@@ -10,6 +10,18 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 
 type TimeRange = 'YTD' | '1Y' | '3Y' | '5Y' | 'ALL';
 
+// Format large numbers with K/M suffix
+const formatCurrency = (value: number): string => {
+  const absValue = Math.abs(value);
+  if (absValue >= 1000000) {
+    return `$${(value / 1000000).toFixed(1)}M`;
+  } else if (absValue >= 1000) {
+    return `$${(value / 1000).toFixed(0)}K`;
+  } else {
+    return `$${value.toFixed(0)}`;
+  }
+};
+
 const STRATEGY_COLORS = [
   '#3b82f6', // blue
   '#10b981', // green
@@ -228,7 +240,7 @@ export default function Strategies() {
           const MarketIcon = getMarketIcon(strategy.market || 'Unknown');
           
           return (
-            <Card key={strategy.id} className="relative overflow-hidden hover:shadow-2xl transition-all duration-300 border-2 hover:border-primary/40 group bg-gradient-to-br from-card via-card to-card/80">
+            <Card key={strategy.id} className="relative overflow-hidden hover:shadow-2xl transition-all duration-300 border-2 hover:border-primary/40 group bg-gradient-to-br from-card via-card to-card/80 h-full flex flex-col">
               <CardHeader className="pb-4 relative z-10">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
@@ -259,14 +271,14 @@ export default function Strategies() {
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-4 relative z-10">
+              <CardContent className="space-y-4 relative z-10 flex-1 flex flex-col">
                 {/* Performance Metrics Grid */}
                 <div className="grid grid-cols-3 gap-2.5">
                   <div className="bg-gradient-to-br from-blue-500/10 to-blue-500/5 rounded-lg p-2.5 border border-blue-500/20">
                     <div className="text-[9px] text-muted-foreground mb-0.5 uppercase tracking-wide font-semibold">Return</div>
                     <div className="text-sm font-bold text-blue-600 truncate">
                       {strategy.totalReturn !== undefined 
-                        ? `$${strategy.totalReturn.toLocaleString(undefined, { maximumFractionDigits: 0 })}`
+                        ? formatCurrency(strategy.totalReturn)
                         : 'N/A'
                       }
                     </div>
@@ -275,7 +287,7 @@ export default function Strategies() {
                     <div className="text-[9px] text-muted-foreground mb-0.5 uppercase tracking-wide font-semibold">Max DD</div>
                     <div className="text-sm font-bold text-blue-600 truncate">
                       {strategy.maxDrawdown !== undefined
-                        ? `$${Math.abs(strategy.maxDrawdown).toLocaleString(undefined, { maximumFractionDigits: 0 })}`
+                        ? formatCurrency(Math.abs(strategy.maxDrawdown))
                         : 'N/A'
                       }
                     </div>
@@ -303,7 +315,7 @@ export default function Strategies() {
                   </div>
                 </div>
                 
-                <Link href={`/strategy/${strategy.id}`}>
+                <Link href={`/strategy/${strategy.id}`} className="mt-auto">
                   <Button className="w-full group-hover:bg-primary group-hover:text-primary-foreground transition-all shadow-sm group-hover:shadow-md" variant="outline">
                     <span className="font-semibold">View Details</span>
                     <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />

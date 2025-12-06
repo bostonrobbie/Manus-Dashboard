@@ -103,13 +103,16 @@ export default function Overview() {
   if (!data) return null;
 
   const { metrics, portfolioEquity, benchmarkEquity } = data;
+  
+  // Contract size multiplier: micro = 1/10 of mini
+  const contractMultiplier = contractSize === 'micro' ? 0.1 : 1;
 
   // Prepare chart data with timestamps for proper domain calculation
   const chartData = portfolioEquity.map((point, index) => ({
     date: new Date(point.date).toLocaleDateString(),
     timestamp: new Date(point.date).getTime(), // Add timestamp for domain
-    portfolio: point.equity,
-    benchmark: benchmarkEquity[index]?.equity ?? null, // Use null for missing values (don't plot)
+    portfolio: point.equity * contractMultiplier,
+    benchmark: benchmarkEquity[index]?.equity ? benchmarkEquity[index].equity * contractMultiplier : null,
   }));
 
   // Get top 3 major drawdown periods for highlighting
@@ -184,6 +187,23 @@ export default function Overview() {
                       </Select>
                     </div>
                   </div>
+                  <DropdownMenuSeparator />
+                  {data.tradeStats?.riskOfRuinDetails?.minBalanceForZeroRisk && (
+                    <DropdownMenuItem 
+                      onClick={() => {
+                        const minBalance = Math.ceil(data.tradeStats.riskOfRuinDetails!.minBalanceForZeroRisk);
+                        setStartingCapital(minBalance);
+                      }}
+                      className="cursor-pointer"
+                    >
+                      <div className="flex flex-col gap-1">
+                        <span className="text-xs font-medium">Set to Zero RoR Capital</span>
+                        <span className="text-[10px] text-muted-foreground">
+                          ${Math.ceil(data.tradeStats.riskOfRuinDetails.minBalanceForZeroRisk).toLocaleString()}
+                        </span>
+                      </div>
+                    </DropdownMenuItem>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -312,12 +332,25 @@ export default function Overview() {
                   labelStyle={{ color: 'black' }}
                 />
                 <Legend 
-                  onClick={(e) => {
-                    if (e.dataKey === 'benchmark') {
-                      setShowBenchmark(!showBenchmark);
-                    }
+                  content={(props: any) => {
+                    return (
+                      <div className="flex justify-center gap-6 mt-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-4 h-0.5 bg-[#60a5fa]"></div>
+                          <span className="text-sm">Portfolio</span>
+                        </div>
+                        <div 
+                          className="flex items-center gap-2 cursor-pointer hover:opacity-80"
+                          onClick={() => setShowBenchmark(!showBenchmark)}
+                        >
+                          <div className={`w-4 h-0.5 ${showBenchmark ? 'bg-[#a3a3a3]' : 'bg-muted'}`}></div>
+                          <span className={`text-sm ${!showBenchmark ? 'line-through text-muted-foreground' : ''}`}>
+                            S&P 500
+                          </span>
+                        </div>
+                      </div>
+                    );
                   }}
-                  wrapperStyle={{ cursor: 'pointer' }}
                 />
                 {/* Highlight top 3 drawdown periods */}
                 {top3Drawdowns.map((dd: any, index: number) => (

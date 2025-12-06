@@ -92,9 +92,6 @@ export function calculateStreakDistribution(trades: Trade[]): StreakDistribution
  * Calculate trade duration distribution
  */
 export function calculateDurationDistribution(trades: Trade[]): DurationDistribution {
-  if (trades.length === 0) {
-    return { buckets: [] };
-  }
 
   // Define duration buckets (in minutes)
   const buckets = [

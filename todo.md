@@ -1305,3 +1305,36 @@
 - [x] Show capital units breakdown
 - [x] Ensure all values update dynamically with Starting Capital
 - [x] Test Risk of Ruin calculations and UI
+
+## Bug Fixes and Enhancements (Current Session)
+
+### Visual Analytics Issues
+- [x] Fix chart colors to match website theme with proper contrast
+- [x] Improve label visibility on all charts
+- [x] Fix Trade Duration Distribution not plotting correctly
+- [x] Add additional analytics visualizations if applicable
+
+### Risk Calculations
+- [x] Verify Risk of Ruin calculation accuracy
+- [x] Ensure minimum balance calculation is correct
+- [x] Make RoR dynamic with page changes (uses startingCapital parameter)
+- [x] Verify Kelly Percentage calculation accuracy
+- [x] Ensure Kelly formula is implemented correctly
+
+### Equity Curve Issues
+- [x] Fix S&P 500 toggle disappearing after click (custom legend)
+- [x] Ensure S&P 500 line can be toggled on/off repeatedly
+- [x] Display top 3 max drawdowns on equity curve (lowered threshold to -5%)
+- [x] Fix drawdowns appearing only when changing account size
+
+### Account Settings
+- [x] Add "Zero RoR" button to set optimal starting capital
+- [x] Fix Mini/Micro contract toggle not updating page values (contractMultiplier)
+- [x] Ensure contract size changes reflect across all metrics
+
+### Strategy Cards (Strategies Page)
+- [x] Fix return display showing only 3 digits ($103 instead of $103K)
+- [x] Add K suffix for thousands (e.g., $181K)
+- [x] Verify all stats are displaying correctly
+- [x] Ensure all strategy cards have identical formatting (h-full flex flex-col)
+- [x] Make card heights and layouts consistent across rows

@@ -182,7 +182,7 @@ export function forwardFillEquityCurve(
 /**
  * Calculate enhanced trade statistics
  */
-export function calculateTradeStats(trades: Trade[]): TradeStats {
+export function calculateTradeStats(trades: Trade[], startingCapital: number = 100000): TradeStats {
   if (trades.length === 0) {
     return {
       totalTrades: 0,
@@ -288,8 +288,7 @@ export function calculateTradeStats(trades: Trade[]): TradeStats {
     const tradingAdvantage = (winProb * payoffRatio - lossProb) / payoffRatio;
     
     // Capital Units: U = Account Balance / Average Loss
-    // Note: Using 100000 as default starting capital for consistency
-    const capitalUnits = 100000 / avgLoss;
+    const capitalUnits = startingCapital / avgLoss;
     
     // Calculate RoR
     if (tradingAdvantage > 0) {
@@ -432,7 +431,7 @@ export function calculatePerformanceMetrics(
       totalTrades: 0,
       winningTrades: 0,
       losingTrades: 0,
-      tradeStats: calculateTradeStats([]),
+      tradeStats: calculateTradeStats([], startingCapital),
     };
   }
 
@@ -525,7 +524,7 @@ export function calculatePerformanceMetrics(
   const calmarRatio = maxDrawdown > 0 ? annualizedReturn / maxDrawdown : 0;
 
   // Calculate enhanced trade statistics
-  const tradeStats = calculateTradeStats(trades);
+  const tradeStats = calculateTradeStats(trades, startingCapital);
 
   return {
     totalReturn,
