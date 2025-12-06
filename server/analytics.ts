@@ -166,8 +166,10 @@ export function forwardFillEquityCurve(
       currentIndex++;
     }
 
+    // Use the current point if it's on or before this date
+    // Otherwise, if we haven't reached the first point yet, skip this date
     const point = points[currentIndex];
-    if (point) {
+    if (point && point.date <= currentDate) {
       filled.push({
         date: new Date(currentDate),
         equity: point.equity,

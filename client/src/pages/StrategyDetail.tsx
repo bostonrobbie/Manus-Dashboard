@@ -12,7 +12,7 @@ import { TradeFilters, TradeFilterState } from "@/components/TradeFilters";
 import { exportTradesToCSV } from "@/lib/csvExport";
 import { Button } from "@/components/ui/button";
 
-type TimeRange = '6M' | 'YTD' | '1Y' | 'ALL';
+type TimeRange = '6M' | 'YTD' | '1Y' | '5Y' | '10Y' | 'ALL';
 
 export default function StrategyDetail() {
   const [, params] = useRoute("/strategy/:id");
@@ -28,6 +28,7 @@ export default function StrategyDetail() {
     strategyId,
     timeRange,
     startingCapital,
+    contractSize,
   });
 
   // Calculate Zero RoR capital
@@ -106,11 +107,10 @@ export default function StrategyDetail() {
     exportTradesToCSV(tradesForExport, filename);
   };
 
-  // Prepare chart data with contract size multiplier
-  const multiplier = contractSize === 'micro' ? 0.1 : 1;
+  // Prepare chart data (equity curve already has contract size applied on backend)
   const chartData = equityCurve.map((point, index) => ({
     date: new Date(point.date).toLocaleDateString(),
-    equity: point.equity * multiplier,
+    equity: point.equity,
     benchmark: data.benchmarkData?.[index]?.close,
   }));
 
@@ -232,22 +232,34 @@ export default function StrategyDetail() {
                     >
                       YTD
                     </Button>
-                    <Button
-                      variant={timeRange === '1Y' ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => setTimeRange('1Y')}
-                      className="text-xs"
-                    >
-                      1Y
-                    </Button>
-                    <Button
-                      variant={timeRange === 'ALL' ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => setTimeRange('ALL')}
-                      className="text-xs"
-                    >
-                      ALL
-                    </Button>
+                      <Button
+                        variant={timeRange === '1Y' ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setTimeRange('1Y')}
+                      >
+                        1Y
+                      </Button>
+                      <Button
+                        variant={timeRange === '5Y' ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setTimeRange('5Y')}
+                      >
+                        5Y
+                      </Button>
+                      <Button
+                        variant={timeRange === '10Y' ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setTimeRange('10Y')}
+                      >
+                        10Y
+                      </Button>
+                      <Button
+                        variant={timeRange === 'ALL' ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setTimeRange('ALL')}
+                      >
+                        ALL
+                      </Button>
                   </div>
                 </div>
 
@@ -296,7 +308,7 @@ export default function StrategyDetail() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-green-500">
-              +${((metrics.totalReturn / 100) * startingCapital * multiplier).toLocaleString()}
+              +${((metrics.totalReturn / 100) * startingCapital).toLocaleString()}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               +{metrics.totalReturn.toFixed(2)}% • Ann: {metrics.annualizedReturn.toFixed(2)}%
@@ -322,7 +334,7 @@ export default function StrategyDetail() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-red-500">
-              -${Math.abs((metrics.maxDrawdown / 100) * startingCapital * multiplier).toLocaleString()}
+              -${Math.abs((metrics.maxDrawdown / 100) * startingCapital).toLocaleString()}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               {metrics.maxDrawdown.toFixed(2)}%

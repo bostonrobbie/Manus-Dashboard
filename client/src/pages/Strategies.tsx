@@ -8,7 +8,7 @@ import { Loader2, TrendingUp, ArrowRight, Zap, Fuel, Bitcoin, Coins, Landmark, A
 import { Link } from "wouter";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
-type TimeRange = 'YTD' | '1Y' | '3Y' | '5Y' | 'ALL';
+type TimeRange = 'YTD' | '1Y' | '3Y' | '5Y' | '10Y' | 'ALL';
 
 // Format large numbers with K/M suffix
 const formatCurrency = (value: number): string => {
@@ -130,6 +130,7 @@ export default function Strategies() {
                   <SelectItem value="1Y">1 Year</SelectItem>
                   <SelectItem value="3Y">3 Years</SelectItem>
                   <SelectItem value="5Y">5 Years</SelectItem>
+                  <SelectItem value="10Y">10 Years</SelectItem>
                   <SelectItem value="ALL">All Time</SelectItem>
                 </SelectContent>
               </Select>

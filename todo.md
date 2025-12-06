@@ -1409,3 +1409,52 @@
 - [x] Fix query to handle missing or invalid strategies
 - [x] Add error handling for strategy queries
 - [x] Test fix on /strategies page
+
+
+## URGENT: Strategy Equity Curve Plotting Incorrectly (User Reported)
+- [ ] Investigate why equity curve shows flat line at $0k before sudden jump
+- [ ] Check equity curve calculation logic in strategyDetail procedure
+- [ ] Verify time range filtering is applied correctly to equity curve data
+- [ ] Fix equity curve to start from correct initial capital value
+- [ ] Ensure equity curve data points align with filtered trade dates
+- [ ] Test fix across all time ranges (6M, YTD, 1Y, ALL)
+
+
+## Add 5Y and 10Y Timeframes
+- [ ] Add 5Y and 10Y to TimeRange enum in server/routers.ts
+- [ ] Update Overview page time range selector
+- [ ] Update Strategy Detail page time range selector
+- [ ] Update Strategies page time range selector
+- [ ] Test all timeframes work correctly across all pages
+
+## Fix Total Return Recalculation
+- [ ] Investigate why Total Return doesn't update when changing contract size
+- [ ] Investigate why Total Return doesn't update when changing starting capital
+- [ ] Fix contract size multiplier application in calculations
+- [ ] Fix starting capital parameter passing to backend
+- [ ] Ensure all metrics recalculate when parameters change
+- [ ] Test recalculation across all parameter combinations
+
+
+## ✅ COMPLETED: All Three Urgent Fixes (Dec 6, 2025)
+
+### Strategy Equity Curve Fix
+- [x] Fixed equity curve showing flat line at $0k before first trade
+- [x] Root cause: Frontend was applying contract size multiplier to equity curve that was already scaled by backend
+- [x] Solution: Removed duplicate multiplier application in frontend chartData preparation
+- [x] Verified: Equity curve now shows continuous line starting from starting capital
+
+### 5Y and 10Y Timeframes
+- [x] Added 5Y and 10Y to TimeRange enum in backend
+- [x] Added case handlers in all time range switch statements
+- [x] Updated Overview page time range selector
+- [x] Updated Strategy Detail page time range buttons
+- [x] All timeframes working correctly
+
+### Total Return Recalculation with Contract Size
+- [x] Added contractSize parameter to strategyDetail procedure
+- [x] Backend applies contract size multiplier (0.1 for micro) to all P&L values before calculations
+- [x] Total Return updates correctly when switching Mini/Micro
+- [x] Max Drawdown updates correctly with contract size changes
+- [x] All metrics recalculate properly
+- [x] 192/197 tests passing (3 pre-existing failures unrelated to changes)

@@ -7,8 +7,9 @@ import * as db from "./db";
 import * as analytics from "./analytics";
 import * as breakdown from "./breakdown";
 
-// Time range enum for filtering
-const TimeRange = z.enum(['6M', 'YTD', '1Y', '3Y', '5Y', 'ALL']);
+// Time range enum for filtering  
+type TimeRangeType = '6M' | 'YTD' | '1Y' | '3Y' | '5Y' | '10Y' | 'ALL';
+const TimeRange = z.enum(['6M', 'YTD', '1Y', '3Y', '5Y', '10Y', 'ALL']);
 
 export const appRouter = router({
   system: systemRouter,
@@ -61,6 +62,10 @@ export const appRouter = router({
             case '5Y':
               startDate = new Date(now);
               startDate.setFullYear(year - 5);
+              break;
+            case '10Y':
+              startDate = new Date(now);
+              startDate.setFullYear(year - 10);
               break;
             case 'ALL':
               startDate = undefined;
@@ -280,9 +285,10 @@ export const appRouter = router({
         strategyId: z.number(),
         timeRange: TimeRange.optional(),
         startingCapital: z.number().optional().default(100000),
+        contractSize: z.enum(['mini', 'micro']).optional().default('mini'),
       }))
       .query(async ({ input }) => {
-        const { strategyId, timeRange, startingCapital } = input;
+        const { strategyId, timeRange, startingCapital, contractSize } = input;
 
         // Get strategy info
         const strategy = await db.getStrategyById(strategyId);
@@ -316,6 +322,10 @@ export const appRouter = router({
               startDate = new Date(now);
               startDate.setFullYear(year - 5);
               break;
+            case '10Y':
+              startDate = new Date(now);
+              startDate.setFullYear(year - 10);
+              break;
             case 'ALL':
               startDate = undefined;
               break;
@@ -323,11 +333,18 @@ export const appRouter = router({
         }
 
         // Get trades for this strategy
-        const strategyTrades = await db.getTrades({
+        const rawTrades = await db.getTrades({
           strategyIds: [strategyId],
           startDate,
           endDate: now,
         });
+        
+        // Apply contract size multiplier (micro contracts are 1/10th of mini)
+        const contractMultiplier = contractSize === 'micro' ? 0.1 : 1;
+        const strategyTrades = rawTrades.map(trade => ({
+          ...trade,
+          pnl: trade.pnl * contractMultiplier,
+        }));
 
         // Calculate metrics
         const metrics = analytics.calculatePerformanceMetrics(
@@ -346,9 +363,17 @@ export const appRouter = router({
         );
         const equityEndDate = now;
         
+        // If we have a time filter, prepend starting capital point at startDate
+        const equityCurveWithStart = startDate && rawEquityCurve.length > 0
+          ? [
+              { date: startDate, equity: startingCapital, drawdown: 0 },
+              ...rawEquityCurve // Keep all trade points
+            ]
+          : rawEquityCurve;
+        
         // Forward-fill to create continuous daily series
         const equityCurve = analytics.forwardFillEquityCurve(
-          rawEquityCurve,
+          equityCurveWithStart,
           equityStartDate,
           equityEndDate
         );
@@ -423,6 +448,10 @@ export const appRouter = router({
             case '5Y':
               startDate = new Date(now);
               startDate.setFullYear(year - 5);
+              break;
+            case '10Y':
+              startDate = new Date(now);
+              startDate.setFullYear(year - 10);
               break;
             case 'ALL':
               startDate = undefined;
@@ -604,6 +633,10 @@ export const appRouter = router({
               startDate = new Date(now);
               startDate.setFullYear(year - 5);
               break;
+            case '10Y':
+              startDate = new Date(now);
+              startDate.setFullYear(year - 10);
+              break;
             case 'ALL':
               startDate = undefined;
               break;
@@ -662,6 +695,10 @@ export const appRouter = router({
             case '5Y':
               startDate = new Date(now);
               startDate.setFullYear(year - 5);
+              break;
+            case '10Y':
+              startDate = new Date(now);
+              startDate.setFullYear(year - 10);
               break;
             case 'ALL':
               startDate = undefined;
