@@ -596,11 +596,37 @@ export const appRouter = router({
       }),
 
     /**
-     * Get list of all strategies
+     * Get list of all strategies with performance metrics
      */
     listStrategies: protectedProcedure.query(async () => {
       const strategies = await db.getAllStrategies();
-      return strategies;
+      
+      // Fetch performance metrics for each strategy
+      const strategiesWithMetrics = await Promise.all(
+        strategies.map(async (strategy) => {
+          const trades = await db.getTrades({ strategyIds: [strategy.id] });
+          
+          if (trades.length === 0) {
+            return {
+              ...strategy,
+              totalReturn: 0,
+              maxDrawdown: 0,
+              sharpeRatio: 0,
+            };
+          }
+          
+          const metrics = analytics.calculatePerformanceMetrics(trades, 100000);
+          
+          return {
+            ...strategy,
+            totalReturn: metrics.totalReturn,
+            maxDrawdown: metrics.maxDrawdownDollars,
+            sharpeRatio: metrics.sharpeRatio,
+          };
+        })
+      );
+      
+      return strategiesWithMetrics;
     }),
   }),
 });

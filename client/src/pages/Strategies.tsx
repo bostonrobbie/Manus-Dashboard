@@ -260,13 +260,45 @@ export default function Strategies() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-4 relative z-10">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-gradient-to-br from-muted/40 to-muted/20 rounded-lg p-3 border border-muted/30">
-                    <div className="text-[10px] text-muted-foreground mb-1 uppercase tracking-wide font-semibold">Market</div>
+                {/* Performance Metrics Grid */}
+                <div className="grid grid-cols-3 gap-2.5">
+                  <div className="bg-gradient-to-br from-green-500/10 to-green-500/5 rounded-lg p-2.5 border border-green-500/20">
+                    <div className="text-[9px] text-muted-foreground mb-0.5 uppercase tracking-wide font-semibold">Return</div>
+                    <div className="text-base font-bold text-green-600">
+                      {strategy.totalReturn !== undefined 
+                        ? `$${(strategy.totalReturn * 1000).toLocaleString(undefined, { maximumFractionDigits: 0 })}`
+                        : 'N/A'
+                      }
+                    </div>
+                  </div>
+                  <div className="bg-gradient-to-br from-red-500/10 to-red-500/5 rounded-lg p-2.5 border border-red-500/20">
+                    <div className="text-[9px] text-muted-foreground mb-0.5 uppercase tracking-wide font-semibold">Max DD</div>
+                    <div className="text-base font-bold text-red-600">
+                      {strategy.maxDrawdown !== undefined
+                        ? `$${Math.abs(strategy.maxDrawdown * 1000).toLocaleString(undefined, { maximumFractionDigits: 0 })}`
+                        : 'N/A'
+                      }
+                    </div>
+                  </div>
+                  <div className="bg-gradient-to-br from-blue-500/10 to-blue-500/5 rounded-lg p-2.5 border border-blue-500/20">
+                    <div className="text-[9px] text-muted-foreground mb-0.5 uppercase tracking-wide font-semibold">Sharpe</div>
+                    <div className="text-base font-bold text-blue-600">
+                      {strategy.sharpeRatio !== undefined
+                        ? strategy.sharpeRatio.toFixed(2)
+                        : 'N/A'
+                      }
+                    </div>
+                  </div>
+                </div>
+
+                {/* Market & Type Info */}
+                <div className="grid grid-cols-2 gap-2.5">
+                  <div className="bg-muted/30 rounded-lg p-2.5 border border-muted/40">
+                    <div className="text-[9px] text-muted-foreground mb-0.5 uppercase tracking-wide font-semibold">Market</div>
                     <div className="text-sm font-bold">{strategy.market}</div>
                   </div>
-                  <div className="bg-gradient-to-br from-muted/40 to-muted/20 rounded-lg p-3 border border-muted/30">
-                    <div className="text-[10px] text-muted-foreground mb-1 uppercase tracking-wide font-semibold">Type</div>
+                  <div className="bg-muted/30 rounded-lg p-2.5 border border-muted/40">
+                    <div className="text-[9px] text-muted-foreground mb-0.5 uppercase tracking-wide font-semibold">Type</div>
                     <div className="text-sm font-bold">{strategy.strategyType}</div>
                   </div>
                 </div>

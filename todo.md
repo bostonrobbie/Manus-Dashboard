@@ -1239,7 +1239,7 @@
 - [ ] Add visual charts: Consecutive Wins/Losses Distribution
 - [ ] Add visual charts: Trade Duration Distribution histogram
 - [ ] Add visual charts: Win/Loss by Day of Week
-- [ ] Clean up strategy cards with uniform text formatting
-- [ ] Add Total Return ($), Max Drawdown ($), Sharpe Ratio to strategy cards
+- [x] Clean up strategy cards with uniform text formatting
+- [x] Add Total Return ($), Max Drawdown ($), Sharpe Ratio to strategy cards
 - [ ] Implement Monte Carlo simulation on Compare page
 - [ ] Ensure Monte Carlo loads quickly and calculates accurately
