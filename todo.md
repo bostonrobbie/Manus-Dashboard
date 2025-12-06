@@ -1207,3 +1207,38 @@
 - [x] Align both charts - same width, synchronized time axis, matching colors
 - [x] Ensure charts update together when time range changes
 - [x] Further hide or better position Starting Capital and Time Range controls
+
+
+## Database Trade Update (Current Session)
+- [x] Read and analyze 8 CSV trade files
+- [x] Map CSV files to existing strategies in database
+- [x] Create script to delete old trades for affected strategies
+- [x] Import new trades from CSV files
+- [x] Verify trade counts and data integrity
+- [x] Test dashboard to ensure correct display
+
+
+## Dashboard Enhancements (Current Session)
+- [x] Create settings dropdown in top-right with gear icon
+- [x] Move Starting Capital and Time Range to Account Settings dropdown
+- [x] Add Contract Size toggle (Mini/Micro) to Account Settings
+- [x] Change default time range to All-Time
+- [x] Implement 1M and 6M time range filtering in backend
+- [x] Complete time period selector on Equity Curve chart (1M, 6M, YTD, 1Y, ALL)
+- [ ] Unify S&P 500 toggle - legend on equity curve controls both charts
+- [ ] Remove separate S&P 500 toggle from underwater curve
+- [ ] Convert S&P 500 benchmark data to ES futures contract equivalent
+- [ ] Move Trade & Risk Statistics below Calendar P&L section
+- [ ] Add Risk of Ruin calculation to Trade & Risk Statistics
+- [ ] Add Kelly Criterion optimal position sizing
+- [ ] Add Recovery Factor (Net Profit / Max DD)
+- [ ] Add Payoff Ratio (Avg Win / Avg Loss)
+- [ ] Add Ulcer Index and MAR Ratio
+- [ ] Add Monthly/Quarterly consistency percentage
+- [ ] Add visual charts: Consecutive Wins/Losses Distribution
+- [ ] Add visual charts: Trade Duration Distribution histogram
+- [ ] Add visual charts: Win/Loss by Day of Week
+- [ ] Clean up strategy cards with uniform text formatting
+- [ ] Add Total Return ($), Max Drawdown ($), Sharpe Ratio to strategy cards
+- [ ] Implement Monte Carlo simulation on Compare page
+- [ ] Ensure Monte Carlo loads quickly and calculates accurately

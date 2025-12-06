@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceArea } from "recharts";
-import { Loader2, TrendingUp, TrendingDown, Activity, Target, Gauge, Info } from "lucide-react";
+import { Loader2, TrendingUp, TrendingDown, Activity, Target, Gauge, Info, Settings } from "lucide-react";
 import { CalendarPnL } from "@/components/CalendarPnL";
 import { UnderwaterCurveChart } from "@/components/UnderwaterCurveChart";
 import { DayOfWeekHeatmap } from "@/components/DayOfWeekHeatmap";
@@ -16,13 +16,16 @@ import { StrategyCorrelationHeatmap } from "@/components/StrategyCorrelationHeat
 import { RollingMetricsChart } from "@/components/RollingMetricsChart";
 import { TradeAndRiskStats } from "@/components/TradeAndRiskStats";
 import { PortfolioSummary } from "@/components/PortfolioSummary";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
 import { DistributionSnapshot } from "@/components/DistributionSnapshot";
 
-type TimeRange = 'YTD' | '1Y' | '3Y' | '5Y' | 'ALL';
+type TimeRange = '1M' | '6M' | 'YTD' | '1Y' | '3Y' | '5Y' | 'ALL';
 
 export default function Overview() {
-  const [timeRange, setTimeRange] = useState<TimeRange>('1Y');
+  const [timeRange, setTimeRange] = useState<TimeRange>('ALL');
   const [startingCapital, setStartingCapital] = useState(100000);
+  const [contractSize, setContractSize] = useState<'mini' | 'micro'>('mini');
   const [calendarPeriodType, setCalendarPeriodType] = useState<'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly'>('monthly');
 
   // Helper to format date range
@@ -32,6 +35,18 @@ export default function Overview() {
     const month = now.toLocaleString('default', { month: 'short' });
     
     switch (range) {
+      case '1M': {
+        const oneMonthAgo = new Date(now);
+        oneMonthAgo.setMonth(now.getMonth() - 1);
+        const prevMonth = oneMonthAgo.toLocaleString('default', { month: 'short' });
+        return `${prevMonth} ${oneMonthAgo.getFullYear()} - ${month} ${year}`;
+      }
+      case '6M': {
+        const sixMonthsAgo = new Date(now);
+        sixMonthsAgo.setMonth(now.getMonth() - 6);
+        const prevMonth = sixMonthsAgo.toLocaleString('default', { month: 'short' });
+        return `${prevMonth} ${sixMonthsAgo.getFullYear()} - ${month} ${year}`;
+      }
       case 'YTD':
         return `Jan ${year} - ${month} ${year}`;
       case '1Y':
@@ -137,28 +152,43 @@ export default function Overview() {
               Combined performance of all intraday strategies
             </p>
             
-            {/* Hidden Controls - Absolute positioned, very subtle */}
-            <div className="absolute top-0 right-0 flex gap-1.5 opacity-30 hover:opacity-100 transition-opacity">
-              <Input
-                id="starting-capital"
-                type="number"
-                value={startingCapital}
-                onChange={(e) => setStartingCapital(Number(e.target.value))}
-                className="w-[80px] h-6 text-[10px] border-muted-foreground/20"
-                placeholder="Capital"
-              />
-              <Select value={timeRange} onValueChange={(v) => setTimeRange(v as TimeRange)}>
-                <SelectTrigger id="time-range" className="w-[80px] h-6 text-[10px] border-muted-foreground/20">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="YTD">YTD</SelectItem>
-                  <SelectItem value="1Y">1Y</SelectItem>
-                  <SelectItem value="3Y">3Y</SelectItem>
-                  <SelectItem value="5Y">5Y</SelectItem>
-                  <SelectItem value="ALL">ALL</SelectItem>
-                </SelectContent>
-              </Select>
+            {/* Settings Dropdown - Top Right */}
+            <div className="absolute top-0 right-0">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                    <Settings className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-64">
+                  <DropdownMenuLabel>Account Settings</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <div className="p-2 space-y-3">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="starting-capital-setting" className="text-xs">Starting Capital</Label>
+                      <Input
+                        id="starting-capital-setting"
+                        type="number"
+                        value={startingCapital}
+                        onChange={(e) => setStartingCapital(Number(e.target.value))}
+                        className="h-8"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="contract-size-setting" className="text-xs">Contract Size</Label>
+                      <Select value={contractSize} onValueChange={(v) => setContractSize(v as 'mini' | 'micro')}>
+                        <SelectTrigger id="contract-size-setting" className="h-8">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="mini">Mini Contracts</SelectItem>
+                          <SelectItem value="micro">Micro Contracts</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
 
@@ -238,10 +268,28 @@ export default function Overview() {
       {/* Equity Curve Chart */}
       <Card>
         <CardHeader>
-          <CardTitle>Equity Curve</CardTitle>
-          <CardDescription>
-            Portfolio performance vs S&P 500 benchmark
-          </CardDescription>
+          <div className="flex justify-between items-start">
+            <div>
+              <CardTitle>Equity Curve</CardTitle>
+              <CardDescription>
+                Portfolio performance vs S&P 500 benchmark
+              </CardDescription>
+            </div>
+            {/* Time Range Selector */}
+            <div className="flex gap-1">
+              {(['1M', '6M', 'YTD', '1Y', 'ALL'] as const).map((range) => (
+                <Button
+                  key={range}
+                  variant={timeRange === range ? 'default' : 'outline'}
+                  size="sm"
+                  className="h-7 px-2 text-xs"
+                  onClick={() => setTimeRange(range)}
+                >
+                  {range}
+                </Button>
+              ))}
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="h-[400px]">
