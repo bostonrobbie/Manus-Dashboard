@@ -243,14 +243,14 @@ export default function MonteCarloSimulation({ trades, startingCapital }: MonteC
                 <XAxis
                   dataKey="trade"
                   stroke="hsl(var(--muted-foreground))"
-                  tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
-                  label={{ value: 'Trade Number', position: 'insideBottom', offset: -5, fill: 'hsl(var(--foreground))', opacity: 0.7 }}
+                  tick={{ fontSize: 12, fill: '#ffffff' }}
+                  label={{ value: 'Trade Number', position: 'insideBottom', offset: -5, fill: '#ffffff' }}
                 />
                 <YAxis
                   stroke="hsl(var(--muted-foreground))"
-                  tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
+                  tick={{ fontSize: 12, fill: '#ffffff' }}
                   tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
-                  label={{ value: 'Portfolio Value', angle: -90, position: 'insideLeft', fill: 'hsl(var(--foreground))', opacity: 0.7 }}
+                  label={{ value: 'Portfolio Value', angle: -90, position: 'insideLeft', fill: '#ffffff' }}
                 />
                 <Tooltip
                   contentStyle={{

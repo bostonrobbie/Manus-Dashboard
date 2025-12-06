@@ -1268,3 +1268,5 @@
 ## Quick Fixes (Current Session)
 - [x] Fix Monte Carlo chart axis label colors (too dark, not visible)
 - [x] Change Calendar P&L default tab from Monthly to Yearly
+
+- [x] Change Monte Carlo X and Y axis labels to white color
