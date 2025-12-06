@@ -1241,5 +1241,5 @@
 - [ ] Add visual charts: Win/Loss by Day of Week
 - [x] Clean up strategy cards with uniform text formatting
 - [x] Add Total Return ($), Max Drawdown ($), Sharpe Ratio to strategy cards
-- [ ] Implement Monte Carlo simulation on Compare page
-- [ ] Ensure Monte Carlo loads quickly and calculates accurately
+- [x] Implement Monte Carlo simulation on Compare page
+- [x] Ensure Monte Carlo loads quickly and calculates accurately

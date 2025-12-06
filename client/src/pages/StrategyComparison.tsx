@@ -8,6 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { Loader2 } from "lucide-react";
+import MonteCarloSimulation from "@/components/MonteCarloSimulation";
 
 type TimeRange = 'YTD' | '1Y' | '3Y' | '5Y' | 'ALL';
 
@@ -529,6 +530,12 @@ export default function StrategyComparison() {
               </div>
             </CardContent>
           </Card>
+          
+          {/* Monte Carlo Simulation */}
+          <MonteCarloSimulation 
+            trades={data.combinedTrades || []} 
+            startingCapital={startingCapital}
+          />
         </>
       )}
     </div>

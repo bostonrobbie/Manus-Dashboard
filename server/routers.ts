@@ -531,6 +531,7 @@ export const appRouter = router({
           })),
           combinedEquity,
           combinedMetrics,
+          combinedTrades: allCombinedTrades,
           correlationMatrix,
         };
       }),
