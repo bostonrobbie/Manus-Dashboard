@@ -43,6 +43,11 @@ export interface TradeStats {
   // Professional risk metrics
   payoffRatio: number; // avgWin / avgLoss
   riskOfRuin: number; // percentage
+  riskOfRuinDetails: { // NEW: Detailed RoR breakdown
+    capitalUnits: number; // Account balance / avg loss
+    tradingAdvantage: number; // (WinRate * PayoffRatio - LossRate) / PayoffRatio
+    minBalanceForZeroRisk: number; // Minimum balance for <0.01% RoR
+  } | null;
   kellyPercentage: number; // optimal position size
   recoveryFactor: number; // net profit / max drawdown
   ulcerIndex: number; // volatility of drawdowns
@@ -199,6 +204,7 @@ export function calculateTradeStats(trades: Trade[]): TradeStats {
       avgLoss: 0,
       payoffRatio: 0,
       riskOfRuin: 100,
+      riskOfRuinDetails: null,
       kellyPercentage: 0,
       recoveryFactor: 0,
       ulcerIndex: 0,
@@ -268,13 +274,52 @@ export function calculateTradeStats(trades: Trade[]): TradeStats {
   // Professional risk metrics
   const payoffRatio = avgLoss > 0 ? avgWin / avgLoss : 0;
   
-  // Risk of Ruin (simplified formula: assumes fixed fractional betting)
-  // RoR = ((1 - W) / (1 + W))^Capital_Units where W = (WinRate * PayoffRatio - (1 - WinRate)) / PayoffRatio
+  // Risk of Ruin with detailed breakdown
+  // Formula: RoR = ((1 - A) / (1 + A))^U
+  // where A = trading advantage, U = capital units
   const winProb = winRate / 100;
   const lossProb = 1 - winProb;
-  const riskOfRuin = payoffRatio > 0 && winProb > 0 
-    ? Math.min(100, Math.pow((lossProb / winProb) * (1 / payoffRatio), 10) * 100)
-    : 100;
+  
+  let riskOfRuin = 100;
+  let riskOfRuinDetails: TradeStats['riskOfRuinDetails'] = null;
+  
+  if (payoffRatio > 0 && winProb > 0 && avgLoss > 0) {
+    // Trading Advantage: A = (WinRate * PayoffRatio - LossRate) / PayoffRatio
+    const tradingAdvantage = (winProb * payoffRatio - lossProb) / payoffRatio;
+    
+    // Capital Units: U = Account Balance / Average Loss
+    // Note: Using 100000 as default starting capital for consistency
+    const capitalUnits = 100000 / avgLoss;
+    
+    // Calculate RoR
+    if (tradingAdvantage > 0) {
+      // Positive expectancy: RoR approaches 0 as capital units increase
+      riskOfRuin = Math.pow((1 - tradingAdvantage) / (1 + tradingAdvantage), capitalUnits) * 100;
+    } else if (tradingAdvantage < 0) {
+      // Negative expectancy: RoR is 100%
+      riskOfRuin = 100;
+    } else {
+      // Zero expectancy: RoR is 50%
+      riskOfRuin = 50;
+    }
+    
+    // Calculate minimum balance for <0.01% RoR
+    let minBalanceForZeroRisk = 0;
+    if (tradingAdvantage > 0) {
+      // Solve for U where RoR = 0.0001 (0.01%)
+      // 0.0001 = ((1-A)/(1+A))^U
+      // U = ln(0.0001) / ln((1-A)/(1+A))
+      const targetRoR = 0.0001;
+      const requiredUnits = Math.log(targetRoR) / Math.log((1 - tradingAdvantage) / (1 + tradingAdvantage));
+      minBalanceForZeroRisk = requiredUnits * avgLoss;
+    }
+    
+    riskOfRuinDetails = {
+      capitalUnits,
+      tradingAdvantage,
+      minBalanceForZeroRisk,
+    };
+  }
   
   // Kelly Criterion: f* = (p * b - q) / b, where p = win rate, q = loss rate, b = payoff ratio
   const kellyPercentage = payoffRatio > 0 
@@ -350,6 +395,7 @@ export function calculateTradeStats(trades: Trade[]): TradeStats {
     avgLoss,
     payoffRatio,
     riskOfRuin,
+    riskOfRuinDetails,
     kellyPercentage,
     recoveryFactor,
     ulcerIndex,

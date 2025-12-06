@@ -1296,3 +1296,12 @@
 - [x] Create Win/Loss by Day of Week breakdown chart
 - [x] Integrate all charts into Trade & Risk Statistics component
 - [x] Test all visualizations for accuracy
+
+## Risk of Ruin Display Enhancements (Current Session)
+- [x] Add minimum balance calculation to backend analytics
+- [x] Return capital units and trading advantage in API response
+- [x] Create detailed tooltip component with formula explanation
+- [x] Display minimum required balance for 0% risk
+- [x] Show capital units breakdown
+- [x] Ensure all values update dynamically with Starting Capital
+- [x] Test Risk of Ruin calculations and UI

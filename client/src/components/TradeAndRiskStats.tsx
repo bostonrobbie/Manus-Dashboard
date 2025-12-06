@@ -1,6 +1,8 @@
 import { memo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Info } from 'lucide-react';
 import { VisualAnalyticsCharts } from './VisualAnalyticsCharts';
 
 interface TradeStats {
@@ -23,6 +25,11 @@ interface TradeStats {
   // Professional risk metrics
   payoffRatio: number;
   riskOfRuin: number;
+  riskOfRuinDetails: {
+    capitalUnits: number;
+    tradingAdvantage: number;
+    minBalanceForZeroRisk: number;
+  } | null;
   kellyPercentage: number;
   recoveryFactor: number;
   ulcerIndex: number;
@@ -179,11 +186,57 @@ export const TradeAndRiskStats = memo(function TradeAndRiskStats({ tradeStats }:
               </div>
 
               <div className="space-y-1">
-                <div className="text-xs text-muted-foreground uppercase tracking-wide">Risk of Ruin</div>
-                <div className={`text-3xl font-bold ${tradeStats.riskOfRuin < 5 ? 'text-green-600' : tradeStats.riskOfRuin < 20 ? 'text-yellow-600' : 'text-red-600'}`}>
-                  {formatPercent(tradeStats.riskOfRuin, 2)}
+                <div className="flex items-center gap-1">
+                  <div className="text-xs text-muted-foreground uppercase tracking-wide">Risk of Ruin</div>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger>
+                        <Info className="h-3 w-3 text-muted-foreground" />
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-sm">
+                        <div className="space-y-2 text-xs">
+                          <div className="font-semibold">Risk of Ruin Formula</div>
+                          <div className="font-mono text-[10px] bg-muted p-2 rounded">
+                            RoR = ((1 - A) / (1 + A))^U
+                          </div>
+                          <div className="space-y-1">
+                            <div><strong>A</strong> = Trading Advantage</div>
+                            <div className="pl-4 text-muted-foreground">
+                              = (WinRate × PayoffRatio - LossRate) / PayoffRatio
+                              {tradeStats.riskOfRuinDetails && (
+                                <div>= {(tradeStats.riskOfRuinDetails.tradingAdvantage * 100).toFixed(2)}%</div>
+                              )}
+                            </div>
+                            <div><strong>U</strong> = Capital Units</div>
+                            <div className="pl-4 text-muted-foreground">
+                              = Account Balance / Avg Loss
+                              {tradeStats.riskOfRuinDetails && (
+                                <div>= {tradeStats.riskOfRuinDetails.capitalUnits.toFixed(1)} units</div>
+                              )}
+                            </div>
+                          </div>
+                          <div className="pt-2 border-t">
+                            <strong>Assumptions:</strong> Fixed fractional position sizing, independent trades, consistent win rate and payoff ratio
+                          </div>
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
-                <div className="text-xs text-muted-foreground">Account depletion risk</div>
+                <div className={`text-3xl font-bold ${tradeStats.riskOfRuin < 5 ? 'text-green-600' : tradeStats.riskOfRuin < 20 ? 'text-yellow-600' : 'text-red-600'}`}>
+                  {tradeStats.riskOfRuin < 0.01 ? '<0.01%' : formatPercent(tradeStats.riskOfRuin, 2)}
+                </div>
+                {tradeStats.riskOfRuinDetails && tradeStats.riskOfRuinDetails.minBalanceForZeroRisk > 0 && (
+                  <div className="text-xs text-muted-foreground">
+                    Min balance for &lt;0.01% risk:
+                    <div className="font-semibold text-foreground">
+                      ${tradeStats.riskOfRuinDetails.minBalanceForZeroRisk.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                    </div>
+                  </div>
+                )}
+                {!tradeStats.riskOfRuinDetails && (
+                  <div className="text-xs text-muted-foreground">Account depletion risk</div>
+                )}
               </div>
             </div>
 
