@@ -1484,3 +1484,38 @@
 - [x] Test Zero RoR button sets starting capital correctly
 - [x] Verify Zero RoR amount displays correctly for each strategy
 - [x] Ensure clicking Zero RoR button updates all metrics
+
+
+## URGENT: Strategy Detail & Overview Page Chart Issues (User Reported - Dec 6, 2025)
+
+### Strategy Detail Page - Equity Curve Issues
+- [ ] Fix S&P 500 benchmark scaling - currently starts at $850k instead of $100k
+- [ ] Ensure S&P 500 is scaled to match starting capital like strategy line
+- [ ] Fix strategy line appearing flat/barely visible
+- [ ] Verify both lines use same Y-axis scale
+
+
+### Overview Page - Consecutive Wins/Losses Distribution Chart
+- [x] Change bar colors from black to visible colors (teal #06b6d4 for wins, red #ef4444 for losses)
+- [x] Ensure bars are visible against dark background
+- [x] Verify data is actually plotting on chart
+- [x] Fix X-axis labels to use white color for visibility
+
+### Overview Page - Trade Duration Distribution Chart
+- [x] Change bar color from black to visible color (blue #3b82f6)
+- [x] Ensure bars are visible against dark background
+- [x] Verify data is actually plotting on chart
+- [x] Fix X-axis labels to use white color for visibility
+
+### Overview Page - Performance by Day of Week Chart
+- [x] Change X-axis text from black to white for visibility
+- [x] Change Y-axis text from black to white for visibility
+- [x] Fix tooltip text blending with background
+- [x] Ensure all text is readable on dark background
+- [x] Use purple (#8b5cf6) for Win Rate bars and cyan (#06b6d4) for Avg P&L bars
+
+### Overview Page - Risk Analysis Tab
+- [x] Clarify if $26,892 Risk of Ruin minimum is for minis or micros
+- [x] Update Risk of Ruin label to "(Based on current contract size)"
+- [x] Update Portfolio Sizing Calculator to match Risk of Ruin contract size
+- [x] Ensure consistency between Risk Analysis and Portfolio Sizing Calculator

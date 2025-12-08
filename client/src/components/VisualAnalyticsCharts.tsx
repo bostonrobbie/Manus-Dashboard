@@ -127,7 +127,7 @@ export function VisualAnalyticsCharts({ timeRange }: VisualAnalyticsChartsProps)
                 }}
               />
               <Legend wrapperStyle={{ color: 'hsl(var(--foreground))' }} />
-              <Bar dataKey="count" fill="#3b82f6" name="Trades" />
+              <Bar dataKey="count" fill="hsl(217, 91%, 60%)" name="Trades" />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -172,8 +172,8 @@ export function VisualAnalyticsCharts({ timeRange }: VisualAnalyticsChartsProps)
                 }}
               />
               <Legend wrapperStyle={{ color: 'hsl(var(--foreground))' }} />
-              <Bar yAxisId="left" dataKey="winRate" fill="#8b5cf6" name="Win Rate" />
-              <Bar yAxisId="right" dataKey="avgPnL" fill="#06b6d4" name="Avg P&L" />
+              <Bar yAxisId="left" dataKey="winRate" fill="hsl(258, 90%, 66%)" name="Win Rate" />
+              <Bar yAxisId="right" dataKey="avgPnL" fill="hsl(189, 94%, 43%)" name="Avg P&L" />
             </BarChart>
           </ResponsiveContainer>
         </div>

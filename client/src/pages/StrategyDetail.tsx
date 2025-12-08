@@ -108,18 +108,35 @@ export default function StrategyDetail() {
   };
 
   // Prepare chart data (equity curve already has contract size applied on backend)
-  const chartData = equityCurve.map((point, index) => ({
-    date: new Date(point.date).toLocaleDateString(),
-    equity: point.equity,
-    benchmark: data.benchmarkData?.[index]?.close,
-  }));
+  // Normalize benchmark to starting capital
+  const firstBenchmarkValue = data.benchmarkData?.[0]?.close ?? 1;
+  const chartData = equityCurve.map((point, index) => {
+    const benchmarkClose = data.benchmarkData?.[index]?.close;
+    const normalizedBenchmark = benchmarkClose 
+      ? (benchmarkClose / firstBenchmarkValue) * startingCapital
+      : undefined;
+    
+    return {
+      date: new Date(point.date).toLocaleDateString(),
+      equity: point.equity,
+      benchmark: normalizedBenchmark,
+    };
+  });
 
-  // Prepare underwater curve data
-  const underwaterData = data.underwaterCurve?.map((point, index) => ({
-    date: new Date(point.date).toLocaleDateString(),
-    drawdown: point.drawdownPercent, // Already in percentage
-    benchmarkDrawdown: data.benchmarkUnderwater?.[index]?.drawdownPercent,
-  })) ?? [];
+  // Prepare underwater curve data with forward-fill for benchmark
+  let lastBenchmarkDrawdown: number | undefined = undefined;
+  const underwaterData = data.underwaterCurve?.map((point, index) => {
+    const currentBenchmarkDrawdown = data.benchmarkUnderwater?.[index]?.drawdownPercent;
+    if (currentBenchmarkDrawdown !== undefined) {
+      lastBenchmarkDrawdown = currentBenchmarkDrawdown;
+    }
+    
+    return {
+      date: new Date(point.date).toLocaleDateString(),
+      drawdown: point.drawdownPercent, // Already in percentage
+      benchmarkDrawdown: lastBenchmarkDrawdown,
+    };
+  }) ?? [];
 
   return (
     <div className="space-y-6">

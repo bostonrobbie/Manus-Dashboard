@@ -232,6 +232,9 @@ export const TradeAndRiskStats = memo(function TradeAndRiskStats({ tradeStats }:
                     <div className="font-semibold text-foreground">
                       ${tradeStats.riskOfRuinDetails.minBalanceForZeroRisk.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                     </div>
+                    <div className="text-[10px] text-muted-foreground mt-0.5">
+                      (Based on current contract size)
+                    </div>
                   </div>
                 )}
                 {!tradeStats.riskOfRuinDetails && (
