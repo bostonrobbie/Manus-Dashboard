@@ -17,6 +17,10 @@ This plan captures the current Manus-Dashboard backup state and outlines the wor
 - **Visual analytics depth:** Initial heatmaps/calendars/Monte Carlo are wired, but performance optimizations and broader panels (e.g., richer correlation/benchmark overlays) may be required.
 - **Broader QA:** E2E coverage is light; resilience/performance checks and ingestion-path tests against a real DB are pending.
 
+## Updates This Run
+- **Database configuration mismatch resolved:** repository now standardizes on a MySQL/TiDB connection string via `DATABASE_URL`; Drizzle config and `.env.example` align with the server `mysql2` driver.
+- **Test harness hardened:** Added `server/config/testEnv.ts`, guarded MySQL pool creation during tests, and tightened auth/webhook handling so server tests run without Manus secrets (ingestion specs skipped when no real DB).
+
 ## Concrete Next Steps
 1. **Finalize ingestion & filters**
    - Reconcile CSV export/filter behavior with Manus-native expectations; add regression tests around shared filters.

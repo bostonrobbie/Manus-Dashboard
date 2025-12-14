@@ -6,7 +6,7 @@ const rootDir = fileURLToPath(new URL("./", import.meta.url));
 
 export default defineConfig({
   test: {
-    include: ["tests/**/*.vitest.ts"],
+    include: ["tests/**/*.vitest.ts", "tests/**/*.spec.ts"],
     environment: "node",
     globals: true,
     coverage: {

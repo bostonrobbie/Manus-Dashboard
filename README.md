@@ -64,6 +64,8 @@ pnpm install
 # Set up environment
 cp .env.example .env
 # Edit .env with your database and auth credentials
+# Example local database string (MySQL/TiDB):
+# DATABASE_URL=mysql://user:password@localhost:3306/manus_dashboard
 ```
 
 ### Development

@@ -6,15 +6,15 @@ import { useDashboardState } from "../providers/DashboardProvider";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
+import TradeFilters, { type TradeFiltersValue } from "../components/TradeFilters";
+import ExportTradesButton from "../components/ExportTradesButton";
 
 const PAGE_SIZE = 15;
 
 function TradesPage() {
   const { timeRange } = useDashboardState();
   const [page, setPage] = useState(1);
-  const [symbolFilter, setSymbolFilter] = useState("");
-  const [strategyFilter, setStrategyFilter] = useState<number | "all">("all");
-  const [sideFilter, setSideFilter] = useState<"all" | "long" | "short">("all");
+  const [filters, setFilters] = useState<TradeFiltersValue>({ side: "all", outcome: "all" });
   const [autoRefresh, setAutoRefresh] = useState(false);
 
   useEffect(() => {
@@ -24,11 +24,14 @@ function TradesPage() {
   const tradeFilters = useMemo(
     () => ({
       timeRange,
-      symbol: symbolFilter.trim() || undefined,
-      strategyId: strategyFilter === "all" ? undefined : strategyFilter,
-      side: sideFilter === "all" ? undefined : sideFilter,
+      startDate: filters.startDate,
+      endDate: filters.endDate,
+      symbols: filters.symbols,
+      strategyIds: filters.strategyIds,
+      side: filters.side === "all" ? undefined : filters.side,
+      outcome: filters.outcome === "all" ? undefined : filters.outcome,
     }),
-    [timeRange, symbolFilter, strategyFilter, sideFilter],
+    [timeRange, filters],
   );
 
   const tradesQuery = trpc.portfolio.trades.useQuery({ ...tradeFilters, page, pageSize: PAGE_SIZE }, {
@@ -185,62 +188,31 @@ function TradesPage() {
       </Card>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
           <CardTitle className="text-sm">Filters</CardTitle>
+          <ExportTradesButton
+            strategies={strategiesQuery.data}
+            timeRange={timeRange}
+            filters={{
+              ...filters,
+              side: filters.side === "all" ? undefined : (filters.side as "long" | "short" | undefined),
+              outcome: filters.outcome === "all" ? undefined : (filters.outcome as "win" | "loss" | undefined),
+            }}
+          />
         </CardHeader>
-        <CardContent className="grid grid-cols-1 gap-3 md:grid-cols-4">
-          <div className="flex flex-col gap-1 text-sm">
-            <label className="text-xs uppercase tracking-wide text-slate-500">Symbol</label>
-            <input
-              className="rounded-md border border-slate-200 px-3 py-2 text-sm"
-              placeholder="e.g. SPY"
-              value={symbolFilter}
-              onChange={event => {
-                setSymbolFilter(event.target.value);
-                setPage(1);
-              }}
-            />
-          </div>
-          <div className="flex flex-col gap-1 text-sm">
-            <label className="text-xs uppercase tracking-wide text-slate-500">Strategy</label>
-            <select
-              className="rounded-md border border-slate-200 px-3 py-2 text-sm"
-              value={strategyFilter === "all" ? "all" : strategyFilter}
-              onChange={event => {
-                const value = event.target.value === "all" ? "all" : Number(event.target.value);
-                setStrategyFilter(value);
-                setPage(1);
-              }}
-            >
-              <option value="all">All</option>
-              {strategiesQuery.data?.map(strategy => (
-                <option key={strategy.id} value={strategy.id}>
-                  {strategy.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="flex flex-col gap-1 text-sm">
-            <label className="text-xs uppercase tracking-wide text-slate-500">Side</label>
-            <select
-              className="rounded-md border border-slate-200 px-3 py-2 text-sm"
-              value={sideFilter}
-              onChange={event => {
-                const value = event.target.value as "all" | "long" | "short";
-                setSideFilter(value);
-                setPage(1);
-              }}
-            >
-              <option value="all">All</option>
-              <option value="long">Long</option>
-              <option value="short">Short</option>
-            </select>
-          </div>
-          <div className="flex flex-col justify-end gap-2 text-sm">
-            <Button variant="outline" size="sm" onClick={() => { setSymbolFilter(""); setStrategyFilter("all"); setSideFilter("all"); setPage(1); }}>
-              Reset
-            </Button>
-          </div>
+        <CardContent>
+          <TradeFilters
+            strategies={strategiesQuery.data}
+            value={filters}
+            onChange={updated => {
+              setFilters(updated);
+              setPage(1);
+            }}
+            onReset={() => {
+              setFilters({ side: "all", outcome: "all" });
+              setPage(1);
+            }}
+          />
         </CardContent>
       </Card>
 

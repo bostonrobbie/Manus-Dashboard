@@ -48,6 +48,7 @@ export const adminDataRouter = router({
       try {
         return await listUploadsForWorkspace(input);
       } catch (error) {
+        if (error instanceof TRPCError) throw error;
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: (error as Error).message });
       }
     }),
@@ -59,6 +60,7 @@ export const adminDataRouter = router({
       try {
         return await softDeleteByUpload(input.uploadId);
       } catch (error) {
+        if (error instanceof TRPCError) throw error;
         if ((error as Error).message?.toLowerCase().includes("not found")) {
           throw new TRPCError({ code: "NOT_FOUND", message: "Upload not found" });
         }
@@ -86,6 +88,7 @@ export const adminDataRouter = router({
         const count = await softDeleteTradesByFilter({ ...input, actorUserId: user.id });
         return { count };
       } catch (error) {
+        if (error instanceof TRPCError) throw error;
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: (error as Error).message });
       }
     }),
@@ -110,6 +113,7 @@ export const adminDataRouter = router({
         const count = await softDeleteBenchmarksByFilter({ ...input, actorUserId: user.id });
         return { count };
       } catch (error) {
+        if (error instanceof TRPCError) throw error;
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: (error as Error).message });
       }
     }),

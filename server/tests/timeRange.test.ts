@@ -86,11 +86,10 @@ function createMockDb() {
 }
 
 function withMockDb(mockDb: Awaited<ReturnType<typeof createMockDb>>, fn: () => Promise<void>) {
-  const originalGetDb = (dbModule as any).getDb;
-  (dbModule as any).getDb = async () => mockDb.db;
+  (dbModule as any).setTestDb?.(mockDb.db);
 
   return fn().finally(() => {
-    (dbModule as any).getDb = originalGetDb;
+    (dbModule as any).setTestDb?.(null);
   });
 }
 

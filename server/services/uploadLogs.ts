@@ -25,7 +25,7 @@ export async function createUploadLog(input: UploadLogInput) {
   const db = await getDb();
   if (!db) return null;
 
-  const [id] = (await db
+  const insertQuery = db
     .insert(schema.uploadLogs)
     .values({
       userId: input.userId,
@@ -33,10 +33,19 @@ export async function createUploadLog(input: UploadLogInput) {
       uploadType: input.uploadType,
       status: "pending",
       startedAt: new Date(),
-    })
-    .$returningId?.()) ?? [];
+    });
 
-  const uploadId = typeof id === "number" ? id : undefined;
+  const returnedIds =
+    typeof insertQuery.$returningId === "function"
+      ? await insertQuery.$returningId()
+      : typeof (insertQuery as any).returning === "function"
+        ? await (insertQuery as any).returning()
+        : [];
+
+  const [id] = returnedIds as unknown[];
+
+  const uploadId =
+    typeof id === "number" ? id : typeof (id as { id?: unknown })?.id === "number" ? (id as { id: number }).id : undefined;
 
   return {
     id: uploadId ?? 0,

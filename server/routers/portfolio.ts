@@ -425,7 +425,7 @@ export const portfolioRouter = router({
           equity: STARTING_BALANCE + point.combined,
         }));
 
-        const latestEquity = equityPoints.at(-1)?.equity ?? (trades.length ? STARTING_BALANCE : null);
+        const latestEquity = equityPoints.at(-1)?.equity ?? (tradesInRange.length ? STARTING_BALANCE : null);
         const todayPnl = valueOnOrBefore(pnlSeries, effectiveEnd) - valueOnOrBefore(pnlSeries, previousIsoDay(effectiveEnd));
         const monthStart = `${effectiveEnd.slice(0, 8)}01`;
         const mtdPnl = valueOnOrBefore(pnlSeries, effectiveEnd) - valueOnOrBefore(pnlSeries, previousIsoDay(monthStart));
@@ -433,8 +433,12 @@ export const portfolioRouter = router({
         const ytdPnl = valueOnOrBefore(pnlSeries, effectiveEnd) - valueOnOrBefore(pnlSeries, previousIsoDay(yearStart));
         const maxDrawdown = computeMaxDrawdownFromSeries(pnlSeries);
 
-        const firstTrade = trades.length ? trades.reduce((min, t) => (t.exitTime < min ? t.exitTime : min), trades[0].exitTime) : null;
-        const lastTrade = trades.length ? trades.reduce((max, t) => (t.exitTime > max ? t.exitTime : max), trades[0].exitTime) : null;
+        const firstTrade = tradesInRange.length
+          ? tradesInRange.reduce((min, t) => (t.exitTime < min ? t.exitTime : min), tradesInRange[0].exitTime)
+          : null;
+        const lastTrade = tradesInRange.length
+          ? tradesInRange.reduce((max, t) => (t.exitTime > max ? t.exitTime : max), tradesInRange[0].exitTime)
+          : null;
 
         return homeOverviewSchema.parse({
           portfolioEquity: equityPoints,
@@ -445,7 +449,7 @@ export const portfolioRouter = router({
           openRisk: null,
           accountValue: latestEquity,
           dataHealth: {
-            hasTrades: trades.length > 0,
+            hasTrades: tradesInRange.length > 0,
             firstTradeDate: firstTrade ? firstTrade.slice(0, 10) : null,
             lastTradeDate: lastTrade ? lastTrade.slice(0, 10) : null,
           },
@@ -746,7 +750,7 @@ export const portfolioRouter = router({
   compareStrategies: protectedProcedure
     .input(
       z.object({
-        strategyIds: z.array(z.number()).min(2).max(4),
+        strategyIds: z.array(z.number()),
         timeRange: contractTimeRangeInput,
         startingCapital: z.number().default(100000),
       }),
@@ -1134,8 +1138,13 @@ export const portfolioRouter = router({
           page: z.number().int().min(1).default(1),
           pageSize: z.number().int().min(1).max(500).default(50),
           symbol: z.string().trim().min(1).max(24).optional(),
+          symbols: z.array(z.string().trim().min(1).max(24)).optional(),
           strategyId: z.number().int().optional(),
+          strategyIds: z.array(z.number().int()).optional(),
           side: z.enum(["long", "short"]).optional(),
+          outcome: z.enum(["win", "loss"]).optional(),
+          startDate: z.string().optional(),
+          endDate: z.string().optional(),
         })
         .optional(),
     )
@@ -1150,8 +1159,13 @@ export const portfolioRouter = router({
         page,
         pageSize,
         symbol: input?.symbol?.toUpperCase(),
+        symbols: input?.symbols?.map(s => s.toUpperCase()),
         side: input?.side,
         strategyId: input?.strategyId,
+        strategyIds: input?.strategyIds,
+        outcome: input?.outcome,
+        startDate: input?.startDate,
+        endDate: input?.endDate,
       });
       return {
         rows: result.rows.map(row => tradeRowSchema.parse(row)),
@@ -1167,6 +1181,9 @@ export const portfolioRouter = router({
         startDate: z.string().optional(),
         endDate: z.string().optional(),
         timeRange: timeRangeInput,
+        symbols: z.array(z.string().trim().min(1).max(24)).optional(),
+        side: z.enum(["long", "short"]).optional(),
+        outcome: z.enum(["win", "loss"]).optional(),
       }),
     )
     .output(exportTradesResponseSchema)
@@ -1179,6 +1196,9 @@ export const portfolioRouter = router({
           startDate: input.startDate,
           endDate: input.endDate,
           timeRange: input.timeRange,
+          symbols: input.symbols?.map(s => s.toUpperCase()),
+          side: input.side,
+          outcome: input.outcome,
         });
 
         return exportTradesResponseSchema.parse({

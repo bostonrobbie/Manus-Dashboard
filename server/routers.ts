@@ -2,6 +2,8 @@ import { router } from "./_core/trpc";
 import { adminDataRouter } from "./routers/adminData";
 import { analyticsRouter } from "./routers/analytics";
 import { authRouter } from "./routers/auth";
+import { benchmarksRouter } from "./routers/benchmarks";
+import { compareStrategiesRouter } from "./routers/compareStrategies";
 import { portfolioRouter } from "./routers/portfolio";
 import { strategiesRouter } from "./routers/strategies";
 import { systemRouter } from "./routers/system";
@@ -14,6 +16,8 @@ export const appRouter = router({
   analytics: analyticsRouter,
   portfolio: portfolioRouter,
   strategies: strategiesRouter,
+  compareStrategies: compareStrategiesRouter,
+  benchmarks: benchmarksRouter,
   workspaces: workspacesRouter,
   uploads: uploadsRouter,
   adminData: adminDataRouter,
