@@ -12,7 +12,7 @@
     "start": "pnpm --filter server run start:prod",
     "preview": "pnpm --filter client run preview",
     "test:server": "pnpm --filter server test",
-    "test:all": "pnpm run lint && pnpm run typecheck && pnpm --filter client build",
+    "test:all": "pnpm run lint && pnpm run typecheck && pnpm --filter server test && pnpm --filter client test",
     "migrate": "pnpm --filter drizzle run migrate",
     "db:seed:demo": "tsx server/scripts/seed-demo-data.ts",
     "db:seed:large": "tsx server/scripts/load-large-dataset.ts",
@@ -26,7 +26,8 @@
     "e2e:manus": "E2E_USE_MANUS_HEADERS=true pnpm exec playwright test",
     "e2e:serve": "VITE_API_URL=http://localhost:3002 pnpm --filter client run build && VITE_API_URL=http://localhost:3002 pnpm --filter client run preview --host 0.0.0.0 --port 4173",
     "test": "pnpm -r --filter server --filter client test",
-    "test:coverage": "pnpm --filter server run test:coverage && pnpm --filter client run test:coverage"
+    "test:coverage": "pnpm --filter server run test:coverage && pnpm --filter client run test:coverage",
+    "test:client": "pnpm --filter client test"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^8.5.0",

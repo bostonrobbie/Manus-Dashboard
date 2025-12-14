@@ -62,7 +62,14 @@ function EquityChart({
           <LineChart data={chartData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
             <XAxis dataKey="date" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
-            <YAxis tickFormatter={value => valueFormatter(Number(value))} tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
+            {/* Use data-driven bounds so the starting capital baseline stays visible instead of forcing a zero-origin. */}
+            <YAxis
+              domain={["dataMin", "dataMax"]}
+              tickFormatter={value => valueFormatter(Number(value))}
+              tick={{ fontSize: 11 }}
+              tickLine={false}
+              axisLine={false}
+            />
             <Tooltip formatter={value => valueFormatter(Number(value))} />
             {series.map(line => (
               <Line key={line.key} type="monotone" dataKey={line.key} name={line.name} stroke={line.color} dot={false} strokeWidth={2} />

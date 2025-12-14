@@ -39,7 +39,8 @@ This dashboard provides professional-grade portfolio analytics for 8 intraday tr
 ### Navigation Highlights
 - **Portfolio Overview** (`/overview`): equity vs SPY, drawdowns, KPIs, and breakdowns with time range + starting capital controls.
 - **Strategy Detail** (`/strategies/:strategyId`): per-strategy equity, drawdowns, metrics grid, recent trades, and breakdowns.
-- **Strategy Comparison** (`/strategy-comparison`): select 2–4 strategies to view combined/individual curves, correlations, and metrics.
+- **Strategy Comparison** (`/compare`): select 2–4 strategies to view combined/individual curves, correlations, and metrics.
+- **Visual Analytics** (`/analytics`): heatmaps, return calendars, and Monte Carlo outputs backed by live tRPC calls.
 
 ---
 
@@ -115,27 +116,39 @@ pnpm start
   - `pnpm seed:benchmarks`
   - `pnpm seed:all` (runs the three in order)
 
-### Tests & Coverage
+### Build & Test
 
 ```bash
-# Lint + unit/integration tests for server and client
 pnpm lint
-pnpm test
+pnpm typecheck
+pnpm test:server
+pnpm test:client
+pnpm test:all
+pnpm build
 
 # Backend coverage
 pnpm --filter server test:coverage
-
 # Frontend coverage
 pnpm --filter client test:coverage
 # Local Playwright E2E (auto-starts preview + mock-friendly API)
 pnpm e2e:local
 ```
 
+Notes:
+- Ingestion specs that require a real database stay skipped under the mock DB; core Vitest suites run locally.
+- Use the workspace test commands as-is (no extra Vitest flags like `--runInBand` are required or supported).
+- `pnpm test:all` bundles linting, typing, and both server/client test runs for CI-style checks.
+
 E2E details:
 - `pnpm e2e:local` builds the client, starts a local preview on `http://localhost:4173`, boots the API on `http://localhost:3002` with mock auth, and runs Playwright against the preview.
 - `pnpm e2e` keeps the same defaults but respects `E2E_BASE_URL` if you already have a running preview.
 - `pnpm e2e:manus` enables Manus headers for against-platform runs (requires Manus env vars).
 - Local E2E runs use Playwright web servers plus mocked tRPC responses so no Manus headers or database are required. (Preview port: 4173; API port used for tests: 3002.)
+
+### Monthly snapshots
+- A scheduled GitHub Action tags the latest `main` on the first of each month at 09:00 UTC.
+- Tag format: `snapshot-YYYY-MM-DD`.
+- To restore a backup locally: `git checkout snapshot-2025-01-01` (replace with the desired date) and install dependencies as usual.
 
 ---
 

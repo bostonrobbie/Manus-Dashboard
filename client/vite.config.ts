@@ -7,6 +7,9 @@ export default defineConfig({
   resolve: {
     alias: {
       "@shared": path.resolve(__dirname, "../shared"),
+      "@server": path.resolve(__dirname, "../server"),
+      "@drizzle": path.resolve(__dirname, "../drizzle"),
+      "@client": path.resolve(__dirname, "./src"),
       recharts: path.resolve(__dirname, "./src/vendor/recharts"),
     },
   },

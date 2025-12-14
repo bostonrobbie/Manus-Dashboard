@@ -1,0 +1,22 @@
+name: Monthly Snapshot Tags
+
+on:
+  schedule:
+    - cron: "0 9 1 * *"
+  workflow_dispatch:
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create or update monthly snapshot tag
+        run: |
+          DATE=$(date -u +"%Y-%m-%d")
+          TAG="snapshot-${DATE}"
+          git tag -f "$TAG"
+          git push origin "$TAG" --force

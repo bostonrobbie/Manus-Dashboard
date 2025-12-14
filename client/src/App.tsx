@@ -14,6 +14,7 @@ import UploadsPage from "./pages/Uploads";
 import AdminDataManagerPage from "./pages/AdminDataManager";
 import StrategyDetailPage from "./pages/StrategyDetail";
 import StrategyComparisonPage from "./pages/StrategyComparison";
+import VisualAnalyticsPage from "./pages/VisualAnalytics";
 import { DashboardProvider } from "./providers/DashboardProvider";
 import { isAdminUser } from "@shared/utils/auth";
 
@@ -97,14 +98,16 @@ function App() {
 
   return (
     <BrowserRouter>
-          <DashboardProvider user={viewer.user}>
-            <DashboardLayout user={viewer.user} mode={viewer.mode} mock={viewer.mock}>
-              <Routes>
-                <Route path="/" element={<HomeDashboardPage />} />
+      <DashboardProvider user={viewer.user}>
+        <DashboardLayout user={viewer.user} mode={viewer.mode} mock={viewer.mock}>
+          <Routes>
+            <Route path="/" element={<HomeDashboardPage />} />
             <Route path="/overview" element={<OverviewPage />} />
             <Route path="/strategies" element={<StrategiesPage />} />
             <Route path="/strategies/:strategyId" element={<StrategyDetailPage />} />
-            <Route path="/strategy-comparison" element={<StrategyComparisonPage />} />
+            <Route path="/compare" element={<StrategyComparisonPage />} />
+            <Route path="/strategy-comparison" element={<Navigate to="/compare" replace />} />
+            <Route path="/analytics" element={<VisualAnalyticsPage />} />
             <Route path="/portfolios" element={<PortfoliosPage />} />
             <Route path="/trades" element={<TradesPage />} />
             <Route path="/uploads" element={<UploadsPage />} />

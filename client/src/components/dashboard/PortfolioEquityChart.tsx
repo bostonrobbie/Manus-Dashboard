@@ -43,7 +43,9 @@ export function PortfolioEquityChart({ equitySeries, stats, title }: PortfolioEq
         <LineChart data={data} margin={{ top: 12, right: 12, left: 0, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
           <XAxis dataKey="date" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
+          {/* Preserve the starting equity baseline by deriving the Y domain from the data instead of forcing zero. */}
           <YAxis
+            domain={["dataMin", "dataMax"]}
             tickFormatter={val => `$${Number(val).toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
             tick={{ fontSize: 11 }}
             tickLine={false}

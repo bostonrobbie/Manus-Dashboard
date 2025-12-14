@@ -1072,7 +1072,7 @@ export const portfolioRouter = router({
         .optional(),
     )
     .output(analyticsPayloadSchema)
-    .mutation(async ({ ctx, input }) => {
+    .query(async ({ ctx, input }) => {
       const { user } = await resolveScope(ctx);
       const scope = { userId: user.id };
       const range = resolveDateRange({

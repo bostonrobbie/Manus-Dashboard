@@ -7,6 +7,10 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "src"),
+      "@shared": path.resolve(__dirname, "../shared"),
+      "@server": path.resolve(__dirname, "../server"),
+      "@drizzle": path.resolve(__dirname, "../drizzle"),
+      "@client": path.resolve(__dirname, "./src"),
     },
   },
   test: {
