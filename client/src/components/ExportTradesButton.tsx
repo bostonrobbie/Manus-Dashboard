@@ -1,15 +1,16 @@
 import { useMemo, useState } from "react";
 
-import type { StrategySummary } from "@shared/types/portfolio";
+import type { StrategySummary, TradeFilter } from "@shared/types/portfolio";
 import type { TimeRange } from "../lib/timeRange";
 import { trpc } from "../lib/trpc";
 
 interface ExportTradesButtonProps {
   strategies?: StrategySummary[];
   timeRange?: TimeRange;
+  filters?: TradeFilter;
 }
 
-function ExportTradesButton({ strategies = [], timeRange }: ExportTradesButtonProps) {
+function ExportTradesButton({ strategies = [], timeRange, filters }: ExportTradesButtonProps) {
   const [selectedStrategy, setSelectedStrategy] = useState<string>("all");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -36,9 +37,12 @@ function ExportTradesButton({ strategies = [], timeRange }: ExportTradesButtonPr
     const strategyIds = Number.isFinite(strategyIdValue) ? [strategyIdValue as number] : undefined;
     mutation.mutate({
       strategyIds,
-      startDate: startDate || undefined,
-      endDate: endDate || undefined,
+      startDate: startDate || filters?.startDate || undefined,
+      endDate: endDate || filters?.endDate || undefined,
       timeRange,
+      symbols: filters?.symbols,
+      side: filters?.side,
+      outcome: filters?.outcome,
     });
   };
 

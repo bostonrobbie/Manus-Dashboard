@@ -114,7 +114,9 @@ export async function runFullHealthCheck(getDbImpl: typeof getDb = getDb): Promi
         summary.warnings = [...summary.warnings, "Database unavailable"];
         summary.details = { ...summary.details, db: "Database not configured" };
       } else {
-        await pingDatabaseOnce();
+        if (!(process.env.NODE_ENV === "test" && process.env.USE_REAL_DB !== "true")) {
+          await pingDatabaseOnce();
+        }
         summary.db = "ok";
         await db.execute(sql`select 1`);
 
@@ -130,6 +132,7 @@ export async function runFullHealthCheck(getDbImpl: typeof getDb = getDb): Promi
     } catch (error) {
       summary.db = "error";
       summary.uploads = "error";
+      summary.workspaces = "error";
       summary.details = { ...summary.details, db: (error as Error).message };
       healthLogger.error("Health check failed", { error: (error as Error).message });
     }

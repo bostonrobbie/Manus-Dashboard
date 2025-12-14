@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test, { mock } from "node:test";
 
 import { portfolioRouter } from "@server/routers/portfolio";
-import { systemRouter } from "@server/routers/system";
+import { setPortfolioProbe, systemRouter } from "@server/routers/system";
 import * as portfolioEngine from "@server/portfolio-engine";
 import * as db from "@server/db";
 
@@ -50,19 +50,20 @@ test("getStrategySummaries tolerates strategies without trades", async () => {
 test("system status reports ok and flags portfolio errors", async () => {
   const caller = systemRouter.createCaller(baseCtx);
 
-  mock.method(db, "getDb", async () => ({ execute: async () => true } as any));
+  (db as any).setGetDbOverride?.(async () => ({ execute: async () => true } as any));
   const first = await caller.status();
   assert.equal(first.db, "ok");
   assert.ok(first.timestamp);
 
-  mock.restoreAll();
-  mock.method(db, "getDb", async () => ({ execute: async () => true } as any));
-  mock.method(portfolioEngine, "buildPortfolioOverview", async () => {
+  const originalBuild = (portfolioEngine as any).buildPortfolioOverview;
+  (db as any).setGetDbOverride?.(async () => ({ execute: async () => true } as any));
+  setPortfolioProbe(async () => {
     throw new Error("probe failed");
   });
 
   const second = await caller.status();
   assert.equal(second.db, "ok");
   assert.equal(second.portfolioOverview, "error");
-  mock.restoreAll();
+  setPortfolioProbe(originalBuild);
+  (db as any).setGetDbOverride?.(null);
 });

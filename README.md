@@ -39,7 +39,7 @@ This dashboard provides professional-grade portfolio analytics for 8 intraday tr
 ### Navigation Highlights
 - **Portfolio Overview** (`/overview`): equity vs SPY, drawdowns, KPIs, and breakdowns with time range + starting capital controls.
 - **Strategy Detail** (`/strategies/:strategyId`): per-strategy equity, drawdowns, metrics grid, recent trades, and breakdowns.
-- **Strategy Comparison** (`/strategy-comparison`): select 2–4 strategies to view combined/individual curves, correlations, and metrics.
+- **Strategy Comparison** (`/compare`): select 2–4 strategies to view combined/individual curves, correlations, and metrics.
 
 ---
 
@@ -63,6 +63,8 @@ pnpm install
 # Set up environment
 cp .env.example .env
 # Edit .env with your database and auth credentials
+# Example local database string (MySQL/TiDB):
+# DATABASE_URL=mysql://user:password@localhost:3306/manus_dashboard
 ```
 
 ### Development
@@ -120,7 +122,10 @@ pnpm start
 ```bash
 # Lint + unit/integration tests for server and client
 pnpm lint
-pnpm test
+pnpm typecheck
+pnpm test:server
+pnpm test:client
+pnpm test:all
 
 # Backend coverage
 pnpm --filter server test:coverage
@@ -130,6 +135,8 @@ pnpm --filter client test:coverage
 # Local Playwright E2E (auto-starts preview + mock-friendly API)
 pnpm e2e:local
 ```
+
+Server tests automatically inject safe Manus/auth defaults when `NODE_ENV=test`, so no real secrets are required to run `pnpm --filter server test` locally.
 
 E2E details:
 - `pnpm e2e:local` builds the client, starts a local preview on `http://localhost:4173`, boots the API on `http://localhost:3002` with mock auth, and runs Playwright against the preview.

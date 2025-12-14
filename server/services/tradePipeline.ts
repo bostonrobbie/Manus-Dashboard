@@ -186,17 +186,26 @@ export async function getPortfolioTrades(params: {
   symbol?: string;
   side?: "long" | "short";
   strategyId?: number;
+  strategyIds?: number[];
+  startDate?: string;
+  endDate?: string;
+  outcome?: "win" | "loss";
+  symbols?: string[];
 }) {
   const range = deriveDateRangeFromTimeRange(params.timeRange);
   return loadTradesPage(
     { userId: params.userId },
     {
       ...range,
+      startDate: params.startDate ?? range.startDate,
+      endDate: params.endDate ?? range.endDate,
       page: params.page ?? 1,
       pageSize: params.pageSize ?? 50,
       symbol: params.symbol,
+      symbols: params.symbols,
       side: params.side,
-      strategyIds: params.strategyId ? [params.strategyId] : undefined,
+      strategyIds: params.strategyIds ?? (params.strategyId ? [params.strategyId] : undefined),
+      outcome: params.outcome,
     },
   );
 }
@@ -207,6 +216,9 @@ export async function getPortfolioSummaryCsv(params: {
   timeRange?: TimeRange;
   startDate?: string;
   endDate?: string;
+  symbols?: string[];
+  side?: "long" | "short";
+  outcome?: "win" | "loss";
 }) {
   const range = deriveDateRangeFromTimeRange(params.timeRange);
   try {
@@ -215,6 +227,9 @@ export async function getPortfolioSummaryCsv(params: {
       strategyIds: params.strategyIds,
       startDate: params.startDate ?? range.startDate,
       endDate: params.endDate ?? range.endDate,
+      symbols: params.symbols,
+      side: params.side,
+      outcome: params.outcome,
     });
   } catch (error) {
     throw new TRPCError({

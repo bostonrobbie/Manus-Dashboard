@@ -9,7 +9,8 @@
     "paths": {
       "@server/*": ["server/*"],
       "@shared/*": ["shared/*"],
-      "@drizzle/*": ["drizzle/*"]
+      "@drizzle/*": ["drizzle/*"],
+      "@client/*": ["client/*"]
     },
     "types": ["node"]
   },

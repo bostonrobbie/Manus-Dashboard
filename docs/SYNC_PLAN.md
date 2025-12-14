@@ -12,12 +12,16 @@ This plan captures the current Manus-Dashboard backup state and outlines the wor
 - **Frontend routes:** React Router defines `/`, `/overview`, `/strategies`, `/strategies/:strategyId`, `/strategy-comparison`, `/portfolios`, `/trades`, `/uploads`, `/admin`, `/settings`.
 
 ## Observed Gaps vs Manus-Native Requirements
-- **Env/database alignment:** MySQL Drizzle config conflicts with Postgres URL in `.env.example`; must align to the actual Manus DB target and document clearly.
+- **Env/database alignment:** Standardized on MySQL/TiDB `DATABASE_URL` to match Drizzle + mysql2; confirm Manus-native uses the same driver before deploy.
 - **Path aliases:** Add `@client/*` so shared imports mirror Manus-native conventions.
 - **Analytics completeness:** No dedicated risk-of-ruin module; need parity with Manus-native analytics, equity curve baseline handling, and rolling metrics.
 - **Router coverage:** Need confirmation/sync for portfolio, strategies, comparison, benchmarks, webhooks routers to match Manus-native contracts.
 - **Data ingestion/monitoring:** Scripts for uploads/health exist but need validation against Manus-native CSV ingestion and monitoring expectations.
 - **Docs/testing:** README and .env.example need refreshed install/run/deploy steps; QA coverage needs to mirror Manus-native (unit, integration, E2E) and be summarized in QA_REPORT.
+
+## Updates This Run
+- **Database configuration mismatch resolved:** repository now standardizes on a MySQL/TiDB connection string via `DATABASE_URL`; Drizzle config and `.env.example` align with the server `mysql2` driver.
+- **Test harness hardened:** Added `server/config/testEnv.ts`, guarded MySQL pool creation during tests, and tightened auth/webhook handling so server tests run without Manus secrets (ingestion specs skipped when no real DB).
 
 ## Concrete Next Steps
 1. **Normalize tooling & config**
@@ -36,3 +40,9 @@ This plan captures the current Manus-Dashboard backup state and outlines the wor
 5. **Documentation & readiness**
    - Update README with deploy steps (local, Manus, generic VPS) and environment references; keep secrets out of repo.
    - Maintain `COORDINATION_LOG.md` and `FEATURE_MANIFEST.md` to track sync progress and feature status.
+
+## Next Steps
+- Fill visual analytics parity (heatmaps, calendars, Monte Carlo UI polish) and verify correlation matrix outputs.
+- Align trade filters and CSV export behavior with server-side filtering for overview, strategy detail, and comparison pages; extend Strategy Detail/Overview UIs to reuse shared filters.
+- Fix remaining equity curve baseline edge cases on the client and validate against Manus-native snapshots.
+- Expand automated coverage (analytics unit tests, router integration tests, smoke UI) and record outcomes in `docs/QA_REPORT.md`; re-enable ingestion specs against a real DB once available.

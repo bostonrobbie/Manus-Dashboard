@@ -24,6 +24,25 @@ export interface PortfolioMetrics {
   profitFactor: number;
   expectancyPerTrade: number;
   alpha: number | null;
+  riskOfRuin?: RiskOfRuinResult;
+}
+
+export interface RiskOfRuinInput {
+  winRate: number;
+  avgWin: number;
+  avgLoss: number;
+  riskPerTradePct: number;
+  startingEquity?: number;
+}
+
+export interface RiskOfRuinResult {
+  riskOfRuinFraction: number; // 0-1
+  riskOfRuinPct: number; // 0-100
+  breakEvenWinRate: number; // 0-1
+  edgePerTrade: number;
+  riskPerTradePct: number;
+  startingEquity: number;
+  riskUnits: number;
 }
 
 export interface RiskGuidanceInput {
@@ -150,6 +169,15 @@ export interface TradeRow {
   initialRisk?: number;
 }
 
+export interface TradeFilter {
+  startDate?: string;
+  endDate?: string;
+  symbols?: string[];
+  strategyIds?: number[];
+  side?: "long" | "short";
+  outcome?: "win" | "loss";
+}
+
 export interface PortfolioOverview {
   equity: number;
   dailyPnL: number;
@@ -182,6 +210,9 @@ export interface ExportTradesInput {
   strategyIds?: number[];
   startDate?: string; // derived from time range selector unless explicitly set
   endDate?: string; // derived from time range selector unless explicitly set
+  symbols?: string[];
+  side?: "long" | "short";
+  outcome?: "win" | "loss";
   timeRange?: TimeRange;
 }
 

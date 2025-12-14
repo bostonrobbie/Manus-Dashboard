@@ -104,6 +104,7 @@ function App() {
             <Route path="/overview" element={<OverviewPage />} />
             <Route path="/strategies" element={<StrategiesPage />} />
             <Route path="/strategies/:strategyId" element={<StrategyDetailPage />} />
+            <Route path="/compare" element={<StrategyComparisonPage />} />
             <Route path="/strategy-comparison" element={<StrategyComparisonPage />} />
             <Route path="/portfolios" element={<PortfoliosPage />} />
             <Route path="/trades" element={<TradesPage />} />

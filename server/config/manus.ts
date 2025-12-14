@@ -1,6 +1,9 @@
 import dotenv from "dotenv";
 
+import { applyTestEnvDefaults } from "./testEnv";
+
 dotenv.config();
+applyTestEnvDefaults();
 
 type ManusMode = "MANUS" | "LOCAL_DEV";
 

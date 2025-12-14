@@ -6,6 +6,11 @@ import { buildPortfolioOverview } from "../portfolio-engine";
 import { createLogger } from "../utils/logger";
 import { publicProcedure, router } from "../_core/trpc";
 
+let portfolioProbe = buildPortfolioOverview;
+export const setPortfolioProbe = (probe: typeof buildPortfolioOverview | null) => {
+  portfolioProbe = probe ?? buildPortfolioOverview;
+};
+
 const statusSchema = z.object({
   db: z.enum(["ok", "error"]),
   portfolioOverview: z.enum(["ok", "error"]),
@@ -36,7 +41,7 @@ export const systemRouter = router({
       const rangeEnd = toIsoDate(today);
       const start = new Date(`${rangeEnd}T00:00:00.000Z`);
       start.setUTCDate(start.getUTCDate() - 30);
-      await buildPortfolioOverview({ userId: ctx.user?.id ?? 1 }, { startDate: toIsoDate(start), endDate: rangeEnd });
+      await portfolioProbe({ userId: ctx.user?.id ?? 1 }, { startDate: toIsoDate(start), endDate: rangeEnd });
     } catch (error) {
       portfolioStatus = "error";
       logger.warn("System status portfolio probe failed", {
