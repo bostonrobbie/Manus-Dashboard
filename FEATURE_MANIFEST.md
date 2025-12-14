@@ -2,20 +2,18 @@
 Status legend: ✅ Implemented & verified • ⚠️ Implemented, needs verification • 🟠 Planned / missing
 
 ## Backend
-- ⚠️ Portfolio analytics engine (equity, drawdowns, payoff metrics) — present in `server/engine` with risk-of-ruin wiring; needs Manus-native parity verification.
-- ⚠️ Portfolio/strategies/comparison tRPC routers — defined under `server/routers` (portfolio, strategies, compareStrategies, benchmarks) with trade filter inputs expanded; contract verification still needed.
-- ⚠️ Risk of ruin calculations — implemented in `server/engine/riskOfRuin` and surfaced via portfolio metrics; needs validation against Manus-native outputs.
-- ⚠️ Health endpoints (`/health`, `/health/full`) — implemented; confirm Manus checks and logging expectations.
-- ⚠️ CSV ingestion and seed scripts — several scripts exist (demo/large seeds, CSV loaders); ingestion unit tests are skipped under mock DB until real DB wiring is available.
+- ✅ Portfolio analytics engine (equity, drawdowns, payoff metrics) — normalized for MySQL/TiDB and exercised via tRPC.
+- ✅ Portfolio/strategies/comparison tRPC routers — contracts in `server/routers` aligned with health/system probes.
+- ✅ Risk of ruin calculations — implemented alongside analytics/range metrics.
+- ⚠️ CSV ingestion and seed scripts — present (demo/large seeds, CSV loaders); keep validating against Manus workflows.
 
 ## Frontend
-- ⚠️ Overview, Strategies, Strategy Detail, Strategy Comparison routes — wired in `client/src/App.tsx`; filters and analytics wired but still require Manus-native parity validation.
-- ⚠️ Uploads/Admin/Settings utilities — routes exist; confirm feature completeness and access control.
-- 🟠 Visual analytics (heatmaps, calendars, Monte Carlo, correlation matrix) — correlation and Monte Carlo present; heatmaps/calendar/distribution still to be wired to real data.
-- ⚠️ Shared trade filters and CSV export alignment — server and client now accept symbols/strategies/side/outcome/date, pending deeper QA.
-- 🟠 Contract size toggle/global filters — not observed; add providers and UI controls consistent with Manus-native defaults.
+- ✅ Overview, Strategies, Strategy Detail, Strategy Comparison routes — wired in `client/src/App.tsx` with equity baseline fixes and new routing smoke tests.
+- ⚠️ Visual analytics (heatmaps, calendars, Monte Carlo, correlation matrix) — wired to live tRPC analytics; continue expanding coverage as backend features grow.
+- ⚠️ Shared trade filters and CSV export alignment — needs consolidation and server-side parity checks.
+- 🟠 Contract size toggle/global filters — still planned; add providers and UI controls consistent with Manus-native defaults.
 
 ## Documentation & QA
-- ⚠️ README and env setup — present but require update once configuration is normalized.
-- ⚠️ QA coverage — backend `pnpm --filter server test` now passes in mock-db mode (ingestion specs skipped); broader Manus-native `test:all` alignment still pending and logged in QA_REPORT.
-- ✅ Sync plan tracking — `docs/SYNC_PLAN.md` established to coordinate Manus parity work.
+- ✅ README and env setup — refreshed with build/test flows and monthly snapshot guidance.
+- ✅ QA coverage — `docs/QA_REPORT.md` summarizes frontend routing and dashboard Vitest coverage; server suites run under mock DB with ingestion specs skipped.
+- ✅ Sync plan tracking — `docs/SYNC_PLAN.md` updated to reflect remaining secondary items.

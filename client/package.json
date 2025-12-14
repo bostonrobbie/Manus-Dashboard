@@ -10,7 +10,8 @@
     "lint": "pnpm exec eslint src --ext .ts,.tsx",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "test:client": "vitest run"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.55.0",
