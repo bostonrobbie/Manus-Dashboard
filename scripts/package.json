@@ -1,0 +1,7 @@
+{
+  "name": "scripts",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Utility scripts and helpers (non-published)",
+  "license": "UNLICENSED"
+}

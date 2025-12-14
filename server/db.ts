@@ -7,9 +7,13 @@ export type Database = MySql2Database<typeof schema>;
 
 let db: Database | null = null;
 let pool: Pool | null = null;
+let getDbOverride: (() => Promise<Database | null>) | null = null;
 
 const getPool = (): Pool | null => {
   if (pool) return pool;
+  if (process.env.NODE_ENV === "test" && process.env.USE_REAL_DB !== "true") {
+    return null;
+  }
   if (!env.databaseUrl) return null;
 
   pool = mysql.createPool({
@@ -34,6 +38,7 @@ export async function pingDatabaseOnce(): Promise<void> {
 }
 
 export async function getDb(): Promise<Database | null> {
+  if (getDbOverride) return getDbOverride();
   if (db) return db;
   const poolInstance = getPool();
   if (!poolInstance) return null;
@@ -44,6 +49,16 @@ export async function getDb(): Promise<Database | null> {
 
 export function setTestDb(mockDb: Database | null) {
   db = mockDb;
+  getDbOverride = mockDb ? async () => mockDb : null;
+  pool = null;
+}
+
+export function setGetDbOverride(fn: (() => Promise<Database | null>) | null) {
+  getDbOverride = fn;
+  if (!fn) {
+    db = null;
+    pool = null;
+  }
 }
 
 export { schema, db };

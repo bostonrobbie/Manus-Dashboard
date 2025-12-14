@@ -441,7 +441,11 @@ export async function ingestWebhookTrade(options: {
     });
 
   const insertedIds =
-    typeof tradeInserter.$returningId === "function" ? await tradeInserter.$returningId() : ([] as number[]);
+    typeof tradeInserter.$returningId === "function"
+      ? await tradeInserter.$returningId()
+      : typeof (tradeInserter as any).returning === "function"
+        ? await (tradeInserter as any).returning()
+        : ([] as number[]);
 
   const importedCount = insertedIds.length > 0 ? 1 : 0;
   await persistUploadLog(uploadLog, {

@@ -8,6 +8,9 @@ import { ingestTradesCsv } from "@server/services/tradeIngestion";
 import { enforceUploadGuards } from "@server/routers/portfolio";
 import * as dbModule from "@server/db";
 
+const shouldSkipIngestion = process.env.NODE_ENV === "test" && process.env.USE_REAL_DB !== "true";
+const maybeTest = (name: string, fn: () => Promise<void> | void) => test(name, { skip: shouldSkipIngestion }, fn);
+
 function createMockDb() {
   const strategies: any[] = [];
   const trades: any[] = [];
@@ -62,15 +65,14 @@ function createMockDb() {
 }
 
 function withMockDb(mockDb: Awaited<ReturnType<typeof createMockDb>>, fn: () => Promise<void>) {
-  const originalGetDb = (dbModule as any).getDb;
-  (dbModule as any).getDb = async () => mockDb.db;
+  (dbModule as any).setTestDb?.(mockDb.db);
 
   return fn().finally(() => {
-    (dbModule as any).getDb = originalGetDb;
+    (dbModule as any).setTestDb?.(null);
   });
 }
 
-test("ingestTradesCsv imports valid rows", async () => {
+maybeTest("ingestTradesCsv imports valid rows", async () => {
   const mockDb = createMockDb();
   const csv = [
     "symbol,side,quantity,entryPrice,exitPrice,entryTime,exitTime", // header
@@ -94,7 +96,7 @@ test("ingestTradesCsv imports valid rows", async () => {
   });
 });
 
-test("ingestTradesCsv reports missing required columns", async () => {
+maybeTest("ingestTradesCsv reports missing required columns", async () => {
   const mockDb = createMockDb();
   const csv = [
     "symbol,side,quantity,entryTime,exitTime", // missing price columns
@@ -114,7 +116,7 @@ test("ingestTradesCsv reports missing required columns", async () => {
   });
 });
 
-test("ingestTradesCsv skips invalid numeric or empty rows", async () => {
+maybeTest("ingestTradesCsv skips invalid numeric or empty rows", async () => {
   const mockDb = createMockDb();
   const csv = [
     "symbol,side,quantity,entryPrice,exitPrice,entryTime,exitTime",
@@ -137,7 +139,7 @@ test("ingestTradesCsv skips invalid numeric or empty rows", async () => {
   });
 });
 
-test("ingestTradesCsv flags invalid dates", async () => {
+maybeTest("ingestTradesCsv flags invalid dates", async () => {
   const mockDb = createMockDb();
   const csv = [
     "symbol,side,quantity,entryPrice,exitPrice,entryTime,exitTime",

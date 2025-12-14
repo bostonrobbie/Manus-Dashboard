@@ -24,12 +24,10 @@ export const authRouter = router({
       return { enabled: false };
     }
 
-    const headers = Object.entries(ctx.req.headers ?? {})
-      .filter(([name]) => name.startsWith("x-") || !isSensitive(name))
-      .reduce<Record<string, unknown>>((acc, [name, value]) => {
-        acc[name] = maskHeaderValue(name, value);
-        return acc;
-      }, {});
+    const headers = Object.entries(ctx.req.headers ?? {}).reduce<Record<string, unknown>>((acc, [name, value]) => {
+      acc[name] = maskHeaderValue(name, value);
+      return acc;
+    }, {});
 
     return {
       enabled: true,

@@ -89,7 +89,14 @@ export async function createContext(opts: CreateExpressContextOptions) {
   let user = parseUserFromRequest(opts.req);
   let mock = false;
 
-  if (!user && env.mockUserEnabled) {
+  const manusMode = env.manusMode || process.env.MANUS_MODE?.toLowerCase() === "true";
+  const allowMockUser =
+    process.env.MOCK_USER_ENABLED !== "false" ||
+    env.mockUserEnabled ||
+    (process.env.NODE_ENV === "test" && process.env.FORCE_MOCK_USER === "true") ||
+    !manusMode;
+
+  if (!user && allowMockUser) {
     user = MOCK_USER;
     mock = true;
   }

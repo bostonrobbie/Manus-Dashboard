@@ -27,6 +27,7 @@ import {
   safeNumber as metricsSafeNumber,
   sharpe as sharpeRatio,
 } from "./engine/metrics";
+import { computeRiskOfRuin } from "./engine/riskOfRuin";
 
 export interface EquityCurveOptions {
   startDate?: string; // derived from time range selector
@@ -55,8 +56,10 @@ export interface TradeLoadOptions {
   startDate?: string; // derived from time range selector
   endDate?: string; // derived from time range selector
   strategyIds?: number[];
+  symbols?: string[];
   symbol?: string;
   side?: string;
+  outcome?: "win" | "loss";
 }
 
 interface PaginatedTradeLoadOptions extends TradeLoadOptions {
@@ -319,6 +322,9 @@ function buildTradePredicates(scope: UserScope, opts: TradeLoadOptions) {
   if (opts.symbol) {
     predicates.push(eq(schema.trades.symbol, opts.symbol));
   }
+  if (opts.symbols && opts.symbols.length > 0) {
+    predicates.push(inArray(schema.trades.symbol, opts.symbols));
+  }
   if (opts.side) {
     predicates.push(eq(schema.trades.side, opts.side));
   }
@@ -341,7 +347,15 @@ function mapTradeRows(rows: TradeRecord[]): TradeRow[] {
 }
 
 function applyTradeFilters(rows: TradeRow[], opts: TradeLoadOptions): TradeRow[] {
-  if (!opts.startDate && !opts.endDate && !opts.strategyIds?.length && !opts.symbol && !opts.side) {
+  if (
+    !opts.startDate &&
+    !opts.endDate &&
+    !opts.strategyIds?.length &&
+    !opts.symbol &&
+    !opts.symbols?.length &&
+    !opts.side &&
+    !opts.outcome
+  ) {
     return rows;
   }
 
@@ -351,7 +365,13 @@ function applyTradeFilters(rows: TradeRow[], opts: TradeLoadOptions): TradeRow[]
     if (opts.endDate && exitDate > opts.endDate) return false;
     if (opts.strategyIds && opts.strategyIds.length > 0 && !opts.strategyIds.includes(row.strategyId)) return false;
     if (opts.symbol && row.symbol !== opts.symbol) return false;
+    if (opts.symbols && opts.symbols.length > 0 && !opts.symbols.includes(row.symbol)) return false;
     if (opts.side && row.side !== opts.side) return false;
+    if (opts.outcome) {
+      const pnl = tradePnl(row.side, Number(row.entryPrice), Number(row.exitPrice), Number(row.quantity));
+      if (opts.outcome === "win" && pnl <= 0) return false;
+      if (opts.outcome === "loss" && pnl >= 0) return false;
+    }
     return true;
   });
 }
@@ -365,7 +385,13 @@ function filterSampleTrades(scope: UserScope, opts: TradeLoadOptions): TradeRow[
       if (opts.endDate && exitDate > opts.endDate) return false;
       if (opts.strategyIds && opts.strategyIds.length > 0 && !opts.strategyIds.includes(t.strategyId)) return false;
       if (opts.symbol && t.symbol !== opts.symbol) return false;
+      if (opts.symbols && opts.symbols.length > 0 && !opts.symbols.includes(t.symbol)) return false;
       if (opts.side && t.side !== opts.side) return false;
+      if (opts.outcome) {
+        const pnl = tradePnl(t.side, Number(t.entryPrice), Number(t.exitPrice), Number(t.quantity));
+        if (opts.outcome === "win" && pnl <= 0) return false;
+        if (opts.outcome === "loss" && pnl >= 0) return false;
+      }
       return true;
     });
 }
@@ -991,6 +1017,13 @@ export async function buildPortfolioOverview(
     initialRisk: (t as any).initialRisk ? Number((t as any).initialRisk) : undefined,
   }));
   const tradeMetrics = computeTradeMetrics(tradeSamples);
+  const riskOfRuin = computeRiskOfRuin({
+    winRate: tradeMetrics.winRate,
+    avgWin: tradeMetrics.avgWin,
+    avgLoss: Math.abs(tradeMetrics.avgLoss),
+    riskPerTradePct: 0.01,
+    startingEquity: initialCapital,
+  });
 
   const equityReturns = computeDailyReturns(equityPoints, initialCapital).filter(r => Number.isFinite(r));
   const benchmarkReturns = computeDailyReturns(equityPoints, initialCapital, "spx").filter(r => Number.isFinite(r));
@@ -1018,6 +1051,7 @@ export async function buildPortfolioOverview(
     profitFactor: safeNumber(tradeMetrics.profitFactor),
     expectancyPerTrade: tradeMetrics.expectancyPerTrade,
     alpha: benchmarkMetrics ? returnMetrics.totalReturn - benchmarkMetrics.totalReturn : null,
+    riskOfRuin,
   };
 
   return {
@@ -1054,6 +1088,9 @@ export async function generateTradesCsv(input: ExportTradesInput): Promise<strin
     startDate: input.startDate,
     endDate: input.endDate,
     strategyIds: input.strategyIds,
+    symbols: input.symbols,
+    side: input.side,
+    outcome: input.outcome,
   });
 
   const filtered = trades.filter(trade => {
@@ -1061,6 +1098,13 @@ export async function generateTradesCsv(input: ExportTradesInput): Promise<strin
     const exitDate = trade.exitTime.slice(0, 10);
     if (input.startDate && exitDate < input.startDate) return false;
     if (input.endDate && exitDate > input.endDate) return false;
+    if (input.symbols && input.symbols.length > 0 && !input.symbols.includes(trade.symbol)) return false;
+    if (input.side && trade.side !== input.side) return false;
+    if (input.outcome) {
+      const pnl = tradePnl(trade.side, Number(trade.entryPrice), Number(trade.exitPrice), Number(trade.quantity));
+      if (input.outcome === "win" && pnl <= 0) return false;
+      if (input.outcome === "loss" && pnl >= 0) return false;
+    }
     return true;
   });
 

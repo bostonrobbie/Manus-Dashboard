@@ -116,10 +116,7 @@ async function resolveStrategyId(db: NonNullable<Awaited<ReturnType<typeof getDb
 }
 
 export async function handleTradingViewWebhook(req: Request, res: Response) {
-  const db = await getDb();
-  if (!db) {
-    return res.status(503).json({ success: false, error: "Database not available" });
-  }
+  let db = null as Awaited<ReturnType<typeof getDb>>;
   const eventPayload = req.body ?? {};
   const providedSecret = (req.headers["x-webhook-secret"] as string | undefined)?.trim();
   const configuredSecret = process.env.TRADINGVIEW_WEBHOOK_SECRET;
@@ -141,13 +138,16 @@ export async function handleTradingViewWebhook(req: Request, res: Response) {
       timestamp: new Date().toISOString(),
     });
     captureException(err ?? new Error(errorMessage), { endpoint: WEBHOOK_ENDPOINT, userId });
-    await recordWebhookLog({
-      db,
-      userId,
-      payload,
-      status: "error",
-      errorMessage,
-    });
+    const dbForLog = db ?? (await getDb());
+    if (dbForLog) {
+      await recordWebhookLog({
+        db: dbForLog,
+        userId,
+        payload,
+        status: "error",
+        errorMessage,
+      });
+    }
     return res.status(status).json({ success: false, error: errorMessage });
   };
 
@@ -165,6 +165,7 @@ export async function handleTradingViewWebhook(req: Request, res: Response) {
     return logAndRespond(400, message);
   }
 
+  db = await getDb();
   if (!db) {
     return logAndRespond(503, "Database not configured");
   }
