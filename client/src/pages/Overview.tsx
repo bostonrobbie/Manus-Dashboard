@@ -408,11 +408,45 @@ export default function Overview() {
             <div className="h-[250px]">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart 
-                  data={data.underwater.curve.map((point, index) => ({
-                    date: chartData[index]?.date || point.date.toLocaleDateString(),
-                    drawdown: point.drawdownPercent,
-                    benchmarkDrawdown: (data as any).benchmarkUnderwater?.[index]?.drawdownPercent || 0,
-                  }))}
+                  data={(() => {
+                    // Build a map of benchmark drawdown by date for efficient lookup
+                    const benchmarkByDate = new Map<string, number>();
+                    data.benchmarkUnderwater?.curve?.forEach((b: any) => {
+                      const dateKey = new Date(b.date).toISOString().split('T')[0];
+                      benchmarkByDate.set(dateKey, b.drawdownPercent);
+                    });
+                    
+                    // Forward-fill benchmark values
+                    let lastBenchmarkDrawdown = 0;
+                    return data.underwater.curve.map((point, index) => {
+                      const pointDateKey = new Date(point.date).toISOString().split('T')[0];
+                      const displayDate = chartData[index]?.date || point.date.toLocaleDateString();
+                      
+                      // Find exact match or use forward-fill
+                      let benchmarkDrawdown = benchmarkByDate.get(pointDateKey);
+                      if (benchmarkDrawdown === undefined) {
+                        // Look for closest previous date
+                        const sortedDates = Array.from(benchmarkByDate.keys()).sort();
+                        for (const dateKey of sortedDates) {
+                          if (dateKey <= pointDateKey) {
+                            benchmarkDrawdown = benchmarkByDate.get(dateKey);
+                          } else {
+                            break;
+                          }
+                        }
+                      }
+                      
+                      if (benchmarkDrawdown !== undefined) {
+                        lastBenchmarkDrawdown = benchmarkDrawdown;
+                      }
+                      
+                      return {
+                        date: displayDate,
+                        drawdown: point.drawdownPercent,
+                        benchmarkDrawdown: lastBenchmarkDrawdown,
+                      };
+                    });
+                  })()}
                 >
                   <defs>
                     <linearGradient id="drawdownGradient" x1="0" y1="0" x2="0" y2="1">
@@ -449,7 +483,7 @@ export default function Overview() {
                     fill="url(#drawdownGradient)"
                     name="Portfolio"
                   />
-                  {showBenchmark && (data as any).benchmarkUnderwater && (
+                  {showBenchmark && data.benchmarkUnderwater?.curve && (
                     <Area
                       type="monotone"
                       dataKey="benchmarkDrawdown"
