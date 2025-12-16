@@ -1575,3 +1575,9 @@
 - [x] Fix Underwater Equity Curve chart to show S&P 500 drawdown line alongside portfolio drawdown
 
 - [x] Change underwater equity curve portfolio color from red to blue to match main equity curve
+
+- [ ] Update Risk Analysis to show separate 0% risk of ruin calculations for micro and mini contracts
+
+
+## Risk Analysis Enhancements (December 2025)
+- [x] Update Risk Analysis to show separate 0% risk of ruin calculations for micro and mini contracts

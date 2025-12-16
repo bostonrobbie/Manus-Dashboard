@@ -46,7 +46,8 @@ export interface TradeStats {
   riskOfRuinDetails: { // NEW: Detailed RoR breakdown
     capitalUnits: number; // Account balance / avg loss
     tradingAdvantage: number; // (WinRate * PayoffRatio - LossRate) / PayoffRatio
-    minBalanceForZeroRisk: number; // Minimum balance for <0.01% RoR
+    minBalanceForZeroRisk: number; // Minimum balance for <0.01% RoR (mini contracts)
+    minBalanceForZeroRiskMicro: number; // Minimum balance for <0.01% RoR (micro contracts - 1/10th size)
   } | null;
   kellyPercentage: number; // optimal position size
   recoveryFactor: number; // net profit / max drawdown
@@ -306,19 +307,24 @@ export function calculateTradeStats(trades: Trade[], startingCapital: number = 1
     
     // Calculate minimum balance for <0.01% RoR
     let minBalanceForZeroRisk = 0;
+    let minBalanceForZeroRiskMicro = 0;
     if (tradingAdvantage > 0) {
       // Solve for U where RoR = 0.0001 (0.01%)
       // 0.0001 = ((1-A)/(1+A))^U
       // U = ln(0.0001) / ln((1-A)/(1+A))
       const targetRoR = 0.0001;
       const requiredUnits = Math.log(targetRoR) / Math.log((1 - tradingAdvantage) / (1 + tradingAdvantage));
+      // Mini contracts: full size avg loss
       minBalanceForZeroRisk = requiredUnits * avgLoss;
+      // Micro contracts: 1/10th the size, so 1/10th the avg loss
+      minBalanceForZeroRiskMicro = requiredUnits * (avgLoss / 10);
     }
     
     riskOfRuinDetails = {
       capitalUnits,
       tradingAdvantage,
       minBalanceForZeroRisk,
+      minBalanceForZeroRiskMicro,
     };
   }
   

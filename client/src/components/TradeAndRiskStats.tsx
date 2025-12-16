@@ -29,6 +29,7 @@ interface TradeStats {
     capitalUnits: number;
     tradingAdvantage: number;
     minBalanceForZeroRisk: number;
+    minBalanceForZeroRiskMicro: number; // For micro contracts (1/10th size)
   } | null;
   kellyPercentage: number;
   recoveryFactor: number;
@@ -227,13 +228,21 @@ export const TradeAndRiskStats = memo(function TradeAndRiskStats({ tradeStats }:
                   {tradeStats.riskOfRuin < 0.01 ? '<0.01%' : formatPercent(tradeStats.riskOfRuin, 2)}
                 </div>
                 {tradeStats.riskOfRuinDetails && tradeStats.riskOfRuinDetails.minBalanceForZeroRisk > 0 && (
-                  <div className="text-xs text-muted-foreground">
-                    Min balance for &lt;0.01% risk:
-                    <div className="font-semibold text-foreground">
-                      ${tradeStats.riskOfRuinDetails.minBalanceForZeroRisk.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                    </div>
-                    <div className="text-[10px] text-muted-foreground mt-0.5">
-                      (Based on current contract size)
+                  <div className="text-xs text-muted-foreground space-y-2">
+                    <div className="font-medium text-foreground">Min balance for 0% risk:</div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="bg-muted/30 rounded p-2">
+                        <div className="text-[10px] text-muted-foreground uppercase">Micro Contracts</div>
+                        <div className="font-semibold text-foreground text-sm">
+                          ${tradeStats.riskOfRuinDetails.minBalanceForZeroRiskMicro.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                        </div>
+                      </div>
+                      <div className="bg-muted/30 rounded p-2">
+                        <div className="text-[10px] text-muted-foreground uppercase">Mini Contracts</div>
+                        <div className="font-semibold text-foreground text-sm">
+                          ${tradeStats.riskOfRuinDetails.minBalanceForZeroRisk.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )}
