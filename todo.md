@@ -1519,3 +1519,12 @@
 - [x] Update Risk of Ruin label to "(Based on current contract size)"
 - [x] Update Portfolio Sizing Calculator to match Risk of Ruin contract size
 - [x] Ensure consistency between Risk Analysis and Portfolio Sizing Calculator
+
+
+## S&P 500 Benchmark Data Gap Fix (December 2025) ✅ COMPLETE
+- [x] S&P 500 benchmark line was stopping around mid-2024 on Strategy Detail pages
+- [x] Fixed frontend date matching logic in StrategyDetail.tsx
+- [x] Changed from index-based mapping to date-based mapping with forward-fill
+- [x] Benchmark now extends to current date (December 2025) on all charts
+- [x] Both Equity Curve and Underwater Equity Curve now show S&P 500 to end date
+- [x] Verified fix on ES Trend Following strategy (All Time view)

@@ -108,13 +108,43 @@ export default function StrategyDetail() {
   };
 
   // Prepare chart data (equity curve already has contract size applied on backend)
-  // Normalize benchmark to starting capital
+  // Normalize benchmark to starting capital - match by date, not index
   const firstBenchmarkValue = data.benchmarkData?.[0]?.close ?? 1;
-  const chartData = equityCurve.map((point, index) => {
-    const benchmarkClose = data.benchmarkData?.[index]?.close;
-    const normalizedBenchmark = benchmarkClose 
-      ? (benchmarkClose / firstBenchmarkValue) * startingCapital
-      : undefined;
+  
+  // Create a map of benchmark data by date for O(1) lookups
+  const benchmarkByDate = new Map<string, number>();
+  data.benchmarkData?.forEach((b) => {
+    const dateKey = new Date(b.date).toISOString().split('T')[0];
+    benchmarkByDate.set(dateKey, b.close);
+  });
+  
+  // Forward-fill benchmark values to handle missing dates
+  let lastBenchmarkClose = firstBenchmarkValue;
+  const chartData = equityCurve.map((point) => {
+    const pointDateKey = new Date(point.date).toISOString().split('T')[0];
+    
+    // Find the closest benchmark date on or before this point's date
+    let benchmarkClose = benchmarkByDate.get(pointDateKey);
+    
+    // If no exact match, find the most recent benchmark value
+    if (benchmarkClose === undefined) {
+      // Look for the closest previous date
+      const sortedBenchmarkDates = Array.from(benchmarkByDate.keys()).sort();
+      for (const dateKey of sortedBenchmarkDates) {
+        if (dateKey <= pointDateKey) {
+          benchmarkClose = benchmarkByDate.get(dateKey);
+        } else {
+          break;
+        }
+      }
+    }
+    
+    // Update last known value for forward-fill
+    if (benchmarkClose !== undefined) {
+      lastBenchmarkClose = benchmarkClose;
+    }
+    
+    const normalizedBenchmark = (lastBenchmarkClose / firstBenchmarkValue) * startingCapital;
     
     return {
       date: new Date(point.date).toLocaleDateString(),
@@ -123,10 +153,33 @@ export default function StrategyDetail() {
     };
   });
 
-  // Prepare underwater curve data with forward-fill for benchmark
+  // Prepare underwater curve data with forward-fill for benchmark - match by date
+  // Create a map of benchmark underwater data by date
+  const benchmarkUnderwaterByDate = new Map<string, number>();
+  data.benchmarkUnderwater?.forEach((b) => {
+    const dateKey = new Date(b.date).toISOString().split('T')[0];
+    benchmarkUnderwaterByDate.set(dateKey, b.drawdownPercent);
+  });
+  
   let lastBenchmarkDrawdown: number | undefined = undefined;
-  const underwaterData = data.underwaterCurve?.map((point, index) => {
-    const currentBenchmarkDrawdown = data.benchmarkUnderwater?.[index]?.drawdownPercent;
+  const underwaterData = data.underwaterCurve?.map((point) => {
+    const pointDateKey = new Date(point.date).toISOString().split('T')[0];
+    
+    // Find exact match or closest previous date
+    let currentBenchmarkDrawdown = benchmarkUnderwaterByDate.get(pointDateKey);
+    
+    if (currentBenchmarkDrawdown === undefined) {
+      // Look for the closest previous date
+      const sortedDates = Array.from(benchmarkUnderwaterByDate.keys()).sort();
+      for (const dateKey of sortedDates) {
+        if (dateKey <= pointDateKey) {
+          currentBenchmarkDrawdown = benchmarkUnderwaterByDate.get(dateKey);
+        } else {
+          break;
+        }
+      }
+    }
+    
     if (currentBenchmarkDrawdown !== undefined) {
       lastBenchmarkDrawdown = currentBenchmarkDrawdown;
     }
