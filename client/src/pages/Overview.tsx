@@ -450,8 +450,8 @@ export default function Overview() {
                 >
                   <defs>
                     <linearGradient id="drawdownGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#ef4444" stopOpacity={0.3} />
-                      <stop offset="100%" stopColor="#ef4444" stopOpacity={0.05} />
+                      <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.3} />
+                      <stop offset="100%" stopColor="#3b82f6" stopOpacity={0.05} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted-foreground))" strokeOpacity={0.15} />
@@ -478,7 +478,7 @@ export default function Overview() {
                   <Area
                     type="monotone"
                     dataKey="drawdown"
-                    stroke="#ef4444"
+                    stroke="#3b82f6"
                     strokeWidth={2}
                     fill="url(#drawdownGradient)"
                     name="Portfolio"
