@@ -306,18 +306,48 @@ export function calculateTradeStats(trades: Trade[], startingCapital: number = 1
     }
     
     // Calculate minimum balance for <0.01% RoR
+    // This needs to account for BOTH the mathematical RoR formula AND the historical max drawdown
+    // The true minimum should be the MAX of both to ensure survival
+    
+    // First, calculate the equity curve to get max drawdown in dollars
+    const tempEquityCurve = calculateEquityCurve(trades, startingCapital);
+    let tempPeak = startingCapital;
+    let maxDrawdownDollars = 0;
+    for (const point of tempEquityCurve) {
+      tempPeak = Math.max(tempPeak, point.equity);
+      const dd = tempPeak - point.equity;
+      maxDrawdownDollars = Math.max(maxDrawdownDollars, dd);
+    }
+    
+    // Margin requirements (approximate IBKR values for portfolio of futures)
+    const marginMini = 5000; // Approximate margin for mini contracts
+    const marginMicro = 500; // Approximate margin for micro contracts
+    
     let minBalanceForZeroRisk = 0;
     let minBalanceForZeroRiskMicro = 0;
+    
     if (tradingAdvantage > 0) {
       // Solve for U where RoR = 0.0001 (0.01%)
       // 0.0001 = ((1-A)/(1+A))^U
       // U = ln(0.0001) / ln((1-A)/(1+A))
       const targetRoR = 0.0001;
       const requiredUnits = Math.log(targetRoR) / Math.log((1 - tradingAdvantage) / (1 + tradingAdvantage));
-      // Mini contracts: full size avg loss
-      minBalanceForZeroRisk = requiredUnits * avgLoss;
-      // Micro contracts: 1/10th the size, so 1/10th the avg loss
-      minBalanceForZeroRiskMicro = requiredUnits * (avgLoss / 10);
+      
+      // Mathematical RoR-based minimum
+      const rorBasedMinMini = requiredUnits * avgLoss;
+      const rorBasedMinMicro = requiredUnits * (avgLoss / 10);
+      
+      // Drawdown-based minimum (max drawdown + margin requirement)
+      const ddBasedMinMini = maxDrawdownDollars + marginMini;
+      const ddBasedMinMicro = (maxDrawdownDollars / 10) + marginMicro;
+      
+      // Take the MAX of both to ensure true 0% risk of ruin
+      minBalanceForZeroRisk = Math.max(rorBasedMinMini, ddBasedMinMini);
+      minBalanceForZeroRiskMicro = Math.max(rorBasedMinMicro, ddBasedMinMicro);
+    } else {
+      // If no positive edge, minimum is just max drawdown + margin
+      minBalanceForZeroRisk = maxDrawdownDollars + marginMini;
+      minBalanceForZeroRiskMicro = (maxDrawdownDollars / 10) + marginMicro;
     }
     
     riskOfRuinDetails = {

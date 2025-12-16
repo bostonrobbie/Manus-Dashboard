@@ -1581,3 +1581,5 @@
 
 ## Risk Analysis Enhancements (December 2025)
 - [x] Update Risk Analysis to show separate 0% risk of ruin calculations for micro and mini contracts
+
+- [x] Fix Risk of Ruin minimum balance to account for max drawdown (should be MAX of RoR formula OR max drawdown + margin)
