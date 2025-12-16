@@ -539,13 +539,19 @@ export const appRouter = router({
           };
         }
         
-        const minDate = allDates[0]!;
-        const maxDate = allDates[allDates.length - 1]!;
+        const globalMinDate = allDates[0]!;
+        const globalMaxDate = allDates[allDates.length - 1]!;
 
-        // Forward-fill all equity curves
-        const forwardFilledCurves = equityCurvesPerStrategy.map(curve =>
-          analytics.forwardFillEquityCurve(curve, minDate, maxDate)
-        );
+        // Forward-fill each equity curve from its OWN first trade date to the global max date
+        // This ensures strategies like BTC don't show data before they started trading
+        const forwardFilledCurves = equityCurvesPerStrategy.map(curve => {
+          if (curve.length === 0) {
+            return [];
+          }
+          // Use the strategy's own first date, not the global min date
+          const strategyMinDate = curve[0]!.date;
+          return analytics.forwardFillEquityCurve(curve, strategyMinDate, globalMaxDate);
+        });
 
         // Calculate combined equity curve by simulating actual combined trading
         // This merges all trades and calculates equity as if trading all strategies from one account
@@ -556,8 +562,8 @@ export const appRouter = router({
         );
         const combinedEquity = analytics.forwardFillEquityCurve(
           rawCombinedEquity,
-          minDate,
-          maxDate
+          globalMinDate,
+          globalMaxDate
         );
 
         // Calculate combined metrics from combined trades
@@ -741,6 +747,8 @@ export const appRouter = router({
               totalReturn: 0,
               maxDrawdown: 0,
               sharpeRatio: 0,
+              firstTradeDate: null,
+              lastTradeDate: null,
             };
           }
           
@@ -749,11 +757,20 @@ export const appRouter = router({
           // Convert percentage return to dollar amount for display
           const totalReturnDollars = (metrics.totalReturn / 100) * 100000;
           
+          // Get first and last trade dates for proper chart alignment
+          const sortedTrades = [...trades].sort((a, b) => 
+            new Date(a.entryDate).getTime() - new Date(b.entryDate).getTime()
+          );
+          const firstTradeDate = sortedTrades[0]?.entryDate ?? null;
+          const lastTradeDate = sortedTrades[sortedTrades.length - 1]?.exitDate ?? null;
+          
           return {
             ...strategy,
             totalReturn: totalReturnDollars,
             maxDrawdown: metrics.maxDrawdownDollars,
             sharpeRatio: metrics.sharpeRatio,
+            firstTradeDate,
+            lastTradeDate,
           };
         })
       );

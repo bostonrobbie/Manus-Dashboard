@@ -55,18 +55,16 @@ export default function Strategies() {
   // Prepare chart data with sampling for performance
   const sampleInterval = (comparisonData?.strategies[0]?.equityCurve?.length || 0) > 500 ? 3 : 1;
   
-  // Find the last valid equity index for each strategy (to avoid flat lines after last trade)
-  const strategyLastValidIndex: Record<string, number> = {};
-  comparisonData?.strategies.forEach((strat, stratIndex) => {
-    const stratKey = strat.symbol || `strategy${stratIndex}`;
-    // Find the last index with a valid equity value
-    for (let i = (strat.equityCurve?.length || 0) - 1; i >= 0; i--) {
-      const point = strat.equityCurve?.[i];
-      if (point && point.equity !== undefined && point.equity !== null && point.equity !== 100000) {
-        strategyLastValidIndex[stratKey] = i;
-        break;
-      }
-    }
+  // Build a map of strategy first/last trade dates from listStrategies data
+  const strategyDateRanges: Record<string, { firstTradeDate: Date | null; lastTradeDate: Date | null }> = {};
+  strategies?.forEach((strat) => {
+    const stratKey = strat.symbol || `strategy${strat.id}`;
+    const firstDate = strat.firstTradeDate ? new Date(strat.firstTradeDate) : null;
+    const lastDate = strat.lastTradeDate ? new Date(strat.lastTradeDate) : null;
+    strategyDateRanges[stratKey] = {
+      firstTradeDate: firstDate,
+      lastTradeDate: lastDate,
+    };
   });
   
   // Track last known equity for each strategy to handle missing data points
@@ -76,19 +74,27 @@ export default function Strategies() {
     ?.filter((_, index) => index % sampleInterval === 0)
     .map((_, index) => {
       const actualIndex = index * sampleInterval;
+      const basePoint = comparisonData.strategies[0]!.equityCurve[actualIndex]!;
+      const pointDate = new Date(basePoint.date);
       const point: any = {
-        date: new Date(comparisonData.strategies[0]!.equityCurve[actualIndex]!.date).toLocaleDateString(undefined, { month: 'short', year: '2-digit' }),
+        date: pointDate.toLocaleDateString(undefined, { month: 'short', year: '2-digit' }),
       };
       
       comparisonData.strategies.forEach((strat, stratIndex) => {
         const stratKey = strat.symbol || `strategy${stratIndex}`;
         const equityPoint = strat.equityCurve![actualIndex];
-        const lastValidIdx = strategyLastValidIndex[stratKey] ?? Infinity;
+        const dateRange = strategyDateRanges[stratKey];
         
-        // Don't plot after the strategy's last valid data point
-        if (actualIndex > lastValidIdx) {
-          point[stratKey] = undefined;
-          return;
+        // Don't plot before the strategy's first trade date or after the last trade date
+        if (dateRange) {
+          if (dateRange.firstTradeDate && pointDate < dateRange.firstTradeDate) {
+            point[stratKey] = undefined;
+            return;
+          }
+          if (dateRange.lastTradeDate && pointDate > dateRange.lastTradeDate) {
+            point[stratKey] = undefined;
+            return;
+          }
         }
         
         if (equityPoint && equityPoint.equity !== undefined && equityPoint.equity !== null) {

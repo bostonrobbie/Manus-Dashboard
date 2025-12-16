@@ -1542,3 +1542,18 @@
 - [x] Strategy should only plot data within its actual trading date range
 - [x] Return value on strategy cards shows "$103" instead of "$103K"
 - [x] Format Return value with K suffix to match Max DD format
+
+
+## BTC Date Alignment Issue (December 2025)
+- [ ] BTC Trend Following starts plotting from 2011 instead of its actual first trade date (late 2017)
+- [ ] Chart is using array indices instead of actual dates to align strategies
+- [ ] Need to align strategies by date so BTC only appears when it actually has trades
+- [ ] Verify BTC line starts around Dec 2017 when Bitcoin futures began trading
+
+
+## BTC Date Alignment Fix (December 2025)
+- [x] BTC Trend Following starts plotting from 2011 instead of late 2017
+- [x] Backend compareStrategies forward-fills all strategies from global min date
+- [x] Fixed to forward-fill each strategy from its own first trade date
+- [x] BTC now only shows data from December 2017 onwards
+- [x] Frontend uses firstTradeDate/lastTradeDate from backend to filter chart data
