@@ -1557,3 +1557,14 @@
 - [x] Fixed to forward-fill each strategy from its own first trade date
 - [x] BTC now only shows data from December 2017 onwards
 - [x] Frontend uses firstTradeDate/lastTradeDate from backend to filter chart data
+
+
+## Chart Fixes (December 2024)
+
+### Equity Curve Chart Fix
+- [x] Fix BTC flat horizontal line extending beyond last trade date
+- [x] Remove backend forward-fill from compareStrategies (return raw equity curves)
+- [x] Rewrite frontend chart data preparation to merge all dates from all strategies
+- [x] Each strategy only plots from first trade date to last trade date
+- [x] Verify BTC shows correctly from Dec 2017 to Dec 2025
+- [x] Verify all strategies show correctly in All Time view

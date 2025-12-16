@@ -52,9 +52,6 @@ export default function Strategies() {
     }
   );
   
-  // Prepare chart data with sampling for performance
-  const sampleInterval = (comparisonData?.strategies[0]?.equityCurve?.length || 0) > 500 ? 3 : 1;
-  
   // Build a map of strategy first/last trade dates from listStrategies data
   const strategyDateRanges: Record<string, { firstTradeDate: Date | null; lastTradeDate: Date | null }> = {};
   strategies?.forEach((strat) => {
@@ -67,22 +64,49 @@ export default function Strategies() {
     };
   });
   
-  // Track last known equity for each strategy to handle missing data points
-  const lastKnownEquity: Record<string, number> = {};
-  
-  const chartData = comparisonData?.strategies[0]?.equityCurve
-    ?.filter((_, index) => index % sampleInterval === 0)
-    .map((_, index) => {
-      const actualIndex = index * sampleInterval;
-      const basePoint = comparisonData.strategies[0]!.equityCurve[actualIndex]!;
-      const pointDate = new Date(basePoint.date);
+  // Build chart data by collecting all unique dates from all strategies
+  // and mapping each strategy's equity at each date
+  const chartData = (() => {
+    if (!comparisonData?.strategies?.length) return [];
+    
+    // Collect all unique dates from all strategies
+    const allDatesSet = new Set<number>();
+    comparisonData.strategies.forEach(strat => {
+      strat.equityCurve?.forEach(point => {
+        allDatesSet.add(new Date(point.date).getTime());
+      });
+    });
+    
+    // Sort dates
+    const allDates = Array.from(allDatesSet).sort((a, b) => a - b);
+    
+    // Sample if too many points
+    const sampleEvery = allDates.length > 500 ? Math.ceil(allDates.length / 500) : 1;
+    const sampledDates = allDates.filter((_, i) => i % sampleEvery === 0);
+    
+    // Build equity lookup maps for each strategy (date timestamp -> equity)
+    const equityMaps: Record<string, Map<number, number>> = {};
+    comparisonData.strategies.forEach((strat, stratIndex) => {
+      const stratKey = strat.symbol || `strategy${stratIndex}`;
+      const map = new Map<number, number>();
+      strat.equityCurve?.forEach(point => {
+        map.set(new Date(point.date).getTime(), point.equity);
+      });
+      equityMaps[stratKey] = map;
+    });
+    
+    // Track last known equity for forward-filling within valid range
+    const lastKnownEquity: Record<string, number> = {};
+    
+    return sampledDates.map(dateTs => {
+      const pointDate = new Date(dateTs);
       const point: any = {
         date: pointDate.toLocaleDateString(undefined, { month: 'short', year: '2-digit' }),
+        _dateTs: dateTs, // Keep for sorting/debugging
       };
       
       comparisonData.strategies.forEach((strat, stratIndex) => {
         const stratKey = strat.symbol || `strategy${stratIndex}`;
-        const equityPoint = strat.equityCurve![actualIndex];
         const dateRange = strategyDateRanges[stratKey];
         
         // Don't plot before the strategy's first trade date or after the last trade date
@@ -97,10 +121,13 @@ export default function Strategies() {
           }
         }
         
-        if (equityPoint && equityPoint.equity !== undefined && equityPoint.equity !== null) {
+        const equityMap = equityMaps[stratKey];
+        const equity = equityMap?.get(dateTs);
+        
+        if (equity !== undefined) {
           // Use actual equity value and update last known
-          lastKnownEquity[stratKey] = equityPoint.equity;
-          point[stratKey] = equityPoint.equity;
+          lastKnownEquity[stratKey] = equity;
+          point[stratKey] = equity;
         } else if (lastKnownEquity[stratKey] !== undefined) {
           // Use last known equity value (only within valid range)
           point[stratKey] = lastKnownEquity[stratKey];
@@ -111,7 +138,8 @@ export default function Strategies() {
       });
       
       return point;
-    }) || [];
+    });
+  })();
 
   const toggleStrategy = (symbol: string) => {
     setHiddenStrategies(prev => {
@@ -255,6 +283,7 @@ export default function Strategies() {
                         dot={false}
                         name={strat.name || strat.symbol || `Strategy ${index + 1}`}
                         hide={hiddenStrategies.has(strat.symbol || `strategy${index}`)}
+                        connectNulls={false}
                       />
                     ))}
                 </LineChart>

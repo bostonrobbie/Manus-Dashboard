@@ -542,16 +542,10 @@ export const appRouter = router({
         const globalMinDate = allDates[0]!;
         const globalMaxDate = allDates[allDates.length - 1]!;
 
-        // Forward-fill each equity curve from its OWN first trade date to the global max date
-        // This ensures strategies like BTC don't show data before they started trading
-        const forwardFilledCurves = equityCurvesPerStrategy.map(curve => {
-          if (curve.length === 0) {
-            return [];
-          }
-          // Use the strategy's own first date, not the global min date
-          const strategyMinDate = curve[0]!.date;
-          return analytics.forwardFillEquityCurve(curve, strategyMinDate, globalMaxDate);
-        });
+        // Return raw equity curves without forward-filling
+        // This ensures each strategy only shows actual equity changes at trade dates
+        // No flat horizontal lines between trades
+        const forwardFilledCurves = equityCurvesPerStrategy;
 
         // Calculate combined equity curve by simulating actual combined trading
         // This merges all trades and calculates equity as if trading all strategies from one account
