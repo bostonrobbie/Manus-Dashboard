@@ -1,7 +1,7 @@
-import { eq, and, gte, lte, inArray } from "drizzle-orm";
+import { eq, and, gte, lte, inArray, desc } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import mysql from 'mysql2/promise';
-import { InsertUser, users, strategies, trades, benchmarks } from "../drizzle/schema";
+import { InsertUser, users, strategies, trades, benchmarks, webhookLogs, InsertWebhookLog } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -193,4 +193,101 @@ export async function insertTrade(trade: {
 
   const result = await db.insert(trades).values(trade);
   return result;
+}
+
+
+/**
+ * Get strategy by symbol (for webhook processing)
+ */
+export async function getStrategyBySymbol(symbol: string) {
+  const db = await getDb();
+  if (!db) return null;
+  
+  const result = await db.select().from(strategies).where(eq(strategies.symbol, symbol)).limit(1);
+  return result.length > 0 ? result[0] : null;
+}
+
+/**
+ * Insert a webhook log entry
+ */
+export async function insertWebhookLog(log: InsertWebhookLog) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  const result = await db.insert(webhookLogs).values(log);
+  return result;
+}
+
+/**
+ * Update a webhook log entry
+ */
+export async function updateWebhookLog(id: number, updates: Partial<InsertWebhookLog>) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  await db.update(webhookLogs).set(updates).where(eq(webhookLogs.id, id));
+}
+
+/**
+ * Get recent webhook logs for display
+ */
+export async function getWebhookLogs(limit: number = 100) {
+  const db = await getDb();
+  if (!db) return [];
+
+  return await db.select().from(webhookLogs).orderBy(desc(webhookLogs.createdAt)).limit(limit);
+}
+
+/**
+ * Check if a trade already exists (for duplicate detection)
+ */
+export async function checkDuplicateTrade(params: {
+  strategyId: number;
+  entryDate: Date;
+  exitDate: Date;
+  direction: string;
+}) {
+  const db = await getDb();
+  if (!db) return false;
+
+  // Check for trades with same strategy, entry date, exit date, and direction
+  // Allow 1 minute tolerance for timestamp matching
+  const entryStart = new Date(params.entryDate.getTime() - 60000);
+  const entryEnd = new Date(params.entryDate.getTime() + 60000);
+  const exitStart = new Date(params.exitDate.getTime() - 60000);
+  const exitEnd = new Date(params.exitDate.getTime() + 60000);
+
+  const result = await db.select().from(trades).where(
+    and(
+      eq(trades.strategyId, params.strategyId),
+      eq(trades.direction, params.direction),
+      gte(trades.entryDate, entryStart),
+      lte(trades.entryDate, entryEnd),
+      gte(trades.exitDate, exitStart),
+      lte(trades.exitDate, exitEnd)
+    )
+  ).limit(1);
+
+  return result.length > 0;
+}
+
+/**
+ * Get the inserted trade ID (for linking webhook log to trade)
+ */
+export async function getLastInsertedTradeId(strategyId: number) {
+  const db = await getDb();
+  if (!db) return null;
+
+  // Get the most recent trade for this strategy
+  const result = await db.select({ id: trades.id })
+    .from(trades)
+    .where(eq(trades.strategyId, strategyId))
+    .orderBy(desc(trades.id))
+    .limit(1);
+
+  return result.length > 0 ? result[0].id : null;
 }

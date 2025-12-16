@@ -1576,10 +1576,26 @@
 
 - [x] Change underwater equity curve portfolio color from red to blue to match main equity curve
 
-- [ ] Update Risk Analysis to show separate 0% risk of ruin calculations for micro and mini contracts
+- [x] Update Risk Analysis to show separate 0% risk of ruin calculations for micro and mini contracts
 
 
 ## Risk Analysis Enhancements (December 2025)
 - [x] Update Risk Analysis to show separate 0% risk of ruin calculations for micro and mini contracts
-
 - [x] Fix Risk of Ruin minimum balance to account for max drawdown (should be MAX of RoR formula OR max drawdown + margin)
+
+
+## TradingView Webhooks Integration (December 2025)
+- [x] Design webhook system architecture and database schema
+- [x] Create webhook_logs table in database
+- [x] Create webhook endpoint with validation and error handling
+- [x] Build webhook processing service with trade creation
+- [x] Implement duplicate trade detection
+- [x] Add webhook logs table and data pipeline
+- [x] Create TradingView Webhooks page UI
+- [x] Add Webhooks navigation item to sidebar
+- [x] Display webhook URL for TradingView configuration
+- [x] Display JSON message template for each strategy
+- [x] Add setup guide with step-by-step instructions
+- [x] Create webhook activity log table with status, P&L, processing time
+- [x] Write comprehensive tests for webhook system
+- [ ] Test end-to-end with real TradingView alerts

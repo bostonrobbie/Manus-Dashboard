@@ -8,6 +8,7 @@ import Overview from "./pages/Overview";
 import StrategyDetail from "./pages/StrategyDetail";
 import StrategyComparison from "./pages/StrategyComparison";
 import Strategies from "./pages/Strategies";
+import Webhooks from "./pages/Webhooks";
 import NotFound from "./pages/NotFound";
 
 function Router() {
@@ -40,6 +41,12 @@ function Router() {
       <Route path="/compare" component={() => (
         <DashboardLayout>
           <StrategyComparison />
+        </DashboardLayout>
+      )} />
+      
+      <Route path="/webhooks" component={() => (
+        <DashboardLayout>
+          <Webhooks />
         </DashboardLayout>
       )} />
       

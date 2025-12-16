@@ -78,3 +78,34 @@ export const benchmarks = mysqlTable("benchmarks", {
 
 export type Benchmark = typeof benchmarks.$inferSelect;
 export type InsertBenchmark = typeof benchmarks.$inferInsert;
+
+
+/**
+ * Webhook logs table
+ * Stores all incoming TradingView webhook notifications for auditing and debugging
+ */
+export const webhookLogs = mysqlTable("webhook_logs", {
+  id: int("id").autoincrement().primaryKey(),
+  // Raw payload for debugging
+  payload: text("payload").notNull(), // JSON string of the raw webhook payload
+  // Processing status
+  status: mysqlEnum("status", ["pending", "processing", "success", "failed", "duplicate"]).default("pending").notNull(),
+  // Parsed fields (for quick querying)
+  strategyId: int("strategyId"), // Linked strategy (if found)
+  strategySymbol: varchar("strategySymbol", { length: 20 }), // Strategy symbol from payload
+  tradeId: int("tradeId"), // Created trade ID (if successful)
+  direction: varchar("direction", { length: 10 }), // "Long" or "Short"
+  entryPrice: int("entryPrice"), // Entry price in cents
+  exitPrice: int("exitPrice"), // Exit price in cents
+  pnl: int("pnl"), // P&L in cents
+  entryTime: datetime("entryTime"), // Parsed entry timestamp
+  exitTime: datetime("exitTime"), // Parsed exit timestamp
+  // Metadata
+  ipAddress: varchar("ipAddress", { length: 45 }), // Source IP for security auditing
+  processingTimeMs: int("processingTimeMs"), // How long processing took
+  errorMessage: text("errorMessage"), // Error details if failed
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type WebhookLog = typeof webhookLogs.$inferSelect;
+export type InsertWebhookLog = typeof webhookLogs.$inferInsert;

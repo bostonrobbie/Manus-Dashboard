@@ -784,6 +784,35 @@ export const appRouter = router({
       return strategiesWithMetrics;
     }),
   }),
+
+  // Webhook router for TradingView integration
+  webhook: router({
+    /**
+     * Get webhook configuration (URL and templates)
+     */
+    getConfig: protectedProcedure.query(({ ctx }) => {
+      // Get the base URL from the request
+      const protocol = ctx.req.headers['x-forwarded-proto'] || 'https';
+      const host = ctx.req.headers['x-forwarded-host'] || ctx.req.headers.host || 'localhost:3000';
+      const baseUrl = `${protocol}://${host}`;
+      
+      return {
+        webhookUrl: `${baseUrl}/api/webhook/tradingview`,
+      };
+    }),
+
+    /**
+     * Get recent webhook logs
+     */
+    getLogs: protectedProcedure
+      .input(z.object({
+        limit: z.number().optional().default(50),
+      }))
+      .query(async ({ input }) => {
+        const logs = await db.getWebhookLogs(input.limit);
+        return logs;
+      }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;
