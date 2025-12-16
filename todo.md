@@ -1568,3 +1568,6 @@
 - [x] Each strategy only plots from first trade date to last trade date
 - [x] Verify BTC shows correctly from Dec 2017 to Dec 2025
 - [x] Verify all strategies show correctly in All Time view
+
+- [x] Fix Strategies overview page to show same detailed equity curves as individual strategy pages
+- [x] Ensure BTC equity curve on Strategies page matches the individual BTC strategy page

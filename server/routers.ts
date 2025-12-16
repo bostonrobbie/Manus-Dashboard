@@ -542,10 +542,22 @@ export const appRouter = router({
         const globalMinDate = allDates[0]!;
         const globalMaxDate = allDates[allDates.length - 1]!;
 
-        // Return raw equity curves without forward-filling
-        // This ensures each strategy only shows actual equity changes at trade dates
-        // No flat horizontal lines between trades
-        const forwardFilledCurves = equityCurvesPerStrategy;
+        // Forward-fill each strategy's equity curve from its first trade to its last trade
+        // This creates smooth daily curves like the individual strategy pages
+        const forwardFilledCurves = equityCurvesPerStrategy.map((curve, i) => {
+          if (curve.length === 0) return [];
+          
+          // Get this strategy's date range (first trade to last trade)
+          const strategyMinDate = curve[0]!.date;
+          const strategyMaxDate = curve[curve.length - 1]!.date;
+          
+          // Forward-fill within this strategy's own date range
+          return analytics.forwardFillEquityCurve(
+            curve,
+            strategyMinDate,
+            strategyMaxDate
+          );
+        });
 
         // Calculate combined equity curve by simulating actual combined trading
         // This merges all trades and calculates equity as if trading all strategies from one account
