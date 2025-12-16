@@ -1528,3 +1528,17 @@
 - [x] Benchmark now extends to current date (December 2025) on all charts
 - [x] Both Equity Curve and Underwater Equity Curve now show S&P 500 to end date
 - [x] Verified fix on ES Trend Following strategy (All Time view)
+
+
+## BTC Flat Line & Return Formatting Issues (December 2025)
+- [ ] BTC Trend Following shows flat horizontal line after its last trade on Strategies page chart
+- [ ] BTC equity curve should only show data from when BTC actually has trades (not forward-filled from start)
+- [ ] Return value on strategy cards shows "$103" instead of "$103K" - needs K suffix formatting
+- [ ] Ensure all strategies only plot equity curves from their actual first trade date
+
+
+## BTC Flat Line & Return Formatting Issues (December 2025)
+- [x] BTC Trend Following shows flat horizontal line after last trade on Strategies page chart
+- [x] Strategy should only plot data within its actual trading date range
+- [x] Return value on strategy cards shows "$103" instead of "$103K"
+- [x] Format Return value with K suffix to match Max DD format

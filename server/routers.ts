@@ -746,9 +746,12 @@ export const appRouter = router({
           
           const metrics = analytics.calculatePerformanceMetrics(trades, 100000);
           
+          // Convert percentage return to dollar amount for display
+          const totalReturnDollars = (metrics.totalReturn / 100) * 100000;
+          
           return {
             ...strategy,
-            totalReturn: metrics.totalReturn,
+            totalReturn: totalReturnDollars,
             maxDrawdown: metrics.maxDrawdownDollars,
             sharpeRatio: metrics.sharpeRatio,
           };

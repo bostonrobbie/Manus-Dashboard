@@ -55,6 +55,20 @@ export default function Strategies() {
   // Prepare chart data with sampling for performance
   const sampleInterval = (comparisonData?.strategies[0]?.equityCurve?.length || 0) > 500 ? 3 : 1;
   
+  // Find the last valid equity index for each strategy (to avoid flat lines after last trade)
+  const strategyLastValidIndex: Record<string, number> = {};
+  comparisonData?.strategies.forEach((strat, stratIndex) => {
+    const stratKey = strat.symbol || `strategy${stratIndex}`;
+    // Find the last index with a valid equity value
+    for (let i = (strat.equityCurve?.length || 0) - 1; i >= 0; i--) {
+      const point = strat.equityCurve?.[i];
+      if (point && point.equity !== undefined && point.equity !== null && point.equity !== 100000) {
+        strategyLastValidIndex[stratKey] = i;
+        break;
+      }
+    }
+  });
+  
   // Track last known equity for each strategy to handle missing data points
   const lastKnownEquity: Record<string, number> = {};
   
@@ -69,13 +83,20 @@ export default function Strategies() {
       comparisonData.strategies.forEach((strat, stratIndex) => {
         const stratKey = strat.symbol || `strategy${stratIndex}`;
         const equityPoint = strat.equityCurve![actualIndex];
+        const lastValidIdx = strategyLastValidIndex[stratKey] ?? Infinity;
+        
+        // Don't plot after the strategy's last valid data point
+        if (actualIndex > lastValidIdx) {
+          point[stratKey] = undefined;
+          return;
+        }
         
         if (equityPoint && equityPoint.equity !== undefined && equityPoint.equity !== null) {
           // Use actual equity value and update last known
           lastKnownEquity[stratKey] = equityPoint.equity;
           point[stratKey] = equityPoint.equity;
         } else if (lastKnownEquity[stratKey] !== undefined) {
-          // Use last known equity value instead of 0
+          // Use last known equity value (only within valid range)
           point[stratKey] = lastKnownEquity[stratKey];
         } else {
           // No data yet, use undefined to not plot
