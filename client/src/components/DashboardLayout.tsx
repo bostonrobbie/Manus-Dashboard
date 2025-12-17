@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/sidebar";
 import { getLoginUrl } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
-import { LayoutDashboard, LogOut, PanelLeft, TrendingUp, GitCompare, Webhook, Shield } from "lucide-react";
+import { LayoutDashboard, LogOut, PanelLeft, TrendingUp, GitCompare, Webhook, Shield, User } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
@@ -31,6 +31,7 @@ const baseMenuItems = [
   { icon: LayoutDashboard, label: "Overview", path: "/overview", adminOnly: false },
   { icon: TrendingUp, label: "Strategies", path: "/strategies", adminOnly: false },
   { icon: GitCompare, label: "Compare", path: "/compare", adminOnly: false },
+  { icon: User, label: "My Dashboard", path: "/my-dashboard", adminOnly: false },
   { icon: Webhook, label: "Webhooks", path: "/webhooks", adminOnly: true },
 ];
 

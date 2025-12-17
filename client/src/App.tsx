@@ -9,6 +9,7 @@ import StrategyDetail from "./pages/StrategyDetail";
 import StrategyComparison from "./pages/StrategyComparison";
 import Strategies from "./pages/Strategies";
 import Webhooks from "./pages/Webhooks";
+import UserDashboard from "./pages/UserDashboard";
 import NotFound from "./pages/NotFound";
 
 function Router() {
@@ -47,6 +48,12 @@ function Router() {
       <Route path="/webhooks" component={() => (
         <DashboardLayout>
           <Webhooks />
+        </DashboardLayout>
+      )} />
+      
+      <Route path="/my-dashboard" component={() => (
+        <DashboardLayout>
+          <UserDashboard />
         </DashboardLayout>
       )} />
       

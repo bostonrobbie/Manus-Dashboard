@@ -7,6 +7,7 @@ import * as db from "./db";
 import * as analytics from "./analytics";
 import * as breakdown from "./breakdown";
 import * as brokerService from "./brokerService";
+import * as subscriptionService from "./subscriptionService";
 
 // Time range enum for filtering  
 type TimeRangeType = '6M' | 'YTD' | '1Y' | '3Y' | '5Y' | '10Y' | 'ALL';
@@ -1280,6 +1281,102 @@ Please check the Webhooks page in your dashboard for more details.
           features: ['stocks', 'options'],
         },
       ];
+    }),
+  }),
+
+  // User subscription router for strategy subscriptions
+  subscription: router({
+    /**
+     * Get all subscriptions for the current user
+     */
+    list: protectedProcedure.query(async ({ ctx }) => {
+      return subscriptionService.getUserSubscriptions(ctx.user.id);
+    }),
+
+    /**
+     * Subscribe to a strategy
+     */
+    subscribe: protectedProcedure
+      .input(z.object({
+        strategyId: z.number(),
+        notificationsEnabled: z.boolean().optional().default(true),
+        autoExecuteEnabled: z.boolean().optional().default(false),
+        quantityMultiplier: z.number().optional().default(1),
+        maxPositionSize: z.number().nullable().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        return subscriptionService.subscribeToStrategy(ctx.user.id, input.strategyId, {
+          notificationsEnabled: input.notificationsEnabled,
+          autoExecuteEnabled: input.autoExecuteEnabled,
+          quantityMultiplier: input.quantityMultiplier,
+          maxPositionSize: input.maxPositionSize ?? null,
+        });
+      }),
+
+    /**
+     * Unsubscribe from a strategy
+     */
+    unsubscribe: protectedProcedure
+      .input(z.object({
+        strategyId: z.number(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        return subscriptionService.unsubscribeFromStrategy(ctx.user.id, input.strategyId);
+      }),
+
+    /**
+     * Update subscription settings
+     */
+    updateSettings: protectedProcedure
+      .input(z.object({
+        strategyId: z.number(),
+        notificationsEnabled: z.boolean().optional(),
+        autoExecuteEnabled: z.boolean().optional(),
+        quantityMultiplier: z.number().optional(),
+        maxPositionSize: z.number().nullable().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const { strategyId, ...settings } = input;
+        return subscriptionService.updateSubscriptionSettings(ctx.user.id, strategyId, settings);
+      }),
+
+    /**
+     * Get user's pending signals
+     */
+    pendingSignals: protectedProcedure.query(async ({ ctx }) => {
+      return subscriptionService.getUserPendingSignals(ctx.user.id);
+    }),
+
+    /**
+     * Mark a signal as executed or skipped
+     */
+    updateSignal: protectedProcedure
+      .input(z.object({
+        signalId: z.number(),
+        action: z.enum(['executed', 'skipped']),
+        executionLogId: z.number().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        return subscriptionService.updateSignalAction(
+          input.signalId,
+          ctx.user.id,
+          input.action,
+          input.executionLogId
+        );
+      }),
+
+    /**
+     * Get subscription statistics
+     */
+    stats: protectedProcedure.query(async ({ ctx }) => {
+      return subscriptionService.getUserSubscriptionStats(ctx.user.id);
+    }),
+
+    /**
+     * Get all available strategies for subscription
+     */
+    availableStrategies: protectedProcedure.query(async () => {
+      return db.getAllStrategies();
     }),
   }),
 });

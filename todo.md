@@ -1931,3 +1931,236 @@
 - [x] Make copy-paste ready templates (no manual editing needed)
 - [x] Add quantity multiplier tests (10 tests passing)
 
+
+
+## Multi-User Trading Platform Build
+
+### Phase 1: Database Schema ✅ COMPLETE
+- [x] User subscriptions table (user_id, strategy_id, subscribed_at, notifications_enabled)
+- [x] User broker connections table (encrypted credentials, OAuth tokens) - already existed
+- [x] Execution orders table (order tracking, status, timestamps) - already existed
+- [x] Execution logs table (detailed audit trail) - already existed
+- [x] Payment/subscription tables (Stripe-ready) - subscription_tiers, user_payment_subscriptions, payment_history
+- [x] Audit logs table (all user actions)
+- [x] Webhook queue table (for reliable processing)
+- [x] Dead letter queue table (for failed webhooks)
+- [x] User signals table (track signals per user)
+
+### Phase 2: Webhook Reliability ✅ COMPLETE
+- [x] Webhook processing queue (in-memory for now, Redis-ready)
+- [x] Retry logic with exponential backoff (5 attempts, 1s-5min delays)
+- [x] Dead letter queue for failed webhooks
+- [x] Webhook replay functionality
+- [x] Processing status tracking
+- [x] Queue metrics and monitoring
+- [x] Audit logging for all queue operations
+
+### Phase 3: User Subscription System
+- [ ] Strategy subscription API endpoints
+- [ ] Subscribe/unsubscribe mutations
+- [ ] Notification preferences per strategy
+- [ ] Subscription management UI
+
+### Phase 4: User Dashboard
+- [ ] Personalized dashboard showing subscribed strategies only
+- [ ] User-specific performance metrics
+- [ ] Signal history for subscribed strategies
+- [ ] Quick actions (subscribe, connect broker)
+
+### Phase 5: Broker OAuth Framework
+- [ ] Tradovate OAuth integration
+- [ ] Secure token storage (encrypted)
+- [ ] Token refresh mechanism
+- [ ] Connection status monitoring
+- [ ] Research IBKR and Fidelity auth methods
+
+### Phase 6: Execution Pipeline
+- [ ] Order creation from webhook signal
+- [ ] Pre-execution validation (position limits, risk checks)
+- [ ] Execution status tracking
+- [ ] Latency monitoring
+- [ ] Fail-safe mechanisms (circuit breaker, timeout)
+- [ ] Execution confirmation logging
+
+### Phase 7: Payment Infrastructure
+- [ ] Subscription tiers table
+- [ ] Payment history table
+- [ ] Stripe webhook handlers (ready but not active)
+- [ ] Subscription status checks
+- [ ] Grace period handling
+
+### Phase 8: Monitoring & Alerting
+- [ ] System health dashboard
+- [ ] Webhook processing metrics
+- [ ] Execution latency tracking
+- [ ] Error rate monitoring
+- [ ] Owner notification for critical issues
+- [ ] User notification for their executions
+
+### Phase 9: Test Suite
+- [ ] Database schema tests
+- [ ] Subscription system tests
+- [ ] Webhook queue tests
+- [ ] Execution pipeline tests
+- [ ] OAuth flow tests
+- [ ] Security tests
+- [ ] Load/stress tests
+
+### Phase 10: Security Hardening
+- [ ] Credential encryption at rest
+- [ ] Audit log for all sensitive actions
+- [ ] Rate limiting per user
+- [ ] Input validation everywhere
+- [ ] CORS and CSP headers
+- [ ] Dependency vulnerability scan
+
+
+
+## Multi-User Trading Platform Build
+
+### Phase 1: Database Schema
+- [x] User subscriptions table
+- [x] User broker connections table
+- [x] Execution orders table
+- [x] Execution logs table
+- [x] Payment/subscription tables (Stripe-ready)
+- [x] Audit logs table
+- [x] Webhook queue table
+- [x] Dead letter queue table
+- [x] User signals table
+
+### Phase 2: Webhook Reliability
+- [x] Webhook processing queue (in-memory, Redis-ready)
+- [x] Retry logic with exponential backoff
+- [x] Dead letter queue for failed webhooks
+- [x] Webhook replay functionality
+- [x] Processing status tracking
+
+### Phase 3: User Subscription System
+- [x] Subscription service with CRUD operations
+- [x] Strategy subscription management
+- [x] Notification preferences
+- [x] Quantity multiplier per subscription
+- [x] Max position size limits
+
+### Phase 4: User Dashboard
+- [x] Personalized dashboard page
+- [x] Strategy subscription management UI
+- [x] Pending signals view with execute/skip
+- [x] Subscription settings dialog
+- [x] Discover strategies tab
+
+### Phase 5: Broker OAuth Framework
+- [ ] Tradovate OAuth integration
+- [ ] IBKR connection framework
+- [ ] Fidelity connection placeholder
+- [ ] Secure credential storage
+
+### Phase 6: Execution Pipeline
+- [ ] Signal routing to subscribed users
+- [ ] Order creation and tracking
+- [ ] Execution logging and audit trail
+- [ ] Fail-safes and circuit breakers
+
+### Phase 7: Payment Infrastructure
+- [ ] Stripe integration setup
+- [ ] Subscription tier management
+- [ ] Payment history tracking
+- [ ] PCI compliance measures
+
+### Phase 8: Monitoring & Alerting
+- [ ] Webhook health monitoring
+- [ ] Execution pipeline monitoring
+- [ ] Owner notifications for failures
+- [ ] User activity tracking
+
+### Phase 9: Testing Suite
+- [ ] Unit tests for all services
+- [ ] Integration tests for pipelines
+- [ ] E2E tests for user flows
+- [ ] Security penetration tests
+
+### Phase 10: Security Hardening
+- [ ] Audit logging for all actions
+- [ ] Encryption for sensitive data
+- [ ] Rate limiting per user
+- [ ] Session management
+
+
+## Multi-User Trading Platform - Enterprise Build ✅ IN PROGRESS
+
+### Phase 1: Database Schema ✅ COMPLETE
+- [x] User subscriptions table (user_id, strategy_id, subscribed_at, notifications_enabled)
+- [x] User broker connections table (encrypted credentials, OAuth tokens)
+- [x] Execution orders table (order tracking, status, timestamps)
+- [x] Execution logs table (detailed audit trail)
+- [x] Payment/subscription tables (Stripe-ready) - subscription_tiers, user_payment_subscriptions, payment_history
+- [x] Audit logs table (all user actions)
+- [x] Webhook queue table (for reliable processing)
+- [x] Dead letter queue table (for failed webhooks)
+- [x] User signals table (track signals per user)
+
+### Phase 2: Webhook Reliability ✅ COMPLETE
+- [x] Webhook processing queue (in-memory for now, Redis-ready)
+- [x] Retry logic with exponential backoff (5 attempts, 1s-5min delays)
+- [x] Dead letter queue for failed webhooks
+- [x] Webhook replay functionality
+- [x] Processing status tracking
+- [x] Queue metrics and monitoring
+- [x] Audit logging for all queue operations
+
+### Phase 3: User Subscription System ✅ COMPLETE
+- [x] Subscription service with CRUD operations
+- [x] Strategy subscription management
+- [x] Notification preferences per subscription
+- [x] Quantity multiplier per subscription
+- [x] Max position size limits
+- [x] tRPC procedures for subscription management
+
+### Phase 4: User Dashboard ✅ COMPLETE
+- [x] Personalized dashboard page for each user
+- [x] Strategy subscription management UI
+- [x] Pending signals view with execute/skip actions
+- [x] Subscription settings (notifications, multiplier, max position)
+- [x] Signal history and statistics
+- [x] Discover strategies tab for new subscriptions
+
+### Phase 5: Broker OAuth Framework ✅ COMPLETE
+- [x] Tradovate service framework with OAuth flow
+- [x] IBKR service placeholder
+- [x] Fidelity service placeholder
+- [x] Broker connection management UI
+
+### Phase 6: Execution Pipeline ✅ COMPLETE
+- [x] Low-latency order creation
+- [x] Circuit breaker pattern (5 failures = open, 30s cooldown)
+- [x] Fail-safes (max orders, rate limits)
+- [x] Execution monitoring and metrics (latency, success rate)
+- [x] Audit trail for all executions
+- [x] Signal distribution to subscribed users
+- [x] Quantity multiplier and max position size support
+
+### Phase 7: Payment Infrastructure (Stripe-Ready)
+- [x] Subscription tiers table created
+- [x] User payment subscriptions table created
+- [x] Payment history table created
+- [ ] Stripe integration (when ready to activate)
+
+### Phase 8: Monitoring & Alerting
+- [x] Execution pipeline metrics
+- [x] Circuit breaker status monitoring
+- [x] Audit logging for all sensitive actions
+- [ ] Owner notifications for high failure rates (backlog)
+
+### Phase 9: Comprehensive Testing
+- [ ] Write tests for subscription service
+- [ ] Write tests for execution pipeline
+- [ ] Write tests for webhook queue
+- [ ] Integration tests for full signal flow
+
+### Phase 10: Security Hardening
+- [x] Admin-only access for webhooks page
+- [x] Role-based access control
+- [x] Audit logging
+- [ ] Token rotation support (backlog)
+- [ ] IP allowlisting (backlog)

@@ -205,3 +205,222 @@ export const executionLogs = mysqlTable("execution_logs", {
 
 export type ExecutionLog = typeof executionLogs.$inferSelect;
 export type InsertExecutionLog = typeof executionLogs.$inferInsert;
+
+
+/**
+ * User strategy subscriptions table
+ * Tracks which strategies each user has subscribed to
+ */
+export const userSubscriptions = mysqlTable("user_subscriptions", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  strategyId: int("strategyId").notNull(),
+  // Subscription settings
+  notificationsEnabled: boolean("notificationsEnabled").default(true).notNull(),
+  autoExecuteEnabled: boolean("autoExecuteEnabled").default(false).notNull(),
+  // User's custom settings for this strategy
+  quantityMultiplier: decimal("quantityMultiplier", { precision: 10, scale: 4 }).default("1.0000"),
+  maxPositionSize: int("maxPositionSize"), // User's max contracts for this strategy
+  // Metadata
+  subscribedAt: timestamp("subscribedAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type UserSubscription = typeof userSubscriptions.$inferSelect;
+export type InsertUserSubscription = typeof userSubscriptions.$inferInsert;
+
+/**
+ * Subscription tiers table
+ * Defines available subscription plans (Stripe-ready)
+ */
+export const subscriptionTiers = mysqlTable("subscription_tiers", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 50 }).notNull(), // e.g., "Basic", "Pro", "Enterprise"
+  description: text("description"),
+  // Pricing (in cents)
+  priceMonthly: int("priceMonthly").notNull(), // Monthly price in cents
+  priceYearly: int("priceYearly"), // Yearly price in cents (optional discount)
+  // Features/limits
+  maxStrategies: int("maxStrategies"), // Max strategies user can subscribe to (null = unlimited)
+  maxBrokerConnections: int("maxBrokerConnections"), // Max broker accounts
+  autoExecuteAllowed: boolean("autoExecuteAllowed").default(false).notNull(),
+  prioritySupport: boolean("prioritySupport").default(false).notNull(),
+  // Stripe integration (ready but not active)
+  stripeProductId: varchar("stripeProductId", { length: 100 }),
+  stripePriceIdMonthly: varchar("stripePriceIdMonthly", { length: 100 }),
+  stripePriceIdYearly: varchar("stripePriceIdYearly", { length: 100 }),
+  // Status
+  active: boolean("active").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type SubscriptionTier = typeof subscriptionTiers.$inferSelect;
+export type InsertSubscriptionTier = typeof subscriptionTiers.$inferInsert;
+
+/**
+ * User payment subscriptions table
+ * Tracks user's active subscription (Stripe-ready)
+ */
+export const userPaymentSubscriptions = mysqlTable("user_payment_subscriptions", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull().unique(), // One active subscription per user
+  tierId: int("tierId").notNull(),
+  // Subscription status
+  status: mysqlEnum("status", ["active", "past_due", "cancelled", "paused", "trialing"]).default("active").notNull(),
+  // Billing cycle
+  billingCycle: mysqlEnum("billingCycle", ["monthly", "yearly"]).default("monthly").notNull(),
+  currentPeriodStart: datetime("currentPeriodStart"),
+  currentPeriodEnd: datetime("currentPeriodEnd"),
+  // Trial info
+  trialStart: datetime("trialStart"),
+  trialEnd: datetime("trialEnd"),
+  // Stripe integration (ready but not active)
+  stripeCustomerId: varchar("stripeCustomerId", { length: 100 }),
+  stripeSubscriptionId: varchar("stripeSubscriptionId", { length: 100 }),
+  // Cancellation
+  cancelAtPeriodEnd: boolean("cancelAtPeriodEnd").default(false).notNull(),
+  cancelledAt: datetime("cancelledAt"),
+  // Metadata
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type UserPaymentSubscription = typeof userPaymentSubscriptions.$inferSelect;
+export type InsertUserPaymentSubscription = typeof userPaymentSubscriptions.$inferInsert;
+
+/**
+ * Payment history table
+ * Records all payment transactions (Stripe-ready)
+ */
+export const paymentHistory = mysqlTable("payment_history", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  subscriptionId: int("subscriptionId"),
+  // Payment details
+  amount: int("amount").notNull(), // Amount in cents
+  currency: varchar("currency", { length: 3 }).default("USD").notNull(),
+  status: mysqlEnum("status", ["pending", "succeeded", "failed", "refunded"]).default("pending").notNull(),
+  // Stripe integration
+  stripePaymentIntentId: varchar("stripePaymentIntentId", { length: 100 }),
+  stripeInvoiceId: varchar("stripeInvoiceId", { length: 100 }),
+  // Receipt info
+  receiptUrl: text("receiptUrl"),
+  description: text("description"),
+  // Metadata
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type PaymentHistoryRecord = typeof paymentHistory.$inferSelect;
+export type InsertPaymentHistory = typeof paymentHistory.$inferInsert;
+
+/**
+ * Audit logs table
+ * Records all sensitive actions for compliance and debugging
+ */
+export const auditLogs = mysqlTable("audit_logs", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId"), // User who performed action (null for system actions)
+  // Action details
+  action: varchar("action", { length: 100 }).notNull(), // e.g., "broker.connect", "subscription.create", "trade.execute"
+  resourceType: varchar("resourceType", { length: 50 }), // e.g., "broker_connection", "user_subscription"
+  resourceId: int("resourceId"), // ID of affected resource
+  // Context
+  ipAddress: varchar("ipAddress", { length: 45 }),
+  userAgent: text("userAgent"),
+  // Change tracking
+  previousValue: text("previousValue"), // JSON of previous state
+  newValue: text("newValue"), // JSON of new state
+  // Result
+  status: mysqlEnum("status", ["success", "failure"]).default("success").notNull(),
+  errorMessage: text("errorMessage"),
+  // Metadata
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type AuditLog = typeof auditLogs.$inferSelect;
+export type InsertAuditLog = typeof auditLogs.$inferInsert;
+
+/**
+ * Webhook queue table
+ * Stores webhooks for reliable processing with retry support
+ */
+export const webhookQueue = mysqlTable("webhook_queue", {
+  id: int("id").autoincrement().primaryKey(),
+  // Webhook data
+  payload: text("payload").notNull(),
+  ipAddress: varchar("ipAddress", { length: 45 }),
+  // Processing status
+  status: mysqlEnum("status", ["pending", "processing", "completed", "failed", "dead"]).default("pending").notNull(),
+  // Retry tracking
+  attempts: int("attempts").default(0).notNull(),
+  maxAttempts: int("maxAttempts").default(5).notNull(),
+  nextRetryAt: datetime("nextRetryAt"),
+  lastError: text("lastError"),
+  // Linked records
+  webhookLogId: int("webhookLogId"), // Created webhook log ID after processing
+  // Timing
+  receivedAt: timestamp("receivedAt").defaultNow().notNull(),
+  startedAt: datetime("startedAt"),
+  completedAt: datetime("completedAt"),
+  // Metadata
+  processingTimeMs: int("processingTimeMs"),
+  correlationId: varchar("correlationId", { length: 50 }),
+});
+
+export type WebhookQueueItem = typeof webhookQueue.$inferSelect;
+export type InsertWebhookQueueItem = typeof webhookQueue.$inferInsert;
+
+/**
+ * Dead letter queue table
+ * Stores permanently failed webhooks for manual review
+ */
+export const deadLetterQueue = mysqlTable("dead_letter_queue", {
+  id: int("id").autoincrement().primaryKey(),
+  // Original webhook data
+  originalPayload: text("originalPayload").notNull(),
+  ipAddress: varchar("ipAddress", { length: 45 }),
+  // Failure info
+  failureReason: text("failureReason").notNull(),
+  attempts: int("attempts").notNull(),
+  lastAttemptAt: datetime("lastAttemptAt"),
+  // Error history
+  errorHistory: text("errorHistory"), // JSON array of all errors
+  // Resolution
+  status: mysqlEnum("status", ["unresolved", "resolved", "ignored"]).default("unresolved").notNull(),
+  resolvedBy: int("resolvedBy"), // User who resolved
+  resolvedAt: datetime("resolvedAt"),
+  resolutionNotes: text("resolutionNotes"),
+  // Metadata
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type DeadLetterQueueItem = typeof deadLetterQueue.$inferSelect;
+export type InsertDeadLetterQueueItem = typeof deadLetterQueue.$inferInsert;
+
+/**
+ * User signals table
+ * Records signals received by each user for their subscribed strategies
+ */
+export const userSignals = mysqlTable("user_signals", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  webhookLogId: int("webhookLogId").notNull(), // Source webhook
+  strategyId: int("strategyId").notNull(),
+  // Signal details
+  direction: varchar("direction", { length: 10 }).notNull(),
+  price: int("price").notNull(), // Signal price in cents
+  quantity: int("quantity").notNull(),
+  // User's action
+  action: mysqlEnum("action", ["pending", "executed", "skipped", "expired"]).default("pending").notNull(),
+  executionLogId: int("executionLogId"), // If executed, link to execution
+  // Timing
+  signalReceivedAt: datetime("signalReceivedAt").notNull(),
+  actionTakenAt: datetime("actionTakenAt"),
+  expiresAt: datetime("expiresAt"), // Signal expiration time
+  // Metadata
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type UserSignal = typeof userSignals.$inferSelect;
+export type InsertUserSignal = typeof userSignals.$inferInsert;
