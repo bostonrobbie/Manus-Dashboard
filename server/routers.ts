@@ -1,11 +1,12 @@
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
+import { publicProcedure, protectedProcedure, adminProcedure, router } from "./_core/trpc";
 import { z } from "zod";
 import * as db from "./db";
 import * as analytics from "./analytics";
 import * as breakdown from "./breakdown";
+import * as brokerService from "./brokerService";
 
 // Time range enum for filtering  
 type TimeRangeType = '6M' | 'YTD' | '1Y' | '3Y' | '5Y' | '10Y' | 'ALL';
@@ -785,12 +786,22 @@ export const appRouter = router({
     }),
   }),
 
-  // Webhook router for TradingView integration
+  // Webhook router for TradingView integration (Admin-only)
   webhook: router({
+    /**
+     * Check if current user has admin access to webhooks
+     */
+    checkAccess: protectedProcedure.query(({ ctx }) => {
+      return {
+        hasAccess: ctx.user.role === 'admin',
+        role: ctx.user.role,
+      };
+    }),
+
     /**
      * Get webhook configuration (URL and templates)
      */
-    getConfig: protectedProcedure.query(({ ctx }) => {
+    getConfig: adminProcedure.query(({ ctx }) => {
       // Get the base URL from the request
       const protocol = ctx.req.headers['x-forwarded-proto'] || 'https';
       const host = ctx.req.headers['x-forwarded-host'] || ctx.req.headers.host || 'localhost:3000';
@@ -804,19 +815,47 @@ export const appRouter = router({
     /**
      * Get recent webhook logs
      */
-    getLogs: protectedProcedure
+    getLogs: adminProcedure
       .input(z.object({
         limit: z.number().optional().default(50),
+        status: z.enum(['all', 'success', 'failed', 'duplicate']).optional().default('all'),
+        strategyId: z.number().optional(),
+        search: z.string().optional(),
+        startDate: z.date().optional(),
+        endDate: z.date().optional(),
       }))
       .query(async ({ input }) => {
-        const logs = await db.getWebhookLogs(input.limit);
-        return logs;
+        let logs = await db.getWebhookLogs(input.limit * 2); // Get extra for filtering
+        
+        // Apply filters
+        if (input.status !== 'all') {
+          logs = logs.filter(l => l.status === input.status);
+        }
+        if (input.strategyId) {
+          logs = logs.filter(l => l.strategyId === input.strategyId);
+        }
+        if (input.search) {
+          const searchLower = input.search.toLowerCase();
+          logs = logs.filter(l => 
+            l.payload?.toLowerCase().includes(searchLower) ||
+            l.errorMessage?.toLowerCase().includes(searchLower) ||
+            l.strategySymbol?.toLowerCase().includes(searchLower)
+          );
+        }
+        if (input.startDate) {
+          logs = logs.filter(l => new Date(l.createdAt) >= input.startDate!);
+        }
+        if (input.endDate) {
+          logs = logs.filter(l => new Date(l.createdAt) <= input.endDate!);
+        }
+        
+        return logs.slice(0, input.limit);
       }),
 
     /**
      * Get webhook processing status and statistics
      */
-    getStatus: protectedProcedure.query(async () => {
+    getStatus: adminProcedure.query(async () => {
       const settings = await db.getWebhookSettings();
       const logs = await db.getWebhookLogs(100);
       
@@ -848,7 +887,7 @@ export const appRouter = router({
     /**
      * Pause webhook processing
      */
-    pause: protectedProcedure.mutation(async () => {
+    pause: adminProcedure.mutation(async () => {
       await db.updateWebhookSettings({ paused: true });
       return { success: true, message: 'Webhook processing paused' };
     }),
@@ -856,7 +895,7 @@ export const appRouter = router({
     /**
      * Resume webhook processing
      */
-    resume: protectedProcedure.mutation(async () => {
+    resume: adminProcedure.mutation(async () => {
       await db.updateWebhookSettings({ paused: false });
       return { success: true, message: 'Webhook processing resumed' };
     }),
@@ -864,7 +903,7 @@ export const appRouter = router({
     /**
      * Delete a specific webhook log
      */
-    deleteLog: protectedProcedure
+    deleteLog: adminProcedure
       .input(z.object({ logId: z.number() }))
       .mutation(async ({ input }) => {
         const success = await db.deleteWebhookLog(input.logId);
@@ -874,7 +913,7 @@ export const appRouter = router({
     /**
      * Clear all webhook logs
      */
-    clearLogs: protectedProcedure.mutation(async () => {
+    clearLogs: adminProcedure.mutation(async () => {
       const deleted = await db.deleteAllWebhookLogs();
       return { success: true, deleted };
     }),
@@ -882,7 +921,7 @@ export const appRouter = router({
     /**
      * Delete a trade (for removing test trades)
      */
-    deleteTrade: protectedProcedure
+    deleteTrade: adminProcedure
       .input(z.object({ tradeId: z.number() }))
       .mutation(async ({ input }) => {
         const success = await db.deleteTrade(input.tradeId);
@@ -892,7 +931,7 @@ export const appRouter = router({
     /**
      * Send a test webhook (for testing the integration)
      */
-    sendTestWebhook: protectedProcedure
+    sendTestWebhook: adminProcedure
       .input(z.object({
         type: z.enum(['entry', 'exit']),
         strategy: z.string(),
@@ -942,7 +981,7 @@ export const appRouter = router({
     /**
      * Validate a webhook payload without processing (dry run)
      */
-    validatePayload: protectedProcedure
+    validatePayload: adminProcedure
       .input(z.object({
         payload: z.string(),
       }))
@@ -974,7 +1013,7 @@ export const appRouter = router({
     /**
      * Get comprehensive webhook health and monitoring data
      */
-    getHealthReport: protectedProcedure.query(async () => {
+    getHealthReport: adminProcedure.query(async () => {
       const { isCircuitOpen, getCircuitStatus } = await import('./webhookSecurity');
       
       const logs = await db.getWebhookLogs(500);
@@ -1054,7 +1093,7 @@ export const appRouter = router({
     /**
      * Trigger owner notification for webhook issues
      */
-    notifyOwnerOfIssues: protectedProcedure
+    notifyOwnerOfIssues: adminProcedure
       .input(z.object({
         issues: z.array(z.string()),
         metrics: z.object({
@@ -1087,6 +1126,108 @@ Please check the Webhooks page in your dashboard for more details.
         
         return { success };
       }),
+  }),
+
+  // Broker router for trading integrations (Admin-only)
+  broker: router({
+    /**
+     * Get all broker connections for the current user
+     */
+    getConnections: adminProcedure.query(async ({ ctx }) => {
+      const connections = await brokerService.getBrokerConnections(ctx.user.id);
+      // Don't expose sensitive tokens
+      return connections.map(c => ({
+        id: c.id,
+        broker: c.broker,
+        name: c.name,
+        status: c.status,
+        accountId: c.accountId,
+        accountName: c.accountName,
+        accountType: c.accountType,
+        lastConnectedAt: c.lastConnectedAt,
+        lastError: c.lastError,
+        createdAt: c.createdAt,
+      }));
+    }),
+
+    /**
+     * Create a new broker connection
+     */
+    createConnection: adminProcedure
+      .input(z.object({
+        broker: z.enum(['tradovate', 'ibkr', 'fidelity']),
+        name: z.string().min(1).max(100),
+        accountId: z.string().optional(),
+        accountType: z.enum(['live', 'paper', 'demo']).optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        await brokerService.createBrokerConnection({
+          userId: ctx.user.id,
+          broker: input.broker,
+          name: input.name,
+          accountId: input.accountId,
+          accountType: input.accountType,
+        });
+        return { success: true };
+      }),
+
+    /**
+     * Delete a broker connection
+     */
+    deleteConnection: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await brokerService.deleteBrokerConnection(input.id);
+        return { success: true };
+      }),
+
+    /**
+     * Get routing rules
+     */
+    getRoutingRules: adminProcedure.query(async ({ ctx }) => {
+      return brokerService.getRoutingRules(ctx.user.id);
+    }),
+
+    /**
+     * Get execution logs
+     */
+    getExecutionLogs: adminProcedure
+      .input(z.object({
+        webhookLogId: z.number().optional(),
+        limit: z.number().optional().default(50),
+      }))
+      .query(async ({ input }) => {
+        return brokerService.getExecutionLogs(input.webhookLogId, input.limit);
+      }),
+
+    /**
+     * Get supported brokers with their status
+     */
+    getSupportedBrokers: adminProcedure.query(() => {
+      return [
+        {
+          id: 'tradovate',
+          name: 'Tradovate',
+          description: 'Futures trading platform',
+          status: 'available',
+          features: ['futures', 'paper-trading'],
+        },
+        {
+          id: 'ibkr',
+          name: 'Interactive Brokers',
+          description: 'Multi-asset broker',
+          status: 'coming-soon',
+          features: ['stocks', 'options', 'futures', 'forex'],
+        },
+        {
+          id: 'fidelity',
+          name: 'Fidelity',
+          description: 'Stocks & options broker',
+          status: 'coming-soon',
+          features: ['stocks', 'options'],
+        },
+      ];
+    }),
   }),
 });
 

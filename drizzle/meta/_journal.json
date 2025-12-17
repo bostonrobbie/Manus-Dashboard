@@ -29,6 +29,13 @@
       "when": 1765927861825,
       "tag": "0003_charming_ghost_rider",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1765977950849,
+      "tag": "0004_foamy_vampiro",
+      "breakpoints": true
     }
   ]
 }

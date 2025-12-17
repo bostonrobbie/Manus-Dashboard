@@ -21,17 +21,17 @@ import {
 } from "@/components/ui/sidebar";
 import { getLoginUrl } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
-import { LayoutDashboard, LogOut, PanelLeft, TrendingUp, GitCompare, Webhook } from "lucide-react";
+import { LayoutDashboard, LogOut, PanelLeft, TrendingUp, GitCompare, Webhook, Shield } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
 import { Button } from "./ui/button";
 
-const menuItems = [
-  { icon: LayoutDashboard, label: "Overview", path: "/overview" },
-  { icon: TrendingUp, label: "Strategies", path: "/strategies" },
-  { icon: GitCompare, label: "Compare", path: "/compare" },
-  { icon: Webhook, label: "Webhooks", path: "/webhooks" },
+const baseMenuItems = [
+  { icon: LayoutDashboard, label: "Overview", path: "/overview", adminOnly: false },
+  { icon: TrendingUp, label: "Strategies", path: "/strategies", adminOnly: false },
+  { icon: GitCompare, label: "Compare", path: "/compare", adminOnly: false },
+  { icon: Webhook, label: "Webhooks", path: "/webhooks", adminOnly: true },
 ];
 
 const SIDEBAR_WIDTH_KEY = "sidebar-width";
@@ -114,8 +114,12 @@ function DashboardLayoutContent({
   const isCollapsed = state === "collapsed";
   const [isResizing, setIsResizing] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
-  const activeMenuItem = menuItems.find(item => item.path === location);
   const isMobile = useIsMobile();
+  
+  // Filter menu items based on user role
+  const isAdmin = user?.role === 'admin';
+  const menuItems = baseMenuItems.filter(item => !item.adminOnly || isAdmin);
+  const activeMenuItem = menuItems.find(item => item.path === location);
 
   useEffect(() => {
     if (isCollapsed) {
