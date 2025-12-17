@@ -54,6 +54,7 @@ function VisualAnalyticsPage() {
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [mcDays, setMcDays] = useState(90);
   const [mcSimulations, setMcSimulations] = useState(500);
+  const [activeTab, setActiveTab] = useState<"dayOfWeek" | "weekOfMonth">("dayOfWeek");
 
   const analyticsQuery = trpc.portfolio.getAnalytics.useQuery(
     { timeRange: { preset: timeRange }, maxPoints: 720 },
@@ -100,10 +101,11 @@ function VisualAnalyticsPage() {
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-lg font-semibold text-slate-900">Visual analytics</h1>
-          <p className="text-sm text-slate-600">Heatmaps, calendars, and simulations backed by live tRPC data.</p>
+          <h1 className="text-lg font-semibold text-white">Visual Analytics</h1>
+          <p className="text-sm text-gray-400">Heatmaps, calendars, and simulations backed by live data.</p>
         </div>
         <div className="flex flex-wrap gap-3">
           <TimeRangeSelector value={timeRange} onChange={preset => setTimeRange(preset as ContractRange)} presets={PRESETS} />
@@ -111,33 +113,39 @@ function VisualAnalyticsPage() {
         </div>
       </div>
 
-      {analyticsQuery.isError ? (
-        <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+      {/* Error state */}
+      {analyticsQuery.isError && (
+        <div className="rounded-lg border border-red-800/50 bg-red-900/20 px-4 py-3 text-sm text-red-400">
           Unable to load analytics. Please check the API connection.
         </div>
-      ) : null}
+      )}
 
+      {/* Equity Chart */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm">Portfolio equity vs benchmark</CardTitle>
+          <CardTitle className="text-sm">Portfolio Equity vs Benchmark</CardTitle>
+          <p className="text-xs text-gray-500">Performance comparison over time</p>
         </CardHeader>
         <CardContent>
           <EquityChart
             data={equitySeries.map(point => ({ date: point.date, equity: point.equity, benchmark: point.benchmark }))}
             series={[
-              { key: "equity", name: "Equity", color: "#0f172a" },
-              { key: "benchmark", name: "Benchmark", color: "#2563eb" },
+              { key: "equity", name: "Portfolio", color: "#3b82f6" },
+              { key: "benchmark", name: "S&P 500", color: "#6b7280" },
             ]}
             isLoading={analyticsQuery.isLoading}
             dataTestId="visual-equity"
+            height={360}
           />
         </CardContent>
       </Card>
 
+      {/* Distribution and Calendar Grid */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle className="text-sm">Return distribution</CardTitle>
+            <CardTitle className="text-sm">Return Distribution</CardTitle>
+            <p className="text-xs text-gray-500">Daily return frequency histogram</p>
           </CardHeader>
           <CardContent>
             <DistributionSnapshot returnsPct={dailyReturnPct} isLoading={analyticsQuery.isLoading} />
@@ -146,7 +154,7 @@ function VisualAnalyticsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm">Recent PnL calendar</CardTitle>
+            <CardTitle className="text-sm">Recent P&L Calendar</CardTitle>
           </CardHeader>
           <CardContent>
             <CalendarPnL records={dailyReturns} isLoading={analyticsQuery.isLoading} />
@@ -154,43 +162,69 @@ function VisualAnalyticsPage() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Day of week heatmap</CardTitle>
-          </CardHeader>
-          <CardContent>
+      {/* Day/Week Performance Card with Tabs */}
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <CardTitle className="text-sm">Day-of-Week Performance</CardTitle>
+              <p className="text-xs text-gray-500">Average P&L and win rate by trading day</p>
+            </div>
+            <div className="flex gap-1 p-1 rounded-lg bg-[#1a1a1a] border border-[#2a2a2a]">
+              <button
+                onClick={() => setActiveTab("dayOfWeek")}
+                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                  activeTab === "dayOfWeek" 
+                    ? "bg-blue-600 text-white" 
+                    : "text-gray-400 hover:text-white hover:bg-[#252525]"
+                }`}
+              >
+                Day of Week
+              </button>
+              <button
+                onClick={() => setActiveTab("weekOfMonth")}
+                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                  activeTab === "weekOfMonth" 
+                    ? "bg-blue-600 text-white" 
+                    : "text-gray-400 hover:text-white hover:bg-[#252525]"
+                }`}
+              >
+                Week of Month
+              </button>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {activeTab === "dayOfWeek" ? (
             <DayOfWeekHeatmap records={dailyReturns} isLoading={analyticsQuery.isLoading} />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Week of month heatmap</CardTitle>
-          </CardHeader>
-          <CardContent>
+          ) : (
             <WeekOfMonthHeatmap records={dailyReturns} isLoading={analyticsQuery.isLoading} />
-          </CardContent>
-        </Card>
+          )}
+        </CardContent>
+      </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Monthly return calendar</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <MonthlyReturnsCalendar
-              records={dailyReturns.map(item => ({ date: item.date, equity: item.equity }))}
-              isLoading={analyticsQuery.isLoading}
-            />
-          </CardContent>
-        </Card>
-      </div>
+      {/* Monthly Returns Calendar */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm">Monthly Returns Calendar</CardTitle>
+          <p className="text-xs text-gray-500">Monthly performance overview</p>
+        </CardHeader>
+        <CardContent>
+          <MonthlyReturnsCalendar
+            records={dailyReturns.map(item => ({ date: item.date, equity: item.equity }))}
+            isLoading={analyticsQuery.isLoading}
+          />
+        </CardContent>
+      </Card>
 
+      {/* Strategy Correlation */}
       <Card>
         <CardHeader>
           <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-            <CardTitle className="text-sm">Strategy correlation (live)</CardTitle>
-            <div className="text-xs text-slate-600">Select 2-4 strategies to render the matrix.</div>
+            <div>
+              <CardTitle className="text-sm">Strategy Correlation Matrix</CardTitle>
+              <p className="text-xs text-gray-500">Select 2-4 strategies to render the matrix</p>
+            </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -202,9 +236,9 @@ function VisualAnalyticsPage() {
           />
 
           {compareQuery.isLoading ? (
-            <div className="h-24 animate-pulse rounded-md bg-slate-100" />
+            <div className="h-24 skeleton-shimmer rounded-lg" />
           ) : correlationSeries.length === 0 ? (
-            <div className="rounded-md border border-dashed border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+            <div className="rounded-lg border border-dashed border-[#3a3a3a] bg-[#1a1a1a] px-4 py-6 text-sm text-gray-400 text-center">
               {breakdownMessage ?? "Select strategies to refresh the correlation matrix."}
             </div>
           ) : (
@@ -216,30 +250,65 @@ function VisualAnalyticsPage() {
         </CardContent>
       </Card>
 
+      {/* Key Metrics Grid */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm">Key metrics</CardTitle>
+          <CardTitle className="text-sm">Key Metrics</CardTitle>
         </CardHeader>
         <CardContent>
           {analyticsQuery.isLoading ? (
-            <div className="h-24 animate-pulse rounded-md bg-slate-100" />
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+              {[...Array(8)].map((_, i) => (
+                <div key={i} className="h-20 skeleton-shimmer rounded-xl" />
+              ))}
+            </div>
           ) : metrics ? (
             <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-              <MetricCard label="Total return" value={`${metrics.totalReturnPct.toFixed(2)}%`} />
-              <MetricCard label="Sharpe" value={metrics.sharpe.toFixed(2)} />
-              <MetricCard label="Sortino" value={metrics.sortino.toFixed(2)} />
-              <MetricCard label="Max drawdown" value={`${metrics.maxDrawdownPct.toFixed(2)}%`} />
-              <MetricCard label="Volatility" value={`${metrics.volatilityPct.toFixed(2)}%`} />
-              <MetricCard label="Win rate" value={`${metrics.winRatePct.toFixed(2)}%`} />
-              <MetricCard label="Profit factor" value={metrics.profitFactor.toFixed(2)} />
-              <MetricCard label="Trades" value={analyticsQuery.data?.tradeCount.toString() ?? "0"} />
+              <MetricCard 
+                label="Total Return" 
+                value={`${metrics.totalReturnPct >= 0 ? "+" : ""}${metrics.totalReturnPct.toFixed(2)}%`}
+                variant={metrics.totalReturnPct >= 0 ? "success" : "danger"}
+              />
+              <MetricCard 
+                label="Sharpe Ratio" 
+                value={metrics.sharpe.toFixed(2)}
+                helper={metrics.sharpe >= 1 ? "Good" : metrics.sharpe >= 0.5 ? "Moderate" : "Low"}
+              />
+              <MetricCard 
+                label="Sortino Ratio" 
+                value={metrics.sortino.toFixed(2)}
+              />
+              <MetricCard 
+                label="Max Drawdown" 
+                value={`${metrics.maxDrawdownPct.toFixed(2)}%`}
+                variant="danger"
+              />
+              <MetricCard 
+                label="Volatility" 
+                value={`${metrics.volatilityPct.toFixed(2)}%`}
+              />
+              <MetricCard 
+                label="Win Rate" 
+                value={`${metrics.winRatePct.toFixed(1)}%`}
+                variant={metrics.winRatePct >= 50 ? "success" : "warning"}
+              />
+              <MetricCard 
+                label="Profit Factor" 
+                value={metrics.profitFactor.toFixed(2)}
+                variant={metrics.profitFactor >= 1.5 ? "success" : metrics.profitFactor >= 1 ? "warning" : "danger"}
+              />
+              <MetricCard 
+                label="Total Trades" 
+                value={analyticsQuery.data?.tradeCount.toLocaleString() ?? "0"}
+              />
             </div>
           ) : (
-            <p className="text-sm text-slate-600">Metrics will appear when analytics are available.</p>
+            <p className="text-sm text-gray-400 text-center py-4">Metrics will appear when analytics are available.</p>
           )}
         </CardContent>
       </Card>
 
+      {/* Monte Carlo Simulation */}
       <MonteCarloPanel
         result={monteCarloQuery.data}
         days={mcDays}

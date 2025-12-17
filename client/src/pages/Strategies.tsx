@@ -20,6 +20,26 @@ type SortKey =
 
 type SortOrder = "asc" | "desc";
 
+// Enhanced strategy colors for better visibility
+const STRATEGY_COLORS = [
+  "#3b82f6", "#22c55e", "#f59e0b", "#ef4444", "#8b5cf6",
+  "#06b6d4", "#ec4899", "#84cc16", "#f97316", "#14b8a6"
+];
+
+// Custom tooltip for charts
+const CustomTooltip = ({ active, payload, label, currency }: any) => {
+  if (!active || !payload || !payload.length) return null;
+  
+  return (
+    <div className="bg-[#1e1e1e] border border-[#3a3a3a] rounded-lg p-3 shadow-xl">
+      <p className="text-white font-semibold text-sm mb-1">{label}</p>
+      <p className="text-emerald-400 font-medium">
+        {currency.format(payload[0].value)}
+      </p>
+    </div>
+  );
+};
+
 function StrategiesPage() {
   const { timeRange } = useDashboardState();
   const [sortBy, setSortBy] = useState<SortKey>("totalReturn");
@@ -64,7 +84,7 @@ function StrategiesPage() {
         style: "currency",
         currency: "USD",
         minimumFractionDigits: 0,
-        maximumFractionDigits: 2,
+        maximumFractionDigits: 0,
       }),
     [],
   );
@@ -80,6 +100,7 @@ function StrategiesPage() {
   );
 
   const selectedStrategy = strategiesQuery.data?.rows.find(row => row.strategyId === selectedStrategyId);
+  
   const aggregatedStrategyMetrics = useMemo(() => {
     const rows = strategiesQuery.data?.rows ?? [];
     if (!rows.length) return null;
@@ -90,7 +111,7 @@ function StrategiesPage() {
     };
 
     return {
-      name: "All strategies",
+      name: "All Strategies",
       totalReturnPct: rows.reduce((sum, row) => sum + row.totalReturnPct * weightFor(row), 0),
       maxDrawdownPct: rows.reduce((sum, row) => sum + row.maxDrawdownPct * weightFor(row), 0),
       sharpeRatio: rows.reduce((sum, row) => sum + row.sharpeRatio * weightFor(row), 0),
@@ -102,25 +123,64 @@ function StrategiesPage() {
   }, [strategiesQuery.data]);
 
   const focusMetrics = selectedStrategy ?? aggregatedStrategyMetrics;
-  const focusTitle = selectedStrategy?.name ?? aggregatedStrategyMetrics?.name ?? "Strategy performance";
+  const focusTitle = selectedStrategy?.name ?? aggregatedStrategyMetrics?.name ?? "Strategy Performance";
   const strategyEquityPoints = strategyEquityQuery.data?.points ?? [];
+  
+  // Get color for selected strategy
+  const selectedStrategyIndex = strategiesQuery.data?.rows.findIndex(r => r.strategyId === selectedStrategyId) ?? 0;
+  const selectedColor = STRATEGY_COLORS[selectedStrategyIndex % STRATEGY_COLORS.length];
+  
   const equityChart = (
-    <div className="h-64">
+    <div className="h-64 sm:h-72">
       {strategyEquityQuery.isFetching ? (
-        <div className="h-full animate-pulse rounded bg-slate-100" />
+        <div className="h-full skeleton-shimmer rounded-lg" />
       ) : strategyEquityPoints.length ? (
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={strategyEquityPoints} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-            <XAxis dataKey="date" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
-            <YAxis tickFormatter={val => currency.format(val as number)} tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
-            <Tooltip formatter={value => currency.format(Number(value))} />
-            <Line type="monotone" dataKey="combined" stroke="#0f172a" strokeWidth={2} dot={false} />
+          <LineChart data={strategyEquityPoints} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#2a2a2a" />
+            <XAxis 
+              dataKey="date" 
+              tick={{ fontSize: 10, fill: "#9ca3af", fontWeight: 500 }} 
+              tickLine={false} 
+              axisLine={{ stroke: "#2a2a2a" }}
+              tickFormatter={(value) => {
+                const date = new Date(value);
+                return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+              }}
+              interval="preserveStartEnd"
+              minTickGap={40}
+            />
+            <YAxis 
+              tickFormatter={val => {
+                const num = Number(val);
+                if (num >= 1000000) return `$${(num / 1000000).toFixed(1)}M`;
+                if (num >= 1000) return `$${(num / 1000).toFixed(0)}k`;
+                return currency.format(num);
+              }} 
+              tick={{ fontSize: 10, fill: "#9ca3af", fontWeight: 500 }} 
+              tickLine={false} 
+              axisLine={{ stroke: "#2a2a2a" }}
+              width={55}
+            />
+            <Tooltip content={<CustomTooltip currency={currency} />} />
+            <Line 
+              type="monotone" 
+              dataKey="combined" 
+              stroke={selectedColor} 
+              strokeWidth={2} 
+              dot={false}
+              activeDot={{ r: 4, fill: selectedColor, stroke: "#1e1e1e", strokeWidth: 2 }}
+            />
           </LineChart>
         </ResponsiveContainer>
       ) : (
-        <div className="flex h-full items-center justify-center rounded border border-dashed border-slate-200 bg-slate-50 text-sm text-slate-600">
-          Select a strategy to view its equity curve.
+        <div className="flex h-full items-center justify-center rounded-lg border border-dashed border-[#3a3a3a] bg-[#1a1a1a] text-sm text-gray-400">
+          <div className="text-center">
+            <svg className="mx-auto h-10 w-10 text-gray-600 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+            Select a strategy to view its equity curve.
+          </div>
         </div>
       )}
     </div>
@@ -134,24 +194,37 @@ function StrategiesPage() {
 
   return (
     <div className="space-y-4">
+      {/* Header */}
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-slate-900">Strategy performance</h2>
-          <p className="text-sm text-slate-600">How each strategy performs within this workspace and time range.</p>
+          <h2 className="text-lg font-semibold text-white">Trading Strategies</h2>
+          <p className="text-sm text-gray-400">View detailed performance for each intraday strategy</p>
         </div>
-        {strategiesQuery.isError ? (
-          <div className="rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-800">Failed to load strategies.</div>
-        ) : null}
+        {strategiesQuery.isError && (
+          <div className="rounded-lg bg-red-900/20 px-3 py-2 text-xs text-red-400 border border-red-800/50">
+            Failed to load strategies.
+          </div>
+        )}
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm">{focusTitle}</CardTitle>
+      {/* Performance overview card */}
+      <Card className="bg-[#1e1e1e] border-[#2a2a2a]">
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-sm text-white">{focusTitle}</CardTitle>
+            {selectedStrategy && (
+              <div 
+                className="w-3 h-3 rounded-full" 
+                style={{ backgroundColor: selectedColor }}
+              />
+            )}
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          {/* Metrics grid - responsive */}
+          <div className="grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-4">
             <MetricCard
-              label="Total return"
+              label="Total Return"
               value={
                 focusMetrics
                   ? percent.format(("totalReturnPct" in focusMetrics ? focusMetrics.totalReturnPct : 0))
@@ -163,25 +236,26 @@ function StrategiesPage() {
               isLoading={strategiesQuery.isLoading || summaryQuery.isLoading}
             />
             <MetricCard
-              label="Max drawdown"
+              label="Max Drawdown"
               value={focusMetrics ? percent.format(focusMetrics.maxDrawdownPct) : undefined}
               helper={selectedStrategy ? currency.format(selectedStrategy.maxDrawdown) : undefined}
               isLoading={strategiesQuery.isLoading}
             />
             <MetricCard
-              label="Sharpe"
+              label="Sharpe Ratio"
               value={focusMetrics ? focusMetrics.sharpeRatio.toFixed(2) : undefined}
               helper={selectedStrategy?.sortinoRatio ? `Sortino ${selectedStrategy.sortinoRatio.toFixed(2)}` : undefined}
               isLoading={strategiesQuery.isLoading}
             />
             <MetricCard
-              label="Profit factor"
+              label="Profit Factor"
               value={focusMetrics ? focusMetrics.profitFactor.toFixed(2) : undefined}
               helper={selectedStrategy?.payoffRatio ? `Payoff ${selectedStrategy.payoffRatio.toFixed(2)}` : undefined}
               isLoading={strategiesQuery.isLoading}
             />
           </div>
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+          
+          <div className="grid grid-cols-3 gap-2 sm:gap-3">
             <MetricCard
               label="Expectancy"
               value={
@@ -189,150 +263,262 @@ function StrategiesPage() {
                   ? currency.format("expectancy" in focusMetrics && focusMetrics.expectancy != null ? focusMetrics.expectancy : 0)
                   : undefined
               }
-              helper={selectedStrategy?.payoffRatio ? `Payoff ${selectedStrategy.payoffRatio.toFixed(2)}` : undefined}
               isLoading={strategiesQuery.isLoading}
             />
             <MetricCard
-              label="Win rate"
+              label="Win Rate"
               value={focusMetrics ? percent.format((focusMetrics.winRatePct ?? 0) / 100) : undefined}
               helper={focusMetrics ? `${focusMetrics.totalTrades.toLocaleString()} trades` : undefined}
               isLoading={strategiesQuery.isLoading}
             />
             <MetricCard
-              label="Trade count"
+              label="Trade Count"
               value={focusMetrics ? focusMetrics.totalTrades.toLocaleString() : undefined}
               isLoading={strategiesQuery.isLoading}
             />
           </div>
-          <div className="rounded border border-slate-200 bg-white p-3 text-sm text-slate-700 shadow-sm">{equityChart}</div>
+          
+          {/* Equity chart */}
+          <div className="rounded-lg border border-[#2a2a2a] bg-[#1a1a1a] p-3">
+            {equityChart}
+          </div>
         </CardContent>
       </Card>
 
-      <Card>
+      {/* All Strategies Performance Card */}
+      <Card className="bg-[#1e1e1e] border-[#2a2a2a]">
         <CardHeader>
-          <CardTitle className="text-sm">Strategy table</CardTitle>
+          <CardTitle className="text-sm text-white">All Strategies Performance</CardTitle>
+          <p className="text-xs text-gray-400">Compare all strategy equity curves</p>
         </CardHeader>
-        <CardContent className="overflow-x-auto">
+        <CardContent>
+          <div className="h-64 sm:h-80">
+            {strategiesQuery.isLoading ? (
+              <div className="h-full skeleton-shimmer rounded-lg" />
+            ) : strategiesQuery.data?.rows?.length ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#2a2a2a" />
+                  <XAxis 
+                    dataKey="date"
+                    type="category"
+                    allowDuplicatedCategory={false}
+                    tick={{ fontSize: 10, fill: "#9ca3af", fontWeight: 500 }}
+                    tickLine={false}
+                    axisLine={{ stroke: "#2a2a2a" }}
+                    interval="preserveStartEnd"
+                  />
+                  <YAxis
+                    tickFormatter={val => `$${(Number(val) / 1000).toFixed(0)}k`}
+                    tick={{ fontSize: 10, fill: "#9ca3af", fontWeight: 500 }}
+                    tickLine={false}
+                    axisLine={{ stroke: "#2a2a2a" }}
+                    width={50}
+                  />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: "#1e1e1e", 
+                      border: "1px solid #3a3a3a",
+                      borderRadius: "8px",
+                      fontSize: "12px"
+                    }}
+                    labelStyle={{ color: "#fff", fontWeight: 600 }}
+                    formatter={(value: number, name: string) => [currency.format(value), name]}
+                  />
+                  {strategiesQuery.data.rows.map((row, index) => (
+                    <Line
+                      key={row.strategyId}
+                      data={row.sparkline?.map((point, i) => ({ 
+                        date: `Day ${i + 1}`, 
+                        value: point.value 
+                      })) ?? []}
+                      dataKey="value"
+                      name={row.name}
+                      stroke={STRATEGY_COLORS[index % STRATEGY_COLORS.length]}
+                      strokeWidth={selectedStrategyId === row.strategyId ? 3 : 1.5}
+                      dot={false}
+                      opacity={selectedStrategyId === row.strategyId ? 1 : 0.6}
+                    />
+                  ))}
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex h-full items-center justify-center text-gray-400">
+                No strategy data available
+              </div>
+            )}
+          </div>
+          
+          {/* Legend */}
+          <div className="mt-4 flex flex-wrap gap-3 justify-center">
+            {strategiesQuery.data?.rows.slice(0, 8).map((row, index) => (
+              <button
+                key={row.strategyId}
+                onClick={() => setSelectedStrategyId(row.strategyId)}
+                className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-xs transition-all ${
+                  selectedStrategyId === row.strategyId 
+                    ? "bg-[#2a2a2a] ring-1 ring-blue-500" 
+                    : "hover:bg-[#2a2a2a]"
+                }`}
+              >
+                <div 
+                  className="w-2.5 h-2.5 rounded-full" 
+                  style={{ backgroundColor: STRATEGY_COLORS[index % STRATEGY_COLORS.length] }}
+                />
+                <span className="text-gray-300 truncate max-w-[100px]">{row.name}</span>
+                <span className={`font-medium ${row.totalReturnPct > 0 ? "text-emerald-400" : "text-red-400"}`}>
+                  {currency.format(row.totalReturn)}
+                </span>
+              </button>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Strategy table */}
+      <Card className="bg-[#1e1e1e] border-[#2a2a2a]">
+        <CardHeader>
+          <CardTitle className="text-sm text-white">Strategy Table</CardTitle>
+        </CardHeader>
+        <CardContent className="overflow-x-auto scrollbar-thin scrollbar-dark">
           {strategiesQuery.isLoading ? (
-            <div className="h-24 animate-pulse rounded bg-slate-100" />
+            <div className="h-24 skeleton-shimmer rounded-lg" />
           ) : strategiesQuery.data?.rows?.length ? (
-            <table className="min-w-full divide-y divide-slate-200 text-sm">
-              <thead className="bg-slate-50">
+            <table className="min-w-full divide-y divide-[#2a2a2a] text-sm">
+              <thead className="bg-[#1a1a1a]">
                 <tr>
-                  <th className="cursor-pointer px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-600" onClick={() => handleSort("name")}>
-                    Name
+                  <th 
+                    className="cursor-pointer px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-400 hover:text-white transition-colors" 
+                    onClick={() => handleSort("name")}
+                  >
+                    Name {sortBy === "name" && (sortOrder === "asc" ? "↑" : "↓")}
                   </th>
-                  <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">Type</th>
-                  <th
-                    className="cursor-pointer px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-600"
+                  <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Type</th>
+                  <th 
+                    className="cursor-pointer px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-400 hover:text-white transition-colors"
                     onClick={() => handleSort("totalTrades")}
                   >
-                    Trades
+                    Trades {sortBy === "totalTrades" && (sortOrder === "asc" ? "↑" : "↓")}
                   </th>
-                  <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">Curve</th>
-                  <th
-                    className="cursor-pointer px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-600"
+                  <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Curve</th>
+                  <th 
+                    className="cursor-pointer px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-400 hover:text-white transition-colors"
                     onClick={() => handleSort("totalReturnPct")}
                   >
-                    Total return
+                    Return {sortBy === "totalReturnPct" && (sortOrder === "asc" ? "↑" : "↓")}
                   </th>
-                  <th
-                    className="cursor-pointer px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-600"
-                    onClick={() => handleSort("maxDrawdownPct")}
-                  >
-                    Max DD
-                  </th>
-                  <th
-                    className="cursor-pointer px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-600"
+                  <th 
+                    className="cursor-pointer px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-400 hover:text-white transition-colors"
                     onClick={() => handleSort("sharpeRatio")}
                   >
-                    Sharpe
+                    Sharpe {sortBy === "sharpeRatio" && (sortOrder === "asc" ? "↑" : "↓")}
                   </th>
-                  <th
-                    className="cursor-pointer px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-600"
+                  <th 
+                    className="cursor-pointer px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-400 hover:text-white transition-colors"
                     onClick={() => handleSort("profitFactor")}
                   >
-                    Profit factor
+                    PF {sortBy === "profitFactor" && (sortOrder === "asc" ? "↑" : "↓")}
                   </th>
-                  <th
-                    className="cursor-pointer px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-600"
-                    onClick={() => handleSort("expectancy")}
-                  >
-                    Expectancy
-                  </th>
-                  <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">Win rate</th>
+                  <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Win Rate</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
-                {strategiesQuery.data.rows.map(row => {
+              <tbody className="divide-y divide-[#2a2a2a]">
+                {strategiesQuery.data.rows.map((row, index) => {
                   const sparkline = row.sparkline ?? [];
+                  const color = STRATEGY_COLORS[index % STRATEGY_COLORS.length];
                   return (
                     <tr
                       key={row.strategyId}
-                      className={`hover:bg-slate-50 ${selectedStrategyId === row.strategyId ? "bg-indigo-50" : ""}`}
+                      className={`cursor-pointer transition-colors ${
+                        selectedStrategyId === row.strategyId 
+                          ? "bg-blue-900/20" 
+                          : "hover:bg-[#252525]"
+                      }`}
                       onClick={() => setSelectedStrategyId(row.strategyId)}
                     >
-                      <td className="px-3 py-2 font-semibold text-slate-900">{row.name}</td>
-                      <td className="px-3 py-2 text-slate-600">{row.type}</td>
-                      <td className="px-3 py-2 text-slate-600">{row.totalTrades}</td>
-                      <td className="px-3 py-2 text-slate-600">
+                      <td className="px-3 py-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
+                          <span className="font-semibold text-white">{row.name}</span>
+                        </div>
+                      </td>
+                      <td className="px-3 py-2 text-gray-400">{row.type}</td>
+                      <td className="px-3 py-2 text-gray-400">{row.totalTrades}</td>
+                      <td className="px-3 py-2">
                         {sparkline.length ? (
-                          <div className="h-12 w-32">
+                          <div className="h-10 w-24">
                             <ResponsiveContainer width="100%" height="100%">
-                              <LineChart data={sparkline} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
-                                <Line type="monotone" dataKey="value" stroke="#0f172a" dot={false} strokeWidth={1.5} />
+                              <LineChart data={sparkline} margin={{ top: 2, right: 2, left: 0, bottom: 2 }}>
+                                <Line 
+                                  type="monotone" 
+                                  dataKey="value" 
+                                  stroke={color} 
+                                  dot={false} 
+                                  strokeWidth={1.5} 
+                                />
                               </LineChart>
                             </ResponsiveContainer>
                           </div>
                         ) : (
-                          <span className="text-xs text-slate-500">-</span>
+                          <span className="text-xs text-gray-500">—</span>
                         )}
                       </td>
-                      <td className="px-3 py-2 text-slate-900">{percent.format(row.totalReturnPct)}</td>
-                      <td className="px-3 py-2 text-slate-600">{percent.format(row.maxDrawdownPct)}</td>
-                      <td className="px-3 py-2 text-slate-600">{row.sharpeRatio.toFixed(2)}</td>
-                      <td className="px-3 py-2 text-slate-600">{row.profitFactor.toFixed(2)}</td>
-                      <td className="px-3 py-2 text-slate-600">{row.expectancy != null ? currency.format(row.expectancy) : "-"}</td>
-                      <td className="px-3 py-2 text-slate-600">{percent.format(row.winRatePct / 100)}</td>
+                      <td className={`px-3 py-2 font-medium ${row.totalReturnPct > 0 ? "text-emerald-400" : "text-red-400"}`}>
+                        {percent.format(row.totalReturnPct)}
+                      </td>
+                      <td className="px-3 py-2 text-gray-300">{row.sharpeRatio.toFixed(2)}</td>
+                      <td className="px-3 py-2 text-gray-300">{row.profitFactor.toFixed(2)}</td>
+                      <td className="px-3 py-2 text-gray-300">{percent.format(row.winRatePct / 100)}</td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
           ) : (
-            <div className="rounded border border-dashed border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+            <div className="rounded-lg border border-dashed border-[#3a3a3a] bg-[#1a1a1a] p-4 text-sm text-gray-400 text-center">
               No strategies found for this workspace/time range.
             </div>
           )}
         </CardContent>
       </Card>
 
-      {selectedStrategy ? (
-        <Card>
+      {/* Recent trades for selected strategy */}
+      {selectedStrategy && (
+        <Card className="bg-[#1e1e1e] border-[#2a2a2a]">
           <CardHeader>
-            <CardTitle className="text-sm">Recent trades for {selectedStrategy.name}</CardTitle>
+            <CardTitle className="text-sm text-white">Recent Trades for {selectedStrategy.name}</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="rounded border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
+          <CardContent>
+            <div className="rounded-lg border border-[#2a2a2a] bg-[#1a1a1a] p-3">
               {selectedTrades.length ? (
-                <ul className="divide-y divide-slate-200">
+                <ul className="divide-y divide-[#2a2a2a]">
                   {selectedTrades.slice(0, 10).map(trade => (
                     <li key={trade.id} className="flex items-center justify-between py-2">
                       <div>
-                        <div className="font-medium">{trade.symbol}</div>
-                        <p className="text-xs text-slate-500">{trade.entryTime} → {trade.exitTime}</p>
+                        <div className="font-medium text-white">{trade.symbol}</div>
+                        <p className="text-xs text-gray-500">{trade.entryTime} → {trade.exitTime}</p>
                       </div>
-                      <Badge variant={trade.side === "long" ? "success" : "secondary"}>{trade.side}</Badge>
+                      <Badge 
+                        variant={trade.side === "long" ? "success" : "secondary"}
+                        className={trade.side === "long" 
+                          ? "bg-emerald-900/30 text-emerald-400 border-emerald-800" 
+                          : "bg-red-900/30 text-red-400 border-red-800"
+                        }
+                      >
+                        {trade.side}
+                      </Badge>
                     </li>
                   ))}
                 </ul>
               ) : (
-                <p className="text-sm text-slate-600">No trades mapped to this strategy in the current range.</p>
+                <p className="text-sm text-gray-400 text-center py-4">
+                  No trades mapped to this strategy in the current range.
+                </p>
               )}
             </div>
           </CardContent>
         </Card>
-      ) : null}
+      )}
     </div>
   );
 }
