@@ -274,17 +274,6 @@ export default function StrategyDetail() {
                 {/* Time Range */}
                 <div className="space-y-3">
                   <Label className="text-sm font-semibold">Time Range</Label>
-                  <Select value={timeRange} onValueChange={(v) => setTimeRange(v as TimeRange)}>
-                    <SelectTrigger className="text-lg">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="6M">6 Months</SelectItem>
-                      <SelectItem value="YTD">Year to Date</SelectItem>
-                      <SelectItem value="1Y">1 Year</SelectItem>
-                      <SelectItem value="ALL">All Time</SelectItem>
-                    </SelectContent>
-                  </Select>
                   <div className="flex flex-wrap gap-2">
                     <Button
                       variant={timeRange === '6M' ? 'default' : 'outline'}
@@ -336,15 +325,6 @@ export default function StrategyDetail() {
                 {/* Contract Size */}
                 <div className="space-y-3">
                   <Label className="text-sm font-semibold">Contract Size</Label>
-                  <Select value={contractSize} onValueChange={(v) => setContractSize(v as 'mini' | 'micro')}>
-                    <SelectTrigger className="text-lg">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="mini">Mini Contracts</SelectItem>
-                      <SelectItem value="micro">Micro Contracts</SelectItem>
-                    </SelectContent>
-                  </Select>
                   <div className="flex flex-wrap gap-2">
                     <Button
                       variant={contractSize === 'mini' ? 'default' : 'outline'}
@@ -424,6 +404,109 @@ export default function StrategyDetail() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Extended Performance Metrics */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Detailed Performance Statistics</CardTitle>
+          <CardDescription>Industry-standard metrics for comprehensive strategy analysis</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+            {/* Risk Metrics */}
+            <div className="space-y-4">
+              <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Risk Metrics</h4>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Calmar Ratio</span>
+                  <span className="font-medium">{metrics.calmarRatio?.toFixed(2) ?? 'N/A'}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Profit Factor</span>
+                  <span className="font-medium">{metrics.profitFactor.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Recovery Factor</span>
+                  <span className="font-medium">{(metrics.totalReturn / Math.abs(metrics.maxDrawdown)).toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Risk/Reward</span>
+                  <span className="font-medium">{(Math.abs(metrics.avgWin / metrics.avgLoss)).toFixed(2)}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Trade Statistics */}
+            <div className="space-y-4">
+              <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Trade Statistics</h4>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Total Trades</span>
+                  <span className="font-medium">{metrics.totalTrades.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Avg Win</span>
+                  <span className="font-medium text-green-500">${(metrics.avgWin / 100).toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Avg Loss</span>
+                  <span className="font-medium text-red-500">-${Math.abs(metrics.avgLoss / 100).toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Expectancy</span>
+                  <span className="font-medium">${metrics.tradeStats?.expectancyPnL?.toFixed(2) ?? 'N/A'}/trade</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Best/Worst Performance */}
+            <div className="space-y-4">
+              <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Best/Worst</h4>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Best Trade</span>
+                  <span className="font-medium text-green-500">${metrics.tradeStats?.bestTradePnL?.toFixed(2) ?? 'N/A'}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Worst Trade</span>
+                  <span className="font-medium text-red-500">${metrics.tradeStats?.worstTradePnL?.toFixed(2) ?? 'N/A'}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Max Consec. Wins</span>
+                  <span className="font-medium">{metrics.tradeStats?.longestWinStreak ?? 'N/A'}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Max Consec. Losses</span>
+                  <span className="font-medium">{metrics.tradeStats?.longestLossStreak ?? 'N/A'}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Return Metrics */}
+            <div className="space-y-4">
+              <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Returns</h4>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Total Return</span>
+                  <span className="font-medium text-green-500">+{metrics.totalReturn.toFixed(2)}%</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Annualized</span>
+                  <span className="font-medium">{metrics.annualizedReturn.toFixed(2)}%</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Avg Daily Return</span>
+                  <span className="font-medium">{(metrics.annualizedReturn / 252).toFixed(3)}%</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Volatility (Ann.)</span>
+                  <span className="font-medium">{(metrics.annualizedReturn / metrics.sharpeRatio).toFixed(2)}%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Equity Curve */}
       <Card>

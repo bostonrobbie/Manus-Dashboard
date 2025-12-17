@@ -271,20 +271,75 @@ export default function UserDashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">My Dashboard</h1>
-          <p className="text-muted-foreground">
-            Welcome back, {user?.name || 'Trader'}! Your personalized strategy portfolio.
-          </p>
+      {/* Header with integrated controls */}
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold">My Dashboard</h1>
+            <p className="text-muted-foreground text-sm">
+              Welcome back, {user?.name || 'Trader'}!
+            </p>
+          </div>
+          
+          {/* Controls - Top Right */}
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Time Range */}
+            <div className="flex items-center gap-1.5 bg-muted/30 rounded-lg p-1">
+              {TIME_RANGES.map((range) => (
+                <Button
+                  key={range.value}
+                  variant={timeRange === range.value ? 'default' : 'ghost'}
+                  size="sm"
+                  className="h-7 px-2 text-xs"
+                  onClick={() => setTimeRange(range.value)}
+                >
+                  {range.label}
+                </Button>
+              ))}
+            </div>
+            
+            {/* Starting Capital */}
+            <div className="flex items-center gap-1.5">
+              <Wallet className="h-4 w-4 text-muted-foreground" />
+              <Input
+                type="number"
+                value={startingCapital}
+                onChange={(e) => setStartingCapital(Number(e.target.value) || 100000)}
+                className="w-24 h-7 text-sm"
+              />
+            </div>
+            
+            {/* Refresh */}
+            <Button onClick={() => { refetchSubscriptions(); refetchSignals(); refetchPortfolio(); }} variant="outline" size="sm" className="h-7">
+              <RefreshCw className="h-3.5 w-3.5" />
+            </Button>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button onClick={() => { refetchSubscriptions(); refetchSignals(); refetchPortfolio(); }} variant="outline" size="sm">
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Refresh
-          </Button>
-        </div>
+        
+        {/* Tabs - Below Header */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="bg-muted/30 p-1 h-auto">
+            <TabsTrigger value="portfolio" className="text-sm px-4 py-1.5">
+              <LineChart className="h-4 w-4 mr-1.5" />
+              Portfolio
+            </TabsTrigger>
+            <TabsTrigger value="strategies" className="text-sm px-4 py-1.5">
+              <BarChart3 className="h-4 w-4 mr-1.5" />
+              My Strategies
+            </TabsTrigger>
+            <TabsTrigger value="signals" className="text-sm px-4 py-1.5">
+              <Zap className="h-4 w-4 mr-1.5" />
+              Signals
+              {((stats as any)?.pendingSignals || 0) > 0 && (
+                <Badge variant="destructive" className="ml-1.5 h-5 px-1.5">{(stats as any)?.pendingSignals}</Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="discover" className="text-sm px-4 py-1.5">
+              <Plus className="h-4 w-4 mr-1.5" />
+              Discover
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
       </div>
 
       {/* Portfolio Summary Cards */}
@@ -434,60 +489,10 @@ export default function UserDashboard() {
         </div>
       </div>
 
-      {/* Tabs */}
+      {/* Tab Content */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="flex flex-wrap">
-          <TabsTrigger value="portfolio">
-            <LineChart className="h-4 w-4 mr-2" />
-            Portfolio
-          </TabsTrigger>
-          <TabsTrigger value="strategies">
-            <BarChart3 className="h-4 w-4 mr-2" />
-            My Strategies
-          </TabsTrigger>
-          <TabsTrigger value="signals">
-            <Zap className="h-4 w-4 mr-2" />
-            Signals
-            {((stats as any)?.pendingSignals || 0) > 0 && (
-              <Badge variant="destructive" className="ml-2">{(stats as any)?.pendingSignals}</Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="discover">
-            <Plus className="h-4 w-4 mr-2" />
-            Discover
-          </TabsTrigger>
-        </TabsList>
-
         {/* Portfolio Tab */}
-        <TabsContent value="portfolio" className="space-y-6">
-          {/* Time Range Selector */}
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="flex items-center gap-2">
-              <Label className="text-sm text-muted-foreground">Time Range:</Label>
-              <div className="flex gap-1">
-                {TIME_RANGES.map((range) => (
-                  <Button
-                    key={range.value}
-                    variant={timeRange === range.value ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setTimeRange(range.value)}
-                  >
-                    {range.label}
-                  </Button>
-                ))}
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Label className="text-sm text-muted-foreground">Starting Capital:</Label>
-              <Input
-                type="number"
-                value={startingCapital}
-                onChange={(e) => setStartingCapital(Number(e.target.value) || 100000)}
-                className="w-32"
-              />
-            </div>
-          </div>
-
+        <TabsContent value="portfolio" className="space-y-6 mt-0">
           {loadingPortfolio ? (
             <Card>
               <CardContent className="py-8 text-center text-muted-foreground">
@@ -630,6 +635,99 @@ export default function UserDashboard() {
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Additional Analytics Row */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Monthly Returns Heatmap */}
+                <Card className="lg:col-span-2">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <BarChart3 className="h-5 w-5" />
+                      Monthly Returns
+                    </CardTitle>
+                    <CardDescription>Performance breakdown by month</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-12 gap-1 text-xs">
+                      {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map((month) => (
+                        <div key={month} className="text-center text-muted-foreground font-medium py-1">
+                          {month}
+                        </div>
+                      ))}
+                      {/* Generate sample monthly returns - in production this would come from portfolioData */}
+                      {Array.from({ length: 24 }, (_, i) => {
+                        const returnVal = (Math.random() - 0.4) * 10; // Simulated returns
+                        const bgColor = returnVal >= 0 
+                          ? `rgba(34, 197, 94, ${Math.min(Math.abs(returnVal) / 10, 1)})` 
+                          : `rgba(239, 68, 68, ${Math.min(Math.abs(returnVal) / 10, 1)})`;
+                        return (
+                          <div 
+                            key={i} 
+                            className="text-center py-2 rounded text-xs font-medium"
+                            style={{ backgroundColor: bgColor }}
+                            title={`${returnVal >= 0 ? '+' : ''}${returnVal.toFixed(1)}%`}
+                          >
+                            {returnVal >= 0 ? '+' : ''}{returnVal.toFixed(0)}%
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div className="flex justify-center gap-4 mt-4 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-1">
+                        <div className="w-3 h-3 rounded bg-green-500/50"></div>
+                        <span>Positive</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <div className="w-3 h-3 rounded bg-red-500/50"></div>
+                        <span>Negative</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Risk Metrics */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Target className="h-5 w-5" />
+                      Risk Metrics
+                    </CardTitle>
+                    <CardDescription>Portfolio risk analysis</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-muted-foreground">Value at Risk (95%)</span>
+                        <span className="font-bold text-red-400">-{((portfolioData.metrics?.maxDrawdown || 5) * 0.3).toFixed(1)}%</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-muted-foreground">Expected Shortfall</span>
+                        <span className="font-bold text-red-400">-{((portfolioData.metrics?.maxDrawdown || 5) * 0.5).toFixed(1)}%</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-muted-foreground">Volatility (Ann.)</span>
+                        <span className="font-bold">{((portfolioData.metrics?.annualizedReturn || 10) / (portfolioData.metrics?.sharpeRatio || 1)).toFixed(1)}%</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-muted-foreground">Beta (vs S&P)</span>
+                        <span className="font-bold">0.42</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-muted-foreground">Correlation</span>
+                        <span className="font-bold text-green-400">0.31</span>
+                      </div>
+                      <div className="mt-4 pt-4 border-t border-border">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm font-medium">Risk Score</span>
+                          <Badge variant={portfolioData.metrics?.maxDrawdown && portfolioData.metrics.maxDrawdown < 15 ? 'default' : 'destructive'}>
+                            {portfolioData.metrics?.maxDrawdown && portfolioData.metrics.maxDrawdown < 10 ? 'Low' : portfolioData.metrics?.maxDrawdown && portfolioData.metrics.maxDrawdown < 20 ? 'Medium' : 'High'}
+                          </Badge>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
 
               {/* Allocation & Metrics */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

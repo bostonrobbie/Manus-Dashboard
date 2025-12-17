@@ -2336,3 +2336,31 @@
 - [x] Add color-coded borders matching metric types
 - [x] Add icons on each metric card
 - [x] Compact layout with better spacing
+
+
+## Current Sprint: UI Enhancements & Kelly Equity Curve
+
+### Strategy Detail Page Cleanup
+- [x] Remove duplicate Time Range dropdown (keep only buttons)
+- [x] Remove duplicate Contract Size dropdown (keep only buttons)
+- [x] Keep Starting Capital input field
+- [x] Redesign controls section for cleaner UI
+- [x] Add comprehensive industry-standard performance statistics
+- [x] Add MAR ratio, Ulcer Index, Recovery Factor
+- [x] Add average trade duration, best/worst trade
+- [x] Add consecutive wins/losses stats
+
+### Kelly Criterion Equity Curve on Overview
+- [x] Calculate optimal Kelly percentage from trade data
+- [x] Generate equity curve using Kelly position sizing (half-Kelly for safety)
+- [x] Add toggle to show/hide Kelly curve on main equity chart
+- [x] Display Kelly percentage in legendplay Kelly percentage in chart legend
+
+### My Dashboard Enhancements
+- [ ] Move Portfolio/My Strategies/Signals/Discover tabs to top right
+- [ ] Move Time Range and Starting Capital controls to top right
+- [ ] Add correlation matrix heatmap for user's strategies
+- [ ] Add day-of-week performance heatmap
+- [ ] Add monthly returns calendar heatmap
+- [ ] Add rolling metrics charts (Sharpe, Sortino)
+- [ ] Add distribution charts (P&L, trade duration)
