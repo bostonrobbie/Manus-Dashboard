@@ -64,33 +64,36 @@ export function VisualAnalyticsCharts({ timeRange }: VisualAnalyticsChartsProps)
       {/* Consecutive Wins/Losses Distribution */}
       <div className="space-y-4">
         <div>
-          <h3 className="text-lg font-semibold">Consecutive Wins/Losses Distribution</h3>
-          <p className="text-sm text-muted-foreground">
+          <h3 className="text-base sm:text-lg font-semibold">Consecutive Wins/Losses Distribution</h3>
+          <p className="text-xs sm:text-sm text-muted-foreground">
             Frequency of winning and losing streaks
           </p>
         </div>
-        <div className="h-[300px]">
+        <div className="h-[220px] sm:h-[260px] md:h-[300px]">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={streakData}>
-              <CartesianGrid strokeDasharray="3 3" opacity={0.1} stroke="hsl(var(--muted-foreground))" />
+            <BarChart data={streakData} margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted-foreground))" strokeOpacity={0.15} vertical={false} />
               <XAxis 
                 dataKey="length" 
-                tick={{ fontSize: 12, fill: 'hsl(var(--foreground))' }}
-                label={{ value: 'Streak Length', position: 'insideBottom', offset: -5, fill: 'hsl(var(--muted-foreground))' }}
-                stroke="hsl(var(--muted-foreground))"
+                tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+                tickLine={{ stroke: 'hsl(var(--border))' }}
+                axisLine={{ stroke: 'hsl(var(--border))' }}
+                label={{ value: 'Streak Length', position: 'insideBottom', offset: -5, fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
               />
               <YAxis 
-                tick={{ fontSize: 12, fill: 'hsl(var(--foreground))' }}
-                label={{ value: 'Frequency', angle: -90, position: 'insideLeft', fill: 'hsl(var(--muted-foreground))' }}
-                stroke="hsl(var(--muted-foreground))"
+                tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+                tickLine={{ stroke: 'hsl(var(--border))' }}
+                axisLine={{ stroke: 'hsl(var(--border))' }}
+                width={40}
+                label={{ value: 'Count', angle: -90, position: 'insideLeft', fill: 'hsl(var(--muted-foreground))', fontSize: 11, dx: -5 }}
               />
               <Tooltip 
-                contentStyle={{ backgroundColor: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', color: 'hsl(var(--popover-foreground))' }}
+                contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))', borderRadius: '6px' }}
                 formatter={(value: number) => value}
               />
-              <Legend wrapperStyle={{ color: 'hsl(var(--foreground))' }} />
-              <Bar dataKey="wins" fill="#10b981" name="Win Streaks" />
-              <Bar dataKey="losses" fill="#ef4444" name="Loss Streaks" />
+              <Legend wrapperStyle={{ fontSize: '12px' }} />
+              <Bar dataKey="wins" fill="#10b981" name="Win Streaks" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="losses" fill="#ef4444" name="Loss Streaks" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -99,35 +102,38 @@ export function VisualAnalyticsCharts({ timeRange }: VisualAnalyticsChartsProps)
       {/* Trade Duration Histogram */}
       <div className="space-y-4">
         <div>
-          <h3 className="text-lg font-semibold">Trade Duration Distribution</h3>
-          <p className="text-sm text-muted-foreground">
+          <h3 className="text-base sm:text-lg font-semibold">Trade Duration Distribution</h3>
+          <p className="text-xs sm:text-sm text-muted-foreground">
             Number of trades by holding time
           </p>
         </div>
-        <div className="h-[300px]">
+        <div className="h-[220px] sm:h-[260px] md:h-[300px]">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data.durationDistribution.buckets}>
-              <CartesianGrid strokeDasharray="3 3" opacity={0.1} stroke="hsl(var(--muted-foreground))" />
+            <BarChart data={data.durationDistribution.buckets} margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted-foreground))" strokeOpacity={0.15} vertical={false} />
               <XAxis 
                 dataKey="label" 
-                tick={{ fontSize: 12, fill: 'hsl(var(--foreground))' }}
-                label={{ value: 'Duration', position: 'insideBottom', offset: -5, fill: 'hsl(var(--muted-foreground))' }}
-                stroke="hsl(var(--muted-foreground))"
+                tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+                tickLine={{ stroke: 'hsl(var(--border))' }}
+                axisLine={{ stroke: 'hsl(var(--border))' }}
+                label={{ value: 'Duration', position: 'insideBottom', offset: -5, fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
               />
               <YAxis 
-                tick={{ fontSize: 12, fill: 'hsl(var(--foreground))' }}
-                label={{ value: 'Number of Trades', angle: -90, position: 'insideLeft', fill: 'hsl(var(--muted-foreground))' }}
-                stroke="hsl(var(--muted-foreground))"
+                tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+                tickLine={{ stroke: 'hsl(var(--border))' }}
+                axisLine={{ stroke: 'hsl(var(--border))' }}
+                width={40}
+                label={{ value: 'Trades', angle: -90, position: 'insideLeft', fill: 'hsl(var(--muted-foreground))', fontSize: 11, dx: -5 }}
               />
               <Tooltip 
-                contentStyle={{ backgroundColor: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', color: 'hsl(var(--popover-foreground))' }}
+                contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))', borderRadius: '6px' }}
                 formatter={(value: number, name: string) => {
                   if (name === 'avgPnL') return `$${value.toFixed(2)}`;
                   return value;
                 }}
               />
-              <Legend wrapperStyle={{ color: 'hsl(var(--foreground))' }} />
-              <Bar dataKey="count" fill="hsl(217, 91%, 60%)" name="Trades" />
+              <Legend wrapperStyle={{ fontSize: '12px' }} />
+              <Bar dataKey="count" fill="#3b82f6" name="Trades" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -136,44 +142,49 @@ export function VisualAnalyticsCharts({ timeRange }: VisualAnalyticsChartsProps)
       {/* Win/Loss by Day of Week */}
       <div className="space-y-4">
         <div>
-          <h3 className="text-lg font-semibold">Performance by Day of Week</h3>
-          <p className="text-sm text-muted-foreground">
+          <h3 className="text-base sm:text-lg font-semibold">Performance by Day of Week</h3>
+          <p className="text-xs sm:text-sm text-muted-foreground">
             Win rate and average P&L by trading day
           </p>
         </div>
-        <div className="h-[300px]">
+        <div className="h-[220px] sm:h-[260px] md:h-[300px]">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={dayOfWeekData}>
-              <CartesianGrid strokeDasharray="3 3" opacity={0.1} stroke="hsl(var(--muted-foreground))" />
+            <BarChart data={dayOfWeekData} margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted-foreground))" strokeOpacity={0.15} vertical={false} />
               <XAxis 
                 dataKey="day" 
-                tick={{ fontSize: 12, fill: 'hsl(var(--foreground))' }}
-                stroke="hsl(var(--muted-foreground))"
+                tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+                tickLine={{ stroke: 'hsl(var(--border))' }}
+                axisLine={{ stroke: 'hsl(var(--border))' }}
               />
               <YAxis 
                 yAxisId="left"
-                tick={{ fontSize: 12, fill: 'hsl(var(--foreground))' }}
-                label={{ value: 'Win Rate (%)', angle: -90, position: 'insideLeft', fill: 'hsl(var(--muted-foreground))' }}
-                stroke="hsl(var(--muted-foreground))"
+                tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+                tickLine={{ stroke: 'hsl(var(--border))' }}
+                axisLine={{ stroke: 'hsl(var(--border))' }}
+                width={40}
+                label={{ value: 'Win Rate %', angle: -90, position: 'insideLeft', fill: 'hsl(var(--muted-foreground))', fontSize: 10, dx: -5 }}
               />
               <YAxis 
                 yAxisId="right"
                 orientation="right"
-                tick={{ fontSize: 12, fill: 'hsl(var(--foreground))' }}
-                label={{ value: 'Avg P&L ($)', angle: 90, position: 'insideRight', fill: 'hsl(var(--muted-foreground))' }}
-                stroke="hsl(var(--muted-foreground))"
+                tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+                tickLine={{ stroke: 'hsl(var(--border))' }}
+                axisLine={{ stroke: 'hsl(var(--border))' }}
+                width={50}
+                label={{ value: 'Avg P&L $', angle: 90, position: 'insideRight', fill: 'hsl(var(--muted-foreground))', fontSize: 10, dx: 5 }}
               />
               <Tooltip 
-                contentStyle={{ backgroundColor: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', color: 'hsl(var(--popover-foreground))' }}
+                contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))', borderRadius: '6px' }}
                 formatter={(value: number, name: string) => {
                   if (name === 'Win Rate') return `${value.toFixed(1)}%`;
                   if (name === 'Avg P&L') return `$${value.toFixed(2)}`;
                   return value;
                 }}
               />
-              <Legend wrapperStyle={{ color: 'hsl(var(--foreground))' }} />
-              <Bar yAxisId="left" dataKey="winRate" fill="hsl(258, 90%, 66%)" name="Win Rate" />
-              <Bar yAxisId="right" dataKey="avgPnL" fill="hsl(189, 94%, 43%)" name="Avg P&L" />
+              <Legend wrapperStyle={{ fontSize: '12px' }} />
+              <Bar yAxisId="left" dataKey="winRate" fill="#8b5cf6" name="Win Rate" radius={[4, 4, 0, 0]} />
+              <Bar yAxisId="right" dataKey="avgPnL" fill="#06b6d4" name="Avg P&L" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>

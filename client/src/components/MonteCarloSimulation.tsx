@@ -236,21 +236,25 @@ export default function MonteCarloSimulation({ trades, startingCapital }: MonteC
         
         {/* Chart */}
         {simulationResult && (
-          <div className="h-[400px]">
+          <div className="h-[300px] sm:h-[350px] md:h-[400px] lg:h-[450px]">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={sampledData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.1} />
+              <AreaChart data={sampledData} margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted-foreground))" strokeOpacity={0.15} vertical={false} />
                 <XAxis
                   dataKey="trade"
-                  stroke="hsl(var(--muted-foreground))"
-                  tick={{ fontSize: 12, fill: '#ffffff' }}
-                  label={{ value: 'Trade Number', position: 'insideBottom', offset: -5, fill: '#ffffff' }}
+                  tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                  tickLine={{ stroke: 'hsl(var(--border))' }}
+                  axisLine={{ stroke: 'hsl(var(--border))' }}
+                  interval="preserveStartEnd"
+                  label={{ value: 'Trade Number', position: 'insideBottom', offset: -5, fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
                 />
                 <YAxis
-                  stroke="hsl(var(--muted-foreground))"
-                  tick={{ fontSize: 12, fill: '#ffffff' }}
+                  tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                  tickLine={{ stroke: 'hsl(var(--border))' }}
+                  axisLine={{ stroke: 'hsl(var(--border))' }}
                   tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
-                  label={{ value: 'Portfolio Value', angle: -90, position: 'insideLeft', fill: '#ffffff' }}
+                  width={65}
+                  label={{ value: 'Portfolio Value', angle: -90, position: 'insideLeft', fill: 'hsl(var(--muted-foreground))', fontSize: 12, dx: -5 }}
                 />
                 <Tooltip
                   contentStyle={{

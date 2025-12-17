@@ -2164,3 +2164,73 @@
 - [x] Audit logging
 - [ ] Token rotation support (backlog)
 - [ ] IP allowlisting (backlog)
+
+
+## Mobile Optimization & UI Enhancement Sprint
+
+### Mobile Responsiveness
+- [ ] Audit all pages for mobile breakpoints
+- [ ] Fix sidebar navigation for mobile (collapsible)
+- [ ] Make charts responsive and touch-friendly
+- [ ] Optimize tables for mobile (horizontal scroll or card view)
+- [ ] Fix font sizes for mobile readability
+
+### Performance Optimization
+- [ ] Add lazy loading for charts and heavy components
+- [ ] Implement skeleton loading states
+- [ ] Optimize image loading
+- [ ] Add code splitting for routes
+
+### Alignment & Centering
+- [ ] Fix content centering on all pages
+- [ ] Ensure consistent spacing and padding
+- [ ] Fix card layouts and grid alignment
+- [ ] Standardize component widths
+
+### Visual Analytics Enhancement
+- [ ] Add proper X-axis labels with dates/times
+- [ ] Add proper Y-axis labels with values
+- [ ] Add gridlines for better readability
+- [ ] Add tooltips with detailed data
+- [ ] Improve chart legends
+
+### Smooth UI & Animations
+- [ ] Add page transition animations
+- [ ] Add loading state animations
+- [ ] Add hover effects on interactive elements
+- [ ] Add smooth scroll behavior
+
+### User Experience Enhancements
+- [ ] Add keyboard shortcuts
+- [ ] Improve error messages
+- [ ] Add success/feedback toasts
+- [ ] Add empty state illustrations
+
+
+## Mobile Responsiveness & UI Optimization (Dec 17, 2025)
+
+### Chart Axis Labels & Responsiveness
+- [x] Add X-axis and Y-axis labels to Overview page equity curve
+- [x] Add axis labels to Overview page underwater curve
+- [x] Add axis labels to Strategies page comparison chart
+- [x] Add axis labels to StrategyComparison page charts
+- [x] Add axis labels to StrategyDetail page charts
+- [x] Enhance RollingMetricsChart with responsive height and axis labels
+- [x] Enhance MonteCarloSimulation chart with responsive height
+- [x] Enhance UnderwaterCurveChart with responsive height and axis labels
+- [x] Enhance VisualAnalyticsCharts with responsive heights
+- [x] Enhance DistributionSnapshot histogram with axis labels
+
+### Mobile-First Responsive Design
+- [x] Update DayOfWeekHeatmap for mobile (2-column grid on mobile)
+- [x] Update WeekOfMonthHeatmap for mobile (2-column grid on mobile)
+- [x] Update TradeAndRiskStats tabs for mobile (2x2 grid on mobile)
+- [x] Add responsive font sizes across all components
+- [x] Add responsive padding and spacing
+- [x] Add responsive chart heights (h-[200px] sm:h-[250px] md:h-[300px] pattern)
+
+### UI Polish
+- [x] Remove vertical grid lines from charts for cleaner look
+- [x] Improve chart margins and padding
+- [x] Add proper tick styling for axes
+- [x] Ensure consistent color scheme across all charts

@@ -1,5 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid } from 'recharts';
 
 interface DistributionBucket {
   from: number;
@@ -58,61 +58,70 @@ export function DistributionSnapshot({ distribution }: DistributionSnapshotProps
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Daily Returns Distribution</CardTitle>
-        <CardDescription>
+        <CardTitle className="text-base sm:text-lg">Daily Returns Distribution</CardTitle>
+        <CardDescription className="text-xs sm:text-sm">
           Histogram of {distribution.totalDays.toLocaleString()} trading days
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           {/* Chart */}
-          <div className="md:col-span-2">
-            <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={chartData}>
-                <XAxis 
-                  dataKey="range" 
-                  tick={{ fontSize: 11 }}
-                  interval={1}
-                  angle={-45}
-                  textAnchor="end"
-                  height={60}
-                />
-                <YAxis 
-                  tick={{ fontSize: 11 }}
-                  label={{ value: '% of Days', angle: -90, position: 'insideLeft', style: { fontSize: 12 } }}
-                />
-                <Tooltip
-                  content={({ active, payload }) => {
-                    if (active && payload && payload.length) {
-                      const data = payload[0]!.payload;
-                      return (
-                        <div className="bg-popover border border-border rounded-lg p-3 shadow-lg">
-                          <p className="font-semibold text-sm">
-                            {data.from.toFixed(1)}% to {data.to.toFixed(1)}%
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            {data.count} days ({data.percentage.toFixed(1)}%)
-                          </p>
-                        </div>
-                      );
-                    }
-                    return null;
-                  }}
-                />
-                <Bar dataKey="percentage" radius={[4, 4, 0, 0]}>
-                  {chartData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={getBarColor(entry.from)} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+          <div className="lg:col-span-2">
+            <div className="h-[200px] sm:h-[230px] md:h-[260px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted-foreground))" strokeOpacity={0.15} vertical={false} />
+                  <XAxis 
+                    dataKey="range" 
+                    tick={{ fontSize: 9, fill: 'hsl(var(--muted-foreground))' }}
+                    tickLine={{ stroke: 'hsl(var(--border))' }}
+                    axisLine={{ stroke: 'hsl(var(--border))' }}
+                    interval={1}
+                    angle={-45}
+                    textAnchor="end"
+                    height={50}
+                    label={{ value: 'Return Range', position: 'insideBottom', offset: -5, fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
+                  />
+                  <YAxis 
+                    tick={{ fontSize: 9, fill: 'hsl(var(--muted-foreground))' }}
+                    tickLine={{ stroke: 'hsl(var(--border))' }}
+                    axisLine={{ stroke: 'hsl(var(--border))' }}
+                    width={40}
+                    label={{ value: '% of Days', angle: -90, position: 'insideLeft', fill: 'hsl(var(--muted-foreground))', fontSize: 10, dx: -5 }}
+                  />
+                  <Tooltip
+                    content={({ active, payload }) => {
+                      if (active && payload && payload.length) {
+                        const data = payload[0]!.payload;
+                        return (
+                          <div className="bg-popover border border-border rounded-lg p-3 shadow-lg">
+                            <p className="font-semibold text-sm">
+                              {data.from.toFixed(1)}% to {data.to.toFixed(1)}%
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              {data.count} days ({data.percentage.toFixed(1)}%)
+                            </p>
+                          </div>
+                        );
+                      }
+                      return null;
+                    }}
+                  />
+                  <Bar dataKey="percentage" radius={[4, 4, 0, 0]}>
+                    {chartData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={getBarColor(entry.from)} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
 
           {/* Statistics */}
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             <div>
-              <h4 className="text-sm font-semibold mb-2">Distribution Stats</h4>
-              <div className="space-y-2 text-sm">
+              <h4 className="text-xs sm:text-sm font-semibold mb-2">Distribution Stats</h4>
+              <div className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Mean:</span>
                   <span className="font-medium">{distribution.mean.toFixed(3)}%</span>
@@ -133,8 +142,8 @@ export function DistributionSnapshot({ distribution }: DistributionSnapshotProps
             </div>
 
             <div>
-              <h4 className="text-sm font-semibold mb-2">Tail Analysis</h4>
-              <div className="space-y-2 text-sm">
+              <h4 className="text-xs sm:text-sm font-semibold mb-2">Tail Analysis</h4>
+              <div className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Days &gt; +1%:</span>
                   <span className="font-medium text-green-600">{distribution.pctGt1pct.toFixed(1)}%</span>
@@ -146,7 +155,7 @@ export function DistributionSnapshot({ distribution }: DistributionSnapshotProps
               </div>
             </div>
 
-            <div className="text-xs text-muted-foreground pt-2 border-t">
+            <div className="text-[10px] sm:text-xs text-muted-foreground pt-2 border-t">
               <p>
                 <strong>Skewness:</strong> {distribution.skewness > 0 ? 'Positive' : distribution.skewness < 0 ? 'Negative' : 'Symmetric'} 
                 {distribution.skewness > 0 && ' (more extreme gains)'}

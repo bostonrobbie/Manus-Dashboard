@@ -73,19 +73,19 @@ export const TradeAndRiskStats = memo(function TradeAndRiskStats({ tradeStats }:
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="core" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="core">Core Metrics</TabsTrigger>
-            <TabsTrigger value="risk">Risk Analysis</TabsTrigger>
-            <TabsTrigger value="consistency">Consistency</TabsTrigger>
-            <TabsTrigger value="visual">Visual Analytics</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 h-auto">
+            <TabsTrigger value="core" className="text-xs sm:text-sm py-2">Core Metrics</TabsTrigger>
+            <TabsTrigger value="risk" className="text-xs sm:text-sm py-2">Risk Analysis</TabsTrigger>
+            <TabsTrigger value="consistency" className="text-xs sm:text-sm py-2">Consistency</TabsTrigger>
+            <TabsTrigger value="visual" className="text-xs sm:text-sm py-2">Visual</TabsTrigger>
           </TabsList>
 
           {/* Core Metrics Tab */}
-          <TabsContent value="core" className="space-y-6 mt-6">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          <TabsContent value="core" className="space-y-4 sm:space-y-6 mt-4 sm:mt-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6">
               <div className="space-y-1">
                 <div className="text-xs text-muted-foreground uppercase tracking-wide">Total Trades</div>
-                <div className="text-3xl font-bold">{tradeStats.totalTrades}</div>
+                <div className="text-xl sm:text-3xl font-bold">{tradeStats.totalTrades}</div>
                 <div className="text-xs text-muted-foreground">
                   {tradeStats.winningTrades}W / {tradeStats.losingTrades}L
                 </div>
@@ -93,19 +93,19 @@ export const TradeAndRiskStats = memo(function TradeAndRiskStats({ tradeStats }:
 
               <div className="space-y-1">
                 <div className="text-xs text-muted-foreground uppercase tracking-wide">Win Rate</div>
-                <div className="text-3xl font-bold">{formatPercent(tradeStats.winRate)}</div>
+                <div className="text-xl sm:text-3xl font-bold">{formatPercent(tradeStats.winRate)}</div>
                 <div className="text-xs text-muted-foreground">Percentage of wins</div>
               </div>
 
               <div className="space-y-1">
                 <div className="text-xs text-muted-foreground uppercase tracking-wide">Profit Factor</div>
-                <div className="text-3xl font-bold">{tradeStats.profitFactor.toFixed(2)}</div>
+                <div className="text-xl sm:text-3xl font-bold">{tradeStats.profitFactor.toFixed(2)}</div>
                 <div className="text-xs text-muted-foreground">Gross profit / loss</div>
               </div>
 
               <div className="space-y-1">
                 <div className="text-xs text-muted-foreground uppercase tracking-wide">Expectancy</div>
-                <div className={`text-3xl font-bold ${tradeStats.expectancyPnL >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                <div className={`text-xl sm:text-3xl font-bold ${tradeStats.expectancyPnL >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                   {formatCurrency(tradeStats.expectancyPnL)}
                 </div>
                 <div className="text-xs text-muted-foreground">Per trade</div>

@@ -221,20 +221,28 @@ export default function Strategies() {
               <p className="text-xs text-muted-foreground">View individual strategy details below</p>
             </div>
           ) : (
-            <div className="h-[400px]">
+            <div className="h-[300px] sm:h-[350px] md:h-[400px] lg:h-[450px]">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                <LineChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted-foreground))" strokeOpacity={0.2} vertical={false} />
                   <XAxis 
                     dataKey="date" 
-                    tick={{ fontSize: 12, fill: 'hsl(var(--foreground))' }}
-                    stroke="hsl(var(--muted-foreground))"
+                    tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                    tickLine={{ stroke: 'hsl(var(--border))' }}
+                    axisLine={{ stroke: 'hsl(var(--border))' }}
+                    interval="preserveStartEnd"
+                    tickCount={8}
+                    padding={{ left: 20, right: 20 }}
+                    label={{ value: 'Date', position: 'insideBottom', offset: -5, fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
                   />
                   <YAxis 
                     domain={['dataMin', 'dataMax']}
-                    tick={{ fontSize: 12, fill: 'hsl(var(--foreground))' }}
+                    tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                    tickLine={{ stroke: 'hsl(var(--border))' }}
+                    axisLine={{ stroke: 'hsl(var(--border))' }}
                     tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
-                    stroke="hsl(var(--muted-foreground))"
+                    width={65}
+                    label={{ value: 'Portfolio Value', angle: -90, position: 'insideLeft', fill: 'hsl(var(--muted-foreground))', fontSize: 12, dx: -5 }}
                   />
                   <Tooltip 
                     contentStyle={{ 

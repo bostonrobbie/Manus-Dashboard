@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/sidebar";
 import { getLoginUrl } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
-import { LayoutDashboard, LogOut, PanelLeft, TrendingUp, GitCompare, Webhook, Shield, User } from "lucide-react";
+import { LayoutDashboard, LogOut, PanelLeft, TrendingUp, GitCompare, Webhook, Shield, User, Menu, X } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
@@ -111,7 +111,7 @@ function DashboardLayoutContent({
 }: DashboardLayoutContentProps) {
   const { user, logout } = useAuth();
   const [location, setLocation] = useLocation();
-  const { state, toggleSidebar } = useSidebar();
+  const { state, toggleSidebar, setOpenMobile, openMobile } = useSidebar();
   const isCollapsed = state === "collapsed";
   const [isResizing, setIsResizing] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
@@ -180,6 +180,11 @@ function DashboardLayoutContent({
                   <span className="font-semibold tracking-tight truncate">
                     Navigation
                   </span>
+                  {isAdmin && (
+                    <span className="ml-2 px-1.5 py-0.5 text-[10px] font-medium bg-primary/20 text-primary rounded">
+                      Admin
+                    </span>
+                  )}
                 </div>
               ) : null}
             </div>
@@ -264,7 +269,11 @@ function DashboardLayoutContent({
             </div>
           </div>
         )}
-        <main className="flex-1 p-4">{children}</main>
+        <main className="flex-1 p-3 sm:p-4 md:p-6 animate-fade-in">
+          <div className="max-w-7xl mx-auto">
+            {children}
+          </div>
+        </main>
       </SidebarInset>
     </>
   );

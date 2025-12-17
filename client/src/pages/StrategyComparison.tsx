@@ -240,20 +240,29 @@ export default function StrategyComparison() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="h-[400px]">
+              <div className="h-[300px] sm:h-[350px] md:h-[400px] lg:h-[450px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
+                  <LineChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted-foreground))" strokeOpacity={0.15} vertical={false} />
                     <XAxis 
                       dataKey="date" 
-                      tick={{ fontSize: 14, fill: 'white' }}
+                      tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                      tickLine={{ stroke: 'hsl(var(--border))' }}
+                      axisLine={{ stroke: 'hsl(var(--border))' }}
                       angle={-45}
                       textAnchor="end"
-                      height={80}
+                      height={60}
+                      interval="preserveStartEnd"
+                      padding={{ left: 20, right: 20 }}
+                      label={{ value: 'Date', position: 'insideBottom', offset: -5, fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
                     />
                     <YAxis 
-                      tick={{ fontSize: 14, fill: 'white' }}
+                      tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                      tickLine={{ stroke: 'hsl(var(--border))' }}
+                      axisLine={{ stroke: 'hsl(var(--border))' }}
                       tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
+                      width={65}
+                      label={{ value: 'Portfolio Value', angle: -90, position: 'insideLeft', fill: 'hsl(var(--muted-foreground))', fontSize: 12, dx: -5 }}
                     />
                     <Tooltip 
                       formatter={(value: number) => `$${value.toFixed(2)}`}
@@ -314,20 +323,29 @@ export default function StrategyComparison() {
               <CardDescription>Individual and combined portfolio drawdowns</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="h-[400px]">
+              <div className="h-[300px] sm:h-[350px] md:h-[400px] lg:h-[450px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
+                  <LineChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted-foreground))" strokeOpacity={0.15} vertical={false} />
                     <XAxis 
                       dataKey="date" 
-                      tick={{ fontSize: 14, fill: 'white' }}
+                      tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                      tickLine={{ stroke: 'hsl(var(--border))' }}
+                      axisLine={{ stroke: 'hsl(var(--border))' }}
                       angle={-45}
                       textAnchor="end"
-                      height={80}
+                      height={60}
+                      interval="preserveStartEnd"
+                      padding={{ left: 20, right: 20 }}
+                      label={{ value: 'Date', position: 'insideBottom', offset: -5, fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
                     />
                     <YAxis 
-                      tick={{ fontSize: 14, fill: 'white' }}
+                      tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                      tickLine={{ stroke: 'hsl(var(--border))' }}
+                      axisLine={{ stroke: 'hsl(var(--border))' }}
                       tickFormatter={(value) => `${value.toFixed(1)}%`}
+                      width={55}
+                      label={{ value: 'Drawdown %', angle: -90, position: 'insideLeft', fill: 'hsl(var(--muted-foreground))', fontSize: 12, dx: -5 }}
                     />
                     <Tooltip 
                       formatter={(value: number) => `${value.toFixed(2)}%`}

@@ -92,43 +92,51 @@ export function RollingMetricsChart({ rollingMetrics, timeRange }: RollingMetric
                   <span className="text-sm font-semibold text-blue-400">Current: {latestSharpe.toFixed(2)}</span>
                 )}
               </div>
-              <ResponsiveContainer width="100%" height={200}>
-                <LineChart data={sampledData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted-foreground))" strokeOpacity={0.15} />
-                  <XAxis 
-                    dataKey="date" 
-                    tick={{ fontSize: 14, fill: 'white' }}
-                    stroke="#9CA3AF"
-                  />
-                  <YAxis 
-                    tick={{ fontSize: 14, fill: 'white' }}
-                    stroke="#9CA3AF"
-                  />
-                  <Tooltip 
-                    contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151' }}
-                    formatter={(value: number) => value?.toFixed(2) ?? 'N/A'}
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="sharpe" 
-                    stroke="#60a5fa" 
-                    strokeWidth={2}
-                    dot={false}
-                    name="Sharpe Ratio"
-                  />
-                  {medianSharpe !== null && (
+              <div className="h-[180px] sm:h-[200px] md:h-[220px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={sampledData} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted-foreground))" strokeOpacity={0.15} vertical={false} />
+                    <XAxis 
+                      dataKey="date" 
+                      tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+                      tickLine={{ stroke: 'hsl(var(--border))' }}
+                      axisLine={{ stroke: 'hsl(var(--border))' }}
+                      interval="preserveStartEnd"
+                      tickCount={6}
+                    />
+                    <YAxis 
+                      tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+                      tickLine={{ stroke: 'hsl(var(--border))' }}
+                      axisLine={{ stroke: 'hsl(var(--border))' }}
+                      width={40}
+                      label={{ value: 'Ratio', angle: -90, position: 'insideLeft', fill: 'hsl(var(--muted-foreground))', fontSize: 10, dx: -5 }}
+                    />
+                    <Tooltip 
+                      contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))', borderRadius: '6px' }}
+                      formatter={(value: number) => value?.toFixed(2) ?? 'N/A'}
+                    />
                     <Line 
                       type="monotone" 
-                      dataKey={() => medianSharpe}
-                      stroke="#fbbf24" 
-                      strokeWidth={1}
-                      strokeDasharray="5 5"
+                      dataKey="sharpe" 
+                      stroke="#60a5fa" 
+                      strokeWidth={2}
                       dot={false}
-                      name="Median"
+                      name="Sharpe Ratio"
                     />
-                  )}
-                </LineChart>
-              </ResponsiveContainer>
+                    {medianSharpe !== null && (
+                      <Line 
+                        type="monotone" 
+                        dataKey={() => medianSharpe}
+                        stroke="#fbbf24" 
+                        strokeWidth={1}
+                        strokeDasharray="5 5"
+                        dot={false}
+                        name="Median"
+                      />
+                    )}
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
             </div>
 
             {/* Sortino Ratio Chart */}
@@ -139,43 +147,51 @@ export function RollingMetricsChart({ rollingMetrics, timeRange }: RollingMetric
                   <span className="text-sm font-semibold text-green-400">Current: {latestSortino.toFixed(2)}</span>
                 )}
               </div>
-              <ResponsiveContainer width="100%" height={200}>
-                <LineChart data={sampledData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted-foreground))" strokeOpacity={0.15} />
-                  <XAxis 
-                    dataKey="date" 
-                    tick={{ fontSize: 14, fill: 'white' }}
-                    stroke="#9CA3AF"
-                  />
-                  <YAxis 
-                    tick={{ fontSize: 14, fill: 'white' }}
-                    stroke="#9CA3AF"
-                  />
-                  <Tooltip 
-                    contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151' }}
-                    formatter={(value: number) => value?.toFixed(2) ?? 'N/A'}
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="sortino" 
-                    stroke="#34d399" 
-                    strokeWidth={2}
-                    dot={false}
-                    name="Sortino Ratio"
-                  />
-                  {medianSortino !== null && (
+              <div className="h-[180px] sm:h-[200px] md:h-[220px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={sampledData} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted-foreground))" strokeOpacity={0.15} vertical={false} />
+                    <XAxis 
+                      dataKey="date" 
+                      tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+                      tickLine={{ stroke: 'hsl(var(--border))' }}
+                      axisLine={{ stroke: 'hsl(var(--border))' }}
+                      interval="preserveStartEnd"
+                      tickCount={6}
+                    />
+                    <YAxis 
+                      tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+                      tickLine={{ stroke: 'hsl(var(--border))' }}
+                      axisLine={{ stroke: 'hsl(var(--border))' }}
+                      width={40}
+                      label={{ value: 'Ratio', angle: -90, position: 'insideLeft', fill: 'hsl(var(--muted-foreground))', fontSize: 10, dx: -5 }}
+                    />
+                    <Tooltip 
+                      contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))', borderRadius: '6px' }}
+                      formatter={(value: number) => value?.toFixed(2) ?? 'N/A'}
+                    />
                     <Line 
                       type="monotone" 
-                      dataKey={() => medianSortino}
-                      stroke="#fbbf24" 
-                      strokeWidth={1}
-                      strokeDasharray="5 5"
+                      dataKey="sortino" 
+                      stroke="#34d399" 
+                      strokeWidth={2}
                       dot={false}
-                      name="Median"
+                      name="Sortino Ratio"
                     />
-                  )}
-                </LineChart>
-              </ResponsiveContainer>
+                    {medianSortino !== null && (
+                      <Line 
+                        type="monotone" 
+                        dataKey={() => medianSortino}
+                        stroke="#fbbf24" 
+                        strokeWidth={1}
+                        strokeDasharray="5 5"
+                        dot={false}
+                        name="Median"
+                      />
+                    )}
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
             </div>
 
             <div className="text-xs text-muted-foreground mt-4">
