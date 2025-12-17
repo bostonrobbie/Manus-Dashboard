@@ -291,3 +291,92 @@ export async function getLastInsertedTradeId(strategyId: number) {
 
   return result.length > 0 ? result[0].id : null;
 }
+
+
+/**
+ * Delete a specific webhook log entry
+ */
+export async function deleteWebhookLog(logId: number): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+
+  try {
+    await db.delete(webhookLogs).where(eq(webhookLogs.id, logId));
+    return true;
+  } catch (error) {
+    console.error("[Database] Failed to delete webhook log:", error);
+    return false;
+  }
+}
+
+/**
+ * Delete all webhook logs (admin function)
+ */
+export async function deleteAllWebhookLogs(): Promise<number> {
+  const db = await getDb();
+  if (!db) return 0;
+
+  try {
+    // Count before deleting
+    const countResult = await db.select({ count: webhookLogs.id }).from(webhookLogs);
+    const count = countResult.length;
+    
+    // Delete all
+    await db.delete(webhookLogs);
+    return count;
+  } catch (error) {
+    console.error("[Database] Failed to delete all webhook logs:", error);
+    return 0;
+  }
+}
+
+// In-memory webhook settings (can be moved to database if persistence needed)
+let webhookSettings = {
+  paused: false,
+};
+
+/**
+ * Get webhook processing settings
+ */
+export async function getWebhookSettings(): Promise<{ paused: boolean }> {
+  return webhookSettings;
+}
+
+/**
+ * Update webhook processing settings
+ */
+export async function updateWebhookSettings(updates: Partial<{ paused: boolean }>): Promise<void> {
+  webhookSettings = { ...webhookSettings, ...updates };
+}
+
+/**
+ * Delete a specific trade (admin function for removing test trades)
+ */
+export async function deleteTrade(tradeId: number): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+
+  try {
+    await db.delete(trades).where(eq(trades.id, tradeId));
+    return true;
+  } catch (error) {
+    console.error("[Database] Failed to delete trade:", error);
+    return false;
+  }
+}
+
+/**
+ * Delete trades by IDs (admin function for bulk removal)
+ */
+export async function deleteTradesByIds(tradeIds: number[]): Promise<number> {
+  const db = await getDb();
+  if (!db || tradeIds.length === 0) return 0;
+
+  try {
+    await db.delete(trades).where(inArray(trades.id, tradeIds));
+    return tradeIds.length;
+  } catch (error) {
+    console.error("[Database] Failed to delete trades:", error);
+    return 0;
+  }
+}

@@ -812,6 +812,82 @@ export const appRouter = router({
         const logs = await db.getWebhookLogs(input.limit);
         return logs;
       }),
+
+    /**
+     * Get webhook processing status and statistics
+     */
+    getStatus: protectedProcedure.query(async () => {
+      const settings = await db.getWebhookSettings();
+      const logs = await db.getWebhookLogs(100);
+      
+      // Calculate statistics
+      const stats = {
+        total: logs.length,
+        success: logs.filter(l => l.status === 'success').length,
+        failed: logs.filter(l => l.status === 'failed').length,
+        duplicate: logs.filter(l => l.status === 'duplicate').length,
+        pending: logs.filter(l => l.status === 'pending' || l.status === 'processing').length,
+      };
+      
+      // Calculate average processing time
+      const processingTimes = logs
+        .filter(l => l.processingTimeMs !== null)
+        .map(l => l.processingTimeMs!);
+      const avgProcessingTime = processingTimes.length > 0
+        ? Math.round(processingTimes.reduce((a, b) => a + b, 0) / processingTimes.length)
+        : 0;
+      
+      return {
+        isPaused: settings.paused,
+        stats,
+        avgProcessingTimeMs: avgProcessingTime,
+        lastWebhook: logs.length > 0 ? logs[0].createdAt : null,
+      };
+    }),
+
+    /**
+     * Pause webhook processing
+     */
+    pause: protectedProcedure.mutation(async () => {
+      await db.updateWebhookSettings({ paused: true });
+      return { success: true, message: 'Webhook processing paused' };
+    }),
+
+    /**
+     * Resume webhook processing
+     */
+    resume: protectedProcedure.mutation(async () => {
+      await db.updateWebhookSettings({ paused: false });
+      return { success: true, message: 'Webhook processing resumed' };
+    }),
+
+    /**
+     * Delete a specific webhook log
+     */
+    deleteLog: protectedProcedure
+      .input(z.object({ logId: z.number() }))
+      .mutation(async ({ input }) => {
+        const success = await db.deleteWebhookLog(input.logId);
+        return { success };
+      }),
+
+    /**
+     * Clear all webhook logs
+     */
+    clearLogs: protectedProcedure.mutation(async () => {
+      const deleted = await db.deleteAllWebhookLogs();
+      return { success: true, deleted };
+    }),
+
+    /**
+     * Delete a trade (for removing test trades)
+     */
+    deleteTrade: protectedProcedure
+      .input(z.object({ tradeId: z.number() }))
+      .mutation(async ({ input }) => {
+        const success = await db.deleteTrade(input.tradeId);
+        return { success };
+      }),
   }),
 });
 

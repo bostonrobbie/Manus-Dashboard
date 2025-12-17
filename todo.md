@@ -1599,3 +1599,36 @@
 - [x] Create webhook activity log table with status, P&L, processing time
 - [x] Write comprehensive tests for webhook system
 - [ ] Test end-to-end with real TradingView alerts
+
+
+## TradingView Webhook Enhancement - COMPLETE ✅
+
+### Webhook Service Improvements
+- [x] Update JSON templates to match TradingView format (symbol, date, data, quantity, price, token)
+- [x] Add Entry Signal Template with direction field
+- [x] Add Exit Signal Template with entryPrice, entryTime, pnl fields
+- [x] Implement symbol mapping (ES → ESTrend, NQ → NQTrend, etc.)
+- [x] Add TradingView placeholder variables reference in UI
+
+### Admin Controls
+- [x] Add Pause/Resume webhook processing functionality
+- [x] Add Clear All Logs button with confirmation
+- [x] Add Delete individual log entries
+- [x] Add Delete associated trades from logs
+- [x] Add webhook statistics dashboard (total, success, failed, duplicates, avg processing time)
+
+### Backend Enhancements
+- [x] Consolidate webhook handlers into single service
+- [x] Add tRPC procedures for webhook admin (pause, resume, clearLogs, deleteLog, deleteTrade)
+- [x] Implement duplicate trade detection
+- [x] Add comprehensive error handling and logging
+- [x] Support multiple timestamp formats (ISO, TradingView, Unix)
+
+### Testing
+- [x] Write 51 unit tests for webhook validation and processing
+- [x] Test payload parsing for TradingView format
+- [x] Test symbol mapping functionality
+- [x] Test P&L calculation for long/short trades
+- [x] Test timestamp parsing for various formats
+- [x] Verify webhook endpoint responds correctly (tested via curl)
+

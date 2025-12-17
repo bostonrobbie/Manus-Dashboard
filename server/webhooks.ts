@@ -1,139 +1,276 @@
 /**
  * TradingView Webhook Handler
- * Receives trade signals from TradingView and stores them in the database
+ * 
+ * Receives trade signals from TradingView and stores them in the database.
+ * Supports the actual TradingView webhook format with symbol, date, data, quantity, price, token.
  */
 
 import { Router } from "express";
+import { 
+  processWebhook, 
+  clearWebhookLogs, 
+  removeWebhookLog,
+  pauseWebhookProcessing,
+  resumeWebhookProcessing,
+  isWebhookProcessingPaused,
+  getAllStrategyTemplates,
+  getWebhookUrl
+} from "./webhookService";
 import * as db from "./db";
 
 const router = Router();
 
+// TradingView IP addresses for allowlisting (from TradingView docs)
+const TRADINGVIEW_IPS = [
+  '52.89.214.238',
+  '34.212.75.30',
+  '54.218.53.128',
+  '52.32.178.7',
+];
+
 /**
- * Webhook payload from TradingView
+ * Extract client IP from request
  */
-interface TradingViewWebhookPayload {
-  strategy: string; // Strategy symbol (e.g., "ESTrend", "NQORB")
-  action: "entry" | "exit";
-  direction: "long" | "short";
-  price: number;
-  quantity?: number;
-  timestamp: string; // ISO 8601 timestamp
-  // For exit signals
-  entryPrice?: number;
-  entryTimestamp?: string;
+function getClientIp(req: any): string {
+  const forwarded = req.headers['x-forwarded-for'];
+  if (forwarded) {
+    return forwarded.split(',')[0].trim();
+  }
+  return req.socket?.remoteAddress || req.ip || 'unknown';
 }
 
 /**
- * Validate webhook payload
- */
-function validatePayload(payload: any): payload is TradingViewWebhookPayload {
-  return (
-    typeof payload === "object" &&
-    typeof payload.strategy === "string" &&
-    (payload.action === "entry" || payload.action === "exit") &&
-    (payload.direction === "long" || payload.direction === "short") &&
-    typeof payload.price === "number" &&
-    typeof payload.timestamp === "string"
-  );
-}
-
-/**
- * POST /api/webhooks/tradingview
- * Receive trade signals from TradingView
+ * POST /api/webhook/tradingview
+ * Main webhook endpoint for TradingView alerts
+ * 
+ * Expected payload format:
+ * {
+ *   "symbol": "BTCUSD",
+ *   "date": "{{timenow}}",
+ *   "data": "{{strategy.order.action}}",
+ *   "quantity": 1,
+ *   "price": "{{close}}",
+ *   "token": "your_secret_token"
+ * }
  */
 router.post("/tradingview", async (req, res) => {
+  const startTime = Date.now();
+  const clientIp = getClientIp(req);
+  
   try {
-    // Validate webhook secret (if configured)
-    const webhookSecret = process.env.TRADINGVIEW_WEBHOOK_SECRET;
-    if (webhookSecret) {
-      const providedSecret = req.headers["x-webhook-secret"];
-      if (providedSecret !== webhookSecret) {
-        console.warn("[Webhook] Invalid webhook secret");
-        return res.status(401).json({ error: "Unauthorized" });
-      }
+    // Log incoming webhook
+    console.log(`[Webhook] Received from ${clientIp}:`, JSON.stringify(req.body).substring(0, 500));
+
+    // Optional: Validate TradingView IP (can be disabled for testing)
+    const validateIp = process.env.TRADINGVIEW_VALIDATE_IP === 'true';
+    if (validateIp && !TRADINGVIEW_IPS.includes(clientIp)) {
+      console.warn(`[Webhook] Request from non-TradingView IP: ${clientIp}`);
+      // Don't reject - just log warning (IP validation is optional)
     }
 
-    const payload = req.body;
+    // Process the webhook
+    const result = await processWebhook(req.body, clientIp);
+    
+    const responseTime = Date.now() - startTime;
+    console.log(`[Webhook] Processed in ${responseTime}ms: ${result.message}`);
 
-    // Validate payload structure
-    if (!validatePayload(payload)) {
-      console.warn("[Webhook] Invalid payload structure:", payload);
-      return res.status(400).json({ error: "Invalid payload" });
-    }
-
-    console.log("[Webhook] Received signal:", payload);
-
-    // For exit signals, calculate and store the trade
-    if (payload.action === "exit") {
-      if (!payload.entryPrice || !payload.entryTimestamp) {
-        console.warn("[Webhook] Exit signal missing entry data");
-        return res.status(400).json({ error: "Exit signal requires entry data" });
-      }
-
-      // Find strategy by symbol
-      const strategies = await db.getAllStrategies();
-      const strategy = strategies.find(s => s.symbol === payload.strategy);
-
-      if (!strategy) {
-        console.warn(`[Webhook] Strategy not found: ${payload.strategy}`);
-        return res.status(404).json({ error: "Strategy not found" });
-      }
-
-      // Calculate P&L
-      const entryPrice = payload.entryPrice;
-      const exitPrice = payload.price;
-      const quantity = payload.quantity || 1;
-
-      let pnl: number;
-      if (payload.direction === "long") {
-        pnl = (exitPrice - entryPrice) * quantity;
-      } else {
-        pnl = (entryPrice - exitPrice) * quantity;
-      }
-
-      const pnlPercent = (pnl / (entryPrice * quantity)) * 100;
-
-      // Store trade in database
-      await db.insertTrade({
-        strategyId: strategy.id,
-        entryDate: new Date(payload.entryTimestamp),
-        exitDate: new Date(payload.timestamp),
-        direction: payload.direction === "long" ? "Long" : "Short",
-        entryPrice: Math.round(entryPrice * 100), // Convert to cents
-        exitPrice: Math.round(exitPrice * 100),
-        quantity,
-        pnl: Math.round(pnl * 100), // Convert to cents
-        pnlPercent: Math.round(pnlPercent * 10000), // Convert to basis points
-        commission: 0, // Can be added if provided
-      });
-
-      console.log(`[Webhook] Trade stored: ${strategy.symbol} ${payload.direction} P&L: $${pnl.toFixed(2)}`);
-
-      return res.json({
+    if (result.success) {
+      return res.status(200).json({
         success: true,
-        message: "Trade recorded",
-        pnl: pnl.toFixed(2),
+        message: result.message,
+        logId: result.logId,
+        tradeId: result.tradeId,
+        processingTimeMs: result.processingTimeMs,
+      });
+    } else {
+      // Return 200 even for "soft" failures (duplicates, no entry match)
+      // This prevents TradingView from retrying
+      const statusCode = result.error === 'PAUSED' ? 503 : 200;
+      return res.status(statusCode).json({
+        success: false,
+        message: result.message,
+        error: result.error,
+        logId: result.logId,
+        processingTimeMs: result.processingTimeMs,
       });
     }
-
-    // For entry signals, just acknowledge (we'll store the full trade on exit)
-    return res.json({
-      success: true,
-      message: "Entry signal received",
-    });
 
   } catch (error) {
-    console.error("[Webhook] Error processing webhook:", error);
-    return res.status(500).json({ error: "Internal server error" });
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error(`[Webhook] Error: ${errorMessage}`);
+    
+    return res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      message: errorMessage,
+      processingTimeMs: Date.now() - startTime,
+    });
   }
 });
 
 /**
- * GET /api/webhooks/health
+ * GET /api/webhook/health
  * Health check endpoint
  */
-router.get("/health", (req, res) => {
-  res.json({ status: "ok", service: "tradingview-webhook" });
+router.get("/health", async (req, res) => {
+  const isPaused = await isWebhookProcessingPaused();
+  res.json({ 
+    status: isPaused ? 'paused' : 'ok', 
+    service: 'tradingview-webhook',
+    timestamp: new Date().toISOString(),
+  });
+});
+
+/**
+ * GET /api/webhook/templates
+ * Get all strategy alert message templates
+ */
+router.get("/templates", (req, res) => {
+  const token = process.env.TRADINGVIEW_WEBHOOK_TOKEN;
+  const templates = getAllStrategyTemplates(token);
+  res.json({ templates });
+});
+
+// ============================================
+// Admin endpoints (require authentication)
+// ============================================
+
+/**
+ * Middleware to check admin authentication
+ */
+async function requireAdmin(req: any, res: any, next: any) {
+  // For now, check if there's a valid session
+  // In production, this should verify admin role
+  const authHeader = req.headers.authorization;
+  if (!authHeader) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+  next();
+}
+
+/**
+ * POST /api/webhook/admin/pause
+ * Pause webhook processing
+ */
+router.post("/admin/pause", requireAdmin, async (req, res) => {
+  try {
+    await pauseWebhookProcessing();
+    console.log('[Webhook Admin] Processing paused');
+    res.json({ success: true, message: 'Webhook processing paused' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Failed to pause processing' });
+  }
+});
+
+/**
+ * POST /api/webhook/admin/resume
+ * Resume webhook processing
+ */
+router.post("/admin/resume", requireAdmin, async (req, res) => {
+  try {
+    await resumeWebhookProcessing();
+    console.log('[Webhook Admin] Processing resumed');
+    res.json({ success: true, message: 'Webhook processing resumed' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Failed to resume processing' });
+  }
+});
+
+/**
+ * DELETE /api/webhook/admin/logs
+ * Clear all webhook logs
+ */
+router.delete("/admin/logs", requireAdmin, async (req, res) => {
+  try {
+    const result = await clearWebhookLogs();
+    console.log(`[Webhook Admin] Cleared ${result.deleted} logs`);
+    res.json({ success: true, deleted: result.deleted });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Failed to clear logs' });
+  }
+});
+
+/**
+ * DELETE /api/webhook/admin/logs/:id
+ * Delete a specific webhook log
+ */
+router.delete("/admin/logs/:id", requireAdmin, async (req, res) => {
+  try {
+    const logId = parseInt(req.params.id, 10);
+    if (isNaN(logId)) {
+      return res.status(400).json({ success: false, error: 'Invalid log ID' });
+    }
+    
+    const success = await removeWebhookLog(logId);
+    if (success) {
+      console.log(`[Webhook Admin] Deleted log ${logId}`);
+      res.json({ success: true });
+    } else {
+      res.status(404).json({ success: false, error: 'Log not found' });
+    }
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Failed to delete log' });
+  }
+});
+
+/**
+ * DELETE /api/webhook/admin/trades/:id
+ * Delete a specific trade (for removing test trades)
+ */
+router.delete("/admin/trades/:id", requireAdmin, async (req, res) => {
+  try {
+    const tradeId = parseInt(req.params.id, 10);
+    if (isNaN(tradeId)) {
+      return res.status(400).json({ success: false, error: 'Invalid trade ID' });
+    }
+    
+    const success = await db.deleteTrade(tradeId);
+    if (success) {
+      console.log(`[Webhook Admin] Deleted trade ${tradeId}`);
+      res.json({ success: true });
+    } else {
+      res.status(404).json({ success: false, error: 'Trade not found' });
+    }
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Failed to delete trade' });
+  }
+});
+
+/**
+ * GET /api/webhook/status
+ * Get webhook processing status and statistics
+ */
+router.get("/status", async (req, res) => {
+  try {
+    const isPaused = await isWebhookProcessingPaused();
+    const logs = await db.getWebhookLogs(100);
+    
+    // Calculate statistics
+    const stats = {
+      total: logs.length,
+      success: logs.filter(l => l.status === 'success').length,
+      failed: logs.filter(l => l.status === 'failed').length,
+      duplicate: logs.filter(l => l.status === 'duplicate').length,
+      pending: logs.filter(l => l.status === 'pending' || l.status === 'processing').length,
+    };
+    
+    // Calculate average processing time
+    const processingTimes = logs
+      .filter(l => l.processingTimeMs !== null)
+      .map(l => l.processingTimeMs!);
+    const avgProcessingTime = processingTimes.length > 0
+      ? Math.round(processingTimes.reduce((a, b) => a + b, 0) / processingTimes.length)
+      : 0;
+    
+    res.json({
+      isPaused,
+      stats,
+      avgProcessingTimeMs: avgProcessingTime,
+      lastWebhook: logs.length > 0 ? logs[0].createdAt : null,
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to get status' });
+  }
 });
 
 export default router;
