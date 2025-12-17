@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useAuth } from '@/_core/hooks/useAuth';
 import { trpc } from '@/lib/trpc';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,6 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Slider } from '@/components/ui/slider';
 import { 
   Bell, 
   TrendingUp, 
@@ -21,7 +22,13 @@ import {
   BarChart3,
   Plus,
   Minus,
-  RefreshCw
+  RefreshCw,
+  PieChart,
+  LineChart,
+  Wallet,
+  Target,
+  Activity,
+  Scale
 } from 'lucide-react';
 import {
   Dialog,
@@ -31,18 +38,48 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-// Toast notifications - using simple alert for now
+import {
+  LineChart as RechartsLine,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  Area,
+  AreaChart,
+  PieChart as RechartsPie,
+  Pie,
+  Cell,
+} from 'recharts';
+
+// Time range options
+const TIME_RANGES = [
+  { value: '6M', label: '6M' },
+  { value: 'YTD', label: 'YTD' },
+  { value: '1Y', label: '1Y' },
+  { value: '3Y', label: '3Y' },
+  { value: '5Y', label: '5Y' },
+  { value: 'ALL', label: 'ALL' },
+] as const;
+
+type TimeRange = typeof TIME_RANGES[number]['value'];
+
+const CHART_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
 
 export default function UserDashboard() {
   const { user } = useAuth();
   const showToast = (opts: { title: string; description?: string; variant?: string }) => {
-    // Simple toast implementation
     console.log(`[${opts.variant || 'info'}] ${opts.title}: ${opts.description || ''}`);
   };
-  const [activeTab, setActiveTab] = useState('subscriptions');
+  const [activeTab, setActiveTab] = useState('portfolio');
   const [selectedStrategy, setSelectedStrategy] = useState<number | null>(null);
   const [subscribeDialogOpen, setSubscribeDialogOpen] = useState(false);
   const [settingsDialogOpen, setSettingsDialogOpen] = useState(false);
+  const [advancedSettingsOpen, setAdvancedSettingsOpen] = useState(false);
+  const [timeRange, setTimeRange] = useState<TimeRange>('ALL');
+  const [startingCapital, setStartingCapital] = useState(100000);
   const [subscriptionSettings, setSubscriptionSettings] = useState({
     notificationsEnabled: true,
     autoExecuteEnabled: false,
@@ -66,11 +103,26 @@ export default function UserDashboard() {
   const { data: stats, isLoading: loadingStats } = 
     trpc.subscription.stats.useQuery();
 
+  // Fetch portfolio analytics for user's subscribed strategies
+  const { data: portfolioData, isLoading: loadingPortfolio, refetch: refetchPortfolio } = 
+    trpc.subscription.portfolioAnalytics.useQuery({
+      timeRange: timeRange === 'ALL' ? undefined : timeRange,
+      startingCapital,
+    });
+
+  // Fetch individual strategy equity curves
+  const { data: strategyCurves, isLoading: loadingCurves } = 
+    trpc.subscription.strategyEquityCurves.useQuery({
+      timeRange: timeRange === 'ALL' ? undefined : timeRange,
+      startingCapital,
+    });
+
   // Subscribe mutation
   const subscribeMutation = trpc.subscription.subscribe.useMutation({
     onSuccess: () => {
       showToast({ title: 'Subscribed!', description: 'You are now subscribed to this strategy.' });
       refetchSubscriptions();
+      refetchPortfolio();
       setSubscribeDialogOpen(false);
     },
     onError: (error) => {
@@ -83,6 +135,7 @@ export default function UserDashboard() {
     onSuccess: () => {
       showToast({ title: 'Unsubscribed', description: 'You have been unsubscribed from this strategy.' });
       refetchSubscriptions();
+      refetchPortfolio();
     },
     onError: (error) => {
       showToast({ title: 'Error', description: error.message, variant: 'destructive' });
@@ -94,7 +147,9 @@ export default function UserDashboard() {
     onSuccess: () => {
       showToast({ title: 'Settings Updated', description: 'Your subscription settings have been saved.' });
       refetchSubscriptions();
+      refetchPortfolio();
       setSettingsDialogOpen(false);
+      setAdvancedSettingsOpen(false);
     },
     onError: (error) => {
       showToast({ title: 'Error', description: error.message, variant: 'destructive' });
@@ -156,10 +211,21 @@ export default function UserDashboard() {
     setSubscriptionSettings({
       notificationsEnabled: subscription.notificationsEnabled,
       autoExecuteEnabled: subscription.autoExecuteEnabled,
-      quantityMultiplier: subscription.quantityMultiplier,
+      quantityMultiplier: Number(subscription.quantityMultiplier) || 1,
       maxPositionSize: subscription.maxPositionSize,
     });
     setSettingsDialogOpen(true);
+  };
+
+  const openAdvancedSettings = (subscription: any) => {
+    setSelectedStrategy(subscription.strategyId);
+    setSubscriptionSettings({
+      notificationsEnabled: subscription.notificationsEnabled,
+      autoExecuteEnabled: subscription.autoExecuteEnabled,
+      quantityMultiplier: Number(subscription.quantityMultiplier) || 1,
+      maxPositionSize: subscription.maxPositionSize,
+    });
+    setAdvancedSettingsOpen(true);
   };
 
   // Get subscribed strategy IDs
@@ -168,24 +234,128 @@ export default function UserDashboard() {
   // Get unsubscribed strategies
   const unsubscribedStrategies = strategies?.filter(s => !subscribedStrategyIds.has(s.id)) || [];
 
+  // Prepare combined equity curve data
+  const combinedChartData = useMemo(() => {
+    if (!portfolioData?.equityCurve || portfolioData.equityCurve.length === 0) return [];
+    
+    // Merge individual strategy curves with combined
+    const dateMap = new Map<string, any>();
+    
+    // Add combined portfolio data
+    portfolioData.equityCurve.forEach((point: any) => {
+      dateMap.set(point.date, { date: point.date, combined: point.equity });
+    });
+    
+    // Add individual strategy curves
+    strategyCurves?.curves?.forEach((curve: any, index: number) => {
+      curve.curve?.forEach((point: any) => {
+        const existing = dateMap.get(point.date) || { date: point.date };
+        existing[`strategy_${curve.strategyId}`] = point.equity;
+        dateMap.set(point.date, existing);
+      });
+    });
+    
+    return Array.from(dateMap.values()).sort((a, b) => a.date.localeCompare(b.date));
+  }, [portfolioData, strategyCurves]);
+
+  // Allocation pie chart data
+  const allocationData = useMemo(() => {
+    if (!subscriptions || subscriptions.length === 0) return [];
+    
+    return subscriptions.map((sub, index) => ({
+      name: (sub as any).strategyName || sub.strategy?.name || `Strategy ${sub.strategyId}`,
+      value: Number(sub.quantityMultiplier) || 1,
+      color: CHART_COLORS[index % CHART_COLORS.length],
+    }));
+  }, [subscriptions]);
+
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">My Dashboard</h1>
           <p className="text-muted-foreground">
-            Welcome back, {user?.name || 'Trader'}! Manage your strategy subscriptions and signals.
+            Welcome back, {user?.name || 'Trader'}! Your personalized strategy portfolio.
           </p>
         </div>
-        <Button onClick={() => { refetchSubscriptions(); refetchSignals(); }} variant="outline" size="sm">
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Refresh
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={() => { refetchSubscriptions(); refetchSignals(); refetchPortfolio(); }} variant="outline" size="sm">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
+          </Button>
+        </div>
       </div>
 
+      {/* Portfolio Summary Cards */}
+      {portfolioData?.hasData && portfolioData.metrics && (
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <Card className="border-l-4 border-l-green-500">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Total Return
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className={`text-2xl font-bold ${portfolioData.metrics.totalReturn >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                {portfolioData.metrics.totalReturn >= 0 ? '+' : ''}{portfolioData.metrics.totalReturn.toFixed(2)}%
+              </div>
+              <p className="text-xs text-muted-foreground">{portfolioData.metrics.annualizedReturn.toFixed(2)}% annualized</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Sharpe Ratio
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{portfolioData.metrics.sharpeRatio.toFixed(2)}</div>
+              <p className="text-xs text-muted-foreground">Risk-adjusted</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Max Drawdown
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-red-500">{portfolioData.metrics.maxDrawdown.toFixed(2)}%</div>
+              <p className="text-xs text-muted-foreground">Peak to trough</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Win Rate
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{portfolioData.metrics.winRate.toFixed(1)}%</div>
+              <p className="text-xs text-muted-foreground">{portfolioData.metrics.totalTrades} trades</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Profit Factor
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{portfolioData.metrics.profitFactor.toFixed(2)}</div>
+              <p className="text-xs text-muted-foreground">Gross P / L</p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -233,26 +403,283 @@ export default function UserDashboard() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="subscriptions">
+        <TabsList className="flex flex-wrap">
+          <TabsTrigger value="portfolio">
+            <LineChart className="h-4 w-4 mr-2" />
+            Portfolio
+          </TabsTrigger>
+          <TabsTrigger value="strategies">
             <BarChart3 className="h-4 w-4 mr-2" />
-            My Subscriptions
+            My Strategies
           </TabsTrigger>
           <TabsTrigger value="signals">
             <Zap className="h-4 w-4 mr-2" />
-            Pending Signals
+            Signals
             {((stats as any)?.pendingSignals || 0) > 0 && (
               <Badge variant="destructive" className="ml-2">{(stats as any)?.pendingSignals}</Badge>
             )}
           </TabsTrigger>
           <TabsTrigger value="discover">
             <Plus className="h-4 w-4 mr-2" />
-            Discover Strategies
+            Discover
           </TabsTrigger>
         </TabsList>
 
-        {/* Subscriptions Tab */}
-        <TabsContent value="subscriptions" className="space-y-4">
+        {/* Portfolio Tab */}
+        <TabsContent value="portfolio" className="space-y-6">
+          {/* Time Range Selector */}
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Label className="text-sm text-muted-foreground">Time Range:</Label>
+              <div className="flex gap-1">
+                {TIME_RANGES.map((range) => (
+                  <Button
+                    key={range.value}
+                    variant={timeRange === range.value ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setTimeRange(range.value)}
+                  >
+                    {range.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Label className="text-sm text-muted-foreground">Starting Capital:</Label>
+              <Input
+                type="number"
+                value={startingCapital}
+                onChange={(e) => setStartingCapital(Number(e.target.value) || 100000)}
+                className="w-32"
+              />
+            </div>
+          </div>
+
+          {loadingPortfolio ? (
+            <Card>
+              <CardContent className="py-8 text-center text-muted-foreground">
+                Loading portfolio analytics...
+              </CardContent>
+            </Card>
+          ) : !portfolioData?.hasData ? (
+            <Card>
+              <CardContent className="py-8 text-center">
+                <p className="text-muted-foreground mb-4">
+                  {portfolioData?.message || 'Subscribe to strategies to see your portfolio analytics.'}
+                </p>
+                <Button onClick={() => setActiveTab('discover')}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Discover Strategies
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <>
+              {/* Combined Equity Curve */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Combined Equity Curve</CardTitle>
+                  <CardDescription>Your portfolio performance based on subscribed strategies and multipliers</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-[300px] md:h-[400px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={combinedChartData}>
+                        <defs>
+                          <linearGradient id="combinedGradient" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.3} />
+                            <stop offset="100%" stopColor="#3b82f6" stopOpacity={0.05} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" vertical={false} />
+                        <XAxis 
+                          dataKey="date" 
+                          tick={{ fontSize: 10, fill: '#ffffff' }}
+                          tickLine={{ stroke: 'rgba(255,255,255,0.3)' }}
+                          axisLine={{ stroke: 'rgba(255,255,255,0.4)' }}
+                          angle={-45}
+                          textAnchor="end"
+                          height={60}
+                          interval="preserveStartEnd"
+                          label={{ value: 'Date', position: 'insideBottom', offset: -5, fill: '#ffffff', fontSize: 11 }}
+                        />
+                        <YAxis 
+                          tick={{ fontSize: 10, fill: '#ffffff' }}
+                          tickLine={{ stroke: 'rgba(255,255,255,0.3)' }}
+                          axisLine={{ stroke: 'rgba(255,255,255,0.4)' }}
+                          tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
+                          width={60}
+                          label={{ value: 'Portfolio Value', angle: -90, position: 'insideLeft', fill: '#ffffff', fontSize: 11 }}
+                        />
+                        <Tooltip 
+                          formatter={(value: number) => [`$${value.toLocaleString()}`, 'Value']}
+                          labelStyle={{ color: 'black' }}
+                          contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.2)' }}
+                        />
+                        <Legend />
+                        <Area
+                          type="monotone"
+                          dataKey="combined"
+                          stroke="#3b82f6"
+                          strokeWidth={2}
+                          fill="url(#combinedGradient)"
+                          name="Combined Portfolio"
+                        />
+                        {strategyCurves?.curves?.map((curve: any, index: number) => (
+                          <Line
+                            key={curve.strategyId}
+                            type="monotone"
+                            dataKey={`strategy_${curve.strategyId}`}
+                            stroke={CHART_COLORS[(index + 1) % CHART_COLORS.length]}
+                            strokeWidth={1}
+                            dot={false}
+                            name={curve.strategyName}
+                            strokeOpacity={0.6}
+                          />
+                        ))}
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Underwater Curve */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Underwater Equity Curve</CardTitle>
+                  <CardDescription>Drawdown from peak over time</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-[200px] md:h-[250px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={portfolioData.underwaterCurve}>
+                        <defs>
+                          <linearGradient id="drawdownGradient" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#ef4444" stopOpacity={0.3} />
+                            <stop offset="100%" stopColor="#ef4444" stopOpacity={0.05} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" vertical={false} />
+                        <XAxis 
+                          dataKey="date" 
+                          tick={{ fontSize: 10, fill: '#ffffff' }}
+                          tickLine={{ stroke: 'rgba(255,255,255,0.3)' }}
+                          axisLine={{ stroke: 'rgba(255,255,255,0.4)' }}
+                          angle={-45}
+                          textAnchor="end"
+                          height={60}
+                          interval="preserveStartEnd"
+                        />
+                        <YAxis 
+                          tick={{ fontSize: 10, fill: '#ffffff' }}
+                          tickLine={{ stroke: 'rgba(255,255,255,0.3)' }}
+                          axisLine={{ stroke: 'rgba(255,255,255,0.4)' }}
+                          tickFormatter={(value) => `${value.toFixed(0)}%`}
+                          domain={['dataMin', 0]}
+                          width={50}
+                          label={{ value: 'Drawdown %', angle: -90, position: 'insideLeft', fill: '#ffffff', fontSize: 11 }}
+                        />
+                        <Tooltip 
+                          formatter={(value: number) => [`${value.toFixed(2)}%`, 'Drawdown']}
+                          labelStyle={{ color: 'black' }}
+                          contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.2)' }}
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="drawdown"
+                          stroke="#ef4444"
+                          strokeWidth={2}
+                          fill="url(#drawdownGradient)"
+                          name="Drawdown"
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Allocation & Metrics */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Strategy Allocation */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <PieChart className="h-5 w-5" />
+                      Strategy Allocation
+                    </CardTitle>
+                    <CardDescription>Weight distribution based on multipliers</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-[250px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <RechartsPie>
+                          <Pie
+                            data={allocationData}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={60}
+                            outerRadius={80}
+                            paddingAngle={5}
+                            dataKey="value"
+                            label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                            labelLine={{ stroke: '#ffffff' }}
+                          >
+                            {allocationData.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={entry.color} />
+                            ))}
+                          </Pie>
+                          <Tooltip />
+                        </RechartsPie>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Detailed Metrics */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Activity className="h-5 w-5" />
+                      Performance Metrics
+                    </CardTitle>
+                    <CardDescription>Detailed portfolio statistics</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <p className="text-sm text-muted-foreground">Sortino Ratio</p>
+                        <p className="text-lg font-semibold">{portfolioData.metrics?.sortinoRatio.toFixed(2)}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-sm text-muted-foreground">Calmar Ratio</p>
+                        <p className="text-lg font-semibold">{portfolioData.metrics?.calmarRatio.toFixed(2)}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-sm text-muted-foreground">Avg Win</p>
+                        <p className="text-lg font-semibold text-green-500">${portfolioData.metrics?.avgWin.toFixed(2)}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-sm text-muted-foreground">Avg Loss</p>
+                        <p className="text-lg font-semibold text-red-500">-${Math.abs(portfolioData.metrics?.avgLoss || 0).toFixed(2)}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-sm text-muted-foreground">Total Trades</p>
+                        <p className="text-lg font-semibold">{portfolioData.metrics?.totalTrades.toLocaleString()}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-sm text-muted-foreground">Annualized Return</p>
+                        <p className="text-lg font-semibold">{portfolioData.metrics?.annualizedReturn.toFixed(2)}%</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </>
+          )}
+        </TabsContent>
+
+        {/* My Strategies Tab */}
+        <TabsContent value="strategies" className="space-y-4">
           {loadingSubscriptions ? (
             <Card>
               <CardContent className="py-8 text-center text-muted-foreground">
@@ -271,8 +698,12 @@ export default function UserDashboard() {
             </Card>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {subscriptions?.map((sub) => (
-                <Card key={sub.id}>
+              {subscriptions?.map((sub, index) => (
+                <Card key={sub.id} className="relative overflow-hidden">
+                  <div 
+                    className="absolute top-0 left-0 w-1 h-full" 
+                    style={{ backgroundColor: CHART_COLORS[index % CHART_COLORS.length] }}
+                  />
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-lg">{(sub as any).strategyName || sub.strategy?.name || 'Strategy'}</CardTitle>
@@ -285,21 +716,15 @@ export default function UserDashboard() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
-                        <span className="text-muted-foreground">Multiplier:</span>
-                        <span className="ml-2 font-medium">{sub.quantityMultiplier}x</span>
+                        <p className="text-muted-foreground">Multiplier</p>
+                        <p className="font-semibold text-blue-400">{Number(sub.quantityMultiplier).toFixed(4)}x</p>
                       </div>
                       <div>
-                        <span className="text-muted-foreground">Auto-Execute:</span>
-                        <span className="ml-2 font-medium">{sub.autoExecuteEnabled ? 'On' : 'Off'}</span>
+                        <p className="text-muted-foreground">Auto-Execute</p>
+                        <p className="font-semibold">{sub.autoExecuteEnabled ? 'On' : 'Off'}</p>
                       </div>
-                      {sub.maxPositionSize && (
-                        <div className="col-span-2">
-                          <span className="text-muted-foreground">Max Position:</span>
-                          <span className="ml-2 font-medium">{sub.maxPositionSize} contracts</span>
-                        </div>
-                      )}
                     </div>
                     <div className="flex gap-2">
                       <Button 
@@ -308,8 +733,17 @@ export default function UserDashboard() {
                         className="flex-1"
                         onClick={() => openSettingsDialog(sub)}
                       >
-                        <Settings className="h-4 w-4 mr-1" />
+                        <Settings className="h-4 w-4 mr-2" />
                         Settings
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => openAdvancedSettings(sub)}
+                      >
+                        <Scale className="h-4 w-4 mr-2" />
+                        Advanced
                       </Button>
                       <Button 
                         variant="destructive" 
@@ -334,25 +768,21 @@ export default function UserDashboard() {
                 Loading signals...
               </CardContent>
             </Card>
-          ) : pendingSignals?.length === 0 ? (
+          ) : !pendingSignals || pendingSignals.length === 0 ? (
             <Card>
               <CardContent className="py-8 text-center">
-                <CheckCircle2 className="h-12 w-12 mx-auto text-green-500 mb-4" />
+                <CheckCircle2 className="h-12 w-12 mx-auto mb-4 text-green-500" />
                 <p className="text-muted-foreground">No pending signals. You're all caught up!</p>
               </CardContent>
             </Card>
           ) : (
             <div className="space-y-4">
-              {pendingSignals?.map((signal) => (
-                <Card key={signal.id} className={`border-l-4 ${
-                  signal.direction === 'long' ? 'border-l-green-500' : 'border-l-red-500'
-                }`}>
+              {pendingSignals.map((signal: any) => (
+                <Card key={signal.id}>
                   <CardContent className="py-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4">
-                        <div className={`p-2 rounded-full ${
-                          signal.direction === 'long' ? 'bg-green-500/10' : 'bg-red-500/10'
-                        }`}>
+                        <div className={`p-2 rounded-full ${signal.direction === 'long' ? 'bg-green-500/20' : 'bg-red-500/20'}`}>
                           {signal.direction === 'long' ? (
                             <TrendingUp className="h-5 w-5 text-green-500" />
                           ) : (
@@ -360,39 +790,29 @@ export default function UserDashboard() {
                           )}
                         </div>
                         <div>
-                          <div className="font-medium">{(signal as any).strategyName || 'Strategy'}</div>
-                          <div className="text-sm text-muted-foreground">
-                            {signal.action.toUpperCase()} {signal.quantity} @ ${signal.price?.toFixed(2) || 'Market'}
-                          </div>
+                          <p className="font-semibold">{signal.strategyName}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {signal.direction.toUpperCase()} @ ${(signal.price / 100).toFixed(2)}
+                          </p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-4">
-                        <div className="text-right text-sm">
-                          <div className="flex items-center text-muted-foreground">
-                            <Clock className="h-3 w-3 mr-1" />
-                            {new Date(signal.createdAt).toLocaleTimeString()}
-                          </div>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button 
-                            size="sm" 
-                            variant="default"
-                            onClick={() => handleSignalAction(signal.id, 'executed')}
-                            disabled={updateSignalMutation.isPending}
-                          >
-                            <CheckCircle2 className="h-4 w-4 mr-1" />
-                            Executed
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            onClick={() => handleSignalAction(signal.id, 'skipped')}
-                            disabled={updateSignalMutation.isPending}
-                          >
-                            <XCircle className="h-4 w-4 mr-1" />
-                            Skip
-                          </Button>
-                        </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleSignalAction(signal.id, 'executed')}
+                        >
+                          <CheckCircle2 className="h-4 w-4 mr-2" />
+                          Executed
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleSignalAction(signal.id, 'skipped')}
+                        >
+                          <XCircle className="h-4 w-4 mr-2" />
+                          Skip
+                        </Button>
                       </div>
                     </div>
                   </CardContent>
@@ -413,7 +833,7 @@ export default function UserDashboard() {
           ) : unsubscribedStrategies.length === 0 ? (
             <Card>
               <CardContent className="py-8 text-center">
-                <CheckCircle2 className="h-12 w-12 mx-auto text-green-500 mb-4" />
+                <CheckCircle2 className="h-12 w-12 mx-auto mb-4 text-green-500" />
                 <p className="text-muted-foreground">You're subscribed to all available strategies!</p>
               </CardContent>
             </Card>
@@ -423,25 +843,17 @@ export default function UserDashboard() {
                 <Card key={strategy.id}>
                   <CardHeader>
                     <CardTitle className="text-lg">{strategy.name}</CardTitle>
-                    <CardDescription>{strategy.description || 'No description available'}</CardDescription>
+                    <CardDescription>
+                      {strategy.symbol} • {strategy.strategyType || 'Trading Strategy'}
+                    </CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      <div>
-                        <span className="text-muted-foreground">Symbol:</span>
-                        <span className="ml-2 font-medium">{strategy.symbol}</span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Status:</span>
-                        <Badge variant={strategy.active ? 'default' : 'secondary'} className="ml-2">
-                          {strategy.active ? 'Active' : 'Inactive'}
-                        </Badge>
-                      </div>
-                    </div>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      {strategy.description || 'No description available.'}
+                    </p>
                     <Button 
                       className="w-full"
                       onClick={() => openSubscribeDialog(strategy.id)}
-                      disabled={!strategy.active}
                     >
                       <Plus className="h-4 w-4 mr-2" />
                       Subscribe
@@ -465,62 +877,40 @@ export default function UserDashboard() {
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="flex items-center justify-between">
-              <Label htmlFor="notifications">Enable Notifications</Label>
+              <Label>Enable Notifications</Label>
               <Switch
-                id="notifications"
                 checked={subscriptionSettings.notificationsEnabled}
                 onCheckedChange={(checked) => 
-                  setSubscriptionSettings(s => ({ ...s, notificationsEnabled: checked }))
+                  setSubscriptionSettings(prev => ({ ...prev, notificationsEnabled: checked }))
                 }
               />
             </div>
             <div className="flex items-center justify-between">
-              <div>
-                <Label htmlFor="autoExecute">Auto-Execute Trades</Label>
-                <p className="text-xs text-muted-foreground">Requires connected broker</p>
-              </div>
+              <Label>Auto-Execute Trades</Label>
               <Switch
-                id="autoExecute"
                 checked={subscriptionSettings.autoExecuteEnabled}
                 onCheckedChange={(checked) => 
-                  setSubscriptionSettings(s => ({ ...s, autoExecuteEnabled: checked }))
+                  setSubscriptionSettings(prev => ({ ...prev, autoExecuteEnabled: checked }))
                 }
-                disabled // Disabled until broker integration is complete
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="multiplier">Quantity Multiplier</Label>
-              <Input
-                id="multiplier"
-                type="number"
-                min="0.1"
-                step="0.1"
-                value={subscriptionSettings.quantityMultiplier}
-                onChange={(e) => 
-                  setSubscriptionSettings(s => ({ ...s, quantityMultiplier: parseFloat(e.target.value) || 1 }))
-                }
-              />
+              <Label>Position Size Multiplier</Label>
+              <div className="flex items-center gap-4">
+                <Slider
+                  value={[subscriptionSettings.quantityMultiplier]}
+                  onValueChange={([value]) => 
+                    setSubscriptionSettings(prev => ({ ...prev, quantityMultiplier: value }))
+                  }
+                  min={0.1}
+                  max={5}
+                  step={0.1}
+                  className="flex-1"
+                />
+                <span className="w-16 text-right font-mono">{subscriptionSettings.quantityMultiplier.toFixed(1)}x</span>
+              </div>
               <p className="text-xs text-muted-foreground">
-                Multiply signal quantity by this factor (e.g., 2 = double the contracts)
-              </p>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="maxPosition">Max Position Size (optional)</Label>
-              <Input
-                id="maxPosition"
-                type="number"
-                min="1"
-                placeholder="No limit"
-                value={subscriptionSettings.maxPositionSize || ''}
-                onChange={(e) => 
-                  setSubscriptionSettings(s => ({ 
-                    ...s, 
-                    maxPositionSize: e.target.value ? parseInt(e.target.value) : null 
-                  }))
-                }
-              />
-              <p className="text-xs text-muted-foreground">
-                Maximum contracts to hold at any time
+                Multiply the base position size by this factor
               </p>
             </div>
           </div>
@@ -546,57 +936,38 @@ export default function UserDashboard() {
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="flex items-center justify-between">
-              <Label htmlFor="settings-notifications">Enable Notifications</Label>
+              <Label>Enable Notifications</Label>
               <Switch
-                id="settings-notifications"
                 checked={subscriptionSettings.notificationsEnabled}
                 onCheckedChange={(checked) => 
-                  setSubscriptionSettings(s => ({ ...s, notificationsEnabled: checked }))
+                  setSubscriptionSettings(prev => ({ ...prev, notificationsEnabled: checked }))
                 }
               />
             </div>
             <div className="flex items-center justify-between">
-              <div>
-                <Label htmlFor="settings-autoExecute">Auto-Execute Trades</Label>
-                <p className="text-xs text-muted-foreground">Requires connected broker</p>
-              </div>
+              <Label>Auto-Execute Trades</Label>
               <Switch
-                id="settings-autoExecute"
                 checked={subscriptionSettings.autoExecuteEnabled}
                 onCheckedChange={(checked) => 
-                  setSubscriptionSettings(s => ({ ...s, autoExecuteEnabled: checked }))
-                }
-                disabled // Disabled until broker integration is complete
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="settings-multiplier">Quantity Multiplier</Label>
-              <Input
-                id="settings-multiplier"
-                type="number"
-                min="0.1"
-                step="0.1"
-                value={subscriptionSettings.quantityMultiplier}
-                onChange={(e) => 
-                  setSubscriptionSettings(s => ({ ...s, quantityMultiplier: parseFloat(e.target.value) || 1 }))
+                  setSubscriptionSettings(prev => ({ ...prev, autoExecuteEnabled: checked }))
                 }
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="settings-maxPosition">Max Position Size (optional)</Label>
-              <Input
-                id="settings-maxPosition"
-                type="number"
-                min="1"
-                placeholder="No limit"
-                value={subscriptionSettings.maxPositionSize || ''}
-                onChange={(e) => 
-                  setSubscriptionSettings(s => ({ 
-                    ...s, 
-                    maxPositionSize: e.target.value ? parseInt(e.target.value) : null 
-                  }))
-                }
-              />
+              <Label>Position Size Multiplier</Label>
+              <div className="flex items-center gap-4">
+                <Slider
+                  value={[subscriptionSettings.quantityMultiplier]}
+                  onValueChange={([value]) => 
+                    setSubscriptionSettings(prev => ({ ...prev, quantityMultiplier: value }))
+                  }
+                  min={0.1}
+                  max={5}
+                  step={0.1}
+                  className="flex-1"
+                />
+                <span className="w-16 text-right font-mono">{subscriptionSettings.quantityMultiplier.toFixed(1)}x</span>
+              </div>
             </div>
           </div>
           <DialogFooter>
@@ -604,7 +975,118 @@ export default function UserDashboard() {
               Cancel
             </Button>
             <Button onClick={handleUpdateSettings} disabled={updateSettingsMutation.isPending}>
-              {updateSettingsMutation.isPending ? 'Saving...' : 'Save Settings'}
+              {updateSettingsMutation.isPending ? 'Saving...' : 'Save Changes'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Advanced Settings Dialog */}
+      <Dialog open={advancedSettingsOpen} onOpenChange={setAdvancedSettingsOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Scale className="h-5 w-5" />
+              Advanced Strategy Settings
+            </DialogTitle>
+            <DialogDescription>
+              Fine-tune position sizing, risk management, and equity weighting for this strategy.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-6 py-4">
+            {/* Position Sizing */}
+            <div className="space-y-4">
+              <h4 className="font-semibold flex items-center gap-2">
+                <Target className="h-4 w-4" />
+                Position Sizing
+              </h4>
+              <div className="space-y-2">
+                <Label>Quantity Multiplier</Label>
+                <div className="flex items-center gap-4">
+                  <Slider
+                    value={[subscriptionSettings.quantityMultiplier]}
+                    onValueChange={([value]) => 
+                      setSubscriptionSettings(prev => ({ ...prev, quantityMultiplier: value }))
+                    }
+                    min={0.1}
+                    max={10}
+                    step={0.1}
+                    className="flex-1"
+                  />
+                  <Input
+                    type="number"
+                    value={subscriptionSettings.quantityMultiplier}
+                    onChange={(e) => 
+                      setSubscriptionSettings(prev => ({ ...prev, quantityMultiplier: Number(e.target.value) || 1 }))
+                    }
+                    className="w-24"
+                    step={0.1}
+                    min={0.1}
+                    max={10}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Adjusts the base position size. 1x = standard, 2x = double, 0.5x = half
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label>Max Position Size (contracts)</Label>
+                <Input
+                  type="number"
+                  value={subscriptionSettings.maxPositionSize || ''}
+                  onChange={(e) => 
+                    setSubscriptionSettings(prev => ({ 
+                      ...prev, 
+                      maxPositionSize: e.target.value ? Number(e.target.value) : null 
+                    }))
+                  }
+                  placeholder="No limit"
+                  className="w-full"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Maximum number of contracts for this strategy (leave empty for no limit)
+                </p>
+              </div>
+            </div>
+
+            {/* Notifications & Execution */}
+            <div className="space-y-4">
+              <h4 className="font-semibold flex items-center gap-2">
+                <Bell className="h-4 w-4" />
+                Notifications & Execution
+              </h4>
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label>Signal Notifications</Label>
+                  <p className="text-xs text-muted-foreground">Receive alerts when signals are generated</p>
+                </div>
+                <Switch
+                  checked={subscriptionSettings.notificationsEnabled}
+                  onCheckedChange={(checked) => 
+                    setSubscriptionSettings(prev => ({ ...prev, notificationsEnabled: checked }))
+                  }
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label>Auto-Execute</Label>
+                  <p className="text-xs text-muted-foreground">Automatically execute trades (requires broker connection)</p>
+                </div>
+                <Switch
+                  checked={subscriptionSettings.autoExecuteEnabled}
+                  onCheckedChange={(checked) => 
+                    setSubscriptionSettings(prev => ({ ...prev, autoExecuteEnabled: checked }))
+                  }
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAdvancedSettingsOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleUpdateSettings} disabled={updateSettingsMutation.isPending}>
+              {updateSettingsMutation.isPending ? 'Saving...' : 'Save Advanced Settings'}
             </Button>
           </DialogFooter>
         </DialogContent>

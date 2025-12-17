@@ -101,25 +101,25 @@ export function UnderwaterCurveChart({ data, benchmarkData }: UnderwaterCurveCha
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted-foreground))" strokeOpacity={0.15} vertical={false} />
             <XAxis
               dataKey="date"
-              tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
-              tickLine={{ stroke: 'hsl(var(--border))' }}
-              axisLine={{ stroke: 'hsl(var(--border))' }}
+              tick={{ fontSize: 10, fill: '#ffffff' }}
+              tickLine={{ stroke: 'rgba(255,255,255,0.3)' }}
+              axisLine={{ stroke: 'rgba(255,255,255,0.3)' }}
               interval="preserveStartEnd"
               tickCount={6}
               tickFormatter={(value) => {
                 const date = new Date(value);
                 return date.toLocaleDateString(undefined, { month: 'short', year: '2-digit' });
               }}
-              label={{ value: 'Date', position: 'insideBottom', offset: -5, fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
+              label={{ value: 'Date', position: 'insideBottom', offset: -5, fill: '#ffffff', fontSize: 11 }}
             />
             <YAxis
-              tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
-              tickLine={{ stroke: 'hsl(var(--border))' }}
-              axisLine={{ stroke: 'hsl(var(--border))' }}
+              tick={{ fontSize: 10, fill: '#ffffff' }}
+              tickLine={{ stroke: 'rgba(255,255,255,0.3)' }}
+              axisLine={{ stroke: 'rgba(255,255,255,0.3)' }}
               tickFormatter={(value) => `${value.toFixed(0)}%`}
               domain={['dataMin', 0]}
               width={45}
-              label={{ value: 'Drawdown %', angle: -90, position: 'insideLeft', fill: 'hsl(var(--muted-foreground))', fontSize: 11, dx: -5 }}
+              label={{ value: 'Drawdown %', angle: -90, position: 'insideLeft', fill: '#ffffff', fontSize: 11, dx: -5 }}
             />
             <Tooltip
               content={({ active, payload }) => {

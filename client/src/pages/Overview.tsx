@@ -317,9 +317,9 @@ export default function Overview() {
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted-foreground))" strokeOpacity={0.2} vertical={false} />
                 <XAxis 
                   dataKey="date" 
-                  tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
-                  tickLine={{ stroke: 'hsl(var(--border))' }}
-                  axisLine={{ stroke: 'hsl(var(--border))' }}
+                  tick={{ fontSize: 11, fill: '#ffffff' }}
+                  tickLine={{ stroke: 'rgba(255,255,255,0.3)' }}
+                  axisLine={{ stroke: 'rgba(255,255,255,0.4)' }}
                   angle={-45}
                   textAnchor="end"
                   height={60}
@@ -328,15 +328,15 @@ export default function Overview() {
                   domain={[0, chartData.length - 1]}
                   type="category"
                   padding={{ left: 20, right: 20 }}
-                  label={{ value: 'Date', position: 'insideBottom', offset: -5, fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+                  label={{ value: 'Date', position: 'insideBottom', offset: -5, fill: '#ffffff', fontSize: 12 }}
                 />
                 <YAxis 
-                  tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
-                  tickLine={{ stroke: 'hsl(var(--border))' }}
-                  axisLine={{ stroke: 'hsl(var(--border))' }}
+                  tick={{ fontSize: 11, fill: '#ffffff' }}
+                  tickLine={{ stroke: 'rgba(255,255,255,0.3)' }}
+                  axisLine={{ stroke: 'rgba(255,255,255,0.4)' }}
                   tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
                   width={65}
-                  label={{ value: 'Portfolio Value', angle: -90, position: 'insideLeft', fill: 'hsl(var(--muted-foreground))', fontSize: 12, dx: -5 }}
+                  label={{ value: 'Portfolio Value', angle: -90, position: 'insideLeft', fill: '#ffffff', fontSize: 12, dx: -5 }}
                 />
                 <Tooltip 
                   formatter={(value: number) => `$${value.toFixed(2)}`}
@@ -466,9 +466,9 @@ export default function Overview() {
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted-foreground))" strokeOpacity={0.15} vertical={false} />
                   <XAxis 
                     dataKey="date" 
-                    tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
-                    tickLine={{ stroke: 'hsl(var(--border))' }}
-                    axisLine={{ stroke: 'hsl(var(--border))' }}
+                    tick={{ fontSize: 10, fill: '#ffffff' }}
+                    tickLine={{ stroke: 'rgba(255,255,255,0.3)' }}
+                    axisLine={{ stroke: 'rgba(255,255,255,0.4)' }}
                     angle={-45}
                     textAnchor="end"
                     height={55}
@@ -476,16 +476,16 @@ export default function Overview() {
                     domain={[0, chartData.length - 1]}
                     type="category"
                     padding={{ left: 20, right: 20 }}
-                    label={{ value: 'Date', position: 'insideBottom', offset: -5, fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
+                    label={{ value: 'Date', position: 'insideBottom', offset: -5, fill: '#ffffff', fontSize: 11 }}
                   />
                   <YAxis 
-                    tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
-                    tickLine={{ stroke: 'hsl(var(--border))' }}
-                    axisLine={{ stroke: 'hsl(var(--border))' }}
+                    tick={{ fontSize: 10, fill: '#ffffff' }}
+                    tickLine={{ stroke: 'rgba(255,255,255,0.3)' }}
+                    axisLine={{ stroke: 'rgba(255,255,255,0.4)' }}
                     tickFormatter={(value) => `${value.toFixed(0)}%`}
                     domain={['dataMin', 0]}
                     width={45}
-                    label={{ value: 'Drawdown %', angle: -90, position: 'insideLeft', fill: 'hsl(var(--muted-foreground))', fontSize: 11, dx: -5 }}
+                    label={{ value: 'Drawdown %', angle: -90, position: 'insideLeft', fill: '#ffffff', fontSize: 11, dx: -5 }}
                   />
                   <Tooltip 
                     formatter={(value: number) => `${value.toFixed(2)}%`}

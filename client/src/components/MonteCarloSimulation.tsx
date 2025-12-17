@@ -242,19 +242,19 @@ export default function MonteCarloSimulation({ trades, startingCapital }: MonteC
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted-foreground))" strokeOpacity={0.15} vertical={false} />
                 <XAxis
                   dataKey="trade"
-                  tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
-                  tickLine={{ stroke: 'hsl(var(--border))' }}
-                  axisLine={{ stroke: 'hsl(var(--border))' }}
+                  tick={{ fontSize: 11, fill: '#ffffff' }}
+                  tickLine={{ stroke: 'rgba(255,255,255,0.3)' }}
+                  axisLine={{ stroke: 'rgba(255,255,255,0.3)' }}
                   interval="preserveStartEnd"
-                  label={{ value: 'Trade Number', position: 'insideBottom', offset: -5, fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+                  label={{ value: 'Trade Number', position: 'insideBottom', offset: -5, fill: '#ffffff', fontSize: 12 }}
                 />
                 <YAxis
-                  tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
-                  tickLine={{ stroke: 'hsl(var(--border))' }}
-                  axisLine={{ stroke: 'hsl(var(--border))' }}
+                  tick={{ fontSize: 11, fill: '#ffffff' }}
+                  tickLine={{ stroke: 'rgba(255,255,255,0.3)' }}
+                  axisLine={{ stroke: 'rgba(255,255,255,0.3)' }}
                   tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
                   width={65}
-                  label={{ value: 'Portfolio Value', angle: -90, position: 'insideLeft', fill: 'hsl(var(--muted-foreground))', fontSize: 12, dx: -5 }}
+                  label={{ value: 'Portfolio Value', angle: -90, position: 'insideLeft', fill: '#ffffff', fontSize: 12, dx: -5 }}
                 />
                 <Tooltip
                   contentStyle={{

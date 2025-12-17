@@ -75,17 +75,17 @@ export function VisualAnalyticsCharts({ timeRange }: VisualAnalyticsChartsProps)
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted-foreground))" strokeOpacity={0.15} vertical={false} />
               <XAxis 
                 dataKey="length" 
-                tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
-                tickLine={{ stroke: 'hsl(var(--border))' }}
-                axisLine={{ stroke: 'hsl(var(--border))' }}
-                label={{ value: 'Streak Length', position: 'insideBottom', offset: -5, fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
+                tick={{ fontSize: 10, fill: '#ffffff' }}
+                tickLine={{ stroke: 'rgba(255,255,255,0.3)' }}
+                axisLine={{ stroke: 'rgba(255,255,255,0.3)' }}
+                label={{ value: 'Streak Length', position: 'insideBottom', offset: -5, fill: '#ffffff', fontSize: 11 }}
               />
               <YAxis 
-                tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
-                tickLine={{ stroke: 'hsl(var(--border))' }}
-                axisLine={{ stroke: 'hsl(var(--border))' }}
+                tick={{ fontSize: 10, fill: '#ffffff' }}
+                tickLine={{ stroke: 'rgba(255,255,255,0.3)' }}
+                axisLine={{ stroke: 'rgba(255,255,255,0.3)' }}
                 width={40}
-                label={{ value: 'Count', angle: -90, position: 'insideLeft', fill: 'hsl(var(--muted-foreground))', fontSize: 11, dx: -5 }}
+                label={{ value: 'Count', angle: -90, position: 'insideLeft', fill: '#ffffff', fontSize: 11, dx: -5 }}
               />
               <Tooltip 
                 contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))', borderRadius: '6px' }}
@@ -113,17 +113,17 @@ export function VisualAnalyticsCharts({ timeRange }: VisualAnalyticsChartsProps)
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted-foreground))" strokeOpacity={0.15} vertical={false} />
               <XAxis 
                 dataKey="label" 
-                tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
-                tickLine={{ stroke: 'hsl(var(--border))' }}
-                axisLine={{ stroke: 'hsl(var(--border))' }}
-                label={{ value: 'Duration', position: 'insideBottom', offset: -5, fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
+                tick={{ fontSize: 10, fill: '#ffffff' }}
+                tickLine={{ stroke: 'rgba(255,255,255,0.3)' }}
+                axisLine={{ stroke: 'rgba(255,255,255,0.3)' }}
+                label={{ value: 'Duration', position: 'insideBottom', offset: -5, fill: '#ffffff', fontSize: 11 }}
               />
               <YAxis 
-                tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
-                tickLine={{ stroke: 'hsl(var(--border))' }}
-                axisLine={{ stroke: 'hsl(var(--border))' }}
+                tick={{ fontSize: 10, fill: '#ffffff' }}
+                tickLine={{ stroke: 'rgba(255,255,255,0.3)' }}
+                axisLine={{ stroke: 'rgba(255,255,255,0.3)' }}
                 width={40}
-                label={{ value: 'Trades', angle: -90, position: 'insideLeft', fill: 'hsl(var(--muted-foreground))', fontSize: 11, dx: -5 }}
+                label={{ value: 'Trades', angle: -90, position: 'insideLeft', fill: '#ffffff', fontSize: 11, dx: -5 }}
               />
               <Tooltip 
                 contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))', borderRadius: '6px' }}
@@ -153,26 +153,26 @@ export function VisualAnalyticsCharts({ timeRange }: VisualAnalyticsChartsProps)
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted-foreground))" strokeOpacity={0.15} vertical={false} />
               <XAxis 
                 dataKey="day" 
-                tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
-                tickLine={{ stroke: 'hsl(var(--border))' }}
-                axisLine={{ stroke: 'hsl(var(--border))' }}
+                tick={{ fontSize: 10, fill: '#ffffff' }}
+                tickLine={{ stroke: 'rgba(255,255,255,0.3)' }}
+                axisLine={{ stroke: 'rgba(255,255,255,0.3)' }}
               />
               <YAxis 
                 yAxisId="left"
-                tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
-                tickLine={{ stroke: 'hsl(var(--border))' }}
-                axisLine={{ stroke: 'hsl(var(--border))' }}
+                tick={{ fontSize: 10, fill: '#ffffff' }}
+                tickLine={{ stroke: 'rgba(255,255,255,0.3)' }}
+                axisLine={{ stroke: 'rgba(255,255,255,0.3)' }}
                 width={40}
-                label={{ value: 'Win Rate %', angle: -90, position: 'insideLeft', fill: 'hsl(var(--muted-foreground))', fontSize: 10, dx: -5 }}
+                label={{ value: 'Win Rate %', angle: -90, position: 'insideLeft', fill: '#ffffff', fontSize: 10, dx: -5 }}
               />
               <YAxis 
                 yAxisId="right"
                 orientation="right"
-                tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
-                tickLine={{ stroke: 'hsl(var(--border))' }}
-                axisLine={{ stroke: 'hsl(var(--border))' }}
+                tick={{ fontSize: 10, fill: '#ffffff' }}
+                tickLine={{ stroke: 'rgba(255,255,255,0.3)' }}
+                axisLine={{ stroke: 'rgba(255,255,255,0.3)' }}
                 width={50}
-                label={{ value: 'Avg P&L $', angle: 90, position: 'insideRight', fill: 'hsl(var(--muted-foreground))', fontSize: 10, dx: 5 }}
+                label={{ value: 'Avg P&L $', angle: 90, position: 'insideRight', fill: '#ffffff', fontSize: 10, dx: 5 }}
               />
               <Tooltip 
                 contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))', borderRadius: '6px' }}

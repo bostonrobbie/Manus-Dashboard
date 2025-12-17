@@ -127,6 +127,11 @@
   --chart-4: var(--color-amber-400);  /* Add amber for variety */
   --chart-5: var(--color-purple-400);  /* Add purple for variety */
   
+  /* Chart axis colors - white for visibility on dark background */
+  --chart-axis-color: oklch(1 0 0);  /* White axis lines */
+  --chart-axis-text: oklch(1 0 0);  /* White axis labels */
+  --chart-grid-color: oklch(1 0 0 / 10%);  /* Subtle white grid */
+  
   /* Sidebar */
   --sidebar: oklch(0.16 0.008 285.885);  /* Slightly darker than cards */
   --sidebar-foreground: oklch(0.95 0.005 65);

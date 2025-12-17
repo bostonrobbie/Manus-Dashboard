@@ -98,18 +98,18 @@ export function RollingMetricsChart({ rollingMetrics, timeRange }: RollingMetric
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted-foreground))" strokeOpacity={0.15} vertical={false} />
                     <XAxis 
                       dataKey="date" 
-                      tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
-                      tickLine={{ stroke: 'hsl(var(--border))' }}
-                      axisLine={{ stroke: 'hsl(var(--border))' }}
+                      tick={{ fontSize: 10, fill: '#ffffff' }}
+                      tickLine={{ stroke: 'rgba(255,255,255,0.3)' }}
+                      axisLine={{ stroke: 'rgba(255,255,255,0.3)' }}
                       interval="preserveStartEnd"
                       tickCount={6}
                     />
                     <YAxis 
-                      tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
-                      tickLine={{ stroke: 'hsl(var(--border))' }}
-                      axisLine={{ stroke: 'hsl(var(--border))' }}
+                      tick={{ fontSize: 10, fill: '#ffffff' }}
+                      tickLine={{ stroke: 'rgba(255,255,255,0.3)' }}
+                      axisLine={{ stroke: 'rgba(255,255,255,0.3)' }}
                       width={40}
-                      label={{ value: 'Ratio', angle: -90, position: 'insideLeft', fill: 'hsl(var(--muted-foreground))', fontSize: 10, dx: -5 }}
+                      label={{ value: 'Ratio', angle: -90, position: 'insideLeft', fill: '#ffffff', fontSize: 10, dx: -5 }}
                     />
                     <Tooltip 
                       contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))', borderRadius: '6px' }}
@@ -153,18 +153,18 @@ export function RollingMetricsChart({ rollingMetrics, timeRange }: RollingMetric
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted-foreground))" strokeOpacity={0.15} vertical={false} />
                     <XAxis 
                       dataKey="date" 
-                      tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
-                      tickLine={{ stroke: 'hsl(var(--border))' }}
-                      axisLine={{ stroke: 'hsl(var(--border))' }}
+                      tick={{ fontSize: 10, fill: '#ffffff' }}
+                      tickLine={{ stroke: 'rgba(255,255,255,0.3)' }}
+                      axisLine={{ stroke: 'rgba(255,255,255,0.3)' }}
                       interval="preserveStartEnd"
                       tickCount={6}
                     />
                     <YAxis 
-                      tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
-                      tickLine={{ stroke: 'hsl(var(--border))' }}
-                      axisLine={{ stroke: 'hsl(var(--border))' }}
+                      tick={{ fontSize: 10, fill: '#ffffff' }}
+                      tickLine={{ stroke: 'rgba(255,255,255,0.3)' }}
+                      axisLine={{ stroke: 'rgba(255,255,255,0.3)' }}
                       width={40}
-                      label={{ value: 'Ratio', angle: -90, position: 'insideLeft', fill: 'hsl(var(--muted-foreground))', fontSize: 10, dx: -5 }}
+                      label={{ value: 'Ratio', angle: -90, position: 'insideLeft', fill: '#ffffff', fontSize: 10, dx: -5 }}
                     />
                     <Tooltip 
                       contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))', borderRadius: '6px' }}

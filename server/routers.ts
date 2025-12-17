@@ -1378,6 +1378,177 @@ Please check the Webhooks page in your dashboard for more details.
     availableStrategies: protectedProcedure.query(async () => {
       return db.getAllStrategies();
     }),
+
+    /**
+     * Get user's personalized portfolio analytics
+     */
+    portfolioAnalytics: protectedProcedure
+      .input(z.object({
+        timeRange: TimeRange.optional(),
+        startingCapital: z.number().optional().default(100000),
+      }))
+      .query(async ({ ctx, input }) => {
+        const { timeRange, startingCapital } = input;
+        
+        // Get user's subscriptions
+        const subscriptions = await subscriptionService.getUserSubscriptions(ctx.user.id);
+        if (subscriptions.length === 0) {
+          return {
+            hasData: false,
+            message: 'No subscribed strategies',
+            subscriptions: [],
+            equityCurve: [],
+            underwaterCurve: [],
+            metrics: null,
+          };
+        }
+
+        // Calculate date range
+        const now = new Date();
+        let startDate: Date | undefined;
+        if (timeRange) {
+          const year = now.getFullYear();
+          switch (timeRange) {
+            case '6M': startDate = new Date(now); startDate.setMonth(now.getMonth() - 6); break;
+            case 'YTD': startDate = new Date(year, 0, 1); break;
+            case '1Y': startDate = new Date(now); startDate.setFullYear(now.getFullYear() - 1); break;
+            case '3Y': startDate = new Date(now); startDate.setFullYear(now.getFullYear() - 3); break;
+            case '5Y': startDate = new Date(now); startDate.setFullYear(now.getFullYear() - 5); break;
+            case '10Y': startDate = new Date(now); startDate.setFullYear(now.getFullYear() - 10); break;
+          }
+        }
+
+        // Get strategy IDs from subscriptions
+        const strategyIds = subscriptions.map(s => s.strategyId);
+        
+        // Get trades for all subscribed strategies
+        const allTrades = await db.getTrades({ strategyIds, startDate, endDate: now });
+        
+        if (allTrades.length === 0) {
+          return {
+            hasData: false,
+            message: 'No trades in selected time range',
+            subscriptions,
+            equityCurve: [],
+            underwaterCurve: [],
+            metrics: null,
+          };
+        }
+
+        // Apply user's multipliers to trades
+        const adjustedTrades = allTrades.map((trade: any) => {
+          const sub = subscriptions.find(s => s.strategyId === trade.strategyId);
+          const multiplier = Number(sub?.quantityMultiplier) || 1;
+          return {
+            ...trade,
+            pnl: trade.pnl * multiplier,
+          };
+        });
+
+        // Calculate combined equity curve
+        const equityCurve = analytics.calculateEquityCurve(adjustedTrades, startingCapital);
+        
+        // Calculate underwater curve (returns array directly)
+        const underwaterCurve = analytics.calculateUnderwaterCurve(equityCurve);
+        
+        // Calculate performance metrics
+        const metrics = analytics.calculatePerformanceMetrics(adjustedTrades, startingCapital);
+
+        return {
+          hasData: true,
+          subscriptions,
+          equityCurve: equityCurve.map((p: { date: Date; equity: number }) => ({
+            date: p.date.toISOString().split('T')[0],
+            equity: p.equity,
+          })),
+          underwaterCurve: underwaterCurve.map((p: { date: Date; drawdownPercent: number }) => ({
+            date: p.date.toISOString().split('T')[0],
+            drawdown: p.drawdownPercent,
+          })),
+          metrics: {
+            totalReturn: metrics.totalReturn,
+            annualizedReturn: metrics.annualizedReturn,
+            sharpeRatio: metrics.sharpeRatio,
+            sortinoRatio: metrics.sortinoRatio,
+            maxDrawdown: metrics.maxDrawdown,
+            winRate: metrics.winRate,
+            profitFactor: metrics.profitFactor,
+            calmarRatio: metrics.calmarRatio,
+            totalTrades: metrics.totalTrades,
+            avgWin: metrics.avgWin,
+            avgLoss: metrics.avgLoss,
+          },
+        };
+      }),
+
+    /**
+     * Get individual strategy equity curves for comparison
+     */
+    strategyEquityCurves: protectedProcedure
+      .input(z.object({
+        timeRange: TimeRange.optional(),
+        startingCapital: z.number().optional().default(100000),
+      }))
+      .query(async ({ ctx, input }) => {
+        const { timeRange, startingCapital } = input;
+        
+        // Get user's subscriptions
+        const subscriptions = await subscriptionService.getUserSubscriptions(ctx.user.id);
+        if (subscriptions.length === 0) {
+          return { curves: [] };
+        }
+
+        // Calculate date range
+        const now = new Date();
+        let startDate: Date | undefined;
+        if (timeRange) {
+          const year = now.getFullYear();
+          switch (timeRange) {
+            case '6M': startDate = new Date(now); startDate.setMonth(now.getMonth() - 6); break;
+            case 'YTD': startDate = new Date(year, 0, 1); break;
+            case '1Y': startDate = new Date(now); startDate.setFullYear(now.getFullYear() - 1); break;
+            case '3Y': startDate = new Date(now); startDate.setFullYear(now.getFullYear() - 3); break;
+            case '5Y': startDate = new Date(now); startDate.setFullYear(now.getFullYear() - 5); break;
+            case '10Y': startDate = new Date(now); startDate.setFullYear(now.getFullYear() - 10); break;
+          }
+        }
+
+        // Get equity curve for each subscribed strategy
+        const curves = await Promise.all(subscriptions.map(async (sub) => {
+          const trades = await db.getTrades({ strategyIds: [sub.strategyId], startDate, endDate: now });
+          const multiplier = Number(sub.quantityMultiplier) || 1;
+          const adjustedTrades = trades.map((t: any) => ({ ...t, pnl: t.pnl * multiplier }));
+          const equityCurve = analytics.calculateEquityCurve(adjustedTrades, startingCapital);
+          
+          return {
+            strategyId: sub.strategyId,
+            strategyName: (sub as any).strategyName || `Strategy ${sub.strategyId}`,
+            multiplier,
+            curve: equityCurve.map(p => ({
+              date: p.date.toISOString().split('T')[0],
+              equity: p.equity,
+            })),
+          };
+        }));
+
+        return { curves };
+      }),
+
+    /**
+     * Update advanced strategy settings (position sizing, variance, etc.)
+     */
+    updateAdvancedSettings: protectedProcedure
+      .input(z.object({
+        strategyId: z.number(),
+        notificationsEnabled: z.boolean().optional(),
+        autoExecuteEnabled: z.boolean().optional(),
+        quantityMultiplier: z.number().optional(),
+        maxPositionSize: z.number().nullable().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const { strategyId, ...settings } = input;
+        return subscriptionService.updateSubscriptionSettings(ctx.user.id, strategyId, settings);
+      }),
   }),
 });
 

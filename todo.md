@@ -2234,3 +2234,37 @@
 - [x] Improve chart margins and padding
 - [x] Add proper tick styling for axes
 - [x] Ensure consistent color scheme across all charts
+
+
+## Current Sprint: Global White Axis Colors & Enhanced My Dashboard ✅ COMPLETE
+
+### Global Chart Axis Color Fix
+- [x] Add chart axis CSS variables to index.css
+- [x] Update Overview page equity curve chart to use white axis colors
+- [x] Update Overview page underwater chart to use white axis colors
+- [x] Update Strategies page chart to use white axis colors
+- [x] Update StrategyComparison page charts to use white axis colors
+- [x] Update StrategyDetail page charts to use white axis colors
+- [x] Batch update all chart components with white axis colors
+- [x] Verify consistent white axis colors across entire website
+
+### Enhanced My Dashboard - Backend API
+- [x] Create portfolioAnalytics tRPC procedure for combined portfolio metrics
+- [x] Create strategyEquityCurves tRPC procedure for individual strategy curves
+- [x] Create updateAdvancedSettings tRPC procedure for strategy customization
+- [x] Add weighted equity curve calculation based on user multipliers
+- [x] Fix quantityMultiplier string-to-number conversion
+
+### Enhanced My Dashboard - UI
+- [x] Create Portfolio tab with combined equity curve
+- [x] Add underwater curve chart for portfolio
+- [x] Create strategy allocation pie chart
+- [x] Add detailed performance metrics panel
+- [x] Create My Strategies tab with subscription cards
+- [x] Add Advanced settings dialog for position sizing
+- [x] Create Signals tab for pending signals
+- [x] Create Discover tab for new strategies
+- [x] Add time range selector (6M, YTD, 1Y, 3Y, 5Y, ALL)
+- [x] Add starting capital input
+- [x] Portfolio summary cards (Total Return, Sharpe, Max DD, Win Rate, Profit Factor)
+- [x] White axis labels on all charts

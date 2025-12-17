@@ -227,22 +227,22 @@ export default function Strategies() {
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted-foreground))" strokeOpacity={0.2} vertical={false} />
                   <XAxis 
                     dataKey="date" 
-                    tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
-                    tickLine={{ stroke: 'hsl(var(--border))' }}
-                    axisLine={{ stroke: 'hsl(var(--border))' }}
+                    tick={{ fontSize: 11, fill: '#ffffff' }}
+                    tickLine={{ stroke: 'rgba(255,255,255,0.3)' }}
+                    axisLine={{ stroke: 'rgba(255,255,255,0.3)' }}
                     interval="preserveStartEnd"
                     tickCount={8}
                     padding={{ left: 20, right: 20 }}
-                    label={{ value: 'Date', position: 'insideBottom', offset: -5, fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+                    label={{ value: 'Date', position: 'insideBottom', offset: -5, fill: '#ffffff', fontSize: 12 }}
                   />
                   <YAxis 
                     domain={['dataMin', 'dataMax']}
-                    tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
-                    tickLine={{ stroke: 'hsl(var(--border))' }}
-                    axisLine={{ stroke: 'hsl(var(--border))' }}
+                    tick={{ fontSize: 11, fill: '#ffffff' }}
+                    tickLine={{ stroke: 'rgba(255,255,255,0.3)' }}
+                    axisLine={{ stroke: 'rgba(255,255,255,0.3)' }}
                     tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
                     width={65}
-                    label={{ value: 'Portfolio Value', angle: -90, position: 'insideLeft', fill: 'hsl(var(--muted-foreground))', fontSize: 12, dx: -5 }}
+                    label={{ value: 'Portfolio Value', angle: -90, position: 'insideLeft', fill: '#ffffff', fontSize: 12, dx: -5 }}
                   />
                   <Tooltip 
                     contentStyle={{ 

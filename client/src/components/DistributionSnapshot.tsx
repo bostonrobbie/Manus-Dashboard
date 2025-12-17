@@ -73,21 +73,21 @@ export function DistributionSnapshot({ distribution }: DistributionSnapshotProps
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted-foreground))" strokeOpacity={0.15} vertical={false} />
                   <XAxis 
                     dataKey="range" 
-                    tick={{ fontSize: 9, fill: 'hsl(var(--muted-foreground))' }}
-                    tickLine={{ stroke: 'hsl(var(--border))' }}
-                    axisLine={{ stroke: 'hsl(var(--border))' }}
+                    tick={{ fontSize: 9, fill: '#ffffff' }}
+                    tickLine={{ stroke: 'rgba(255,255,255,0.3)' }}
+                    axisLine={{ stroke: 'rgba(255,255,255,0.3)' }}
                     interval={1}
                     angle={-45}
                     textAnchor="end"
                     height={50}
-                    label={{ value: 'Return Range', position: 'insideBottom', offset: -5, fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
+                    label={{ value: 'Return Range', position: 'insideBottom', offset: -5, fill: '#ffffff', fontSize: 10 }}
                   />
                   <YAxis 
-                    tick={{ fontSize: 9, fill: 'hsl(var(--muted-foreground))' }}
-                    tickLine={{ stroke: 'hsl(var(--border))' }}
-                    axisLine={{ stroke: 'hsl(var(--border))' }}
+                    tick={{ fontSize: 9, fill: '#ffffff' }}
+                    tickLine={{ stroke: 'rgba(255,255,255,0.3)' }}
+                    axisLine={{ stroke: 'rgba(255,255,255,0.3)' }}
                     width={40}
-                    label={{ value: '% of Days', angle: -90, position: 'insideLeft', fill: 'hsl(var(--muted-foreground))', fontSize: 10, dx: -5 }}
+                    label={{ value: '% of Days', angle: -90, position: 'insideLeft', fill: '#ffffff', fontSize: 10, dx: -5 }}
                   />
                   <Tooltip
                     content={({ active, payload }) => {
