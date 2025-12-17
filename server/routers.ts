@@ -943,7 +943,7 @@ export const appRouter = router({
         includeToken: z.boolean().optional().default(true),
       }))
       .mutation(async ({ input, ctx }) => {
-        const { processWebhook } = await import('./webhookService');
+        const { validatePayload, mapSymbolToStrategy } = await import('./webhookService');
         
         // Build the test payload
         const payload: Record<string, unknown> = {
@@ -969,13 +969,59 @@ export const appRouter = router({
           }
         }
         
-        // Process the webhook
-        const result = await processWebhook(payload, 'test-simulator');
-        
-        return {
-          ...result,
-          payload,
-        };
+        // VALIDATE ONLY - do not persist to database
+        // This allows testing without polluting the webhook logs
+        try {
+          const validated = validatePayload(payload);
+          
+          // Check if strategy exists
+          const strategy = await db.getStrategyBySymbol(validated.strategySymbol);
+          
+          // Check token
+          const expectedToken = process.env.TRADINGVIEW_WEBHOOK_TOKEN;
+          const tokenValid = !expectedToken || payload.token === expectedToken;
+          
+          if (!strategy) {
+            return {
+              success: false,
+              logId: 0,
+              message: 'Test validation failed',
+              error: `Unknown strategy: ${validated.strategySymbol}`,
+              payload,
+              isTest: true,
+            };
+          }
+          
+          if (!tokenValid) {
+            return {
+              success: false,
+              logId: 0,
+              message: 'Test validation failed',
+              error: 'Invalid or missing authentication token',
+              payload,
+              isTest: true,
+            };
+          }
+          
+          return {
+            success: true,
+            logId: 0,
+            message: `Test webhook validated successfully for ${strategy.name}`,
+            payload,
+            isTest: true,
+            strategyName: strategy.name,
+            validated,
+          };
+        } catch (error) {
+          return {
+            success: false,
+            logId: 0,
+            message: 'Test validation failed',
+            error: error instanceof Error ? error.message : 'Unknown error',
+            payload,
+            isTest: true,
+          };
+        }
       }),
 
     /**

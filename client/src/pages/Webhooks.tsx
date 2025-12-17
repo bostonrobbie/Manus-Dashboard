@@ -600,8 +600,7 @@ function ActivityTab() {
 function SetupTab() {
   const [selectedStrategy, setSelectedStrategy] = useState<string>("");
   const [copiedUrl, setCopiedUrl] = useState(false);
-  const [copiedEntry, setCopiedEntry] = useState(false);
-  const [copiedExit, setCopiedExit] = useState(false);
+  const [copiedTemplate, setCopiedTemplate] = useState(false);
   const [testPayload, setTestPayload] = useState('');
   const [validationResult, setValidationResult] = useState<any>(null);
   
@@ -619,37 +618,27 @@ function SetupTab() {
     },
   });
 
-  const copyToClipboard = async (text: string, type: 'url' | 'entry' | 'exit') => {
+  const copyToClipboard = async (text: string, type: 'url' | 'template') => {
     await navigator.clipboard.writeText(text);
     if (type === 'url') {
       setCopiedUrl(true);
       setTimeout(() => setCopiedUrl(false), 2000);
-    } else if (type === 'entry') {
-      setCopiedEntry(true);
-      setTimeout(() => setCopiedEntry(false), 2000);
     } else {
-      setCopiedExit(true);
-      setTimeout(() => setCopiedExit(false), 2000);
+      setCopiedTemplate(true);
+      setTimeout(() => setCopiedTemplate(false), 2000);
     }
     toast.success("Copied to clipboard!");
   };
 
-  const getEntryTemplate = () => JSON.stringify({
+  // Unified template that handles both entry and exit signals
+  // TradingView will populate the action based on strategy.order.action
+  const getUnifiedTemplate = () => JSON.stringify({
     symbol: selectedStrategy || "ESTrend",
     date: "{{timenow}}",
-    data: "buy",
-    quantity: 1,
+    data: "{{strategy.order.action}}",
+    quantity: "{{strategy.order.contracts}}",
     price: "{{close}}",
-    direction: "Long",
-    token: "your_secret_token"
-  }, null, 2);
-
-  const getExitTemplate = () => JSON.stringify({
-    symbol: selectedStrategy || "ESTrend",
-    date: "{{timenow}}",
-    data: "exit",
-    quantity: 1,
-    price: "{{close}}",
+    direction: "{{strategy.market_position}}",
     entryPrice: "{{strategy.position_avg_price}}",
     pnl: "{{strategy.order.profit}}",
     token: "your_secret_token"
@@ -722,49 +711,70 @@ function SetupTab() {
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="grid md:grid-cols-2 gap-6">
-            {/* Entry Template */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label className="flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4 text-green-400" />
-                  Entry Signal Template
-                </Label>
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={() => copyToClipboard(getEntryTemplate(), 'entry')}
-                >
-                  {copiedEntry ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                </Button>
-              </div>
-              <Textarea 
-                value={getEntryTemplate()} 
-                readOnly 
-                className="font-mono text-xs h-48"
-              />
+          {/* Unified Template */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <Label className="flex items-center gap-2">
+                <Zap className="h-4 w-4 text-yellow-400" />
+                Unified Signal Template
+              </Label>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => copyToClipboard(getUnifiedTemplate(), 'template')}
+              >
+                {copiedTemplate ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+              </Button>
             </div>
+            <p className="text-sm text-muted-foreground">
+              This single template handles both entry and exit signals. TradingView automatically populates the action, direction, and P&L fields.
+            </p>
+            <Textarea 
+              value={getUnifiedTemplate()} 
+              readOnly 
+              className="font-mono text-xs h-64"
+            />
+          </div>
 
-            {/* Exit Template */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label className="flex items-center gap-2">
-                  <TrendingDown className="h-4 w-4 text-red-400" />
-                  Exit Signal Template
-                </Label>
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={() => copyToClipboard(getExitTemplate(), 'exit')}
-                >
-                  {copiedExit ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                </Button>
+          {/* TradingView Variables Reference */}
+          <div className="rounded-lg border border-border/50 bg-background/50 p-4">
+            <h4 className="font-medium mb-3 flex items-center gap-2">
+              <BookOpen className="h-4 w-4" />
+              TradingView Placeholder Variables
+            </h4>
+            <div className="grid md:grid-cols-2 gap-4 text-sm">
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <code className="text-xs bg-muted px-2 py-1 rounded">{'{{timenow}}'}</code>
+                  <span className="text-muted-foreground">Current timestamp</span>
+                </div>
+                <div className="flex justify-between">
+                  <code className="text-xs bg-muted px-2 py-1 rounded">{'{{close}}'}</code>
+                  <span className="text-muted-foreground">Current price</span>
+                </div>
+                <div className="flex justify-between">
+                  <code className="text-xs bg-muted px-2 py-1 rounded">{'{{strategy.order.action}}'}</code>
+                  <span className="text-muted-foreground">buy/sell/exit</span>
+                </div>
+                <div className="flex justify-between">
+                  <code className="text-xs bg-muted px-2 py-1 rounded">{'{{strategy.order.contracts}}'}</code>
+                  <span className="text-muted-foreground">Quantity</span>
+                </div>
               </div>
-              <Textarea 
-                value={getExitTemplate()} 
-                readOnly 
-                className="font-mono text-xs h-48"
-              />
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <code className="text-xs bg-muted px-2 py-1 rounded">{'{{strategy.market_position}}'}</code>
+                  <span className="text-muted-foreground">long/short/flat</span>
+                </div>
+                <div className="flex justify-between">
+                  <code className="text-xs bg-muted px-2 py-1 rounded">{'{{strategy.position_avg_price}}'}</code>
+                  <span className="text-muted-foreground">Entry price</span>
+                </div>
+                <div className="flex justify-between">
+                  <code className="text-xs bg-muted px-2 py-1 rounded">{'{{strategy.order.profit}}'}</code>
+                  <span className="text-muted-foreground">P&L in dollars</span>
+                </div>
+              </div>
             </div>
           </div>
         </CardContent>

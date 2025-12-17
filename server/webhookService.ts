@@ -194,10 +194,12 @@ export function validatePayload(payload: unknown): NormalizedPayload {
   }
 
   // Override direction if explicitly provided
+  // Handle TradingView's market_position values: "long", "short", "flat"
   if (p.direction && typeof p.direction === 'string') {
-    const dirLower = p.direction.toLowerCase();
-    if (dirLower === 'long') direction = 'Long';
-    else if (dirLower === 'short') direction = 'Short';
+    const dirLower = p.direction.toLowerCase().trim();
+    if (dirLower === 'long' || dirLower === 'Long') direction = 'Long';
+    else if (dirLower === 'short' || dirLower === 'Short') direction = 'Short';
+    // "flat" means no position - for exit signals this is expected
   }
 
   // Get price

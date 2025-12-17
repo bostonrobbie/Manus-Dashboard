@@ -1900,3 +1900,23 @@
 - [x] Webhook simulator tests (12 tests)
 - [x] Webhook stress tests (57 tests)
 
+
+
+## Webhook Template & Logging Improvements ✅ COMPLETE
+
+### Unified JSON Template ✅
+- [x] Create single JSON template that handles both entry and exit signals
+- [x] Update Setup tab UI to show unified template instead of separate entry/exit
+- [x] Add TradingView placeholder variables reference
+
+### Test Webhook Isolation ✅
+- [x] Prevent test webhooks from being logged to database
+- [x] Add isTest flag to webhook processing
+- [x] Return validation results without persisting test data
+
+### Webhook to Trade Pipeline ✅
+- [x] Ensure successful webhooks create trades in database
+- [x] Verify trades update equity curves and analytics
+- [x] Fix any issues causing webhook failures
+- [x] Achieve 100% success rate for valid webhooks (222 tests passing)
+
