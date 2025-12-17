@@ -807,8 +807,15 @@ export const appRouter = router({
       const host = ctx.req.headers['x-forwarded-host'] || ctx.req.headers.host || 'localhost:3000';
       const baseUrl = `${protocol}://${host}`;
       
+      // Get the webhook token (masked for display, full for template generation)
+      const webhookToken = process.env.TRADINGVIEW_WEBHOOK_TOKEN || '';
+      const hasToken = webhookToken.length > 0;
+      
       return {
         webhookUrl: `${baseUrl}/api/webhook/tradingview`,
+        webhookToken: webhookToken, // Full token for template generation
+        hasToken,
+        tokenLength: webhookToken.length,
       };
     }),
 

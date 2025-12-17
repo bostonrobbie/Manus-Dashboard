@@ -53,6 +53,7 @@ export interface TradingViewPayload {
   pnl?: number;                // P&L if provided by TradingView
   strategy?: string;           // Strategy name (alternative to symbol)
   comment?: string;            // Additional trade comment
+  quantityMultiplier?: number; // Multiplier for quantity (e.g., 2 = double the signal quantity)
 }
 
 // Internal normalized payload after parsing
@@ -213,8 +214,13 @@ export function validatePayload(payload: unknown): NormalizedPayload {
     throw new WebhookValidationError('Missing "price" field');
   }
 
-  // Get quantity (default to 1)
-  const quantity = typeof p.quantity === 'number' ? p.quantity : 1;
+  // Get quantity (default to 1) and apply multiplier if provided
+  let quantity = typeof p.quantity === 'number' ? p.quantity : 1;
+  
+  // Apply quantity multiplier if provided (e.g., user wants 2x the signal quantity)
+  if (p.quantityMultiplier && typeof p.quantityMultiplier === 'number' && p.quantityMultiplier > 0) {
+    quantity = Math.round(quantity * p.quantityMultiplier);
+  }
 
   // Get timestamp
   let timestamp: Date;

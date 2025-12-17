@@ -599,6 +599,9 @@ function ActivityTab() {
 
 function SetupTab() {
   const [selectedStrategy, setSelectedStrategy] = useState<string>("");
+  const [quantityMultiplier, setQuantityMultiplier] = useState<number>(1);
+  const [useFixedQuantity, setUseFixedQuantity] = useState<boolean>(false);
+  const [fixedQuantity, setFixedQuantity] = useState<number>(1);
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [copiedTemplate, setCopiedTemplate] = useState(false);
   const [testPayload, setTestPayload] = useState('');
@@ -632,17 +635,41 @@ function SetupTab() {
 
   // Unified template that handles both entry and exit signals
   // TradingView will populate the action based on strategy.order.action
-  const getUnifiedTemplate = () => JSON.stringify({
-    symbol: selectedStrategy || "ESTrend",
-    date: "{{timenow}}",
-    data: "{{strategy.order.action}}",
-    quantity: "{{strategy.order.contracts}}",
-    price: "{{close}}",
-    direction: "{{strategy.market_position}}",
-    entryPrice: "{{strategy.position_avg_price}}",
-    pnl: "{{strategy.order.profit}}",
-    token: "your_secret_token"
-  }, null, 2);
+  // Token is auto-populated from the configured webhook token
+  const getUnifiedTemplate = () => {
+    // Determine quantity field based on user settings
+    let quantityValue: string | number;
+    if (useFixedQuantity) {
+      // Use fixed quantity (user overrides strategy quantity)
+      quantityValue = fixedQuantity;
+    } else if (quantityMultiplier !== 1) {
+      // Use multiplier - this will be a formula that TradingView can't evaluate,
+      // so we'll use a comment to explain
+      quantityValue = `{{strategy.order.contracts}}`; // Multiplier applied server-side
+    } else {
+      // Use TradingView's dynamic quantity
+      quantityValue = "{{strategy.order.contracts}}";
+    }
+
+    const template: Record<string, any> = {
+      symbol: selectedStrategy || "ESTrend",
+      date: "{{timenow}}",
+      data: "{{strategy.order.action}}",
+      quantity: quantityValue,
+      price: "{{close}}",
+      direction: "{{strategy.market_position}}",
+      entryPrice: "{{strategy.position_avg_price}}",
+      pnl: "{{strategy.order.profit}}",
+      token: webhookConfig?.webhookToken || "your_secret_token"
+    };
+
+    // Add quantity multiplier if set (server will apply this)
+    if (!useFixedQuantity && quantityMultiplier !== 1) {
+      template.quantityMultiplier = quantityMultiplier;
+    }
+
+    return JSON.stringify(template, null, 2);
+  };
 
   return (
     <>
@@ -699,14 +726,98 @@ function SetupTab() {
         </CardContent>
       </Card>
 
-      {/* Step 3: Message Templates */}
+      {/* Step 3: Quantity Configuration */}
       <Card className="bg-card/50 border-border/50">
         <CardHeader>
           <div className="flex items-center gap-3">
             <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">3</div>
             <div>
+              <CardTitle>Quantity Configuration</CardTitle>
+              <CardDescription>Configure how many contracts to trade per signal</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Quantity Mode Selection */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center space-x-2">
+                <input
+                  type="radio"
+                  id="dynamic-qty"
+                  name="qty-mode"
+                  checked={!useFixedQuantity}
+                  onChange={() => setUseFixedQuantity(false)}
+                  className="h-4 w-4 text-primary"
+                />
+                <Label htmlFor="dynamic-qty" className="cursor-pointer">
+                  Use TradingView's quantity
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="radio"
+                  id="fixed-qty"
+                  name="qty-mode"
+                  checked={useFixedQuantity}
+                  onChange={() => setUseFixedQuantity(true)}
+                  className="h-4 w-4 text-primary"
+                />
+                <Label htmlFor="fixed-qty" className="cursor-pointer">
+                  Use fixed quantity
+                </Label>
+              </div>
+            </div>
+
+            {/* Dynamic Quantity Options */}
+            {!useFixedQuantity && (
+              <div className="flex items-center gap-4 p-4 rounded-lg border border-border/50 bg-background/50">
+                <Label className="min-w-fit">Quantity Multiplier:</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  max={100}
+                  value={quantityMultiplier}
+                  onChange={(e) => setQuantityMultiplier(Math.max(1, parseInt(e.target.value) || 1))}
+                  className="w-24"
+                />
+                <span className="text-sm text-muted-foreground">
+                  {quantityMultiplier === 1 
+                    ? "Uses strategy's signal quantity" 
+                    : `Multiplies signal quantity by ${quantityMultiplier}x`}
+                </span>
+              </div>
+            )}
+
+            {/* Fixed Quantity Options */}
+            {useFixedQuantity && (
+              <div className="flex items-center gap-4 p-4 rounded-lg border border-border/50 bg-background/50">
+                <Label className="min-w-fit">Fixed Contracts:</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  max={100}
+                  value={fixedQuantity}
+                  onChange={(e) => setFixedQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                  className="w-24"
+                />
+                <span className="text-sm text-muted-foreground">
+                  Always trades {fixedQuantity} contract{fixedQuantity !== 1 ? 's' : ''} regardless of signal
+                </span>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Step 4: Message Templates */}
+      <Card className="bg-card/50 border-border/50">
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">4</div>
+            <div>
               <CardTitle>Message Templates</CardTitle>
-              <CardDescription>Copy these JSON templates into your TradingView alert message field</CardDescription>
+              <CardDescription>Copy this ready-to-use JSON into your TradingView alert message field</CardDescription>
             </div>
           </div>
         </CardHeader>
@@ -726,9 +837,22 @@ function SetupTab() {
                 {copiedTemplate ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
               </Button>
             </div>
-            <p className="text-sm text-muted-foreground">
-              This single template handles both entry and exit signals. TradingView automatically populates the action, direction, and P&L fields.
-            </p>
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground">
+                This template is ready to copy and paste - token and quantity settings are already configured.
+              </p>
+              {webhookConfig?.hasToken ? (
+                <div className="flex items-center gap-2 text-sm text-green-400">
+                  <CheckCircle2 className="h-4 w-4" />
+                  <span>Webhook token auto-included</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 text-sm text-yellow-400">
+                  <AlertTriangle className="h-4 w-4" />
+                  <span>No webhook token configured - add one in Settings → Secrets</span>
+                </div>
+              )}
+            </div>
             <Textarea 
               value={getUnifiedTemplate()} 
               readOnly 
