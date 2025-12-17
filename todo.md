@@ -1632,3 +1632,88 @@
 - [x] Test timestamp parsing for various formats
 - [x] Verify webhook endpoint responds correctly (tested via curl)
 
+
+
+## Webhook Enhancement Sprint - In Progress
+
+### Phase 1: Security & Authentication
+- [ ] Set up TRADINGVIEW_WEBHOOK_TOKEN environment variable
+- [ ] Verify token validation in webhook endpoint
+- [ ] Add IP allowlisting option for TradingView IPs
+
+### Phase 2: Testing Infrastructure
+- [ ] Create webhook test simulator in UI
+- [ ] Add "Send Test Webhook" button with sample payloads
+- [ ] Add payload validation preview (dry-run mode)
+- [ ] Create test scenarios for all strategy types
+
+### Phase 3: Monitoring & Analytics Dashboard
+- [ ] Add real-time webhook activity feed
+- [ ] Create webhook success rate chart (hourly/daily)
+- [ ] Add latency distribution histogram
+- [ ] Add error breakdown by type chart
+- [ ] Implement webhook volume trends visualization
+- [ ] Add strategy-wise webhook distribution
+
+### Phase 4: Health Checks & Alerting
+- [ ] Add webhook health endpoint with detailed diagnostics
+- [ ] Implement webhook failure rate alerting
+- [ ] Add notification when processing is paused
+- [ ] Create webhook uptime monitoring
+- [ ] Add database connection health check
+
+### Phase 5: QA & Reliability
+- [ ] Add integration tests for full webhook flow
+- [ ] Create load testing script for webhook endpoint
+- [ ] Add retry mechanism for failed database operations
+- [ ] Implement webhook payload archiving
+- [ ] Add detailed error categorization and reporting
+
+
+
+## Webhook Enhancement Sprint 2 ✅ COMPLETE
+
+### Token Authentication
+- [x] Set up TRADINGVIEW_WEBHOOK_TOKEN environment variable
+- [x] Create webhook authentication tests (5 tests passing)
+- [x] Verify token validation rejects invalid tokens
+
+### Test Simulator & Payload Validator
+- [x] Create webhook test simulator in UI
+- [x] Add strategy selector dropdown
+- [x] Add signal type selector (Entry/Exit)
+- [x] Add direction selector (Long/Short)
+- [x] Add price and quantity inputs
+- [x] Add "Include authentication token" toggle
+- [x] Add payload validator (dry run mode)
+- [x] Create sendTestWebhook tRPC procedure
+- [x] Create validatePayload tRPC procedure
+- [x] Write simulator tests (12 tests passing)
+
+### Health Check & Monitoring
+- [x] Add health check endpoint with diagnostics (/api/webhook/health)
+- [x] Add 24-hour statistics (total, success, failed, success rate)
+- [x] Add performance metrics (avg/max processing time)
+- [x] Add last webhook timestamp
+- [x] Add issues detection (low success rate, high latency)
+- [x] Statistics dashboard in UI (Total, Successful, Failed, Duplicates, Avg Processing)
+
+### Integration Tests
+- [x] Create comprehensive integration tests (14 tests)
+- [x] Test health check endpoint
+- [x] Test token authentication
+- [x] Test webhook endpoint with valid/invalid tokens
+- [x] Test unknown strategy handling
+- [x] Test missing required fields
+- [x] Test status endpoint
+- [x] Test templates endpoint
+- [x] Test error handling (malformed JSON, empty body)
+- [x] Test performance (under 1 second round-trip)
+- [x] Test concurrent requests (5 parallel)
+
+### Future Enhancements (Backlog)
+- [ ] Add alerting for high failure rates (owner notifications)
+- [ ] Add webhook retry mechanism
+- [ ] Add rate limiting for webhook endpoint
+- [ ] Add webhook activity charts (success rate over time)
+- [ ] Add webhook payload history viewer

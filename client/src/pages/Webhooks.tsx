@@ -3,12 +3,16 @@ import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
 import { 
   Copy, Check, RefreshCw, AlertCircle, CheckCircle2, Clock, XCircle, 
   AlertTriangle, Pause, Play, Trash2, Activity, Zap, Settings,
-  Code, BookOpen, Shield
+  Code, BookOpen, Shield, FlaskConical, Send, Eye
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -16,6 +20,28 @@ export default function Webhooks() {
   const [selectedStrategy, setSelectedStrategy] = useState<string>("");
   const [copiedWebhook, setCopiedWebhook] = useState(false);
   const [copiedMessage, setCopiedMessage] = useState(false);
+  
+  // Test simulator state
+  const [testType, setTestType] = useState<"entry" | "exit">("entry");
+  const [testStrategy, setTestStrategy] = useState<string>("");
+  const [testDirection, setTestDirection] = useState<"Long" | "Short">("Long");
+  const [testPrice, setTestPrice] = useState<string>("4500");
+  const [testQuantity, setTestQuantity] = useState<string>("1");
+  const [testEntryPrice, setTestEntryPrice] = useState<string>("4490");
+  const [testPnl, setTestPnl] = useState<string>("10");
+  const [includeToken, setIncludeToken] = useState(true);
+  const [testResult, setTestResult] = useState<any>(null);
+  
+  // Payload validator state
+  const [customPayload, setCustomPayload] = useState<string>(`{
+  "symbol": "ESTrend",
+  "date": "{{timenow}}",
+  "data": "buy",
+  "quantity": 1,
+  "price": "{{close}}",
+  "token": "your_token"
+}`);
+  const [validationResult, setValidationResult] = useState<any>(null);
 
   const { data: strategies } = trpc.portfolio.listStrategies.useQuery();
   const { data: webhookConfig } = trpc.webhook.getConfig.useQuery();
@@ -62,11 +88,44 @@ export default function Webhooks() {
   const deleteTradeMutation = trpc.webhook.deleteTrade.useMutation({
     onSuccess: () => {
       toast.success("Trade deleted");
-      // Invalidate portfolio data to refresh charts
       utils.portfolio.overview.invalidate();
       utils.portfolio.listStrategies.invalidate();
     },
     onError: () => toast.error("Failed to delete trade"),
+  });
+
+  // Test webhook mutation
+  const sendTestMutation = trpc.webhook.sendTestWebhook.useMutation({
+    onSuccess: (data) => {
+      setTestResult(data);
+      if (data.success) {
+        toast.success(data.message);
+      } else {
+        toast.error(data.error || "Test failed");
+      }
+      refetchLogs();
+      refetchStatus();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+      setTestResult({ success: false, error: error.message });
+    },
+  });
+
+  // Validate payload mutation
+  const validateMutation = trpc.webhook.validatePayload.useMutation({
+    onSuccess: (data) => {
+      setValidationResult(data);
+      if (data.valid) {
+        toast.success("Payload is valid!");
+      } else {
+        toast.error(data.error || "Validation failed");
+      }
+    },
+    onError: (error) => {
+      setValidationResult({ valid: false, error: error.message });
+      toast.error(error.message);
+    },
   });
 
   const copyToClipboard = async (text: string, type: "webhook" | "message") => {
@@ -116,7 +175,6 @@ export default function Webhooks() {
     return dollars >= 0 ? `+$${dollars.toFixed(2)}` : `-$${Math.abs(dollars).toFixed(2)}`;
   };
 
-  // Generate the alert message template for the selected strategy (TradingView format)
   const getAlertMessage = () => {
     if (!selectedStrategy) return "";
     return JSON.stringify({
@@ -129,7 +187,6 @@ export default function Webhooks() {
     }, null, 2);
   };
 
-  // Generate entry/exit specific templates
   const getEntryTemplate = () => {
     if (!selectedStrategy) return "";
     return JSON.stringify({
@@ -158,6 +215,24 @@ export default function Webhooks() {
     }, null, 2);
   };
 
+  const handleSendTest = () => {
+    if (!testStrategy) {
+      toast.error("Please select a strategy");
+      return;
+    }
+    
+    sendTestMutation.mutate({
+      type: testType,
+      strategy: testStrategy,
+      direction: testDirection,
+      price: parseFloat(testPrice) || 4500,
+      quantity: parseInt(testQuantity) || 1,
+      entryPrice: testType === "exit" ? parseFloat(testEntryPrice) || undefined : undefined,
+      pnl: testType === "exit" ? parseFloat(testPnl) || undefined : undefined,
+      includeToken,
+    });
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -165,11 +240,10 @@ export default function Webhooks() {
         <div>
           <h1 className="text-3xl font-bold">TradingView Webhooks</h1>
           <p className="text-muted-foreground mt-1">
-            Configure and monitor TradingView alert webhooks for automated trade ingestion
+            Configure, test, and monitor TradingView alert webhooks for automated trade ingestion
           </p>
         </div>
         
-        {/* Status Badge */}
         <div className="flex items-center gap-4">
           {status?.isPaused ? (
             <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 px-3 py-1">
@@ -282,7 +356,7 @@ export default function Webhooks() {
         </CardContent>
       </Card>
 
-      {/* Setup Instructions Tabs */}
+      {/* Main Tabs */}
       <Tabs defaultValue="setup" className="space-y-4">
         <TabsList>
           <TabsTrigger value="setup" className="flex items-center gap-2">
@@ -291,7 +365,11 @@ export default function Webhooks() {
           </TabsTrigger>
           <TabsTrigger value="templates" className="flex items-center gap-2">
             <Code className="w-4 h-4" />
-            Message Templates
+            Templates
+          </TabsTrigger>
+          <TabsTrigger value="test" className="flex items-center gap-2">
+            <FlaskConical className="w-4 h-4" />
+            Test Simulator
           </TabsTrigger>
           <TabsTrigger value="guide" className="flex items-center gap-2">
             <BookOpen className="w-4 h-4" />
@@ -305,7 +383,6 @@ export default function Webhooks() {
 
         <TabsContent value="setup" className="space-y-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Webhook URL Card */}
             <Card className="bg-card/50 border-border/50">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -333,7 +410,6 @@ export default function Webhooks() {
               </CardContent>
             </Card>
 
-            {/* Strategy Selector */}
             <Card className="bg-card/50 border-border/50">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -382,7 +458,7 @@ export default function Webhooks() {
             <CardHeader>
               <CardTitle>TradingView Message Templates</CardTitle>
               <CardDescription>
-                Use these JSON templates in your TradingView alert message field. Replace placeholders with TradingView variables.
+                Use these JSON templates in your TradingView alert message field
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -403,7 +479,6 @@ export default function Webhooks() {
 
               {selectedStrategy && (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {/* Entry Template */}
                   <div className="space-y-2">
                     <h4 className="font-medium text-green-400">Entry Signal Template</h4>
                     <p className="text-xs text-muted-foreground">Use this when opening a new position</p>
@@ -420,7 +495,6 @@ export default function Webhooks() {
                     </Button>
                   </div>
 
-                  {/* Exit Template */}
                   <div className="space-y-2">
                     <h4 className="font-medium text-red-400">Exit Signal Template</h4>
                     <p className="text-xs text-muted-foreground">Use this when closing a position</p>
@@ -439,7 +513,6 @@ export default function Webhooks() {
                 </div>
               )}
 
-              {/* TradingView Variables Reference */}
               <div className="mt-6 p-4 bg-muted/30 rounded-lg">
                 <h4 className="font-medium mb-3">TradingView Placeholder Variables</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
@@ -453,6 +526,224 @@ export default function Webhooks() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="test" className="space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Test Simulator */}
+            <Card className="bg-card/50 border-border/50">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FlaskConical className="w-5 h-5 text-purple-400" />
+                  Webhook Test Simulator
+                </CardTitle>
+                <CardDescription>
+                  Send test webhooks to verify your integration is working correctly
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Signal Type</Label>
+                    <Select value={testType} onValueChange={(v) => setTestType(v as "entry" | "exit")}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="entry">Entry Signal</SelectItem>
+                        <SelectItem value="exit">Exit Signal</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label>Strategy</Label>
+                    <Select value={testStrategy} onValueChange={setTestStrategy}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {strategies?.map((s: { id: number; symbol: string; name: string }) => (
+                          <SelectItem key={s.id} value={s.symbol}>
+                            {s.symbol}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Direction</Label>
+                    <Select value={testDirection} onValueChange={(v) => setTestDirection(v as "Long" | "Short")}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Long">Long</SelectItem>
+                        <SelectItem value="Short">Short</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label>Price</Label>
+                    <Input 
+                      type="number" 
+                      value={testPrice} 
+                      onChange={(e) => setTestPrice(e.target.value)}
+                      placeholder="4500"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Quantity</Label>
+                    <Input 
+                      type="number" 
+                      value={testQuantity} 
+                      onChange={(e) => setTestQuantity(e.target.value)}
+                      placeholder="1"
+                    />
+                  </div>
+                  
+                  {testType === "exit" && (
+                    <div className="space-y-2">
+                      <Label>Entry Price</Label>
+                      <Input 
+                        type="number" 
+                        value={testEntryPrice} 
+                        onChange={(e) => setTestEntryPrice(e.target.value)}
+                        placeholder="4490"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {testType === "exit" && (
+                  <div className="space-y-2">
+                    <Label>P&L (optional)</Label>
+                    <Input 
+                      type="number" 
+                      value={testPnl} 
+                      onChange={(e) => setTestPnl(e.target.value)}
+                      placeholder="10"
+                    />
+                  </div>
+                )}
+
+                <div className="flex items-center space-x-2">
+                  <Switch 
+                    id="include-token" 
+                    checked={includeToken}
+                    onCheckedChange={setIncludeToken}
+                  />
+                  <Label htmlFor="include-token">Include authentication token</Label>
+                </div>
+
+                <Button 
+                  className="w-full"
+                  onClick={handleSendTest}
+                  disabled={sendTestMutation.isPending || !testStrategy}
+                >
+                  <Send className="w-4 h-4 mr-2" />
+                  {sendTestMutation.isPending ? "Sending..." : "Send Test Webhook"}
+                </Button>
+
+                {testResult && (
+                  <div className={`p-3 rounded-lg ${testResult.success ? "bg-green-500/10 border border-green-500/30" : "bg-red-500/10 border border-red-500/30"}`}>
+                    <div className="flex items-center gap-2 mb-2">
+                      {testResult.success ? (
+                        <CheckCircle2 className="w-4 h-4 text-green-400" />
+                      ) : (
+                        <XCircle className="w-4 h-4 text-red-400" />
+                      )}
+                      <span className={testResult.success ? "text-green-400" : "text-red-400"}>
+                        {testResult.success ? "Success" : "Failed"}
+                      </span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">{testResult.message}</p>
+                    {testResult.tradeId && (
+                      <p className="text-xs text-muted-foreground mt-1">Trade ID: {testResult.tradeId}</p>
+                    )}
+                    {testResult.processingTimeMs && (
+                      <p className="text-xs text-muted-foreground">Processing: {testResult.processingTimeMs}ms</p>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Payload Validator */}
+            <Card className="bg-card/50 border-border/50">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Eye className="w-5 h-5 text-blue-400" />
+                  Payload Validator (Dry Run)
+                </CardTitle>
+                <CardDescription>
+                  Validate your webhook payload without actually processing it
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label>JSON Payload</Label>
+                  <Textarea 
+                    value={customPayload}
+                    onChange={(e) => setCustomPayload(e.target.value)}
+                    className="font-mono text-xs h-48"
+                    placeholder='{"symbol": "ESTrend", ...}'
+                  />
+                </div>
+
+                <Button 
+                  className="w-full"
+                  variant="outline"
+                  onClick={() => validateMutation.mutate({ payload: customPayload })}
+                  disabled={validateMutation.isPending}
+                >
+                  <Eye className="w-4 h-4 mr-2" />
+                  {validateMutation.isPending ? "Validating..." : "Validate Payload"}
+                </Button>
+
+                {validationResult && (
+                  <div className={`p-3 rounded-lg ${validationResult.valid ? "bg-green-500/10 border border-green-500/30" : "bg-red-500/10 border border-red-500/30"}`}>
+                    <div className="flex items-center gap-2 mb-2">
+                      {validationResult.valid ? (
+                        <CheckCircle2 className="w-4 h-4 text-green-400" />
+                      ) : (
+                        <XCircle className="w-4 h-4 text-red-400" />
+                      )}
+                      <span className={validationResult.valid ? "text-green-400" : "text-red-400"}>
+                        {validationResult.valid ? "Valid Payload" : "Invalid Payload"}
+                      </span>
+                    </div>
+                    
+                    {validationResult.valid ? (
+                      <div className="text-xs space-y-1">
+                        <p><span className="text-muted-foreground">Strategy:</span> {validationResult.parsed?.strategySymbol}</p>
+                        <p><span className="text-muted-foreground">Action:</span> {validationResult.parsed?.action}</p>
+                        <p><span className="text-muted-foreground">Direction:</span> {validationResult.parsed?.direction}</p>
+                        <p><span className="text-muted-foreground">Price:</span> ${validationResult.parsed?.price}</p>
+                        <p>
+                          <span className="text-muted-foreground">Strategy Found:</span>{" "}
+                          {validationResult.strategyFound ? (
+                            <span className="text-green-400">Yes ({validationResult.strategyName})</span>
+                          ) : (
+                            <span className="text-red-400">No</span>
+                          )}
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-red-400">{validationResult.error}</p>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
         <TabsContent value="guide">
@@ -488,8 +779,8 @@ export default function Webhooks() {
                   <p className="mt-1 ml-6">For best results, create one alert for entries and another for exits</p>
                 </li>
                 <li className="pl-2">
-                  <span className="font-medium text-foreground">Save and test</span>
-                  <p className="mt-1 ml-6">Save the alert and monitor the activity log below to verify it's working</p>
+                  <span className="font-medium text-foreground">Test with the simulator</span>
+                  <p className="mt-1 ml-6">Use the Test Simulator tab to verify webhooks are processed correctly before going live</p>
                 </li>
               </ol>
             </CardContent>
@@ -506,10 +797,13 @@ export default function Webhooks() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-3 text-sm">
-                <div className="p-3 bg-muted/30 rounded-lg">
-                  <h4 className="font-medium mb-1">Authentication Token</h4>
+                <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
+                  <h4 className="font-medium mb-1 flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-green-400" />
+                    Authentication Token Active
+                  </h4>
                   <p className="text-muted-foreground">
-                    Add a secret token to your webhook messages. Set the <code className="text-blue-400">TRADINGVIEW_WEBHOOK_TOKEN</code> environment variable to enable token validation.
+                    Your webhook endpoint is protected with a secret token. All incoming webhooks must include a valid token in the payload.
                   </p>
                 </div>
                 

@@ -888,6 +888,88 @@ export const appRouter = router({
         const success = await db.deleteTrade(input.tradeId);
         return { success };
       }),
+
+    /**
+     * Send a test webhook (for testing the integration)
+     */
+    sendTestWebhook: protectedProcedure
+      .input(z.object({
+        type: z.enum(['entry', 'exit']),
+        strategy: z.string(),
+        direction: z.enum(['Long', 'Short']),
+        price: z.number(),
+        quantity: z.number().optional().default(1),
+        entryPrice: z.number().optional(),
+        pnl: z.number().optional(),
+        includeToken: z.boolean().optional().default(true),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const { processWebhook } = await import('./webhookService');
+        
+        // Build the test payload
+        const payload: Record<string, unknown> = {
+          symbol: input.strategy,
+          date: new Date().toISOString(),
+          data: input.type === 'entry' ? (input.direction === 'Long' ? 'buy' : 'sell') : 'exit',
+          quantity: input.quantity,
+          price: input.price,
+          direction: input.direction,
+        };
+        
+        // Add token if requested
+        if (input.includeToken && process.env.TRADINGVIEW_WEBHOOK_TOKEN) {
+          payload.token = process.env.TRADINGVIEW_WEBHOOK_TOKEN;
+        }
+        
+        // Add entry data for exit signals
+        if (input.type === 'exit') {
+          payload.entryPrice = input.entryPrice || input.price - (input.direction === 'Long' ? 10 : -10);
+          payload.entryTime = new Date(Date.now() - 3600000).toISOString(); // 1 hour ago
+          if (input.pnl !== undefined) {
+            payload.pnl = input.pnl;
+          }
+        }
+        
+        // Process the webhook
+        const result = await processWebhook(payload, 'test-simulator');
+        
+        return {
+          ...result,
+          payload,
+        };
+      }),
+
+    /**
+     * Validate a webhook payload without processing (dry run)
+     */
+    validatePayload: protectedProcedure
+      .input(z.object({
+        payload: z.string(),
+      }))
+      .mutation(async ({ input }) => {
+        const { validatePayload, mapSymbolToStrategy } = await import('./webhookService');
+        
+        try {
+          const parsed = JSON.parse(input.payload);
+          const validated = validatePayload(parsed);
+          
+          // Check if strategy exists
+          const strategy = await db.getStrategyBySymbol(validated.strategySymbol);
+          
+          return {
+            valid: true,
+            parsed: validated,
+            strategyFound: !!strategy,
+            strategyName: strategy?.name || null,
+            mappedSymbol: mapSymbolToStrategy(parsed.symbol || parsed.strategy || ''),
+          };
+        } catch (error) {
+          return {
+            valid: false,
+            error: error instanceof Error ? error.message : 'Invalid payload',
+          };
+        }
+      }),
   }),
 });
 

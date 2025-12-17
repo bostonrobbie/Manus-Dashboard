@@ -110,15 +110,87 @@ router.post("/tradingview", async (req, res) => {
 
 /**
  * GET /api/webhook/health
- * Health check endpoint
+ * Health check endpoint with detailed diagnostics
  */
 router.get("/health", async (req, res) => {
-  const isPaused = await isWebhookProcessingPaused();
-  res.json({ 
-    status: isPaused ? 'paused' : 'ok', 
-    service: 'tradingview-webhook',
-    timestamp: new Date().toISOString(),
-  });
+  const startTime = Date.now();
+  
+  try {
+    const isPaused = await isWebhookProcessingPaused();
+    const logs = await db.getWebhookLogs(100);
+    
+    // Calculate health metrics
+    const recentLogs = logs.filter(l => {
+      const logTime = new Date(l.createdAt).getTime();
+      return Date.now() - logTime < 24 * 60 * 60 * 1000; // Last 24 hours
+    });
+    
+    const successCount = recentLogs.filter(l => l.status === 'success').length;
+    const failedCount = recentLogs.filter(l => l.status === 'failed').length;
+    const totalRecent = recentLogs.length;
+    
+    // Calculate success rate
+    const successRate = totalRecent > 0 ? (successCount / totalRecent) * 100 : 100;
+    
+    // Calculate average processing time
+    const processingTimes = recentLogs
+      .filter(l => l.processingTimeMs !== null)
+      .map(l => l.processingTimeMs!);
+    const avgProcessingTime = processingTimes.length > 0
+      ? Math.round(processingTimes.reduce((a, b) => a + b, 0) / processingTimes.length)
+      : 0;
+    
+    // Determine health status
+    let status = 'healthy';
+    let issues: string[] = [];
+    
+    if (isPaused) {
+      status = 'paused';
+      issues.push('Webhook processing is paused');
+    } else if (successRate < 50 && totalRecent > 5) {
+      status = 'degraded';
+      issues.push(`Low success rate: ${successRate.toFixed(1)}%`);
+    } else if (avgProcessingTime > 500) {
+      status = 'degraded';
+      issues.push(`High latency: ${avgProcessingTime}ms average`);
+    }
+    
+    // Check for recent activity
+    const lastWebhook = logs.length > 0 ? new Date(logs[0].createdAt) : null;
+    const timeSinceLastWebhook = lastWebhook ? Date.now() - lastWebhook.getTime() : null;
+    
+    res.json({ 
+      status,
+      service: 'tradingview-webhook',
+      timestamp: new Date().toISOString(),
+      responseTimeMs: Date.now() - startTime,
+      diagnostics: {
+        isPaused,
+        tokenConfigured: !!process.env.TRADINGVIEW_WEBHOOK_TOKEN,
+        last24Hours: {
+          total: totalRecent,
+          success: successCount,
+          failed: failedCount,
+          successRate: `${successRate.toFixed(1)}%`,
+        },
+        performance: {
+          avgProcessingTimeMs: avgProcessingTime,
+          maxProcessingTimeMs: processingTimes.length > 0 ? Math.max(...processingTimes) : 0,
+        },
+        lastWebhook: lastWebhook?.toISOString() || null,
+        timeSinceLastWebhookMs: timeSinceLastWebhook,
+      },
+      issues: issues.length > 0 ? issues : undefined,
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 'error',
+      service: 'tradingview-webhook',
+      timestamp: new Date().toISOString(),
+      error: error instanceof Error ? error.message : 'Unknown error',
+      responseTimeMs: Date.now() - startTime,
+    });
+  }
 });
 
 /**
