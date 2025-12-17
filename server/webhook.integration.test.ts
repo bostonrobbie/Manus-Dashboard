@@ -25,7 +25,7 @@ describe('Webhook Integration Tests', () => {
       expect(data.timestamp).toBeDefined();
       expect(data.responseTimeMs).toBeGreaterThanOrEqual(0);
       expect(data.diagnostics).toBeDefined();
-      expect(data.diagnostics.tokenConfigured).toBe(true);
+      expect(data.security.tokenAuthEnabled).toBe(true);
     });
 
     it('should include last 24 hours statistics', async () => {

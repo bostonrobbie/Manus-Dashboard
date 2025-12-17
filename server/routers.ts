@@ -970,6 +970,123 @@ export const appRouter = router({
           };
         }
       }),
+
+    /**
+     * Get comprehensive webhook health and monitoring data
+     */
+    getHealthReport: protectedProcedure.query(async () => {
+      const { isCircuitOpen, getCircuitStatus } = await import('./webhookSecurity');
+      
+      const logs = await db.getWebhookLogs(500);
+      const now = Date.now();
+      
+      // Calculate metrics for different time windows
+      const calculateMetrics = (windowMs: number) => {
+        const windowLogs = logs.filter(l => {
+          const logTime = new Date(l.createdAt).getTime();
+          return now - logTime < windowMs;
+        });
+        
+        const total = windowLogs.length;
+        const success = windowLogs.filter(l => l.status === 'success').length;
+        const failed = windowLogs.filter(l => l.status === 'failed').length;
+        const duplicate = windowLogs.filter(l => l.status === 'duplicate').length;
+        
+        const processingTimes = windowLogs
+          .filter(l => l.processingTimeMs !== null)
+          .map(l => l.processingTimeMs!);
+        
+        return {
+          total,
+          success,
+          failed,
+          duplicate,
+          successRate: total > 0 ? ((success / total) * 100).toFixed(1) + '%' : '100%',
+          avgProcessingMs: processingTimes.length > 0
+            ? Math.round(processingTimes.reduce((a, b) => a + b, 0) / processingTimes.length)
+            : 0,
+          maxProcessingMs: processingTimes.length > 0 ? Math.max(...processingTimes) : 0,
+          p95ProcessingMs: processingTimes.length > 0
+            ? processingTimes.sort((a, b) => a - b)[Math.floor(processingTimes.length * 0.95)]
+            : 0,
+        };
+      };
+      
+      // Check for issues
+      const issues: string[] = [];
+      const last24h = calculateMetrics(24 * 60 * 60 * 1000);
+      const lastHour = calculateMetrics(60 * 60 * 1000);
+      
+      const settings = await db.getWebhookSettings();
+      if (settings?.paused) {
+        issues.push('Webhook processing is paused');
+      }
+      
+      if (isCircuitOpen('webhook-database')) {
+        issues.push('Database circuit breaker is open');
+      }
+      
+      const successRateNum = parseFloat(lastHour.successRate);
+      if (lastHour.total > 5 && successRateNum < 50) {
+        issues.push(`Low success rate in last hour: ${lastHour.successRate}`);
+      }
+      
+      if (lastHour.avgProcessingMs > 500) {
+        issues.push(`High latency in last hour: ${lastHour.avgProcessingMs}ms avg`);
+      }
+      
+      return {
+        status: issues.length === 0 ? 'healthy' : 'degraded',
+        isPaused: settings?.paused ?? false,
+        circuitBreaker: {
+          open: isCircuitOpen('webhook-database'),
+          status: getCircuitStatus('webhook-database'),
+        },
+        metrics: {
+          lastHour,
+          last24Hours: last24h,
+        },
+        issues,
+        lastWebhook: logs.length > 0 ? logs[0].createdAt : null,
+      };
+    }),
+
+    /**
+     * Trigger owner notification for webhook issues
+     */
+    notifyOwnerOfIssues: protectedProcedure
+      .input(z.object({
+        issues: z.array(z.string()),
+        metrics: z.object({
+          total: z.number(),
+          failed: z.number(),
+          successRate: z.string(),
+        }),
+      }))
+      .mutation(async ({ input }) => {
+        const { notifyOwner } = await import('./_core/notification');
+        
+        const content = `
+**Webhook Health Alert**
+
+Issues detected:
+${input.issues.map(i => `- ${i}`).join('\n')}
+
+**Metrics (Last Hour):**
+- Total webhooks: ${input.metrics.total}
+- Failed: ${input.metrics.failed}
+- Success rate: ${input.metrics.successRate}
+
+Please check the Webhooks page in your dashboard for more details.
+        `.trim();
+        
+        const success = await notifyOwner({
+          title: 'TradingView Webhook Alert',
+          content,
+        });
+        
+        return { success };
+      }),
   }),
 });
 
