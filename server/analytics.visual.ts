@@ -90,17 +90,23 @@ export function calculateStreakDistribution(trades: Trade[]): StreakDistribution
 
 /**
  * Calculate trade duration distribution
+ * Uses absolute value of duration to handle timezone/data issues
+ * Buckets are designed for intraday trading (max 8h typical session)
  */
 export function calculateDurationDistribution(trades: Trade[]): DurationDistribution {
+  if (trades.length === 0) {
+    return { buckets: [] };
+  }
 
-  // Define duration buckets (in minutes)
+  // Define duration buckets for intraday trading (in minutes)
+  // Most intraday trades should be under 8 hours
   const buckets = [
-    { min: 0, max: 60, label: '<1h' },
+    { min: 0, max: 15, label: '<15m' },
+    { min: 15, max: 30, label: '15-30m' },
+    { min: 30, max: 60, label: '30m-1h' },
     { min: 60, max: 120, label: '1-2h' },
     { min: 120, max: 240, label: '2-4h' },
     { min: 240, max: 480, label: '4-8h' },
-    { min: 480, max: 1440, label: '8-24h' },
-    { min: 1440, max: Infinity, label: '>24h' },
   ];
 
   const bucketData = buckets.map(bucket => ({
@@ -111,8 +117,13 @@ export function calculateDurationDistribution(trades: Trade[]): DurationDistribu
   }));
 
   for (const trade of trades) {
-    const durationMinutes = (new Date(trade.exitDate).getTime() - new Date(trade.entryDate).getTime()) / (1000 * 60);
-    const bucketIndex = buckets.findIndex(b => durationMinutes >= b.min && durationMinutes < b.max);
+    // Use absolute value to handle any timezone/data issues where exit appears before entry
+    const durationMs = Math.abs(new Date(trade.exitDate).getTime() - new Date(trade.entryDate).getTime());
+    const durationMinutes = durationMs / (1000 * 60);
+    
+    // Cap at 8 hours for intraday - anything longer goes in the last bucket
+    const cappedDuration = Math.min(durationMinutes, 479);
+    const bucketIndex = buckets.findIndex(b => cappedDuration >= b.min && cappedDuration < b.max);
     
     if (bucketIndex !== -1) {
       bucketData[bucketIndex]!.count++;
@@ -127,7 +138,8 @@ export function calculateDurationDistribution(trades: Trade[]): DurationDistribu
     }
   }
 
-  return { buckets: bucketData };
+  // Filter out empty buckets for cleaner display
+  return { buckets: bucketData.filter(b => b.count > 0) };
 }
 
 /**

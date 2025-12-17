@@ -346,6 +346,10 @@ export default function StrategyComparison() {
                       tickFormatter={(value) => `${value.toFixed(1)}%`}
                       width={55}
                       label={{ value: 'Drawdown %', angle: -90, position: 'insideLeft', fill: '#ffffff', fontSize: 12, dx: -5 }}
+                      domain={[
+                        (dataMin: number) => Math.min(dataMin * 1.1, -5), // Add 10% padding below min, but at least -5%
+                        0 // Drawdown is always 0 or negative
+                      ]}
                     />
                     <Tooltip 
                       formatter={(value: number) => `${value.toFixed(2)}%`}

@@ -2268,3 +2268,71 @@
 - [x] Add starting capital input
 - [x] Portfolio summary cards (Total Return, Sharpe, Max DD, Win Rate, Profit Factor)
 - [x] White axis labels on all charts
+
+
+## Current Sprint: Bug Fixes & UI Enhancements
+
+### Trade Duration Distribution Fix
+- [x] Investigate trade duration calculation in VisualAnalyticsCharts
+- [x] Fix duration buckets for intraday trades (max should be <24h)
+- [x] Verify duration calculation uses correct time units (uses absolute value)
+- [x] Test with sample trades to ensure accuracy
+
+### Compare Page Drawdown Chart Auto-Scaling
+- [x] Update drawdown chart Y-axis to auto-scale based on actual data
+- [x] Remove fixed -100% domain, use dynamic min based on worst drawdown
+- [x] Add padding to ensure chart is readable (10% padding below min)
+- [ ] Test with various strategy combinations
+
+### Monte Carlo Simulation Enhancement
+- [ ] Add recommended position sizing based on risk tolerance
+- [ ] Add success criteria (e.g., 95% confidence of profit)
+- [ ] Add minimum account size recommendation
+- [ ] Add safe withdrawal rate calculation
+- [ ] Make interpretation more actionable and user-friendly
+- [ ] Add risk-adjusted position sizing suggestions
+
+### My Dashboard UI Redesign
+- [ ] Reorganize layout for cleaner appearance
+- [ ] Add dollar amounts next to annualized return percentage
+- [ ] Add percentages next to average win/loss dollar amounts
+- [ ] Improve card styling and spacing
+- [ ] Make the page more modern and organized
+
+
+## Completed: December 17, 2025 - Bug Fixes & Enhancements
+
+### Trade Duration Distribution Fix
+- [x] Investigate trade duration calculation in VisualAnalyticsCharts
+- [x] Fix duration buckets for intraday trades (max should be <24h)
+- [x] Verify duration calculation uses correct time units (uses absolute value)
+- [x] New buckets: <15m, 15-30m, 30m-1h, 1-2h, 2-4h, 4-8h
+
+### Compare Page Drawdown Chart Auto-Scaling
+- [x] Update drawdown chart Y-axis to auto-scale based on actual data
+- [x] Remove fixed -100% domain, use dynamic min based on worst drawdown
+- [x] Add padding to ensure chart is readable (10% padding below min)
+- [x] Test with various strategy combinations
+
+### Monte Carlo Simulation Enhancement
+- [x] Add recommended position sizing based on risk tolerance (Half-Kelly)
+- [x] Add success criteria (e.g., 95% confidence of profit)
+- [x] Add minimum account size recommendation
+- [x] Improve visualization with clearer percentile bands
+- [x] Add actionable interpretation guide
+- [x] Calculate risk of ruin more accurately
+- [x] Add overall risk assessment with color-coded status
+- [x] Add risk/reward ratio calculation
+
+### My Dashboard UI Redesign
+- [x] Update Portfolio Summary Cards to include dollar amounts alongside percentages
+- [x] Add dollar amount to annualized return ($10,646/yr)
+- [x] Add dollar amount to max drawdown (-$9,448)
+- [x] Update Performance Metrics to show both dollar amounts and percentages
+- [x] Avg Win: $1053.26 with percentage +1.053%
+- [x] Avg Loss: -$508.86 with percentage -0.509%
+- [x] Annualized Return: 10.65% with dollar amount $10,646/yr
+- [x] Add gradient backgrounds on metric cards
+- [x] Add color-coded borders matching metric types
+- [x] Add icons on each metric card
+- [x] Compact layout with better spacing

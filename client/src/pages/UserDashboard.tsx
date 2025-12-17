@@ -289,116 +289,149 @@ export default function UserDashboard() {
 
       {/* Portfolio Summary Cards */}
       {portfolioData?.hasData && portfolioData.metrics && (
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <Card className="border-l-4 border-l-green-500">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          {/* Total Return */}
+          <Card className="bg-gradient-to-br from-green-500/10 to-transparent border-green-500/30">
+            <CardHeader className="pb-1 pt-3 px-4">
+              <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                <TrendingUp className="h-3 w-3" />
                 Total Return
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className={`text-2xl font-bold ${portfolioData.metrics.totalReturn >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+            <CardContent className="pb-3 px-4">
+              <div className={`text-xl font-bold ${portfolioData.metrics.totalReturn >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                 {portfolioData.metrics.totalReturn >= 0 ? '+' : ''}{portfolioData.metrics.totalReturn.toFixed(2)}%
               </div>
-              <p className="text-xs text-muted-foreground">{portfolioData.metrics.annualizedReturn.toFixed(2)}% annualized</p>
+              <p className="text-xs text-green-400">
+                ${((portfolioData.metrics.totalReturn / 100) * startingCapital).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+              </p>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
+          {/* Annualized Return */}
+          <Card className="bg-gradient-to-br from-blue-500/10 to-transparent border-blue-500/30">
+            <CardHeader className="pb-1 pt-3 px-4">
+              <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                <Activity className="h-3 w-3" />
+                Annualized
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pb-3 px-4">
+              <div className={`text-xl font-bold ${portfolioData.metrics.annualizedReturn >= 0 ? 'text-blue-400' : 'text-red-500'}`}>
+                {portfolioData.metrics.annualizedReturn >= 0 ? '+' : ''}{portfolioData.metrics.annualizedReturn.toFixed(2)}%
+              </div>
+              <p className="text-xs text-blue-400">
+                ${((portfolioData.metrics.annualizedReturn / 100) * startingCapital).toLocaleString(undefined, { maximumFractionDigits: 0 })}/yr
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Sharpe Ratio */}
+          <Card className="bg-gradient-to-br from-purple-500/10 to-transparent border-purple-500/30">
+            <CardHeader className="pb-1 pt-3 px-4">
+              <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                <Scale className="h-3 w-3" />
                 Sharpe Ratio
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{portfolioData.metrics.sharpeRatio.toFixed(2)}</div>
+            <CardContent className="pb-3 px-4">
+              <div className={`text-xl font-bold ${portfolioData.metrics.sharpeRatio >= 1 ? 'text-purple-400' : portfolioData.metrics.sharpeRatio >= 0.5 ? 'text-yellow-400' : 'text-red-400'}`}>
+                {portfolioData.metrics.sharpeRatio.toFixed(2)}
+              </div>
               <p className="text-xs text-muted-foreground">Risk-adjusted</p>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
+          {/* Max Drawdown */}
+          <Card className="bg-gradient-to-br from-red-500/10 to-transparent border-red-500/30">
+            <CardHeader className="pb-1 pt-3 px-4">
+              <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                <TrendingDown className="h-3 w-3" />
                 Max Drawdown
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-red-500">{portfolioData.metrics.maxDrawdown.toFixed(2)}%</div>
-              <p className="text-xs text-muted-foreground">Peak to trough</p>
+            <CardContent className="pb-3 px-4">
+              <div className="text-xl font-bold text-red-500">
+                {portfolioData.metrics.maxDrawdown.toFixed(2)}%
+              </div>
+              <p className="text-xs text-red-400">
+                -${((Math.abs(portfolioData.metrics.maxDrawdown) / 100) * startingCapital).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+              </p>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
+          {/* Win Rate */}
+          <Card className="bg-gradient-to-br from-emerald-500/10 to-transparent border-emerald-500/30">
+            <CardHeader className="pb-1 pt-3 px-4">
+              <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                <Target className="h-3 w-3" />
                 Win Rate
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{portfolioData.metrics.winRate.toFixed(1)}%</div>
-              <p className="text-xs text-muted-foreground">{portfolioData.metrics.totalTrades} trades</p>
+            <CardContent className="pb-3 px-4">
+              <div className={`text-xl font-bold ${portfolioData.metrics.winRate >= 50 ? 'text-emerald-400' : 'text-yellow-400'}`}>
+                {portfolioData.metrics.winRate.toFixed(1)}%
+              </div>
+              <p className="text-xs text-muted-foreground">{portfolioData.metrics.totalTrades.toLocaleString()} trades</p>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
+          {/* Profit Factor */}
+          <Card className="bg-gradient-to-br from-amber-500/10 to-transparent border-amber-500/30">
+            <CardHeader className="pb-1 pt-3 px-4">
+              <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                <Wallet className="h-3 w-3" />
                 Profit Factor
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{portfolioData.metrics.profitFactor.toFixed(2)}</div>
-              <p className="text-xs text-muted-foreground">Gross P / L</p>
+            <CardContent className="pb-3 px-4">
+              <div className={`text-xl font-bold ${portfolioData.metrics.profitFactor >= 1.5 ? 'text-amber-400' : portfolioData.metrics.profitFactor >= 1 ? 'text-yellow-400' : 'text-red-400'}`}>
+                {portfolioData.metrics.profitFactor.toFixed(2)}
+              </div>
+              <p className="text-xs text-muted-foreground">Gross P/L</p>
             </CardContent>
           </Card>
         </div>
       )}
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Active Subscriptions
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats?.totalSubscriptions || 0}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Pending Signals
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-yellow-500">{(stats as any)?.pendingSignals || 0}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Executed Today
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-500">{stats?.signalsExecuted || 0}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Skipped Today
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-gray-500">{stats?.signalsSkipped || 0}</div>
-          </CardContent>
-        </Card>
+      {/* Activity Stats */}
+      <div className="grid grid-cols-4 gap-2">
+        <div className="bg-muted/30 rounded-lg p-3 border flex items-center gap-3">
+          <div className="p-2 bg-blue-500/20 rounded-lg">
+            <BarChart3 className="h-4 w-4 text-blue-400" />
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">Subscriptions</p>
+            <p className="text-lg font-bold">{stats?.totalSubscriptions || 0}</p>
+          </div>
+        </div>
+        <div className="bg-yellow-500/10 rounded-lg p-3 border border-yellow-500/20 flex items-center gap-3">
+          <div className="p-2 bg-yellow-500/20 rounded-lg">
+            <Clock className="h-4 w-4 text-yellow-400" />
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">Pending</p>
+            <p className="text-lg font-bold text-yellow-500">{(stats as any)?.pendingSignals || 0}</p>
+          </div>
+        </div>
+        <div className="bg-green-500/10 rounded-lg p-3 border border-green-500/20 flex items-center gap-3">
+          <div className="p-2 bg-green-500/20 rounded-lg">
+            <CheckCircle2 className="h-4 w-4 text-green-400" />
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">Executed</p>
+            <p className="text-lg font-bold text-green-500">{stats?.signalsExecuted || 0}</p>
+          </div>
+        </div>
+        <div className="bg-muted/30 rounded-lg p-3 border flex items-center gap-3">
+          <div className="p-2 bg-gray-500/20 rounded-lg">
+            <XCircle className="h-4 w-4 text-gray-400" />
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">Skipped</p>
+            <p className="text-lg font-bold text-gray-500">{stats?.signalsSkipped || 0}</p>
+          </div>
+        </div>
       </div>
 
       {/* Tabs */}
@@ -645,30 +678,42 @@ export default function UserDashboard() {
                     <CardDescription>Detailed portfolio statistics</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-1">
-                        <p className="text-sm text-muted-foreground">Sortino Ratio</p>
-                        <p className="text-lg font-semibold">{portfolioData.metrics?.sortinoRatio.toFixed(2)}</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="bg-muted/20 rounded-lg p-3">
+                        <p className="text-xs text-muted-foreground">Sortino Ratio</p>
+                        <p className="text-lg font-bold">{portfolioData.metrics?.sortinoRatio.toFixed(2)}</p>
+                        <p className="text-xs text-muted-foreground">Downside risk</p>
                       </div>
-                      <div className="space-y-1">
-                        <p className="text-sm text-muted-foreground">Calmar Ratio</p>
-                        <p className="text-lg font-semibold">{portfolioData.metrics?.calmarRatio.toFixed(2)}</p>
+                      <div className="bg-muted/20 rounded-lg p-3">
+                        <p className="text-xs text-muted-foreground">Calmar Ratio</p>
+                        <p className="text-lg font-bold">{portfolioData.metrics?.calmarRatio.toFixed(2)}</p>
+                        <p className="text-xs text-muted-foreground">Return/Drawdown</p>
                       </div>
-                      <div className="space-y-1">
-                        <p className="text-sm text-muted-foreground">Avg Win</p>
-                        <p className="text-lg font-semibold text-green-500">${portfolioData.metrics?.avgWin.toFixed(2)}</p>
+                      <div className="bg-green-500/10 rounded-lg p-3 border border-green-500/20">
+                        <p className="text-xs text-muted-foreground">Avg Win</p>
+                        <p className="text-lg font-bold text-green-500">${(portfolioData.metrics?.avgWin || 0).toFixed(2)}</p>
+                        <p className="text-xs text-green-400">
+                          +{((portfolioData.metrics?.avgWin || 0) / startingCapital * 100).toFixed(3)}%
+                        </p>
                       </div>
-                      <div className="space-y-1">
-                        <p className="text-sm text-muted-foreground">Avg Loss</p>
-                        <p className="text-lg font-semibold text-red-500">-${Math.abs(portfolioData.metrics?.avgLoss || 0).toFixed(2)}</p>
+                      <div className="bg-red-500/10 rounded-lg p-3 border border-red-500/20">
+                        <p className="text-xs text-muted-foreground">Avg Loss</p>
+                        <p className="text-lg font-bold text-red-500">-${Math.abs(portfolioData.metrics?.avgLoss || 0).toFixed(2)}</p>
+                        <p className="text-xs text-red-400">
+                          -{(Math.abs(portfolioData.metrics?.avgLoss || 0) / startingCapital * 100).toFixed(3)}%
+                        </p>
                       </div>
-                      <div className="space-y-1">
-                        <p className="text-sm text-muted-foreground">Total Trades</p>
-                        <p className="text-lg font-semibold">{portfolioData.metrics?.totalTrades.toLocaleString()}</p>
+                      <div className="bg-muted/20 rounded-lg p-3">
+                        <p className="text-xs text-muted-foreground">Total Trades</p>
+                        <p className="text-lg font-bold">{portfolioData.metrics?.totalTrades.toLocaleString()}</p>
+                        <p className="text-xs text-muted-foreground">All time</p>
                       </div>
-                      <div className="space-y-1">
-                        <p className="text-sm text-muted-foreground">Annualized Return</p>
-                        <p className="text-lg font-semibold">{portfolioData.metrics?.annualizedReturn.toFixed(2)}%</p>
+                      <div className="bg-blue-500/10 rounded-lg p-3 border border-blue-500/20">
+                        <p className="text-xs text-muted-foreground">Annualized Return</p>
+                        <p className="text-lg font-bold text-blue-400">{portfolioData.metrics?.annualizedReturn.toFixed(2)}%</p>
+                        <p className="text-xs text-blue-400">
+                          ${((portfolioData.metrics?.annualizedReturn || 0) / 100 * startingCapital).toLocaleString(undefined, { maximumFractionDigits: 0 })}/yr
+                        </p>
                       </div>
                     </div>
                   </CardContent>
