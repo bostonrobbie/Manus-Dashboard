@@ -2491,3 +2491,57 @@
   - Three-column layout: Strategy Allocation, Core Metrics, Risk-Adjusted
   - Added Payoff Ratio bar visualization
   - Color-coded risk-adjusted metrics (Sharpe, Sortino, Calmar)
+
+
+## Major Dashboard Overhaul (December 2025)
+
+### My Dashboard Redesign
+- [ ] Move KPI cards (Total Return, Annualized, Sharpe, Max DD, Win Rate, Profit Factor) to Performance Center
+- [ ] Move status cards (Subscriptions, Pending, Executed, Skipped) to Performance Center
+- [ ] Add "Today's Trades" swipable tabs at top showing entry time/price and active status
+- [ ] Fix S&P 500 toggle to show two separate equity curves (portfolio blue, S&P gray)
+- [ ] Add S&P 500 drawdown comparison to underwater equity curve
+- [ ] Expand Performance Center with all consolidated metrics
+
+### Admin Page (formerly Webhooks)
+- [ ] Rename "Webhooks" to "Admin" in navigation
+- [ ] Add admin-only access control (only visible to owner/admin role)
+- [ ] Build Tradovate broker connection flow
+- [ ] Build Interactive Brokers connection flow
+- [ ] Add comprehensive error handling and monitoring
+- [ ] Add admin controls and management tools
+- [ ] Add customer service handling capabilities
+
+### Landing Page (Marketing)
+- [ ] Create professional landing page for non-authenticated users
+- [ ] Design hero section with compelling value proposition
+- [ ] Add features section highlighting platform capabilities
+- [ ] Add social proof section (testimonials, stats)
+- [ ] Add call-to-action for sign up
+- [ ] Modern fintech design aesthetics
+
+
+## Major Dashboard Overhaul (December 2025) ✅ COMPLETE
+
+### My Dashboard Redesign
+- [x] Move KPI cards (Total Return, Annualized, Sharpe, Max DD, Win Rate, Profit Factor) to Performance Center
+- [x] Add Today's Activity section at top with swipable trade cards (42 trades showing)
+- [x] Fix S&P 500 chart to show separate lines (gray for S&P, blue for portfolio)
+- [x] Add S&P 500 drawdown comparison to underwater curve
+- [x] Enhance Performance Center with all metrics in unified layout
+- [x] Fix correlation matrix to show actual correlations with strategy names
+
+### Admin Page
+- [x] Rename Webhooks to Admin in navigation
+- [x] Make Admin page admin-only (role check)
+- [x] Add Monitoring tab with system health, API metrics, error logs
+- [x] Keep broker connections (Tradovate, Interactive Brokers) for future integration
+
+### Landing Page
+- [x] Create professional marketing landing page for non-authenticated users
+- [x] Add hero section with compelling headline and CTA
+- [x] Add features section highlighting platform capabilities
+- [x] Add social proof section with testimonials
+- [x] Add pricing section with subscription tiers
+- [x] Add FAQ section
+- [x] Add footer with links

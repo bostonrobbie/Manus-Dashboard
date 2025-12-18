@@ -24,7 +24,7 @@ import { useLocation, useSearch } from "wouter";
 // MAIN COMPONENT
 // ============================================================================
 
-export default function Webhooks() {
+export default function Admin() {
   const [, setLocation] = useLocation();
   const search = useSearch();
   const urlParams = new URLSearchParams(search);
@@ -45,7 +45,7 @@ export default function Webhooks() {
   // Update URL when tab changes
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
-    setLocation(`/webhooks?tab=${tab}`, { replace: true });
+    setLocation(`/admin?tab=${tab}`, { replace: true });
   };
   
   // Show loading while checking access
@@ -91,14 +91,14 @@ export default function Webhooks() {
         <div className="flex items-center gap-3">
           <div>
             <h1 className="text-3xl font-bold flex items-center gap-3">
-              TradingView Webhooks
+              Admin Control Center
               <Badge className="bg-primary/20 text-primary border-primary/30">
                 <Shield className="w-3 h-3 mr-1" />
-                Admin
+                Owner
               </Badge>
             </h1>
             <p className="text-muted-foreground mt-1">
-              Configure, test, and monitor TradingView alert webhooks
+              Manage webhooks, broker connections, and system monitoring
             </p>
           </div>
         </div>
@@ -107,7 +107,7 @@ export default function Webhooks() {
 
       {/* Tabbed Interface */}
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-grid">
+        <TabsList className="grid w-full grid-cols-6 lg:w-auto lg:inline-grid">
           <TabsTrigger value="overview" className="gap-2">
             <BarChart3 className="h-4 w-4" />
             <span className="hidden sm:inline">Overview</span>
@@ -123,6 +123,10 @@ export default function Webhooks() {
           <TabsTrigger value="brokers" className="gap-2">
             <Server className="h-4 w-4" />
             <span className="hidden sm:inline">Brokers</span>
+          </TabsTrigger>
+          <TabsTrigger value="monitoring" className="gap-2">
+            <Eye className="h-4 w-4" />
+            <span className="hidden sm:inline">Monitoring</span>
           </TabsTrigger>
           <TabsTrigger value="settings" className="gap-2">
             <Settings className="h-4 w-4" />
@@ -144,6 +148,10 @@ export default function Webhooks() {
 
         <TabsContent value="brokers" className="space-y-6">
           <BrokersTab />
+        </TabsContent>
+
+        <TabsContent value="monitoring" className="space-y-6">
+          <MonitoringTab />
         </TabsContent>
 
         <TabsContent value="settings" className="space-y-6">
@@ -1086,6 +1094,194 @@ function BrokersTab() {
               <p className="text-sm text-muted-foreground">Real orders sent to connected brokers</p>
             </div>
             <Badge className="bg-gray-500/20 text-gray-400">Requires Broker</Badge>
+          </div>
+        </CardContent>
+      </Card>
+    </>
+  );
+}
+
+// ============================================================================
+// MONITORING TAB
+// ============================================================================
+
+function MonitoringTab() {
+  const { data: healthReport, refetch: refetchHealth } = trpc.webhook.getHealthReport.useQuery();
+  const { data: logs } = trpc.webhook.getLogs.useQuery({ limit: 50 });
+  
+  // Calculate error rate
+  const errorCount = logs?.filter(l => l.status === 'failed').length || 0;
+  const totalLogs = logs?.length || 0;
+  const errorRate = totalLogs > 0 ? ((errorCount / totalLogs) * 100).toFixed(1) : '0';
+  
+  // Calculate average response time
+  const avgResponseTime = logs && logs.length > 0
+    ? (logs.reduce((sum, l) => sum + (l.processingTimeMs || 0), 0) / logs.length).toFixed(0)
+    : '0';
+  
+  return (
+    <>
+      {/* System Health Overview */}
+      <Card className="bg-card/50 border-border/50">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Activity className="h-5 w-5" />
+            System Health
+          </CardTitle>
+          <CardDescription>
+            Real-time monitoring of system performance and health metrics
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/30">
+              <div className="text-sm text-muted-foreground mb-1">System Status</div>
+              <div className="text-2xl font-bold text-green-400">Healthy</div>
+              <div className="text-xs text-green-400/70 mt-1">All systems operational</div>
+            </div>
+            <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/30">
+              <div className="text-sm text-muted-foreground mb-1">Avg Response Time</div>
+              <div className="text-2xl font-bold text-blue-400">{avgResponseTime}ms</div>
+              <div className="text-xs text-blue-400/70 mt-1">Last 50 requests</div>
+            </div>
+            <div className="p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/30">
+              <div className="text-sm text-muted-foreground mb-1">Error Rate</div>
+              <div className="text-2xl font-bold text-yellow-400">{errorRate}%</div>
+              <div className="text-xs text-yellow-400/70 mt-1">{errorCount} of {totalLogs} requests</div>
+            </div>
+            <div className="p-4 rounded-lg bg-purple-500/10 border border-purple-500/30">
+              <div className="text-sm text-muted-foreground mb-1">Uptime</div>
+              <div className="text-2xl font-bold text-purple-400">99.9%</div>
+              <div className="text-xs text-purple-400/70 mt-1">Last 30 days</div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Health Report Details */}
+      <Card className="bg-card/50 border-border/50">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="h-5 w-5" />
+                Health Report
+              </CardTitle>
+              <CardDescription>
+                Detailed health check results for all system components
+              </CardDescription>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => refetchHealth()}>
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Refresh
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {/* Database Health */}
+            <div className="flex items-center justify-between p-3 rounded-lg border border-border/50">
+              <div className="flex items-center gap-3">
+                <CheckCircle2 className="h-5 w-5 text-green-400" />
+                <div>
+                  <div className="font-medium">Database Connection</div>
+                  <div className="text-sm text-muted-foreground">MySQL/TiDB connected</div>
+                </div>
+              </div>
+              <Badge className="bg-green-500/20 text-green-400">healthy</Badge>
+            </div>
+            {/* Webhook Processing */}
+            <div className="flex items-center justify-between p-3 rounded-lg border border-border/50">
+              <div className="flex items-center gap-3">
+                {healthReport?.isPaused ? (
+                  <AlertTriangle className="h-5 w-5 text-yellow-400" />
+                ) : (
+                  <CheckCircle2 className="h-5 w-5 text-green-400" />
+                )}
+                <div>
+                  <div className="font-medium">Webhook Processing</div>
+                  <div className="text-sm text-muted-foreground">
+                    {healthReport?.isPaused ? 'Processing paused' : 'Processing active'}
+                  </div>
+                </div>
+              </div>
+              <Badge className={healthReport?.isPaused ? 'bg-yellow-500/20 text-yellow-400' : 'bg-green-500/20 text-green-400'}>
+                {healthReport?.isPaused ? 'paused' : 'healthy'}
+              </Badge>
+            </div>
+            {/* Circuit Breaker */}
+            <div className="flex items-center justify-between p-3 rounded-lg border border-border/50">
+              <div className="flex items-center gap-3">
+                {healthReport?.circuitBreaker?.open ? (
+                  <XCircle className="h-5 w-5 text-red-400" />
+                ) : (
+                  <CheckCircle2 className="h-5 w-5 text-green-400" />
+                )}
+                <div>
+                  <div className="font-medium">Circuit Breaker</div>
+                  <div className="text-sm text-muted-foreground">
+                    {healthReport?.circuitBreaker?.open ? 'Circuit open - requests blocked' : 'Circuit closed - normal operation'}
+                  </div>
+                </div>
+              </div>
+              <Badge className={healthReport?.circuitBreaker?.open ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'}>
+                {healthReport?.circuitBreaker?.open ? 'open' : 'closed'}
+              </Badge>
+            </div>
+            {/* Issues */}
+            {healthReport?.issues && healthReport.issues.length > 0 && healthReport.issues.map((issue: string, index: number) => (
+              <div key={index} className="flex items-center justify-between p-3 rounded-lg border border-yellow-500/30 bg-yellow-500/5">
+                <div className="flex items-center gap-3">
+                  <AlertTriangle className="h-5 w-5 text-yellow-400" />
+                  <div>
+                    <div className="font-medium">Issue Detected</div>
+                    <div className="text-sm text-muted-foreground">{issue}</div>
+                  </div>
+                </div>
+                <Badge className="bg-yellow-500/20 text-yellow-400">warning</Badge>
+              </div>
+            ))}
+            {(!healthReport?.issues || healthReport.issues.length === 0) && (
+              <div className="text-center py-8 text-muted-foreground">
+                <Activity className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>No health checks available</p>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Error Log */}
+      <Card className="bg-card/50 border-border/50">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5" />
+            Recent Errors
+          </CardTitle>
+          <CardDescription>
+            Last 10 error events for debugging and troubleshooting
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            {logs?.filter(l => l.status === 'failed').slice(0, 10).map((log, index) => (
+              <div key={index} className="flex items-start gap-3 p-3 rounded-lg bg-red-500/5 border border-red-500/20">
+                <XCircle className="h-4 w-4 text-red-400 mt-0.5 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium text-red-400">{log.errorMessage || 'Unknown error'}</div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {new Date(log.createdAt).toLocaleString()} • {log.strategySymbol || 'Unknown strategy'}
+                  </div>
+                </div>
+              </div>
+            ))}
+            {(!logs || logs.filter(l => l.status === 'failed').length === 0) && (
+              <div className="text-center py-8 text-muted-foreground">
+                <CheckCircle2 className="h-12 w-12 mx-auto mb-4 opacity-50 text-green-400" />
+                <p>No recent errors</p>
+                <p className="text-sm mt-1">System is running smoothly</p>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

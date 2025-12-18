@@ -1493,6 +1493,29 @@ Please check the Webhooks page in your dashboard for more details.
           }
         }
 
+        // Get today's trades for the "Today's Activity" section
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
+        const todayTrades = allTrades.filter((t: any) => {
+          const entryDate = new Date(t.entryDate);
+          return entryDate >= todayStart;
+        }).map((t: any) => {
+          const sub = subscriptions.find(s => s.strategyId === t.strategyId);
+          return {
+            id: t.id,
+            strategyId: t.strategyId,
+            strategyName: (sub as any)?.strategy?.name || `Strategy ${t.strategyId}`,
+            symbol: t.symbol,
+            direction: t.direction,
+            entryDate: t.entryDate,
+            entryPrice: t.entryPrice,
+            exitDate: t.exitDate,
+            exitPrice: t.exitPrice,
+            pnl: t.pnl * (Number(sub?.quantityMultiplier) || 1),
+            isActive: !t.exitDate || new Date(t.exitDate) > new Date(), // Still active if no exit or exit in future
+          };
+        });
+
         // Get S&P 500 benchmark data
         const benchmarkData = await db.getBenchmarkData({ startDate, endDate: now });
         const benchmarkEquityCurve = benchmarkData.length > 0 
@@ -1508,9 +1531,20 @@ Please check the Webhooks page in your dashboard for more details.
             })
           : [];
 
+        // Calculate benchmark underwater curve
+        const benchmarkUnderwaterCurve = benchmarkEquityCurve.length > 0
+          ? analytics.calculateUnderwaterCurve(
+              benchmarkEquityCurve.map(b => ({ date: new Date(b.date), equity: b.equity, drawdown: 0 }))
+            ).map((p: { date: Date; drawdownPercent: number }) => ({
+              date: p.date.toISOString().split('T')[0],
+              drawdown: p.drawdownPercent,
+            }))
+          : [];
+
         return {
           hasData: true,
           subscriptions,
+          todayTrades,
           equityCurve: equityCurve.map((p: { date: Date; equity: number }) => ({
             date: p.date.toISOString().split('T')[0],
             equity: p.equity,
@@ -1520,6 +1554,7 @@ Please check the Webhooks page in your dashboard for more details.
             drawdown: p.drawdownPercent,
           })),
           benchmarkEquityCurve,
+          benchmarkUnderwaterCurve,
           monthlyReturns: monthlyReturns.map(m => ({
             year: m.year,
             month: m.month,

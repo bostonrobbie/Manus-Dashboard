@@ -8,18 +8,15 @@ import Overview from "./pages/Overview";
 import StrategyDetail from "./pages/StrategyDetail";
 import StrategyComparison from "./pages/StrategyComparison";
 import Strategies from "./pages/Strategies";
-import Webhooks from "./pages/Webhooks";
+import Admin from "./pages/Admin";
 import UserDashboard from "./pages/UserDashboard";
 import NotFound from "./pages/NotFound";
+import LandingPage from "./pages/LandingPage";
 
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={() => (
-        <DashboardLayout>
-          <Overview />
-        </DashboardLayout>
-      )} />
+      <Route path="/" component={LandingPage} />
       
       <Route path="/overview" component={() => (
         <DashboardLayout>
@@ -45,9 +42,9 @@ function Router() {
         </DashboardLayout>
       )} />
       
-      <Route path="/webhooks" component={() => (
+      <Route path="/admin" component={() => (
         <DashboardLayout>
-          <Webhooks />
+          <Admin />
         </DashboardLayout>
       )} />
       

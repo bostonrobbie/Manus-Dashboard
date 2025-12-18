@@ -239,6 +239,11 @@ export default function UserDashboard() {
   const combinedChartData = useMemo(() => {
     if (!portfolioData?.equityCurve || portfolioData.equityCurve.length === 0) return [];
     
+    // Get the date range from the portfolio equity curve (NOT S&P 500)
+    const portfolioDates = portfolioData.equityCurve.map((p: any) => p.date);
+    const minDate = portfolioDates[0];
+    const maxDate = portfolioDates[portfolioDates.length - 1];
+    
     // Merge individual strategy curves with combined
     const dateMap = new Map<string, any>();
     
@@ -247,21 +252,26 @@ export default function UserDashboard() {
       dateMap.set(point.date, { date: point.date, combined: point.equity });
     });
     
-    // Add individual strategy curves
+    // Add individual strategy curves (only within portfolio date range)
     strategyCurves?.curves?.forEach((curve: any, index: number) => {
       curve.curve?.forEach((point: any) => {
-        const existing = dateMap.get(point.date) || { date: point.date };
-        existing[`strategy_${curve.strategyId}`] = point.equity;
-        dateMap.set(point.date, existing);
+        if (point.date >= minDate && point.date <= maxDate) {
+          const existing = dateMap.get(point.date) || { date: point.date };
+          existing[`strategy_${curve.strategyId}`] = point.equity;
+          dateMap.set(point.date, existing);
+        }
       });
     });
     
-    // Add S&P 500 benchmark data if available
+    // Add S&P 500 benchmark data if available (ONLY within portfolio date range)
     if (showSP500 && portfolioData.benchmarkEquityCurve) {
       portfolioData.benchmarkEquityCurve.forEach((point: any) => {
-        const existing = dateMap.get(point.date) || { date: point.date };
-        existing.sp500 = point.equity;
-        dateMap.set(point.date, existing);
+        // Only add S&P 500 data points that fall within the portfolio's date range
+        if (point.date >= minDate && point.date <= maxDate) {
+          const existing = dateMap.get(point.date) || { date: point.date };
+          existing.sp500 = point.equity;
+          dateMap.set(point.date, existing);
+        }
       });
     }
     
@@ -386,114 +396,67 @@ export default function UserDashboard() {
         </Tabs>
       </div>
 
-      {/* Portfolio Summary Cards */}
-      {portfolioData?.hasData && portfolioData.metrics && (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-          {/* Total Return */}
-          <Card className="bg-gradient-to-br from-green-500/10 to-transparent border-green-500/30">
-            <CardHeader className="pb-1 pt-3 px-4">
-              <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1">
-                <TrendingUp className="h-3 w-3" />
-                Total Return
+      {/* Today's Trades Section - Only show if there are trades today */}
+      {portfolioData?.todayTrades && portfolioData.todayTrades.length > 0 && (
+        <Card className="bg-gradient-to-br from-blue-500/5 to-transparent border-blue-500/20">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Zap className="h-5 w-5 text-blue-400" />
+                Today's Activity
               </CardTitle>
-            </CardHeader>
-            <CardContent className="pb-3 px-4">
-              <div className={`text-xl font-bold ${portfolioData.metrics.totalReturn >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                {portfolioData.metrics.totalReturn >= 0 ? '+' : ''}{portfolioData.metrics.totalReturn.toFixed(2)}%
-              </div>
-              <p className="text-xs text-green-400">
-                ${((portfolioData.metrics.totalReturn / 100) * startingCapital).toLocaleString(undefined, { maximumFractionDigits: 0 })}
-              </p>
-            </CardContent>
-          </Card>
-
-          {/* Annualized Return */}
-          <Card className="bg-gradient-to-br from-blue-500/10 to-transparent border-blue-500/30">
-            <CardHeader className="pb-1 pt-3 px-4">
-              <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1">
-                <Activity className="h-3 w-3" />
-                Annualized
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pb-3 px-4">
-              <div className={`text-xl font-bold ${portfolioData.metrics.annualizedReturn >= 0 ? 'text-blue-400' : 'text-red-500'}`}>
-                {portfolioData.metrics.annualizedReturn >= 0 ? '+' : ''}{portfolioData.metrics.annualizedReturn.toFixed(2)}%
-              </div>
-              <p className="text-xs text-blue-400">
-                ${((portfolioData.metrics.annualizedReturn / 100) * startingCapital).toLocaleString(undefined, { maximumFractionDigits: 0 })}/yr
-              </p>
-            </CardContent>
-          </Card>
-
-          {/* Sharpe Ratio */}
-          <Card className="bg-gradient-to-br from-purple-500/10 to-transparent border-purple-500/30">
-            <CardHeader className="pb-1 pt-3 px-4">
-              <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1">
-                <Scale className="h-3 w-3" />
-                Sharpe Ratio
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pb-3 px-4">
-              <div className={`text-xl font-bold ${portfolioData.metrics.sharpeRatio >= 1 ? 'text-purple-400' : portfolioData.metrics.sharpeRatio >= 0.5 ? 'text-yellow-400' : 'text-red-400'}`}>
-                {portfolioData.metrics.sharpeRatio.toFixed(2)}
-              </div>
-              <p className="text-xs text-muted-foreground">Risk-adjusted</p>
-            </CardContent>
-          </Card>
-
-          {/* Max Drawdown */}
-          <Card className="bg-gradient-to-br from-red-500/10 to-transparent border-red-500/30">
-            <CardHeader className="pb-1 pt-3 px-4">
-              <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1">
-                <TrendingDown className="h-3 w-3" />
-                Max Drawdown
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pb-3 px-4">
-              <div className="text-xl font-bold text-red-500">
-                {portfolioData.metrics.maxDrawdown.toFixed(2)}%
-              </div>
-              <p className="text-xs text-red-400">
-                -${((Math.abs(portfolioData.metrics.maxDrawdown) / 100) * startingCapital).toLocaleString(undefined, { maximumFractionDigits: 0 })}
-              </p>
-            </CardContent>
-          </Card>
-
-          {/* Win Rate */}
-          <Card className="bg-gradient-to-br from-emerald-500/10 to-transparent border-emerald-500/30">
-            <CardHeader className="pb-1 pt-3 px-4">
-              <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1">
-                <Target className="h-3 w-3" />
-                Win Rate
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pb-3 px-4">
-              <div className={`text-xl font-bold ${portfolioData.metrics.winRate >= 50 ? 'text-emerald-400' : 'text-yellow-400'}`}>
-                {portfolioData.metrics.winRate.toFixed(1)}%
-              </div>
-              <p className="text-xs text-muted-foreground">{portfolioData.metrics.totalTrades.toLocaleString()} trades</p>
-            </CardContent>
-          </Card>
-
-          {/* Profit Factor */}
-          <Card className="bg-gradient-to-br from-amber-500/10 to-transparent border-amber-500/30">
-            <CardHeader className="pb-1 pt-3 px-4">
-              <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1">
-                <Wallet className="h-3 w-3" />
-                Profit Factor
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pb-3 px-4">
-              <div className={`text-xl font-bold ${portfolioData.metrics.profitFactor >= 1.5 ? 'text-amber-400' : portfolioData.metrics.profitFactor >= 1 ? 'text-yellow-400' : 'text-red-400'}`}>
-                {portfolioData.metrics.profitFactor.toFixed(2)}
-              </div>
-              <p className="text-xs text-muted-foreground">Gross P/L</p>
-            </CardContent>
-          </Card>
-        </div>
+              <Badge variant="outline" className="text-blue-400 border-blue-400/50">
+                {portfolioData.todayTrades.length} trade{portfolioData.todayTrades.length !== 1 ? 's' : ''}
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="flex gap-3 overflow-x-auto pb-2">
+              {portfolioData.todayTrades.map((trade: any, idx: number) => (
+                <div 
+                  key={trade.id || idx} 
+                  className={`flex-shrink-0 p-3 rounded-lg border min-w-[200px] ${
+                    trade.isActive 
+                      ? 'bg-blue-500/10 border-blue-500/30' 
+                      : trade.pnl >= 0 
+                        ? 'bg-green-500/10 border-green-500/30' 
+                        : 'bg-red-500/10 border-red-500/30'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-semibold text-sm">{trade.strategyName}</span>
+                    <Badge variant={trade.isActive ? 'default' : 'secondary'} className="text-xs">
+                      {trade.isActive ? 'Active' : 'Closed'}
+                    </Badge>
+                  </div>
+                  <div className="text-xs text-muted-foreground space-y-1">
+                    <div className="flex justify-between">
+                      <span>{trade.direction?.toUpperCase()}</span>
+                      <span>{trade.symbol}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Entry:</span>
+                      <span>${trade.entryPrice?.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Time:</span>
+                      <span>{new Date(trade.entryDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                    </div>
+                    {!trade.isActive && (
+                      <div className={`flex justify-between font-semibold ${trade.pnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        <span>P&L:</span>
+                        <span>{trade.pnl >= 0 ? '+' : ''}${trade.pnl.toFixed(2)}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       )}
 
-      {/* Activity Stats */}
+      {/* Quick Stats Row - Compact version */}
       <div className="grid grid-cols-4 gap-2">
         <div className="bg-muted/30 rounded-lg p-3 border flex items-center gap-3">
           <div className="p-2 bg-blue-500/20 rounded-lg">
@@ -622,11 +585,12 @@ export default function UserDashboard() {
                           <Line
                             type="monotone"
                             dataKey="sp500"
-                            stroke="#f59e0b"
+                            stroke="#9ca3af"
                             strokeWidth={2}
                             dot={false}
                             name="S&P 500"
                             connectNulls
+                            strokeDasharray="5 5"
                           />
                         )}
                         {strategyCurves?.curves?.map((curve: any, index: number) => (
@@ -648,16 +612,43 @@ export default function UserDashboard() {
                 </CardContent>
               </Card>
 
-              {/* Underwater Curve */}
+              {/* Underwater Curve with S&P 500 Comparison */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Underwater Equity Curve</CardTitle>
-                  <CardDescription>Drawdown from peak over time</CardDescription>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>Underwater Equity Curve</CardTitle>
+                      <CardDescription>Drawdown from peak over time {showSP500 && '(vs S&P 500)'}</CardDescription>
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <div className="h-[200px] md:h-[250px]">
                     <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={portfolioData.underwaterCurve}>
+                      <AreaChart data={(() => {
+                        // Merge portfolio and benchmark underwater curves
+                        if (!showSP500 || !portfolioData.benchmarkUnderwaterCurve) {
+                          return portfolioData.underwaterCurve;
+                        }
+                        const dateMap = new Map<string, any>();
+                        // Get portfolio date range
+                        const portfolioDates = portfolioData.underwaterCurve.map((p: any) => p.date);
+                        const minDate = portfolioDates[0];
+                        const maxDate = portfolioDates[portfolioDates.length - 1];
+                        // Add portfolio drawdown
+                        portfolioData.underwaterCurve.forEach((p: any) => {
+                          dateMap.set(p.date, { date: p.date, drawdown: p.drawdown });
+                        });
+                        // Add benchmark drawdown (only within portfolio date range)
+                        portfolioData.benchmarkUnderwaterCurve.forEach((p: any) => {
+                          if (p.date >= minDate && p.date <= maxDate) {
+                            const existing = dateMap.get(p.date) || { date: p.date };
+                            existing.sp500Drawdown = p.drawdown;
+                            dateMap.set(p.date, existing);
+                          }
+                        });
+                        return Array.from(dateMap.values()).sort((a, b) => a.date.localeCompare(b.date));
+                      })()}>
                         <defs>
                           <linearGradient id="drawdownGradient" x1="0" y1="0" x2="0" y2="1">
                             <stop offset="0%" stopColor="#ef4444" stopOpacity={0.3} />
@@ -685,18 +676,31 @@ export default function UserDashboard() {
                           label={{ value: 'Drawdown %', angle: -90, position: 'insideLeft', fill: '#ffffff', fontSize: 11 }}
                         />
                         <Tooltip 
-                          formatter={(value: number) => [`${value.toFixed(2)}%`, 'Drawdown']}
+                          formatter={(value: number, name: string) => [`${value.toFixed(2)}%`, name === 'sp500Drawdown' ? 'S&P 500 DD' : 'Portfolio DD']}
                           labelStyle={{ color: 'black' }}
                           contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.2)' }}
                         />
+                        <Legend />
                         <Area
                           type="monotone"
                           dataKey="drawdown"
                           stroke="#ef4444"
                           strokeWidth={2}
                           fill="url(#drawdownGradient)"
-                          name="Drawdown"
+                          name="Portfolio"
                         />
+                        {showSP500 && (
+                          <Line
+                            type="monotone"
+                            dataKey="sp500Drawdown"
+                            stroke="#9ca3af"
+                            strokeWidth={2}
+                            dot={false}
+                            name="S&P 500"
+                            strokeDasharray="5 5"
+                            connectNulls
+                          />
+                        )}
                       </AreaChart>
                     </ResponsiveContainer>
                   </div>
@@ -827,6 +831,57 @@ export default function UserDashboard() {
                   <CardDescription>Complete portfolio statistics and allocation overview</CardDescription>
                 </CardHeader>
                 <CardContent>
+                  {/* Top KPI Row - Key Performance Indicators */}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6 pb-6 border-b border-border">
+                    <div className="bg-gradient-to-br from-green-500/20 to-green-600/10 rounded-lg p-3 border border-green-500/30">
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <TrendingUp className="h-3.5 w-3.5 text-green-400" />
+                        <span className="text-xs text-muted-foreground">Total Return</span>
+                      </div>
+                      <p className="text-xl font-bold text-green-400">+{(portfolioData.metrics?.totalReturn || 0).toFixed(2)}%</p>
+                      <p className="text-xs text-green-300/70">${((portfolioData.metrics?.totalReturn || 0) * startingCapital / 100).toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
+                    </div>
+                    <div className="bg-gradient-to-br from-blue-500/20 to-blue-600/10 rounded-lg p-3 border border-blue-500/30">
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <Activity className="h-3.5 w-3.5 text-blue-400" />
+                        <span className="text-xs text-muted-foreground">Annualized</span>
+                      </div>
+                      <p className="text-xl font-bold text-blue-400">+{(portfolioData.metrics?.annualizedReturn || 0).toFixed(2)}%</p>
+                      <p className="text-xs text-blue-300/70">${((portfolioData.metrics?.annualizedReturn || 0) * startingCapital / 100).toLocaleString(undefined, { maximumFractionDigits: 0 })}/yr</p>
+                    </div>
+                    <div className="bg-muted/20 rounded-lg p-3 border border-border">
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <BarChart3 className="h-3.5 w-3.5 text-purple-400" />
+                        <span className="text-xs text-muted-foreground">Sharpe Ratio</span>
+                      </div>
+                      <p className={`text-xl font-bold ${(portfolioData.metrics?.sharpeRatio || 0) >= 1 ? 'text-green-400' : 'text-purple-400'}`}>{portfolioData.metrics?.sharpeRatio.toFixed(2)}</p>
+                      <p className="text-xs text-muted-foreground">Risk-adjusted</p>
+                    </div>
+                    <div className="bg-gradient-to-br from-red-500/20 to-red-600/10 rounded-lg p-3 border border-red-500/30">
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <TrendingDown className="h-3.5 w-3.5 text-red-400" />
+                        <span className="text-xs text-muted-foreground">Max Drawdown</span>
+                      </div>
+                      <p className="text-xl font-bold text-red-400">{(portfolioData.metrics?.maxDrawdown || 0).toFixed(2)}%</p>
+                      <p className="text-xs text-red-300/70">-${((portfolioData.metrics?.maxDrawdown || 0) * startingCapital / 100).toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
+                    </div>
+                    <div className="bg-gradient-to-br from-yellow-500/20 to-yellow-600/10 rounded-lg p-3 border border-yellow-500/30">
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <Target className="h-3.5 w-3.5 text-yellow-400" />
+                        <span className="text-xs text-muted-foreground">Win Rate</span>
+                      </div>
+                      <p className="text-xl font-bold text-yellow-400">{portfolioData.metrics?.winRate.toFixed(1)}%</p>
+                      <p className="text-xs text-yellow-300/70">{portfolioData.metrics?.totalTrades.toLocaleString()} trades</p>
+                    </div>
+                    <div className="bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 rounded-lg p-3 border border-emerald-500/30">
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <Zap className="h-3.5 w-3.5 text-emerald-400" />
+                        <span className="text-xs text-muted-foreground">Profit Factor</span>
+                      </div>
+                      <p className="text-xl font-bold text-emerald-400">{portfolioData.metrics?.profitFactor.toFixed(2)}</p>
+                      <p className="text-xs text-emerald-300/70">Gross P/L</p>
+                    </div>
+                  </div>
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     {/* Left Column - Strategy Allocation */}
                     <div className="space-y-4">
