@@ -64,13 +64,33 @@ export default function StrategyDetail() {
   }
 
   if (error) {
+    const isNotFound = error.message.toLowerCase().includes('not found');
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <Card className="w-full max-w-md">
           <CardHeader>
-            <CardTitle className="text-destructive">Error Loading Data</CardTitle>
-            <CardDescription>{error.message}</CardDescription>
+            <CardTitle className="text-destructive">
+              {isNotFound ? 'Strategy Not Found' : 'Error Loading Data'}
+            </CardTitle>
+            <CardDescription>
+              {isNotFound 
+                ? `The strategy with ID ${strategyId} does not exist or may have been removed.`
+                : error.message}
+            </CardDescription>
           </CardHeader>
+          <CardContent className="flex gap-3">
+            <Button variant="outline" asChild>
+              <Link href="/strategies">
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                View All Strategies
+              </Link>
+            </Button>
+            <Button variant="outline" asChild>
+              <Link href="/my-dashboard">
+                Go to Dashboard
+              </Link>
+            </Button>
+          </CardContent>
         </Card>
       </div>
     );

@@ -2454,3 +2454,13 @@
 - [x] All 586 tests passing (2 skipped)
 - [x] Security tests: 34 tests passing
 - [x] UI edge case tests: 23 tests passing
+
+
+## Bug Fixes In Progress
+
+- [ ] Fix "Strategy not found" error on My Dashboard page
+
+
+## Bug Fixes (December 2025)
+
+- [x] Fix "Strategy not found" error - Added user-friendly error UI with navigation buttons to StrategyDetail page
