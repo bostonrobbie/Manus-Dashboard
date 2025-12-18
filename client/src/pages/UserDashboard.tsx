@@ -473,46 +473,6 @@ export default function UserDashboard() {
         </CardContent>
       </Card>
 
-      {/* Quick Stats Row - Compact version */}
-      <div className="grid grid-cols-4 gap-2">
-        <div className="bg-muted/30 rounded-lg p-3 border flex items-center gap-3">
-          <div className="p-2 bg-blue-500/20 rounded-lg">
-            <BarChart3 className="h-4 w-4 text-blue-400" />
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground">Subscriptions</p>
-            <p className="text-lg font-bold">{stats?.totalSubscriptions || 0}</p>
-          </div>
-        </div>
-        <div className="bg-yellow-500/10 rounded-lg p-3 border border-yellow-500/20 flex items-center gap-3">
-          <div className="p-2 bg-yellow-500/20 rounded-lg">
-            <Clock className="h-4 w-4 text-yellow-400" />
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground">Pending</p>
-            <p className="text-lg font-bold text-yellow-500">{(stats as any)?.pendingSignals || 0}</p>
-          </div>
-        </div>
-        <div className="bg-green-500/10 rounded-lg p-3 border border-green-500/20 flex items-center gap-3">
-          <div className="p-2 bg-green-500/20 rounded-lg">
-            <CheckCircle2 className="h-4 w-4 text-green-400" />
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground">Executed</p>
-            <p className="text-lg font-bold text-green-500">{stats?.signalsExecuted || 0}</p>
-          </div>
-        </div>
-        <div className="bg-muted/30 rounded-lg p-3 border flex items-center gap-3">
-          <div className="p-2 bg-gray-500/20 rounded-lg">
-            <XCircle className="h-4 w-4 text-gray-400" />
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground">Skipped</p>
-            <p className="text-lg font-bold text-gray-500">{stats?.signalsSkipped || 0}</p>
-          </div>
-        </div>
-      </div>
-
       {/* Tab Content */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         {/* Portfolio Tab */}
@@ -867,55 +827,95 @@ export default function UserDashboard() {
                   <CardDescription>Complete portfolio statistics and allocation overview</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {/* Top KPI Row - Key Performance Indicators */}
+                  {/* Activity Stats Row - Subscriptions, Pending, Executed, Skipped */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6 pb-6 border-b border-border">
+                    <div className="bg-gradient-to-br from-cyan-500/15 to-cyan-600/5 rounded-lg p-3 border border-cyan-500/20 flex items-center gap-3">
+                      <div className="p-2 bg-cyan-500/20 rounded-lg">
+                        <BarChart3 className="h-4 w-4 text-cyan-400" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Subscriptions</p>
+                        <p className="text-lg font-bold text-cyan-400">{stats?.totalSubscriptions || 0}</p>
+                      </div>
+                    </div>
+                    <div className="bg-gradient-to-br from-cyan-500/10 to-cyan-600/5 rounded-lg p-3 border border-cyan-500/15 flex items-center gap-3">
+                      <div className="p-2 bg-cyan-500/15 rounded-lg">
+                        <Clock className="h-4 w-4 text-cyan-300" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Pending</p>
+                        <p className="text-lg font-bold text-cyan-300">{(stats as any)?.pendingSignals || 0}</p>
+                      </div>
+                    </div>
+                    <div className="bg-gradient-to-br from-emerald-500/15 to-emerald-600/5 rounded-lg p-3 border border-emerald-500/20 flex items-center gap-3">
+                      <div className="p-2 bg-emerald-500/20 rounded-lg">
+                        <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Executed</p>
+                        <p className="text-lg font-bold text-emerald-400">{stats?.signalsExecuted || 0}</p>
+                      </div>
+                    </div>
+                    <div className="bg-gradient-to-br from-slate-500/10 to-slate-600/5 rounded-lg p-3 border border-slate-500/15 flex items-center gap-3">
+                      <div className="p-2 bg-slate-500/15 rounded-lg">
+                        <XCircle className="h-4 w-4 text-slate-400" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Skipped</p>
+                        <p className="text-lg font-bold text-slate-400">{stats?.signalsSkipped || 0}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Top KPI Row - Key Performance Indicators - Unified Blue/Cyan Theme */}
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6 pb-6 border-b border-border">
-                    <div className="bg-gradient-to-br from-green-500/20 to-green-600/10 rounded-lg p-3 border border-green-500/30">
+                    <div className="bg-gradient-to-br from-emerald-500/15 to-emerald-600/5 rounded-lg p-3 border border-emerald-500/20">
                       <div className="flex items-center gap-1.5 mb-1">
-                        <TrendingUp className="h-3.5 w-3.5 text-green-400" />
+                        <TrendingUp className="h-3.5 w-3.5 text-emerald-400" />
                         <span className="text-xs text-muted-foreground">Total Return</span>
                       </div>
-                      <p className="text-xl font-bold text-green-400">+{(portfolioData.metrics?.totalReturn || 0).toFixed(2)}%</p>
-                      <p className="text-xs text-green-300/70">${((portfolioData.metrics?.totalReturn || 0) * startingCapital / 100).toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
+                      <p className="text-xl font-bold text-emerald-400">+{(portfolioData.metrics?.totalReturn || 0).toFixed(2)}%</p>
+                      <p className="text-xs text-emerald-300/60">${((portfolioData.metrics?.totalReturn || 0) * startingCapital / 100).toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
                     </div>
-                    <div className="bg-gradient-to-br from-blue-500/20 to-blue-600/10 rounded-lg p-3 border border-blue-500/30">
+                    <div className="bg-gradient-to-br from-blue-500/15 to-blue-600/5 rounded-lg p-3 border border-blue-500/20">
                       <div className="flex items-center gap-1.5 mb-1">
                         <Activity className="h-3.5 w-3.5 text-blue-400" />
                         <span className="text-xs text-muted-foreground">Annualized</span>
                       </div>
                       <p className="text-xl font-bold text-blue-400">+{(portfolioData.metrics?.annualizedReturn || 0).toFixed(2)}%</p>
-                      <p className="text-xs text-blue-300/70">${((portfolioData.metrics?.annualizedReturn || 0) * startingCapital / 100).toLocaleString(undefined, { maximumFractionDigits: 0 })}/yr</p>
+                      <p className="text-xs text-blue-300/60">${((portfolioData.metrics?.annualizedReturn || 0) * startingCapital / 100).toLocaleString(undefined, { maximumFractionDigits: 0 })}/yr</p>
                     </div>
-                    <div className="bg-muted/20 rounded-lg p-3 border border-border">
+                    <div className="bg-gradient-to-br from-cyan-500/15 to-cyan-600/5 rounded-lg p-3 border border-cyan-500/20">
                       <div className="flex items-center gap-1.5 mb-1">
-                        <BarChart3 className="h-3.5 w-3.5 text-purple-400" />
+                        <BarChart3 className="h-3.5 w-3.5 text-cyan-400" />
                         <span className="text-xs text-muted-foreground">Sharpe Ratio</span>
                       </div>
-                      <p className={`text-xl font-bold ${(portfolioData.metrics?.sharpeRatio || 0) >= 1 ? 'text-green-400' : 'text-purple-400'}`}>{portfolioData.metrics?.sharpeRatio.toFixed(2)}</p>
-                      <p className="text-xs text-muted-foreground">Risk-adjusted</p>
+                      <p className={`text-xl font-bold ${(portfolioData.metrics?.sharpeRatio || 0) >= 1 ? 'text-emerald-400' : 'text-cyan-400'}`}>{portfolioData.metrics?.sharpeRatio.toFixed(2)}</p>
+                      <p className="text-xs text-cyan-300/60">Risk-adjusted</p>
                     </div>
-                    <div className="bg-gradient-to-br from-red-500/20 to-red-600/10 rounded-lg p-3 border border-red-500/30">
+                    <div className="bg-gradient-to-br from-rose-500/15 to-rose-600/5 rounded-lg p-3 border border-rose-500/20">
                       <div className="flex items-center gap-1.5 mb-1">
-                        <TrendingDown className="h-3.5 w-3.5 text-red-400" />
+                        <TrendingDown className="h-3.5 w-3.5 text-rose-400" />
                         <span className="text-xs text-muted-foreground">Max Drawdown</span>
                       </div>
-                      <p className="text-xl font-bold text-red-400">{(portfolioData.metrics?.maxDrawdown || 0).toFixed(2)}%</p>
-                      <p className="text-xs text-red-300/70">-${((portfolioData.metrics?.maxDrawdown || 0) * startingCapital / 100).toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
+                      <p className="text-xl font-bold text-rose-400">{(portfolioData.metrics?.maxDrawdown || 0).toFixed(2)}%</p>
+                      <p className="text-xs text-rose-300/60">-${((portfolioData.metrics?.maxDrawdown || 0) * startingCapital / 100).toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
                     </div>
-                    <div className="bg-gradient-to-br from-yellow-500/20 to-yellow-600/10 rounded-lg p-3 border border-yellow-500/30">
+                    <div className="bg-gradient-to-br from-sky-500/15 to-sky-600/5 rounded-lg p-3 border border-sky-500/20">
                       <div className="flex items-center gap-1.5 mb-1">
-                        <Target className="h-3.5 w-3.5 text-yellow-400" />
+                        <Target className="h-3.5 w-3.5 text-sky-400" />
                         <span className="text-xs text-muted-foreground">Win Rate</span>
                       </div>
-                      <p className="text-xl font-bold text-yellow-400">{portfolioData.metrics?.winRate.toFixed(1)}%</p>
-                      <p className="text-xs text-yellow-300/70">{portfolioData.metrics?.totalTrades.toLocaleString()} trades</p>
+                      <p className="text-xl font-bold text-sky-400">{portfolioData.metrics?.winRate.toFixed(1)}%</p>
+                      <p className="text-xs text-sky-300/60">{portfolioData.metrics?.totalTrades.toLocaleString()} trades</p>
                     </div>
-                    <div className="bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 rounded-lg p-3 border border-emerald-500/30">
+                    <div className="bg-gradient-to-br from-teal-500/15 to-teal-600/5 rounded-lg p-3 border border-teal-500/20">
                       <div className="flex items-center gap-1.5 mb-1">
-                        <Zap className="h-3.5 w-3.5 text-emerald-400" />
+                        <Zap className="h-3.5 w-3.5 text-teal-400" />
                         <span className="text-xs text-muted-foreground">Profit Factor</span>
                       </div>
-                      <p className="text-xl font-bold text-emerald-400">{portfolioData.metrics?.profitFactor.toFixed(2)}</p>
-                      <p className="text-xs text-emerald-300/70">Gross P/L</p>
+                      <p className="text-xl font-bold text-teal-400">{portfolioData.metrics?.profitFactor.toFixed(2)}</p>
+                      <p className="text-xs text-teal-300/60">Gross P/L</p>
                     </div>
                   </div>
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -961,36 +961,51 @@ export default function UserDashboard() {
                     <div className="space-y-4">
                       <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Core Metrics</h3>
                       <div className="grid grid-cols-2 gap-3">
-                        <div className="bg-green-500/10 rounded-lg p-3 border border-green-500/20">
+                        <div className="bg-gradient-to-br from-emerald-500/15 to-emerald-600/5 rounded-lg p-3 border border-emerald-500/20">
                           <p className="text-xs text-muted-foreground">Avg Win</p>
-                          <p className="text-lg font-bold text-green-500">${(portfolioData.metrics?.avgWin || 0).toFixed(2)}</p>
-                          <p className="text-xs text-green-400">+{((portfolioData.metrics?.avgWin || 0) / startingCapital * 100).toFixed(3)}%</p>
+                          <p className="text-lg font-bold text-emerald-400">${(portfolioData.metrics?.avgWin || 0).toFixed(2)}</p>
+                          <p className="text-xs text-emerald-300/60">+{((portfolioData.metrics?.avgWin || 0) / startingCapital * 100).toFixed(3)}%</p>
                         </div>
-                        <div className="bg-red-500/10 rounded-lg p-3 border border-red-500/20">
+                        <div className="bg-gradient-to-br from-rose-500/15 to-rose-600/5 rounded-lg p-3 border border-rose-500/20">
                           <p className="text-xs text-muted-foreground">Avg Loss</p>
-                          <p className="text-lg font-bold text-red-500">-${Math.abs(portfolioData.metrics?.avgLoss || 0).toFixed(2)}</p>
-                          <p className="text-xs text-red-400">-{(Math.abs(portfolioData.metrics?.avgLoss || 0) / startingCapital * 100).toFixed(3)}%</p>
+                          <p className="text-lg font-bold text-rose-400">-${Math.abs(portfolioData.metrics?.avgLoss || 0).toFixed(2)}</p>
+                          <p className="text-xs text-rose-300/60">-{(Math.abs(portfolioData.metrics?.avgLoss || 0) / startingCapital * 100).toFixed(3)}%</p>
                         </div>
-                        <div className="bg-muted/20 rounded-lg p-3">
+                        <div className="bg-gradient-to-br from-slate-500/10 to-slate-600/5 rounded-lg p-3 border border-slate-500/15">
                           <p className="text-xs text-muted-foreground">Total Trades</p>
                           <p className="text-lg font-bold">{portfolioData.metrics?.totalTrades.toLocaleString()}</p>
+                          <p className="text-xs text-muted-foreground/60">{((portfolioData.metrics?.totalTrades || 0) / ((new Date().getFullYear() - 2010) || 1)).toFixed(0)}/yr avg</p>
                         </div>
-                        <div className="bg-blue-500/10 rounded-lg p-3 border border-blue-500/20">
+                        <div className="bg-gradient-to-br from-blue-500/15 to-blue-600/5 rounded-lg p-3 border border-blue-500/20">
                           <p className="text-xs text-muted-foreground">Ann. Return</p>
                           <p className="text-lg font-bold text-blue-400">{portfolioData.metrics?.annualizedReturn.toFixed(2)}%</p>
+                          <p className="text-xs text-blue-300/60">CAGR</p>
+                        </div>
+                      </div>
+                      {/* Win/Loss Stats */}
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="bg-gradient-to-br from-cyan-500/10 to-cyan-600/5 rounded-lg p-3 border border-cyan-500/15">
+                          <p className="text-xs text-muted-foreground">Winning Trades</p>
+                          <p className="text-lg font-bold text-cyan-400">{Math.round((portfolioData.metrics?.totalTrades || 0) * (portfolioData.metrics?.winRate || 0) / 100).toLocaleString()}</p>
+                          <p className="text-xs text-cyan-300/60">{portfolioData.metrics?.winRate.toFixed(1)}% win rate</p>
+                        </div>
+                        <div className="bg-gradient-to-br from-amber-500/10 to-amber-600/5 rounded-lg p-3 border border-amber-500/15">
+                          <p className="text-xs text-muted-foreground">Losing Trades</p>
+                          <p className="text-lg font-bold text-amber-400">{Math.round((portfolioData.metrics?.totalTrades || 0) * (100 - (portfolioData.metrics?.winRate || 0)) / 100).toLocaleString()}</p>
+                          <p className="text-xs text-amber-300/60">{(100 - (portfolioData.metrics?.winRate || 0)).toFixed(1)}% loss rate</p>
                         </div>
                       </div>
                       {/* Payoff Ratio Bar */}
-                      <div className="bg-muted/10 rounded-lg p-3">
+                      <div className="bg-gradient-to-br from-slate-500/10 to-slate-600/5 rounded-lg p-3 border border-slate-500/15">
                         <div className="flex justify-between text-xs text-muted-foreground mb-2">
                           <span>Payoff Ratio (Avg Win / Avg Loss)</span>
-                          <span className="font-bold text-foreground">
+                          <span className="font-bold text-cyan-400">
                             {portfolioData.metrics?.avgLoss ? ((portfolioData.metrics?.avgWin || 0) / Math.abs(portfolioData.metrics?.avgLoss)).toFixed(2) : 'N/A'}:1
                           </span>
                         </div>
                         <div className="h-2 bg-muted rounded-full overflow-hidden">
                           <div 
-                            className="h-full bg-gradient-to-r from-green-500 to-emerald-400 rounded-full"
+                            className="h-full bg-gradient-to-r from-cyan-500 to-teal-400 rounded-full"
                             style={{ width: `${Math.min(100, ((portfolioData.metrics?.avgWin || 0) / (Math.abs(portfolioData.metrics?.avgLoss || 1))) * 50)}%` }}
                           />
                         </div>
@@ -1001,41 +1016,65 @@ export default function UserDashboard() {
                     <div className="space-y-4">
                       <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Risk-Adjusted</h3>
                       <div className="space-y-3">
-                        <div className="flex justify-between items-center bg-muted/10 rounded-lg p-3">
+                        <div className="flex justify-between items-center bg-gradient-to-br from-cyan-500/10 to-cyan-600/5 rounded-lg p-3 border border-cyan-500/15">
                           <div>
                             <p className="text-xs text-muted-foreground">Sharpe Ratio</p>
-                            <p className="text-xs text-muted-foreground/70">Risk-adjusted return</p>
+                            <p className="text-xs text-muted-foreground/60">Risk-adjusted return</p>
                           </div>
-                          <p className={`text-xl font-bold ${(portfolioData.metrics?.sharpeRatio || 0) >= 1 ? 'text-green-400' : (portfolioData.metrics?.sharpeRatio || 0) >= 0.5 ? 'text-yellow-400' : 'text-red-400'}`}>
-                            {portfolioData.metrics?.sharpeRatio.toFixed(2)}
-                          </p>
+                          <div className="text-right">
+                            <p className={`text-xl font-bold ${(portfolioData.metrics?.sharpeRatio || 0) >= 1 ? 'text-emerald-400' : (portfolioData.metrics?.sharpeRatio || 0) >= 0.5 ? 'text-amber-400' : 'text-rose-400'}`}>
+                              {portfolioData.metrics?.sharpeRatio.toFixed(2)}
+                            </p>
+                            <p className="text-xs text-muted-foreground/50">{(portfolioData.metrics?.sharpeRatio || 0) >= 1 ? 'Excellent' : (portfolioData.metrics?.sharpeRatio || 0) >= 0.5 ? 'Good' : 'Poor'}</p>
+                          </div>
                         </div>
-                        <div className="flex justify-between items-center bg-muted/10 rounded-lg p-3">
+                        <div className="flex justify-between items-center bg-gradient-to-br from-blue-500/10 to-blue-600/5 rounded-lg p-3 border border-blue-500/15">
                           <div>
                             <p className="text-xs text-muted-foreground">Sortino Ratio</p>
-                            <p className="text-xs text-muted-foreground/70">Downside risk</p>
+                            <p className="text-xs text-muted-foreground/60">Downside risk only</p>
                           </div>
-                          <p className={`text-xl font-bold ${(portfolioData.metrics?.sortinoRatio || 0) >= 2 ? 'text-green-400' : (portfolioData.metrics?.sortinoRatio || 0) >= 1 ? 'text-yellow-400' : 'text-red-400'}`}>
-                            {portfolioData.metrics?.sortinoRatio.toFixed(2)}
-                          </p>
+                          <div className="text-right">
+                            <p className={`text-xl font-bold ${(portfolioData.metrics?.sortinoRatio || 0) >= 2 ? 'text-emerald-400' : (portfolioData.metrics?.sortinoRatio || 0) >= 1 ? 'text-amber-400' : 'text-rose-400'}`}>
+                              {portfolioData.metrics?.sortinoRatio.toFixed(2)}
+                            </p>
+                            <p className="text-xs text-muted-foreground/50">{(portfolioData.metrics?.sortinoRatio || 0) >= 2 ? 'Excellent' : (portfolioData.metrics?.sortinoRatio || 0) >= 1 ? 'Good' : 'Poor'}</p>
+                          </div>
                         </div>
-                        <div className="flex justify-between items-center bg-muted/10 rounded-lg p-3">
+                        <div className="flex justify-between items-center bg-gradient-to-br from-teal-500/10 to-teal-600/5 rounded-lg p-3 border border-teal-500/15">
                           <div>
                             <p className="text-xs text-muted-foreground">Calmar Ratio</p>
-                            <p className="text-xs text-muted-foreground/70">Return / Max DD</p>
+                            <p className="text-xs text-muted-foreground/60">Return / Max DD</p>
                           </div>
-                          <p className={`text-xl font-bold ${(portfolioData.metrics?.calmarRatio || 0) >= 1 ? 'text-green-400' : (portfolioData.metrics?.calmarRatio || 0) >= 0.5 ? 'text-yellow-400' : 'text-red-400'}`}>
-                            {portfolioData.metrics?.calmarRatio.toFixed(2)}
-                          </p>
+                          <div className="text-right">
+                            <p className={`text-xl font-bold ${(portfolioData.metrics?.calmarRatio || 0) >= 1 ? 'text-emerald-400' : (portfolioData.metrics?.calmarRatio || 0) >= 0.5 ? 'text-amber-400' : 'text-rose-400'}`}>
+                              {portfolioData.metrics?.calmarRatio.toFixed(2)}
+                            </p>
+                            <p className="text-xs text-muted-foreground/50">{(portfolioData.metrics?.calmarRatio || 0) >= 1 ? 'Excellent' : (portfolioData.metrics?.calmarRatio || 0) >= 0.5 ? 'Good' : 'Poor'}</p>
+                          </div>
                         </div>
-                        <div className="flex justify-between items-center bg-muted/10 rounded-lg p-3">
+                        <div className="flex justify-between items-center bg-gradient-to-br from-slate-500/10 to-slate-600/5 rounded-lg p-3 border border-slate-500/15">
                           <div>
                             <p className="text-xs text-muted-foreground">Volatility (Ann.)</p>
-                            <p className="text-xs text-muted-foreground/70">Standard deviation</p>
+                            <p className="text-xs text-muted-foreground/60">Standard deviation</p>
                           </div>
-                          <p className="text-xl font-bold">
-                            {((portfolioData.metrics?.annualizedReturn || 10) / (portfolioData.metrics?.sharpeRatio || 1)).toFixed(1)}%
-                          </p>
+                          <div className="text-right">
+                            <p className="text-xl font-bold text-sky-400">
+                              {((portfolioData.metrics?.annualizedReturn || 10) / (portfolioData.metrics?.sharpeRatio || 1)).toFixed(1)}%
+                            </p>
+                            <p className="text-xs text-muted-foreground/50">Annual σ</p>
+                          </div>
+                        </div>
+                        <div className="flex justify-between items-center bg-gradient-to-br from-purple-500/10 to-purple-600/5 rounded-lg p-3 border border-purple-500/15">
+                          <div>
+                            <p className="text-xs text-muted-foreground">Recovery Factor</p>
+                            <p className="text-xs text-muted-foreground/60">Net P/L / Max DD</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xl font-bold text-purple-400">
+                              {((portfolioData.metrics?.totalReturn || 0) / Math.abs(portfolioData.metrics?.maxDrawdown || 1)).toFixed(2)}
+                            </p>
+                            <p className="text-xs text-muted-foreground/50">Times recovered</p>
+                          </div>
                         </div>
                       </div>
                     </div>

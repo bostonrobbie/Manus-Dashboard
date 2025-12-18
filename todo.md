@@ -2666,3 +2666,21 @@
 - [x] Combined portfolio should only include subscribed strategies (verified)
 - [x] S&P 500 should only be a separate comparison line (not affect combined value)
 - [x] Reference Overview page implementation for correct S&P 500 separation
+
+
+## Sprint: Dashboard Layout & UX Improvements (Dec 18, 2025)
+
+### Layout Reorganization
+- [x] Move Subscriptions/Pending/Executed/Skipped stat boxes to Portfolio Performance Center
+- [x] Remove rainbow color scheme from stat boxes
+- [x] Use more uniform, cohesive color palette for stat boxes (cyan/blue/emerald/teal theme)
+
+### Metrics Enhancement
+- [x] Enhance Core Metrics section with additional data (winning/losing trades counts)
+- [x] Enhance Risk-Adjusted section with more details (quality ratings, Recovery Factor)
+- [x] Improve visual hierarchy and readability (gradient backgrounds, unified colors)
+
+### Sidebar Animation Fix
+- [x] Increase hover delay to 500ms before sidebar opens
+- [x] Make sidebar animation smoother (300ms ease-in-out transition)
+- [x] Prevent accidental sidebar opens from quick cursor movements

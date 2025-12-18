@@ -123,18 +123,20 @@ function DashboardLayoutContent({
   const isAdmin = user?.role === 'admin';
   const menuItems = baseMenuItems.filter(item => !item.adminOnly || isAdmin);
   
-  // Handle hover to expand sidebar
+  // Handle hover to expand sidebar with delay to prevent accidental triggers
   const handleMouseEnter = () => {
     if (isMobile) return;
     if (hoverTimeoutRef.current) {
       clearTimeout(hoverTimeoutRef.current);
       hoverTimeoutRef.current = null;
     }
-    // Immediate expansion for responsive feel
-    setIsHovering(true);
-    if (isCollapsed) {
-      setOpen(true);
-    }
+    // Add 500ms delay before expanding to prevent accidental triggers
+    hoverTimeoutRef.current = setTimeout(() => {
+      setIsHovering(true);
+      if (isCollapsed) {
+        setOpen(true);
+      }
+    }, 500);
   };
   
   const handleMouseLeave = () => {
@@ -143,14 +145,12 @@ function DashboardLayoutContent({
       clearTimeout(hoverTimeoutRef.current);
       hoverTimeoutRef.current = null;
     }
-    // Short delay before collapsing to allow for menu interaction
-    hoverTimeoutRef.current = setTimeout(() => {
-      setIsHovering(false);
-      // Only collapse if it was expanded via hover
-      if (!isCollapsed) {
-        setOpen(false);
-      }
-    }, 100); // Reduced delay for faster collapse
+    // Immediate collapse when mouse leaves
+    setIsHovering(false);
+    // Only collapse if it was expanded via hover
+    if (!isCollapsed) {
+      setOpen(false);
+    }
   };
   
   // Cleanup timeout on unmount
@@ -209,7 +209,7 @@ function DashboardLayoutContent({
       >
         <Sidebar
           collapsible="icon"
-          className="border-r-0 transition-[width] duration-150 ease-out"
+          className="border-r-0 transition-[width] duration-300 ease-in-out"
           disableTransition={isResizing}
         >
           <SidebarHeader className="h-16 justify-center">
