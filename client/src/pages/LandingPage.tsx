@@ -21,14 +21,21 @@ import {
   RefreshCw
 } from "lucide-react";
 import { useLocation } from "wouter";
+import { useEffect } from "react";
 
 export default function LandingPage() {
   const { user, loading } = useAuth();
   const [, setLocation] = useLocation();
 
   // If user is logged in, redirect to dashboard
+  useEffect(() => {
+    if (user) {
+      setLocation("/my-dashboard");
+    }
+  }, [user, setLocation]);
+
+  // Show nothing while redirecting
   if (user) {
-    setLocation("/my-dashboard");
     return null;
   }
 
