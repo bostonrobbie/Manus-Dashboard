@@ -16,6 +16,52 @@ const TimeRange = z.enum(['6M', 'YTD', '1Y', '3Y', '5Y', '10Y', 'ALL']);
 export const appRouter = router({
   system: systemRouter,
   
+  // Public platform statistics for landing page
+  platform: router({
+    stats: publicProcedure.query(async () => {
+      // Get all strategies
+      const strategies = await db.getAllStrategies();
+      const strategyIds = strategies.map(s => s.id);
+      
+      // Get all trades for calculating aggregate stats
+      const allTrades = await db.getTrades({
+        strategyIds,
+        startDate: undefined,
+        endDate: new Date(),
+      });
+      
+      // Calculate portfolio metrics
+      const startingCapital = 100000;
+      const metrics = analytics.calculatePerformanceMetrics(allTrades, startingCapital);
+      
+      // Calculate equity curve for total return
+      const portfolioEquity = analytics.calculateEquityCurve(allTrades, startingCapital);
+      const finalEquity = portfolioEquity.length > 0 
+        ? portfolioEquity[portfolioEquity.length - 1]!.equity 
+        : startingCapital;
+      const totalReturn = ((finalEquity - startingCapital) / startingCapital) * 100;
+      
+      // Get years of data
+      const firstTradeDate = allTrades.length > 0 ? allTrades[0]!.entryDate : new Date();
+      const yearsOfData = Math.max(1, (Date.now() - firstTradeDate.getTime()) / (365 * 24 * 60 * 60 * 1000));
+      
+      return {
+        totalReturn: Math.round(totalReturn * 100) / 100,
+        annualizedReturn: Math.round(metrics.annualizedReturn * 100) / 100,
+        sharpeRatio: Math.round(metrics.sharpeRatio * 100) / 100,
+        sortinoRatio: Math.round(metrics.sortinoRatio * 100) / 100,
+        maxDrawdown: Math.round(metrics.maxDrawdown * 100) / 100,
+        winRate: Math.round(metrics.winRate * 100) / 100,
+        profitFactor: Math.round(metrics.profitFactor * 100) / 100,
+        totalTrades: metrics.totalTrades,
+        strategyCount: strategies.length,
+        yearsOfData: Math.round(yearsOfData * 10) / 10,
+        avgWin: Math.round(metrics.avgWin * 100) / 100,
+        avgLoss: Math.round(metrics.avgLoss * 100) / 100,
+      };
+    }),
+  }),
+  
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {

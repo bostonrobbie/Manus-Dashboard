@@ -2684,3 +2684,32 @@
 - [x] Increase hover delay to 500ms before sidebar opens
 - [x] Make sidebar animation smoother (300ms ease-in-out transition)
 - [x] Prevent accidental sidebar opens from quick cursor movements
+
+
+## Sprint: Landing Page Redesign & Strategy Page Fix (Dec 18, 2025)
+
+### Landing Page Enhancement
+- [ ] Create clean, minimalistic hero section
+- [ ] Use real statistics from Overview dashboard for advertising
+- [ ] Make top section easy on the eyes with subtle design
+- [ ] Add compelling copy using actual performance metrics
+- [ ] Improve SEO with proper meta tags and structure
+
+### Strategy Page Fix
+- [ ] Remove 0% RoR button from starting capital section on all strategy pages
+
+
+## Sprint: Landing Page Redesign & SEO (Dec 18, 2025) - COMPLETE
+
+### Landing Page Redesign
+- [x] Create clean, minimalistic hero section (dark theme with subtle gradients)
+- [x] Use real statistics from Overview page for advertising (new platform.stats API)
+- [x] Add professional performance showcase section (returns, risk-adjusted, drawdown cards)
+- [x] Add features section with clean design (6 feature cards)
+- [x] Add CTA section with trust indicators
+- [x] Add public platform.stats tRPC endpoint for landing page stats
+- [x] Write unit tests for platform.stats endpoint (3 tests)
+
+### Strategy Pages
+- [x] Remove 0% RoR button from starting capital section
+- [x] Remove unused zeroRoRCapital useMemo calculation

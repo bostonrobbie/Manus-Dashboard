@@ -31,30 +31,6 @@ export default function StrategyDetail() {
     contractSize,
   });
 
-  // Calculate Zero RoR capital
-  const zeroRoRCapital = useMemo(() => {
-    if (!data?.metrics) return null;
-    
-    const { winRate, avgWin, avgLoss } = data.metrics;
-    
-    if (avgLoss === 0) return null;
-    
-    // Calculate trading advantage: A = (WinRate × AvgWin - LossRate × AvgLoss) / AvgLoss
-    const lossRate = 1 - (winRate / 100);
-    const payoffRatio = Math.abs(avgWin / avgLoss);
-    const tradingAdvantage = ((winRate / 100) * payoffRatio - lossRate) / payoffRatio;
-    
-    if (tradingAdvantage <= 0) return null; // Negative expectancy system
-    
-    // Calculate capital units for <0.01% RoR: U = ln(0.0001) / ln((1-A)/(1+A))
-    const capitalUnits = Math.log(0.0001) / Math.log((1 - tradingAdvantage) / (1 + tradingAdvantage));
-    
-    // Minimum balance = Capital Units × Average Loss
-    const minBalance = capitalUnits * Math.abs(avgLoss);
-    
-    return Math.ceil(minBalance / 1000) * 1000; // Round up to nearest 1000
-  }, [data?.metrics]);
-
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -246,16 +222,6 @@ export default function StrategyDetail() {
                     className="text-lg font-medium"
                   />
                   <div className="flex flex-wrap gap-2">
-                    {zeroRoRCapital && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setStartingCapital(zeroRoRCapital)}
-                        className="text-xs"
-                      >
-                        Zero RoR (${(zeroRoRCapital / 1000).toFixed(0)}K)
-                      </Button>
-                    )}
                     <Button
                       variant="outline"
                       size="sm"
