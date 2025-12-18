@@ -405,21 +405,21 @@ export default function UserDashboard() {
         </Tabs>
       </div>
 
-      {/* Today's Trades Section - Only show if there are trades today */}
-      {portfolioData?.todayTrades && portfolioData.todayTrades.length > 0 && (
-        <Card className="bg-gradient-to-br from-blue-500/5 to-transparent border-blue-500/20">
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Zap className="h-5 w-5 text-blue-400" />
-                Today's Activity
-              </CardTitle>
-              <Badge variant="outline" className="text-blue-400 border-blue-400/50">
-                {portfolioData.todayTrades.length} trade{portfolioData.todayTrades.length !== 1 ? 's' : ''}
-              </Badge>
-            </div>
-          </CardHeader>
-          <CardContent>
+      {/* Today's Trades Section - Always visible */}
+      <Card className="bg-gradient-to-br from-blue-500/5 to-transparent border-blue-500/20">
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Zap className="h-5 w-5 text-blue-400" />
+              Today's Activity
+            </CardTitle>
+            <Badge variant="outline" className="text-blue-400 border-blue-400/50">
+              {portfolioData?.todayTrades?.length || 0} trade{(portfolioData?.todayTrades?.length || 0) !== 1 ? 's' : ''}
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {portfolioData?.todayTrades && portfolioData.todayTrades.length > 0 ? (
             <div className="flex gap-3 overflow-x-auto pb-2">
               {portfolioData.todayTrades.map((trade: any, idx: number) => (
                 <div 
@@ -461,9 +461,13 @@ export default function UserDashboard() {
                 </div>
               ))}
             </div>
-          </CardContent>
-        </Card>
-      )}
+          ) : (
+            <div className="text-center py-4 text-muted-foreground text-sm">
+              No trades today. Signals will appear here when they are generated.
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Quick Stats Row - Compact version */}
       <div className="grid grid-cols-4 gap-2">

@@ -111,15 +111,54 @@ function DashboardLayoutContent({
 }: DashboardLayoutContentProps) {
   const { user, logout } = useAuth();
   const [location, setLocation] = useLocation();
-  const { state, toggleSidebar, setOpenMobile, openMobile } = useSidebar();
+  const { state, toggleSidebar, setOpenMobile, openMobile, setOpen } = useSidebar();
   const isCollapsed = state === "collapsed";
   const [isResizing, setIsResizing] = useState(false);
+  const [isHovering, setIsHovering] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
+  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isMobile = useIsMobile();
   
   // Filter menu items based on user role
   const isAdmin = user?.role === 'admin';
   const menuItems = baseMenuItems.filter(item => !item.adminOnly || isAdmin);
+  
+  // Handle hover to expand sidebar
+  const handleMouseEnter = () => {
+    if (isMobile) return;
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+    }
+    hoverTimeoutRef.current = setTimeout(() => {
+      setIsHovering(true);
+      if (isCollapsed) {
+        setOpen(true);
+      }
+    }, 150); // Small delay to prevent accidental triggers
+  };
+  
+  const handleMouseLeave = () => {
+    if (isMobile) return;
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+    }
+    hoverTimeoutRef.current = setTimeout(() => {
+      setIsHovering(false);
+      // Only collapse if it was expanded via hover
+      if (!isCollapsed) {
+        setOpen(false);
+      }
+    }, 300); // Delay before collapsing to allow for menu interaction
+  };
+  
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (hoverTimeoutRef.current) {
+        clearTimeout(hoverTimeoutRef.current);
+      }
+    };
+  }, []);
   const activeMenuItem = menuItems.find(item => item.path === location);
 
   useEffect(() => {
@@ -160,10 +199,15 @@ function DashboardLayoutContent({
 
   return (
     <>
-      <div className="relative" ref={sidebarRef}>
+      <div 
+        className="relative" 
+        ref={sidebarRef}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+      >
         <Sidebar
           collapsible="icon"
-          className="border-r-0"
+          className="border-r-0 transition-all duration-200"
           disableTransition={isResizing}
         >
           <SidebarHeader className="h-16 justify-center">

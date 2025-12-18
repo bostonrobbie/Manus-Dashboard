@@ -2580,3 +2580,30 @@
 - [x] Add dynamic error rate coloring (red if >10%)
 - [x] Add last activity timestamp
 
+
+
+## Sprint: Bug Fixes & UX Improvements (Dec 18, 2025)
+
+### Server Stability
+- [x] Fix server crashes returning HTML instead of JSON (server restarted)
+- [x] Investigate and fix API timeout issues
+- [x] Add better error handling to prevent server crashes
+- [x] Ensure 24/7 uptime stability
+
+### My Dashboard Improvements
+- [x] Fix S&P 500 to display as separate line (not combined with portfolio)
+- [x] Add S&P 500 toggle to legend for equity curve
+- [x] Apply S&P 500 toggle to underwater equity curve as well
+- [x] Add Today's Trades section at top of My Dashboard (always visible with empty state)
+
+### Admin Page Access Control
+- [x] Hide Admin nav link for non-admin users (already implemented in DashboardLayout)
+- [x] Grant admin privileges to Rob Gorham account (updated in database)
+- [x] Ensure Admin page redirects non-admins properly
+
+### Responsive Sidebar Navigation
+- [x] Make sidebar slide out on hover
+- [x] Make sidebar slide back in when cursor moves away
+- [x] Hover-based expansion with 150ms delay to prevent accidental triggers
+- [x] Improve sidebar loading speed and responsiveness
+
