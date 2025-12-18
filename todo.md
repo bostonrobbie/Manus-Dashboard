@@ -2545,3 +2545,38 @@
 - [x] Add pricing section with subscription tiers
 - [x] Add FAQ section
 - [x] Add footer with links
+
+
+## Sprint: Final Enhancements (Dec 17, 2025)
+
+### Live Performance Timestamps
+- [x] Add "Live" badge to Equity Curve card on Overview page
+- [x] Add "Live" badge to Combined Equity Curve on My Dashboard
+- [x] Add "Live" badge to Underwater Equity Curve on My Dashboard
+
+### Risk Disclaimer Modal
+- [x] Create RiskDisclaimerModal component with 5 acknowledgment checkboxes
+- [x] Integrate modal into subscription flow on My Dashboard
+- [x] Require all checkboxes before allowing subscription
+
+### Landing Page Redesign
+- [x] Redesign hero section with gradient orbs and grid pattern
+- [x] Add trust badges (Bank-Level Security, Real-Time Data, 500+ Traders)
+- [x] Create feature cards with gradient backgrounds
+- [x] Add pricing section (Starter, Professional, Enterprise)
+- [x] Add professional footer with risk disclosure
+
+### Drawdown Chart Forward-Fill
+- [x] Implement forward-fill for benchmark data in underwater chart
+- [x] Eliminate gaps in S&P 500 benchmark line
+
+### Admin Monitoring Enhancements
+- [x] Add auto-refresh toggle (30-second interval)
+- [x] Add live monitoring badge with pulse animation
+- [x] Expand metrics grid to 6 columns
+- [x] Add Success Rate metric
+- [x] Add P95 Response Time metric
+- [x] Add Total Processed metric
+- [x] Add dynamic error rate coloring (red if >10%)
+- [x] Add last activity timestamp
+

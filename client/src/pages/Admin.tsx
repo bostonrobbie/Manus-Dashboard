@@ -1107,20 +1107,75 @@ function BrokersTab() {
 
 function MonitoringTab() {
   const { data: healthReport, refetch: refetchHealth } = trpc.webhook.getHealthReport.useQuery();
-  const { data: logs } = trpc.webhook.getLogs.useQuery({ limit: 50 });
+  const { data: logs, refetch: refetchLogs } = trpc.webhook.getLogs.useQuery({ limit: 50 });
+  const { data: status } = trpc.webhook.getStatus.useQuery();
+  const [autoRefresh, setAutoRefresh] = useState(true);
+  
+  // Auto-refresh every 30 seconds
+  useEffect(() => {
+    if (!autoRefresh) return;
+    const interval = setInterval(() => {
+      refetchHealth();
+      refetchLogs();
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [autoRefresh, refetchHealth, refetchLogs]);
   
   // Calculate error rate
   const errorCount = logs?.filter(l => l.status === 'failed').length || 0;
   const totalLogs = logs?.length || 0;
   const errorRate = totalLogs > 0 ? ((errorCount / totalLogs) * 100).toFixed(1) : '0';
   
+  // Calculate success rate
+  const successCount = logs?.filter(l => l.status === 'success').length || 0;
+  const successRate = totalLogs > 0 ? ((successCount / totalLogs) * 100).toFixed(1) : '100';
+  
   // Calculate average response time
   const avgResponseTime = logs && logs.length > 0
     ? (logs.reduce((sum, l) => sum + (l.processingTimeMs || 0), 0) / logs.length).toFixed(0)
     : '0';
   
+  // Calculate P95 response time
+  const sortedTimes = logs?.map(l => l.processingTimeMs || 0).sort((a, b) => a - b) || [];
+  const p95ResponseTime = sortedTimes.length > 0 
+    ? sortedTimes[Math.floor(sortedTimes.length * 0.95)] 
+    : 0;
+  
+  // Get last webhook timestamp
+  const lastWebhook = logs && logs.length > 0 ? new Date(logs[0].createdAt) : null;
+  const timeSinceLastWebhook = lastWebhook 
+    ? Math.floor((Date.now() - lastWebhook.getTime()) / 60000)
+    : null;
+  
   return (
     <>
+      {/* Monitoring Controls */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <Badge className={autoRefresh ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-gray-500/20 text-gray-400 border-gray-500/30'}>
+            <div className={`w-2 h-2 rounded-full mr-2 ${autoRefresh ? 'bg-green-400 animate-pulse' : 'bg-gray-400'}`} />
+            {autoRefresh ? 'Live Monitoring' : 'Paused'}
+          </Badge>
+          {lastWebhook && (
+            <span className="text-xs text-muted-foreground">
+              Last activity: {timeSinceLastWebhook === 0 ? 'Just now' : `${timeSinceLastWebhook}m ago`}
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <Label htmlFor="auto-refresh" className="text-sm text-muted-foreground">Auto-refresh</Label>
+          <Switch 
+            id="auto-refresh"
+            checked={autoRefresh} 
+            onCheckedChange={setAutoRefresh} 
+          />
+          <Button variant="outline" size="sm" onClick={() => { refetchHealth(); refetchLogs(); }}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh Now
+          </Button>
+        </div>
+      </div>
+
       {/* System Health Overview */}
       <Card className="bg-card/50 border-border/50">
         <CardHeader>
@@ -1133,26 +1188,42 @@ function MonitoringTab() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
             <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/30">
               <div className="text-sm text-muted-foreground mb-1">System Status</div>
-              <div className="text-2xl font-bold text-green-400">Healthy</div>
-              <div className="text-xs text-green-400/70 mt-1">All systems operational</div>
+              <div className="text-2xl font-bold text-green-400">
+                {healthReport?.isPaused ? 'Paused' : 'Healthy'}
+              </div>
+              <div className="text-xs text-green-400/70 mt-1">
+                {healthReport?.isPaused ? 'Processing paused' : 'All systems operational'}
+              </div>
             </div>
             <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/30">
-              <div className="text-sm text-muted-foreground mb-1">Avg Response Time</div>
-              <div className="text-2xl font-bold text-blue-400">{avgResponseTime}ms</div>
-              <div className="text-xs text-blue-400/70 mt-1">Last 50 requests</div>
+              <div className="text-sm text-muted-foreground mb-1">Success Rate</div>
+              <div className="text-2xl font-bold text-blue-400">{successRate}%</div>
+              <div className="text-xs text-blue-400/70 mt-1">{successCount} successful</div>
+            </div>
+            <div className="p-4 rounded-lg bg-cyan-500/10 border border-cyan-500/30">
+              <div className="text-sm text-muted-foreground mb-1">Avg Response</div>
+              <div className="text-2xl font-bold text-cyan-400">{avgResponseTime}ms</div>
+              <div className="text-xs text-cyan-400/70 mt-1">Last 50 requests</div>
+            </div>
+            <div className="p-4 rounded-lg bg-purple-500/10 border border-purple-500/30">
+              <div className="text-sm text-muted-foreground mb-1">P95 Response</div>
+              <div className="text-2xl font-bold text-purple-400">{p95ResponseTime}ms</div>
+              <div className="text-xs text-purple-400/70 mt-1">95th percentile</div>
             </div>
             <div className="p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/30">
               <div className="text-sm text-muted-foreground mb-1">Error Rate</div>
-              <div className="text-2xl font-bold text-yellow-400">{errorRate}%</div>
-              <div className="text-xs text-yellow-400/70 mt-1">{errorCount} of {totalLogs} requests</div>
+              <div className={`text-2xl font-bold ${parseFloat(errorRate) > 10 ? 'text-red-400' : 'text-yellow-400'}`}>
+                {errorRate}%
+              </div>
+              <div className="text-xs text-yellow-400/70 mt-1">{errorCount} of {totalLogs} failed</div>
             </div>
-            <div className="p-4 rounded-lg bg-purple-500/10 border border-purple-500/30">
-              <div className="text-sm text-muted-foreground mb-1">Uptime</div>
-              <div className="text-2xl font-bold text-purple-400">99.9%</div>
-              <div className="text-xs text-purple-400/70 mt-1">Last 30 days</div>
+            <div className="p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/30">
+              <div className="text-sm text-muted-foreground mb-1">Total Processed</div>
+              <div className="text-2xl font-bold text-emerald-400">{status?.stats?.total || 0}</div>
+              <div className="text-xs text-emerald-400/70 mt-1">All time</div>
             </div>
           </div>
         </CardContent>

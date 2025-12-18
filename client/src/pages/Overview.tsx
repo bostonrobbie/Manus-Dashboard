@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceArea } from "recharts";
-import { Loader2, TrendingUp, TrendingDown, Activity, Target, Gauge, Info, Settings } from "lucide-react";
+import { Loader2, TrendingUp, TrendingDown, Activity, Target, Gauge, Info, Settings, Clock } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { CalendarPnL } from "@/components/CalendarPnL";
 import { UnderwaterCurveChart } from "@/components/UnderwaterCurveChart";
 import { DayOfWeekHeatmap } from "@/components/DayOfWeekHeatmap";
@@ -321,7 +322,13 @@ export default function Overview() {
         <CardHeader>
           <div className="flex justify-between items-start">
             <div>
-              <CardTitle>Equity Curve</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                Equity Curve
+                <Badge variant="outline" className="text-xs font-normal text-green-400 border-green-400/30">
+                  <Clock className="w-3 h-3 mr-1" />
+                  Live
+                </Badge>
+              </CardTitle>
               <CardDescription>
                 Portfolio performance vs S&P 500 benchmark
               </CardDescription>

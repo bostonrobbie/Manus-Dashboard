@@ -38,6 +38,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { RiskDisclaimerModal } from '@/components/RiskDisclaimerModal';
 import {
   LineChart as RechartsLine,
   Line,
@@ -87,6 +88,7 @@ export default function UserDashboard() {
     maxPositionSize: null as number | null,
   });
   const [showSP500, setShowSP500] = useState(true);
+  const [riskDisclaimerOpen, setRiskDisclaimerOpen] = useState(false);
 
   // Fetch user subscriptions
   const { data: subscriptions, isLoading: loadingSubscriptions, refetch: refetchSubscriptions } = 
@@ -168,13 +170,20 @@ export default function UserDashboard() {
     },
   });
 
-  const handleSubscribe = () => {
+  // Called when user clicks Subscribe button - shows risk disclaimer first
+  const handleSubscribeClick = () => {
+    setRiskDisclaimerOpen(true);
+  };
+
+  // Called after user accepts risk disclaimer
+  const handleSubscribeConfirmed = () => {
     if (selectedStrategy) {
       subscribeMutation.mutate({
         strategyId: selectedStrategy,
         ...subscriptionSettings,
       });
     }
+    setRiskDisclaimerOpen(false);
   };
 
   const handleUnsubscribe = (strategyId: number) => {
@@ -524,7 +533,13 @@ export default function UserDashboard() {
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
                   <div>
-                    <CardTitle>Combined Equity Curve</CardTitle>
+                    <CardTitle className="flex items-center gap-2">
+                      Combined Equity Curve
+                      <Badge variant="outline" className="text-xs font-normal text-green-400 border-green-400/30">
+                        <Clock className="w-3 h-3 mr-1" />
+                        Live
+                      </Badge>
+                    </CardTitle>
                     <CardDescription>Your portfolio performance based on subscribed strategies and multipliers</CardDescription>
                   </div>
                   <div className="flex items-center gap-2">
@@ -617,7 +632,13 @@ export default function UserDashboard() {
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <div>
-                      <CardTitle>Underwater Equity Curve</CardTitle>
+                      <CardTitle className="flex items-center gap-2">
+                        Underwater Equity Curve
+                        <Badge variant="outline" className="text-xs font-normal text-green-400 border-green-400/30">
+                          <Clock className="w-3 h-3 mr-1" />
+                          Live
+                        </Badge>
+                      </CardTitle>
                       <CardDescription>Drawdown from peak over time {showSP500 && '(vs S&P 500)'}</CardDescription>
                     </div>
                   </div>
@@ -626,28 +647,35 @@ export default function UserDashboard() {
                   <div className="h-[200px] md:h-[250px]">
                     <ResponsiveContainer width="100%" height="100%">
                       <AreaChart data={(() => {
-                        // Merge portfolio and benchmark underwater curves
-                        if (!showSP500 || !portfolioData.benchmarkUnderwaterCurve) {
-                          return portfolioData.underwaterCurve;
+                        // Apply forward-fill to eliminate gaps in drawdown chart
+                        const portfolioCurve = portfolioData.underwaterCurve || [];
+                        if (portfolioCurve.length === 0) return [];
+                        
+                        // Create date-based lookup for benchmark with forward-fill
+                        const benchmarkMap = new Map<string, number>();
+                        let lastBenchmarkDrawdown = 0;
+                        if (portfolioData.benchmarkUnderwaterCurve) {
+                          portfolioData.benchmarkUnderwaterCurve.forEach((p: any) => {
+                            benchmarkMap.set(p.date, p.drawdown);
+                            lastBenchmarkDrawdown = p.drawdown;
+                          });
                         }
-                        const dateMap = new Map<string, any>();
-                        // Get portfolio date range
-                        const portfolioDates = portfolioData.underwaterCurve.map((p: any) => p.date);
-                        const minDate = portfolioDates[0];
-                        const maxDate = portfolioDates[portfolioDates.length - 1];
-                        // Add portfolio drawdown
-                        portfolioData.underwaterCurve.forEach((p: any) => {
-                          dateMap.set(p.date, { date: p.date, drawdown: p.drawdown });
-                        });
-                        // Add benchmark drawdown (only within portfolio date range)
-                        portfolioData.benchmarkUnderwaterCurve.forEach((p: any) => {
-                          if (p.date >= minDate && p.date <= maxDate) {
-                            const existing = dateMap.get(p.date) || { date: p.date };
-                            existing.sp500Drawdown = p.drawdown;
-                            dateMap.set(p.date, existing);
+                        
+                        // Process with forward-fill for benchmark
+                        let lastSP500Drawdown = 0;
+                        return portfolioCurve.map((p: any) => {
+                          let sp500Drawdown = benchmarkMap.get(p.date);
+                          if (sp500Drawdown !== undefined) {
+                            lastSP500Drawdown = sp500Drawdown;
+                          } else {
+                            sp500Drawdown = lastSP500Drawdown;
                           }
+                          return {
+                            date: p.date,
+                            drawdown: p.drawdown,
+                            sp500Drawdown: showSP500 ? sp500Drawdown : undefined,
+                          };
                         });
-                        return Array.from(dateMap.values()).sort((a, b) => a.date.localeCompare(b.date));
                       })()}>
                         <defs>
                           <linearGradient id="drawdownGradient" x1="0" y1="0" x2="0" y2="1">
@@ -1326,7 +1354,7 @@ export default function UserDashboard() {
             <Button variant="outline" onClick={() => setSubscribeDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleSubscribe} disabled={subscribeMutation.isPending}>
+            <Button onClick={handleSubscribeClick} disabled={subscribeMutation.isPending}>
               {subscribeMutation.isPending ? 'Subscribing...' : 'Subscribe'}
             </Button>
           </DialogFooter>
@@ -1499,6 +1527,14 @@ export default function UserDashboard() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Risk Disclaimer Modal */}
+      <RiskDisclaimerModal
+        open={riskDisclaimerOpen}
+        onOpenChange={setRiskDisclaimerOpen}
+        onAccept={handleSubscribeConfirmed}
+        strategyName={strategies?.find(s => s.id === selectedStrategy)?.name || 'this strategy'}
+      />
     </div>
   );
 }
