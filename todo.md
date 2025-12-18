@@ -2767,3 +2767,49 @@
 
 ### Admin Bug Fixes
 - [x] Add error handling to Clear All button on Admin webhook activity page
+
+
+## Sprint: Stripe Payment & User Onboarding
+
+### Stripe Payment Integration
+- [ ] Add Stripe feature using webdev_add_feature
+- [ ] Configure Stripe API keys
+- [ ] Create subscription products in Stripe (Free, Pro, Premium)
+- [ ] Implement checkout session creation
+- [ ] Add subscription status to user model
+- [ ] Create pricing page with Stripe checkout buttons
+- [ ] Handle webhook events for subscription updates
+- [ ] Test payment flow end-to-end
+
+### User Onboarding Flow
+- [ ] Create onboarding page/modal for new users
+- [ ] Step 1: Welcome and platform introduction
+- [ ] Step 2: Strategy selection/browsing
+- [ ] Step 3: Subscription plan selection
+- [ ] Step 4: Account setup completion
+- [ ] Track onboarding completion status
+- [ ] Skip option for returning users
+- [ ] Test onboarding flow
+
+
+## Sprint: Stripe Payment & Onboarding (COMPLETE)
+
+### Stripe Payment Integration
+- [x] Add Stripe feature to project
+- [x] Create subscription tiers (Free, Pro $49, Premium $99)
+- [x] Implement checkout session creation
+- [x] Handle Stripe webhooks for subscription updates
+- [x] Ensure owner account has free premium access (set in database)
+- [x] Create dedicated Pricing page with checkout flow
+
+### User Onboarding Flow
+- [x] Create onboarding page for new users
+- [x] Guide users through strategy selection
+- [x] Set up notification preferences
+- [x] Risk acknowledgment step
+- [x] Redirect to dashboard after completion
+- [x] Add completeOnboarding mutation to auth router
+- [x] Add updateUserOnboarding function to db.ts
+
+### Navigation Updates
+- [x] Add Homepage link to sidebar navigation

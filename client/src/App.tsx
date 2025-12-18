@@ -12,11 +12,17 @@ import Admin from "./pages/Admin";
 import UserDashboard from "./pages/UserDashboard";
 import NotFound from "./pages/NotFound";
 import LandingPage from "./pages/LandingPage";
+import Pricing from "./pages/Pricing";
+import Onboarding from "./pages/Onboarding";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={LandingPage} />
+      
+      <Route path="/pricing" component={Pricing} />
+      
+      <Route path="/onboarding" component={Onboarding} />
       
       <Route path="/overview" component={() => (
         <DashboardLayout>

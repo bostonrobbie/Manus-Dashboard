@@ -10,6 +10,13 @@ export const users = mysqlTable("users", {
   email: varchar("email", { length: 320 }),
   loginMethod: varchar("loginMethod", { length: 64 }),
   role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
+  // Subscription fields
+  subscriptionTier: mysqlEnum("subscriptionTier", ["free", "pro", "premium"]).default("free").notNull(),
+  stripeCustomerId: varchar("stripeCustomerId", { length: 255 }),
+  stripeSubscriptionId: varchar("stripeSubscriptionId", { length: 255 }),
+  subscriptionStatus: varchar("subscriptionStatus", { length: 50 }).default("active"), // active, canceled, past_due
+  // Onboarding
+  onboardingCompleted: boolean("onboardingCompleted").default(false).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),

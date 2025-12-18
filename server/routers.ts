@@ -8,6 +8,7 @@ import * as analytics from "./analytics";
 import * as breakdown from "./breakdown";
 import * as brokerService from "./brokerService";
 import * as subscriptionService from "./subscriptionService";
+import { stripeRouter } from "./stripe/stripeRouter";
 
 // Time range enum for filtering  
 type TimeRangeType = '6M' | 'YTD' | '1Y' | '3Y' | '5Y' | '10Y' | 'ALL';
@@ -15,6 +16,7 @@ const TimeRange = z.enum(['6M', 'YTD', '1Y', '3Y', '5Y', '10Y', 'ALL']);
 
 export const appRouter = router({
   system: systemRouter,
+  stripe: stripeRouter,
   
   // Public platform statistics for landing page
   platform: router({
@@ -70,6 +72,10 @@ export const appRouter = router({
       return {
         success: true,
       } as const;
+    }),
+    completeOnboarding: protectedProcedure.mutation(async ({ ctx }) => {
+      await db.updateUserOnboarding(ctx.user.id, true);
+      return { success: true };
     }),
   }),
 

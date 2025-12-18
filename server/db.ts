@@ -92,6 +92,19 @@ export async function getUserByOpenId(openId: string) {
 }
 
 /**
+ * Update user onboarding status
+ */
+export async function updateUserOnboarding(userId: number, completed: boolean) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot update user onboarding: database not available");
+    return;
+  }
+
+  await db.update(users).set({ onboardingCompleted: completed }).where(eq(users.id, userId));
+}
+
+/**
  * Get all strategies
  */
 export async function getAllStrategies() {
