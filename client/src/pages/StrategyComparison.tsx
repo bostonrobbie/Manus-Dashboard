@@ -347,7 +347,12 @@ export default function StrategyComparison() {
                       width={55}
                       label={{ value: 'Drawdown %', angle: -90, position: 'insideLeft', fill: '#ffffff', fontSize: 12, dx: -5 }}
                       domain={[
-                        (dataMin: number) => Math.min(dataMin * 1.1, -5), // Add 10% padding below min, but at least -5%
+                        (dataMin: number) => {
+                          // Auto-scale: add 15% padding below the actual minimum drawdown
+                          const paddedMin = dataMin * 1.15;
+                          // Round down to nearest 5% for cleaner axis labels
+                          return Math.floor(paddedMin / 5) * 5;
+                        },
                         0 // Drawdown is always 0 or negative
                       ]}
                     />

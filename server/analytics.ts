@@ -611,27 +611,60 @@ export function calculateBenchmarkEquityCurve(
 }
 
 /**
- * Calculate correlation between two equity curves
+ * Calculate Pearson correlation between two equity curves
+ * Uses daily returns and filters out days where both strategies have zero return
+ * (which happens with forward-filled curves when no trades occur)
  */
 export function calculateCorrelation(
   curve1: EquityPoint[],
   curve2: EquityPoint[]
 ): number {
-  if (curve1.length === 0 || curve2.length === 0 || curve1.length !== curve2.length) {
+  if (curve1.length === 0 || curve2.length === 0) {
     return 0;
   }
 
-  const returns1 = [];
-  const returns2 = [];
-
+  // Build a date-aligned map of returns
+  const dateMap1 = new Map<string, number>();
+  const dateMap2 = new Map<string, number>();
+  
+  // Calculate returns for curve1
   for (let i = 1; i < curve1.length; i++) {
-    const r1 = (curve1[i]!.equity - curve1[i - 1]!.equity) / curve1[i - 1]!.equity;
-    const r2 = (curve2[i]!.equity - curve2[i - 1]!.equity) / curve2[i - 1]!.equity;
-    returns1.push(r1);
-    returns2.push(r2);
+    const prevEquity = curve1[i - 1]!.equity;
+    if (prevEquity > 0) {
+      const r = (curve1[i]!.equity - prevEquity) / prevEquity;
+      const dateKey = curve1[i]!.date.toISOString().split('T')[0]!;
+      dateMap1.set(dateKey, r);
+    }
+  }
+  
+  // Calculate returns for curve2
+  for (let i = 1; i < curve2.length; i++) {
+    const prevEquity = curve2[i - 1]!.equity;
+    if (prevEquity > 0) {
+      const r = (curve2[i]!.equity - prevEquity) / prevEquity;
+      const dateKey = curve2[i]!.date.toISOString().split('T')[0]!;
+      dateMap2.set(dateKey, r);
+    }
+  }
+  
+  // Find common dates and filter out days where BOTH have zero return
+  const returns1: number[] = [];
+  const returns2: number[] = [];
+  
+  for (const [date, r1] of Array.from(dateMap1.entries())) {
+    const r2 = dateMap2.get(date);
+    if (r2 !== undefined) {
+      // Only include if at least one has non-zero return
+      // This filters out forward-filled "flat" days
+      if (Math.abs(r1) > 1e-10 || Math.abs(r2) > 1e-10) {
+        returns1.push(r1);
+        returns2.push(r2);
+      }
+    }
   }
 
-  if (returns1.length === 0) return 0;
+  // Need at least 10 data points for meaningful correlation
+  if (returns1.length < 10) return 0;
 
   const mean1 = returns1.reduce((sum, r) => sum + r, 0) / returns1.length;
   const mean2 = returns2.reduce((sum, r) => sum + r, 0) / returns2.length;

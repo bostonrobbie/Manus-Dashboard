@@ -2464,3 +2464,9 @@
 ## Bug Fixes (December 2025)
 
 - [x] Fix "Strategy not found" error - Added user-friendly error UI with navigation buttons to StrategyDetail page
+
+- [x] Auto-scale drawdown chart Y-axis to fit actual max drawdown
+- [x] Audit and fix correlation matrix calculation (now shows actual correlations like -0.01)
+- [x] Add strategy ID validation - links use database IDs, improved error handling for invalid IDs
+- [x] Create global 404 page for invalid routes - dark theme, shows invalid URL, navigation buttons
+- [x] Add error tracking infrastructure - useErrorTracking hook with toast notifications
