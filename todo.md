@@ -2626,3 +2626,34 @@
 - [x] Verified benchmark data is being returned from API (confirmed 6774 data points)
 - [x] Changed AreaChart to ComposedChart to support both Area and Line components
 - [x] S&P 500 now displays as gray dashed line separate from blue portfolio area
+
+
+## Sprint: S&P 500 Alignment & Sidebar Fixes (Dec 18, 2025)
+
+### S&P 500 Scaling Bug
+- [ ] Fix S&P 500 to start at $100k on portfolio start date (not its own 2000 start date)
+- [ ] Scale S&P 500 relative to portfolio start date, not benchmark data start
+- [ ] Keep S&P 500 data completely separate from portfolio data (no merging)
+
+### S&P 500 Underwater Curve
+- [ ] Add S&P 500 drawdown line to underwater equity curve chart
+- [ ] Show S&P 500 drawdown as separate dashed line
+
+### Sidebar Responsiveness
+- [ ] Fix laggy/freezing sidebar hover animation
+- [ ] Optimize CSS transitions for smoother slide in/out
+- [ ] Remove unnecessary delays
+
+
+## Sprint: S&P 500 Alignment & Sidebar Responsiveness (Dec 18, 2025)
+
+### S&P 500 Alignment & Underwater Curve
+- [x] Fix S&P 500 to start at $100k (scaled from portfolio start date)
+- [x] Align S&P 500 start date with portfolio start date
+- [x] Keep S&P 500 data completely separate from portfolio data
+- [x] Add S&P 500 drawdown line to underwater equity curve (gray dashed line)
+
+### Sidebar Responsiveness
+- [x] Fix laggy hover animation on sidebar (immediate expansion)
+- [x] Remove freezing during slide-out/slide-in (reduced collapse delay to 100ms)
+- [x] Make sidebar more responsive overall (optimized CSS transitions)

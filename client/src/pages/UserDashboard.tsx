@@ -275,12 +275,20 @@ export default function UserDashboard() {
     });
     
     // Add S&P 500 benchmark data if available (ONLY within portfolio date range)
+    // IMPORTANT: Re-scale S&P 500 to start at startingCapital on the portfolio's first date
     if (showSP500 && portfolioData.benchmarkEquityCurve) {
+      // Find the S&P 500 value on the portfolio's start date to use as the base
+      const sp500OnPortfolioStart = portfolioData.benchmarkEquityCurve.find(
+        (p: any) => p.date >= minDate
+      );
+      const sp500BaseValue = sp500OnPortfolioStart?.equity || portfolioData.benchmarkEquityCurve[0]?.equity || startingCapital;
+      
       portfolioData.benchmarkEquityCurve.forEach((point: any) => {
         // Only add S&P 500 data points that fall within the portfolio's date range
         if (point.date >= minDate && point.date <= maxDate) {
           const existing = dateMap.get(point.date) || { date: point.date };
-          existing.sp500 = point.equity;
+          // Re-scale S&P 500 so it starts at startingCapital on the portfolio start date
+          existing.sp500 = startingCapital * (point.equity / sp500BaseValue);
           dateMap.set(point.date, existing);
         }
       });
@@ -653,7 +661,7 @@ export default function UserDashboard() {
                 <CardContent>
                   <div className="h-[200px] md:h-[250px]">
                     <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={(() => {
+                      <ComposedChart data={(() => {
                         // Apply forward-fill to eliminate gaps in drawdown chart
                         const portfolioCurve = portfolioData.underwaterCurve || [];
                         if (portfolioCurve.length === 0) return [];
@@ -736,7 +744,7 @@ export default function UserDashboard() {
                             connectNulls
                           />
                         )}
-                      </AreaChart>
+                      </ComposedChart>
                     </ResponsiveContainer>
                   </div>
                 </CardContent>

@@ -128,27 +128,29 @@ function DashboardLayoutContent({
     if (isMobile) return;
     if (hoverTimeoutRef.current) {
       clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
     }
-    hoverTimeoutRef.current = setTimeout(() => {
-      setIsHovering(true);
-      if (isCollapsed) {
-        setOpen(true);
-      }
-    }, 150); // Small delay to prevent accidental triggers
+    // Immediate expansion for responsive feel
+    setIsHovering(true);
+    if (isCollapsed) {
+      setOpen(true);
+    }
   };
   
   const handleMouseLeave = () => {
     if (isMobile) return;
     if (hoverTimeoutRef.current) {
       clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
     }
+    // Short delay before collapsing to allow for menu interaction
     hoverTimeoutRef.current = setTimeout(() => {
       setIsHovering(false);
       // Only collapse if it was expanded via hover
       if (!isCollapsed) {
         setOpen(false);
       }
-    }, 300); // Delay before collapsing to allow for menu interaction
+    }, 100); // Reduced delay for faster collapse
   };
   
   // Cleanup timeout on unmount
@@ -207,7 +209,7 @@ function DashboardLayoutContent({
       >
         <Sidebar
           collapsible="icon"
-          className="border-r-0 transition-all duration-200"
+          className="border-r-0 transition-[width] duration-150 ease-out"
           disableTransition={isResizing}
         >
           <SidebarHeader className="h-16 justify-center">
