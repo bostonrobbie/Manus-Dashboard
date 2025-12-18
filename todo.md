@@ -2713,3 +2713,57 @@
 ### Strategy Pages
 - [x] Remove 0% RoR button from starting capital section
 - [x] Remove unused zeroRoRCapital useMemo calculation
+
+
+## Sprint: Comprehensive Landing Page & Subscription System (Dec 18, 2025)
+
+### Market Research
+- [ ] Research competitors in algo trading signals space
+- [ ] Analyze competitor pricing models ($50/month baseline)
+- [ ] Research SEO best practices for trading platforms
+- [ ] Document findings for landing page content
+
+### Navigation Enhancement
+- [ ] Add Homepage link to sidebar navigation (below Admin)
+- [ ] Ensure Homepage link is visible to all users (not just logged in)
+
+### Landing Page Build-Out
+- [ ] Add strategy preview cards with mini equity curves
+- [ ] Add comprehensive FAQ section with real answers
+- [ ] Add pricing tiers section (Free, Pro, Enterprise)
+- [ ] Add email capture/newsletter signup
+- [ ] Add testimonials/social proof section
+- [ ] Improve SEO meta tags and content
+
+### Subscription System
+- [ ] Create subscription tiers in database schema
+- [ ] Implement subscription management backend
+- [ ] Ensure owner account (Rob Gorham) has permanent free access
+- [ ] Add subscription UI to user dashboard
+- [ ] Add upgrade prompts for free users
+
+
+### Bug Fixes (Reported)
+- [ ] Fix "Clear All" button on Admin webhook activity page (not working)
+
+
+## Sprint: Comprehensive Landing Page & Subscription System
+
+### Competitive Research
+- [x] Research TrendSpider pricing ($39-$179/mo)
+- [x] Research Trade Ideas pricing ($118-$228/mo)
+- [x] Research Collective2 pricing ($49-$99/mo)
+- [x] Determine optimal pricing tiers ($0 Free, $49 Pro, $99 Premium)
+
+### Landing Page Enhancements
+- [x] Add Homepage link to navigation sidebar
+- [x] Create comprehensive landing page with real statistics from dashboard
+- [x] Add FAQs section with 6 common questions
+- [x] Add pricing tiers section (Free, Pro, Premium)
+- [x] Add strategy preview cards (shows available strategies for logged-in users)
+- [x] Add email capture functionality
+- [x] Add trust indicators and social proof
+- [x] Remove Zero RoR button from strategy detail pages
+
+### Admin Bug Fixes
+- [x] Add error handling to Clear All button on Admin webhook activity page

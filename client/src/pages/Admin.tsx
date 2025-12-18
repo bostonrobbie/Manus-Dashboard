@@ -448,6 +448,9 @@ function ActivityTab() {
       toast.success(`Cleared ${data.deleted} webhook logs`);
       refetch();
     },
+    onError: (error) => {
+      toast.error(`Failed to clear logs: ${error.message}`);
+    },
   });
   
   const deleteLogMutation = trpc.webhook.deleteLog.useMutation({
@@ -1371,6 +1374,9 @@ function SettingsTab() {
     onSuccess: (data) => {
       toast.success(`Cleared ${data.deleted} logs`);
       refetch();
+    },
+    onError: (error) => {
+      toast.error(`Failed to clear logs: ${error.message}`);
     },
   });
 
