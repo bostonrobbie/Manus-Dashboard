@@ -1454,6 +1454,45 @@ Please check the Webhooks page in your dashboard for more details.
         // Calculate performance metrics
         const metrics = analytics.calculatePerformanceMetrics(adjustedTrades, startingCapital);
 
+        // Calculate monthly returns from equity curve
+        const monthlyReturns = analytics.calculateMonthlyReturnsCalendar(equityCurve);
+
+        // Calculate strategy correlation matrix if multiple strategies subscribed
+        let strategyCorrelation: { strategyId: number; strategyName: string; correlations: { strategyId: number; correlation: number }[] }[] = [];
+        if (strategyIds.length > 1) {
+          // Get individual strategy equity curves for correlation
+          const strategyCurves = await Promise.all(strategyIds.map(async (sid) => {
+            const strategyTrades = await db.getTrades({ strategyIds: [sid], startDate, endDate: now });
+            const sub = subscriptions.find(s => s.strategyId === sid);
+            const multiplier = Number(sub?.quantityMultiplier) || 1;
+            const adjustedStrategyTrades = strategyTrades.map((t: any) => ({ ...t, pnl: t.pnl * multiplier }));
+            const curve = analytics.calculateEquityCurve(adjustedStrategyTrades, startingCapital);
+            return { strategyId: sid, curve };
+          }));
+
+          // Calculate correlation matrix
+          for (let i = 0; i < strategyCurves.length; i++) {
+            const strategy = strategyCurves[i]!;
+            const sub = subscriptions.find(s => s.strategyId === strategy.strategyId);
+            const correlations: { strategyId: number; correlation: number }[] = [];
+            
+            for (let j = 0; j < strategyCurves.length; j++) {
+              const otherStrategy = strategyCurves[j]!;
+              const corr = analytics.calculateCorrelation(
+                strategy.curve,
+                otherStrategy.curve
+              );
+              correlations.push({ strategyId: otherStrategy.strategyId, correlation: corr });
+            }
+            
+            strategyCorrelation.push({
+              strategyId: strategy.strategyId,
+              strategyName: (sub as any)?.strategyName || `Strategy ${strategy.strategyId}`,
+              correlations,
+            });
+          }
+        }
+
         return {
           hasData: true,
           subscriptions,
@@ -1465,6 +1504,13 @@ Please check the Webhooks page in your dashboard for more details.
             date: p.date.toISOString().split('T')[0],
             drawdown: p.drawdownPercent,
           })),
+          monthlyReturns: monthlyReturns.map(m => ({
+            year: m.year,
+            month: m.month,
+            monthName: m.monthName,
+            return: m.return,
+          })),
+          strategyCorrelation,
           metrics: {
             totalReturn: metrics.totalReturn,
             annualizedReturn: metrics.annualizedReturn,

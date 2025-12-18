@@ -505,6 +505,44 @@ export default function StrategyDetail() {
               </div>
             </div>
           </div>
+
+          {/* Kelly Criterion Section */}
+          <div className="mt-6 pt-6 border-t border-border">
+            <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-4">Kelly Criterion Analysis</h4>
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="bg-muted/20 rounded-lg p-4">
+                <div className="text-xs text-muted-foreground mb-1">Kelly Percentage</div>
+                <div className="text-2xl font-bold text-blue-400">
+                  {metrics.tradeStats?.kellyPercentage !== undefined 
+                    ? `${(metrics.tradeStats.kellyPercentage * 100).toFixed(1)}%` 
+                    : 'N/A'}
+                </div>
+                <div className="text-xs text-muted-foreground mt-1">Optimal position size</div>
+              </div>
+              <div className="bg-muted/20 rounded-lg p-4">
+                <div className="text-xs text-muted-foreground mb-1">Half-Kelly (Recommended)</div>
+                <div className="text-2xl font-bold text-green-400">
+                  {metrics.tradeStats?.kellyPercentage !== undefined 
+                    ? `${(metrics.tradeStats.kellyPercentage * 50).toFixed(1)}%` 
+                    : 'N/A'}
+                </div>
+                <div className="text-xs text-muted-foreground mt-1">Conservative sizing</div>
+              </div>
+              <div className="bg-muted/20 rounded-lg p-4">
+                <div className="text-xs text-muted-foreground mb-1">Risk of Ruin</div>
+                <div className={`text-2xl font-bold ${(metrics.tradeStats?.riskOfRuin ?? 0) < 5 ? 'text-green-400' : (metrics.tradeStats?.riskOfRuin ?? 0) < 20 ? 'text-yellow-400' : 'text-red-400'}`}>
+                  {metrics.tradeStats?.riskOfRuin !== undefined 
+                    ? `${metrics.tradeStats.riskOfRuin < 0.01 ? '<0.01' : metrics.tradeStats.riskOfRuin.toFixed(2)}%` 
+                    : 'N/A'}
+                </div>
+                <div className="text-xs text-muted-foreground mt-1">At current capital</div>
+              </div>
+            </div>
+            <div className="mt-4 text-xs text-muted-foreground">
+              <p><strong>Kelly Formula:</strong> f* = (bp - q) / b, where b = payoff ratio ({(Math.abs(metrics.avgWin / metrics.avgLoss)).toFixed(2)}), p = win rate ({(metrics.winRate / 100).toFixed(2)}), q = loss rate ({(1 - metrics.winRate / 100).toFixed(2)})</p>
+              <p className="mt-1"><strong>Recommendation:</strong> Use Half-Kelly or Quarter-Kelly for reduced volatility while maintaining positive expectancy.</p>
+            </div>
+          </div>
         </CardContent>
       </Card>
 

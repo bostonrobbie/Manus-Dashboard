@@ -140,9 +140,11 @@
 - [ ] Add rolling correlation with S&P 500
 - [ ] Add win rate by time period chart
 - [ ] Add profit factor by time period chart
-- [ ] Add monthly returns heatmap (calendar view)
+- [x] Add monthly returns heatmap (calendar view) - Implemented with actual trade data
 - [ ] Add underwater equity curve (drawdown visualization)
-- [ ] Compare portfolio metrics vs S&P 500 side-by-side
+- [x] Compare portfolio metrics vs S&P 500 side-by-side
+- [x] Add Kelly Criterion analysis section to Strategy Detail page
+- [x] Add Strategy Correlation Matrix to My Dashboard Portfolio tab
 
 ### Micro vs Mini Contract Toggle (CRITICAL - Data is in Mini format)
 - [x] Research standard micro/mini contract specifications for each instrument

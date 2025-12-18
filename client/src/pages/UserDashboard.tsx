@@ -645,33 +645,54 @@ export default function UserDashboard() {
                       <BarChart3 className="h-5 w-5" />
                       Monthly Returns
                     </CardTitle>
-                    <CardDescription>Performance breakdown by month</CardDescription>
+                    <CardDescription>Performance breakdown by month (actual trade data)</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-12 gap-1 text-xs">
-                      {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map((month) => (
-                        <div key={month} className="text-center text-muted-foreground font-medium py-1">
-                          {month}
-                        </div>
-                      ))}
-                      {/* Generate sample monthly returns - in production this would come from portfolioData */}
-                      {Array.from({ length: 24 }, (_, i) => {
-                        const returnVal = (Math.random() - 0.4) * 10; // Simulated returns
-                        const bgColor = returnVal >= 0 
-                          ? `rgba(34, 197, 94, ${Math.min(Math.abs(returnVal) / 10, 1)})` 
-                          : `rgba(239, 68, 68, ${Math.min(Math.abs(returnVal) / 10, 1)})`;
-                        return (
-                          <div 
-                            key={i} 
-                            className="text-center py-2 rounded text-xs font-medium"
-                            style={{ backgroundColor: bgColor }}
-                            title={`${returnVal >= 0 ? '+' : ''}${returnVal.toFixed(1)}%`}
-                          >
-                            {returnVal >= 0 ? '+' : ''}{returnVal.toFixed(0)}%
-                          </div>
-                        );
-                      })}
-                    </div>
+                    {portfolioData.monthlyReturns && portfolioData.monthlyReturns.length > 0 ? (
+                      <>
+                        {/* Group by year */}
+                        {(() => {
+                          const years = Array.from(new Set(portfolioData.monthlyReturns.map((m: any) => m.year))).sort((a: any, b: any) => b - a);
+                          return years.slice(0, 3).map((year) => (
+                            <div key={year} className="mb-4">
+                              <div className="text-sm font-semibold text-muted-foreground mb-2">{year}</div>
+                              <div className="grid grid-cols-12 gap-1 text-xs">
+                                {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map((month, idx) => {
+                                  const monthData = portfolioData.monthlyReturns?.find(
+                                    (m: any) => m.year === year && m.month === idx + 1
+                                  );
+                                  const returnVal = monthData?.return || 0;
+                                  const hasData = !!monthData;
+                                  const bgColor = !hasData
+                                    ? 'rgba(100, 100, 100, 0.2)'
+                                    : returnVal >= 0 
+                                      ? `rgba(34, 197, 94, ${Math.min(Math.abs(returnVal) / 15, 0.8) + 0.2})` 
+                                      : `rgba(239, 68, 68, ${Math.min(Math.abs(returnVal) / 15, 0.8) + 0.2})`;
+                                  return (
+                                    <div 
+                                      key={`${year}-${month}`} 
+                                      className="text-center py-2 rounded text-xs font-medium"
+                                      style={{ backgroundColor: bgColor }}
+                                      title={hasData ? `${month} ${year}: ${returnVal >= 0 ? '+' : ''}${returnVal.toFixed(2)}%` : `${month} ${year}: No data`}
+                                    >
+                                      {hasData ? (
+                                        <>{returnVal >= 0 ? '+' : ''}{returnVal.toFixed(1)}%</>
+                                      ) : (
+                                        <span className="text-muted-foreground">-</span>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          ));
+                        })()}
+                      </>
+                    ) : (
+                      <div className="text-center text-muted-foreground py-8">
+                        No monthly returns data available
+                      </div>
+                    )}
                     <div className="flex justify-center gap-4 mt-4 text-xs text-muted-foreground">
                       <div className="flex items-center gap-1">
                         <div className="w-3 h-3 rounded bg-green-500/50"></div>
@@ -817,6 +838,82 @@ export default function UserDashboard() {
                   </CardContent>
                 </Card>
               </div>
+
+              {/* Strategy Correlation Matrix */}
+              {portfolioData.strategyCorrelation && portfolioData.strategyCorrelation.length > 1 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <BarChart3 className="h-5 w-5" />
+                      Strategy Correlation Matrix
+                    </CardTitle>
+                    <CardDescription>Correlation between your subscribed strategies (lower is better for diversification)</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr>
+                            <th className="p-2 text-left"></th>
+                            {portfolioData.strategyCorrelation.map((s: any) => (
+                              <th key={s.strategyId} className="p-2 text-center font-medium truncate max-w-[80px]" title={s.strategyName}>
+                                {s.strategyName.split(' ')[0]}
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {portfolioData.strategyCorrelation.map((row: any) => (
+                            <tr key={row.strategyId}>
+                              <td className="p-2 font-medium truncate max-w-[100px]" title={row.strategyName}>
+                                {row.strategyName.split(' ').slice(0, 2).join(' ')}
+                              </td>
+                              {row.correlations.map((corr: any) => {
+                                const value = corr.correlation;
+                                const isHighCorr = Math.abs(value) > 0.7;
+                                const isMedCorr = Math.abs(value) > 0.4;
+                                const bgColor = value === 1 
+                                  ? 'bg-blue-500/30' 
+                                  : isHighCorr 
+                                    ? 'bg-red-500/30' 
+                                    : isMedCorr 
+                                      ? 'bg-yellow-500/30' 
+                                      : 'bg-green-500/30';
+                                return (
+                                  <td 
+                                    key={corr.strategyId} 
+                                    className={`p-2 text-center ${bgColor} rounded`}
+                                    title={`Correlation: ${value.toFixed(3)}`}
+                                  >
+                                    {value.toFixed(2)}
+                                  </td>
+                                );
+                              })}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    <div className="flex justify-center gap-4 mt-4 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-1">
+                        <div className="w-3 h-3 rounded bg-green-500/30"></div>
+                        <span>Low (&lt;0.4)</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <div className="w-3 h-3 rounded bg-yellow-500/30"></div>
+                        <span>Medium (0.4-0.7)</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <div className="w-3 h-3 rounded bg-red-500/30"></div>
+                        <span>High (&gt;0.7)</span>
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2 text-center">
+                      Lower correlation between strategies provides better diversification and reduces portfolio risk.
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
             </>
           )}
         </TabsContent>
