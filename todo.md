@@ -2657,3 +2657,12 @@
 - [x] Fix laggy hover animation on sidebar (immediate expansion)
 - [x] Remove freezing during slide-out/slide-in (reduced collapse delay to 100ms)
 - [x] Make sidebar more responsive overall (optimized CSS transitions)
+
+
+## Sprint: Exclude S&P 500 from Combined Portfolio (Dec 18, 2025)
+
+### S&P 500 Exclusion Bug
+- [x] S&P 500 is being included in the combined portfolio calculation (FIXED)
+- [x] Combined portfolio should only include subscribed strategies (verified)
+- [x] S&P 500 should only be a separate comparison line (not affect combined value)
+- [x] Reference Overview page implementation for correct S&P 500 separation

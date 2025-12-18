@@ -246,76 +246,69 @@ export default function UserDashboard() {
   const unsubscribedStrategies = strategies?.filter(s => !subscribedStrategyIds.has(s.id)) || [];
 
   // Prepare combined equity curve data with S&P 500 benchmark
+  // IMPORTANT: S&P 500 is COMPLETELY SEPARATE from portfolio calculations
+  // It is only added as a visual comparison line, never affecting combined portfolio values
   const combinedChartData = useMemo(() => {
     if (!portfolioData?.equityCurve || portfolioData.equityCurve.length === 0) return [];
     
-
-    // Get the date range from the portfolio equity curve (NOT S&P 500)
-    const portfolioDates = portfolioData.equityCurve.map((p: any) => p.date);
-    const minDate = portfolioDates[0];
-    const maxDate = portfolioDates[portfolioDates.length - 1];
-    
-    // Merge individual strategy curves with combined
-    const dateMap = new Map<string, any>();
-    
-    // Add combined portfolio data
-    portfolioData.equityCurve.forEach((point: any) => {
-      dateMap.set(point.date, { date: point.date, combined: point.equity });
-    });
-    
-    // Add individual strategy curves (only within portfolio date range)
-    strategyCurves?.curves?.forEach((curve: any, index: number) => {
-      curve.curve?.forEach((point: any) => {
-        if (point.date >= minDate && point.date <= maxDate) {
-          const existing = dateMap.get(point.date) || { date: point.date };
-          existing[`strategy_${curve.strategyId}`] = point.equity;
-          dateMap.set(point.date, existing);
-        }
-      });
-    });
-    
-    // Add S&P 500 benchmark data if available (ONLY within portfolio date range)
-    // IMPORTANT: Re-scale S&P 500 to start at startingCapital on the portfolio's first date
-    if (showSP500 && portfolioData.benchmarkEquityCurve) {
-      // Find the S&P 500 value on the portfolio's start date to use as the base
-      const sp500OnPortfolioStart = portfolioData.benchmarkEquityCurve.find(
-        (p: any) => p.date >= minDate
-      );
-      const sp500BaseValue = sp500OnPortfolioStart?.equity || portfolioData.benchmarkEquityCurve[0]?.equity || startingCapital;
+    // Build chart data from portfolio equity curve (the source of truth for combined portfolio)
+    // This is calculated on the backend from ONLY the subscribed strategies' trades
+    const chartData = portfolioData.equityCurve.map((point: any, index: number) => {
+      const dataPoint: any = {
+        date: point.date,
+        combined: point.equity, // Combined portfolio from backend (strategies only, NO S&P 500)
+      };
       
-      portfolioData.benchmarkEquityCurve.forEach((point: any) => {
-        // Only add S&P 500 data points that fall within the portfolio's date range
-        if (point.date >= minDate && point.date <= maxDate) {
-          const existing = dateMap.get(point.date) || { date: point.date };
+      // Add S&P 500 as a SEPARATE comparison line (does NOT affect combined value)
+      if (showSP500 && portfolioData.benchmarkEquityCurve) {
+        // Find the S&P 500 value on the portfolio's start date to use as the base
+        const portfolioStartDate = portfolioData.equityCurve[0]?.date;
+        const sp500OnPortfolioStart = portfolioData.benchmarkEquityCurve.find(
+          (p: any) => p.date >= portfolioStartDate
+        );
+        const sp500BaseValue = sp500OnPortfolioStart?.equity || portfolioData.benchmarkEquityCurve[0]?.equity || startingCapital;
+        
+        // Find matching S&P 500 data point for this date
+        const sp500Point = portfolioData.benchmarkEquityCurve.find((p: any) => p.date === point.date);
+        if (sp500Point) {
           // Re-scale S&P 500 so it starts at startingCapital on the portfolio start date
-          existing.sp500 = startingCapital * (point.equity / sp500BaseValue);
-          dateMap.set(point.date, existing);
+          dataPoint.sp500 = startingCapital * (sp500Point.equity / sp500BaseValue);
         }
+      }
+      
+      return dataPoint;
+    });
+    
+    // Add individual strategy curves (for visual comparison only)
+    if (strategyCurves?.curves) {
+      const portfolioDates = portfolioData.equityCurve.map((p: any) => p.date);
+      const minDate = portfolioDates[0];
+      const maxDate = portfolioDates[portfolioDates.length - 1];
+      
+      strategyCurves.curves.forEach((curve: any) => {
+        curve.curve?.forEach((stratPoint: any) => {
+          if (stratPoint.date >= minDate && stratPoint.date <= maxDate) {
+            const existingPoint = chartData.find((p: any) => p.date === stratPoint.date);
+            if (existingPoint) {
+              existingPoint[`strategy_${curve.strategyId}`] = stratPoint.equity;
+            }
+          }
+        });
       });
     }
     
-    // Sort by date and forward-fill gaps
-    const sortedData = Array.from(dateMap.values()).sort((a, b) => a.date.localeCompare(b.date));
-    
-
     // Forward-fill gaps to create continuous lines
-    let lastCombined = startingCapital;
     let lastSP500 = startingCapital;
     const lastStrategyValues: Record<string, number> = {};
     
-    return sortedData.map(point => {
-      // Forward-fill combined
-      if (point.combined !== undefined) {
-        lastCombined = point.combined;
-      } else {
-        point.combined = lastCombined;
-      }
-      
-      // Forward-fill S&P 500
-      if (point.sp500 !== undefined) {
-        lastSP500 = point.sp500;
-      } else if (showSP500) {
-        point.sp500 = lastSP500;
+    return chartData.map((point: any) => {
+      // Forward-fill S&P 500 (only if showing)
+      if (showSP500) {
+        if (point.sp500 !== undefined) {
+          lastSP500 = point.sp500;
+        } else {
+          point.sp500 = lastSP500;
+        }
       }
       
       // Forward-fill individual strategies
