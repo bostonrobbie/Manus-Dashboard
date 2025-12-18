@@ -2813,3 +2813,7 @@
 
 ### Navigation Updates
 - [x] Add Homepage link to sidebar navigation
+
+
+### Bug Fixes (Reported)
+- [x] Fix Homepage button in navigation sidebar (uses window.location for external navigation)
