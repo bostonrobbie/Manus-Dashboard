@@ -2607,3 +2607,22 @@
 - [x] Hover-based expansion with 150ms delay to prevent accidental triggers
 - [x] Improve sidebar loading speed and responsiveness
 
+
+
+## Sprint: S&P 500 Separate Line Fix (Dec 18, 2025)
+
+### S&P 500 Display Bug
+- [ ] Fix S&P 500 to display as completely separate line from Combined Portfolio
+- [ ] Ensure S&P 500 line appears when toggle is ON
+- [ ] S&P 500 should NOT be combined/merged with portfolio equity curve
+
+
+
+## Sprint: S&P 500 Separate Line Fix (Dec 18, 2025)
+
+### S&P 500 Display Bug
+- [x] S&P 500 line not showing as separate line on equity curve (fixed by using ComposedChart)
+- [x] S&P 500 data was being combined with portfolio instead of displayed separately
+- [x] Verified benchmark data is being returned from API (confirmed 6774 data points)
+- [x] Changed AreaChart to ComposedChart to support both Area and Line components
+- [x] S&P 500 now displays as gray dashed line separate from blue portfolio area

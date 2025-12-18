@@ -50,6 +50,7 @@ import {
   ResponsiveContainer,
   Area,
   AreaChart,
+  ComposedChart,
   PieChart as RechartsPie,
   Pie,
   Cell,
@@ -248,6 +249,7 @@ export default function UserDashboard() {
   const combinedChartData = useMemo(() => {
     if (!portfolioData?.equityCurve || portfolioData.equityCurve.length === 0) return [];
     
+
     // Get the date range from the portfolio equity curve (NOT S&P 500)
     const portfolioDates = portfolioData.equityCurve.map((p: any) => p.date);
     const minDate = portfolioDates[0];
@@ -287,6 +289,7 @@ export default function UserDashboard() {
     // Sort by date and forward-fill gaps
     const sortedData = Array.from(dateMap.values()).sort((a, b) => a.date.localeCompare(b.date));
     
+
     // Forward-fill gaps to create continuous lines
     let lastCombined = startingCapital;
     let lastSP500 = startingCapital;
@@ -558,7 +561,7 @@ export default function UserDashboard() {
                 <CardContent>
                   <div className="h-[300px] md:h-[400px]">
                     <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={combinedChartData}>
+                      <ComposedChart data={combinedChartData}>
                         <defs>
                           <linearGradient id="combinedGradient" x1="0" y1="0" x2="0" y2="1">
                             <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.3} />
@@ -625,7 +628,7 @@ export default function UserDashboard() {
                             connectNulls
                           />
                         ))}
-                      </AreaChart>
+                      </ComposedChart>
                     </ResponsiveContainer>
                   </div>
                 </CardContent>
