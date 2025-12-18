@@ -2470,3 +2470,24 @@
 - [x] Add strategy ID validation - links use database IDs, improved error handling for invalid IDs
 - [x] Create global 404 page for invalid routes - dark theme, shows invalid URL, navigation buttons
 - [x] Add error tracking infrastructure - useErrorTracking hook with toast notifications
+
+## My Dashboard Improvements (December 2025)
+
+- [ ] Fix equity curve gaps - add flat line interpolation between trade dates
+- [ ] Add S&P 500 comparison toggle to Combined Equity Curve chart
+- [ ] Fix strategy allocation pie chart labels - text being cut off at edges
+- [ ] Fix correlation matrix calculation on My Dashboard (showing 0.00 for all pairs)
+- [ ] Redesign performance section into unified comprehensive area
+
+
+## My Dashboard Improvements (December 2025)
+
+- [x] Fill gaps in equity curve with flat line interpolation (forward-fill logic)
+- [x] Add S&P 500 comparison toggle to equity curve chart
+- [x] Fix strategy allocation pie chart labels (now uses legend below chart)
+- [x] Fix correlation matrix calculation (now shows actual correlations: -0.00, 0.11, 0.08, 0.34)
+- [x] Fix correlation matrix to show strategy names instead of "Strategy" in headers
+- [x] Redesign performance section into unified Portfolio Performance Center
+  - Three-column layout: Strategy Allocation, Core Metrics, Risk-Adjusted
+  - Added Payoff Ratio bar visualization
+  - Color-coded risk-adjusted metrics (Sharpe, Sortino, Calmar)

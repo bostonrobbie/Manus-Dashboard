@@ -1487,11 +1487,26 @@ Please check the Webhooks page in your dashboard for more details.
             
             strategyCorrelation.push({
               strategyId: strategy.strategyId,
-              strategyName: (sub as any)?.strategyName || `Strategy ${strategy.strategyId}`,
+              strategyName: (sub as any)?.strategy?.name || `Strategy ${strategy.strategyId}`,
               correlations,
             });
           }
         }
+
+        // Get S&P 500 benchmark data
+        const benchmarkData = await db.getBenchmarkData({ startDate, endDate: now });
+        const benchmarkEquityCurve = benchmarkData.length > 0 
+          ? benchmarkData.map((b, idx) => {
+              // Scale benchmark to match starting capital
+              const firstClose = benchmarkData[0]!.close / 100; // cents to dollars
+              const currentClose = b.close / 100;
+              const scaledEquity = startingCapital * (currentClose / firstClose);
+              return {
+                date: b.date.toISOString().split('T')[0],
+                equity: scaledEquity,
+              };
+            })
+          : [];
 
         return {
           hasData: true,
@@ -1504,6 +1519,7 @@ Please check the Webhooks page in your dashboard for more details.
             date: p.date.toISOString().split('T')[0],
             drawdown: p.drawdownPercent,
           })),
+          benchmarkEquityCurve,
           monthlyReturns: monthlyReturns.map(m => ({
             year: m.year,
             month: m.month,

@@ -86,6 +86,7 @@ export default function UserDashboard() {
     quantityMultiplier: 1,
     maxPositionSize: null as number | null,
   });
+  const [showSP500, setShowSP500] = useState(true);
 
   // Fetch user subscriptions
   const { data: subscriptions, isLoading: loadingSubscriptions, refetch: refetchSubscriptions } = 
@@ -234,7 +235,7 @@ export default function UserDashboard() {
   // Get unsubscribed strategies
   const unsubscribedStrategies = strategies?.filter(s => !subscribedStrategyIds.has(s.id)) || [];
 
-  // Prepare combined equity curve data
+  // Prepare combined equity curve data with S&P 500 benchmark
   const combinedChartData = useMemo(() => {
     if (!portfolioData?.equityCurve || portfolioData.equityCurve.length === 0) return [];
     
@@ -255,8 +256,51 @@ export default function UserDashboard() {
       });
     });
     
-    return Array.from(dateMap.values()).sort((a, b) => a.date.localeCompare(b.date));
-  }, [portfolioData, strategyCurves]);
+    // Add S&P 500 benchmark data if available
+    if (showSP500 && portfolioData.benchmarkEquityCurve) {
+      portfolioData.benchmarkEquityCurve.forEach((point: any) => {
+        const existing = dateMap.get(point.date) || { date: point.date };
+        existing.sp500 = point.equity;
+        dateMap.set(point.date, existing);
+      });
+    }
+    
+    // Sort by date and forward-fill gaps
+    const sortedData = Array.from(dateMap.values()).sort((a, b) => a.date.localeCompare(b.date));
+    
+    // Forward-fill gaps to create continuous lines
+    let lastCombined = startingCapital;
+    let lastSP500 = startingCapital;
+    const lastStrategyValues: Record<string, number> = {};
+    
+    return sortedData.map(point => {
+      // Forward-fill combined
+      if (point.combined !== undefined) {
+        lastCombined = point.combined;
+      } else {
+        point.combined = lastCombined;
+      }
+      
+      // Forward-fill S&P 500
+      if (point.sp500 !== undefined) {
+        lastSP500 = point.sp500;
+      } else if (showSP500) {
+        point.sp500 = lastSP500;
+      }
+      
+      // Forward-fill individual strategies
+      strategyCurves?.curves?.forEach((curve: any) => {
+        const key = `strategy_${curve.strategyId}`;
+        if (point[key] !== undefined) {
+          lastStrategyValues[key] = point[key];
+        } else if (lastStrategyValues[key] !== undefined) {
+          point[key] = lastStrategyValues[key];
+        }
+      });
+      
+      return point;
+    });
+  }, [portfolioData, strategyCurves, showSP500, startingCapital]);
 
   // Allocation pie chart data
   const allocationData = useMemo(() => {
@@ -515,9 +559,19 @@ export default function UserDashboard() {
             <>
               {/* Combined Equity Curve */}
               <Card>
-                <CardHeader>
-                  <CardTitle>Combined Equity Curve</CardTitle>
-                  <CardDescription>Your portfolio performance based on subscribed strategies and multipliers</CardDescription>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle>Combined Equity Curve</CardTitle>
+                    <CardDescription>Your portfolio performance based on subscribed strategies and multipliers</CardDescription>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="show-sp500" className="text-sm text-muted-foreground">Show S&P 500</Label>
+                    <Switch
+                      id="show-sp500"
+                      checked={showSP500}
+                      onCheckedChange={setShowSP500}
+                    />
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <div className="h-[300px] md:h-[400px]">
@@ -550,7 +604,7 @@ export default function UserDashboard() {
                           label={{ value: 'Portfolio Value', angle: -90, position: 'insideLeft', fill: '#ffffff', fontSize: 11 }}
                         />
                         <Tooltip 
-                          formatter={(value: number) => [`$${value.toLocaleString()}`, 'Value']}
+                          formatter={(value: number, name: string) => [`$${value.toLocaleString()}`, name]}
                           labelStyle={{ color: 'black' }}
                           contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.2)' }}
                         />
@@ -562,7 +616,19 @@ export default function UserDashboard() {
                           strokeWidth={2}
                           fill="url(#combinedGradient)"
                           name="Combined Portfolio"
+                          connectNulls
                         />
+                        {showSP500 && (
+                          <Line
+                            type="monotone"
+                            dataKey="sp500"
+                            stroke="#f59e0b"
+                            strokeWidth={2}
+                            dot={false}
+                            name="S&P 500"
+                            connectNulls
+                          />
+                        )}
                         {strategyCurves?.curves?.map((curve: any, index: number) => (
                           <Line
                             key={curve.strategyId}
@@ -573,6 +639,7 @@ export default function UserDashboard() {
                             dot={false}
                             name={curve.strategyName}
                             strokeOpacity={0.6}
+                            connectNulls
                           />
                         ))}
                       </AreaChart>
@@ -750,94 +817,140 @@ export default function UserDashboard() {
                 </Card>
               </div>
 
-              {/* Allocation & Metrics */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Strategy Allocation */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <PieChart className="h-5 w-5" />
-                      Strategy Allocation
-                    </CardTitle>
-                    <CardDescription>Weight distribution based on multipliers</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="h-[250px]">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <RechartsPie>
-                          <Pie
-                            data={allocationData}
-                            cx="50%"
-                            cy="50%"
-                            innerRadius={60}
-                            outerRadius={80}
-                            paddingAngle={5}
-                            dataKey="value"
-                            label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
-                            labelLine={{ stroke: '#ffffff' }}
-                          >
-                            {allocationData.map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={entry.color} />
-                            ))}
-                          </Pie>
-                          <Tooltip />
-                        </RechartsPie>
-                      </ResponsiveContainer>
+              {/* Unified Performance Center */}
+              <Card className="bg-gradient-to-br from-slate-900/50 to-slate-800/30 border-slate-700/50">
+                <CardHeader className="pb-4">
+                  <CardTitle className="flex items-center gap-2 text-xl">
+                    <Activity className="h-6 w-6 text-blue-400" />
+                    Portfolio Performance Center
+                  </CardTitle>
+                  <CardDescription>Complete portfolio statistics and allocation overview</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* Left Column - Strategy Allocation */}
+                    <div className="space-y-4">
+                      <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Strategy Allocation</h3>
+                      <div className="h-[180px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <RechartsPie>
+                            <Pie
+                              data={allocationData}
+                              cx="50%"
+                              cy="50%"
+                              innerRadius={45}
+                              outerRadius={65}
+                              paddingAngle={5}
+                              dataKey="value"
+                            >
+                              {allocationData.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={entry.color} />
+                              ))}
+                            </Pie>
+                            <Tooltip formatter={(value: number, name: string) => [`${((value / allocationData.reduce((s, d) => s + d.value, 0)) * 100).toFixed(0)}%`, name]} />
+                          </RechartsPie>
+                        </ResponsiveContainer>
+                      </div>
+                      <div className="space-y-2">
+                        {allocationData.map((entry, index) => {
+                          const total = allocationData.reduce((s, d) => s + d.value, 0);
+                          const percent = ((entry.value / total) * 100).toFixed(0);
+                          return (
+                            <div key={index} className="flex items-center gap-2 text-sm bg-muted/10 rounded-md px-2 py-1.5">
+                              <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: entry.color }} />
+                              <span className="truncate flex-1" title={entry.name}>{entry.name}</span>
+                              <span className="text-muted-foreground font-medium">{percent}%</span>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </CardContent>
-                </Card>
 
-                {/* Detailed Metrics */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Activity className="h-5 w-5" />
-                      Performance Metrics
-                    </CardTitle>
-                    <CardDescription>Detailed portfolio statistics</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="bg-muted/20 rounded-lg p-3">
-                        <p className="text-xs text-muted-foreground">Sortino Ratio</p>
-                        <p className="text-lg font-bold">{portfolioData.metrics?.sortinoRatio.toFixed(2)}</p>
-                        <p className="text-xs text-muted-foreground">Downside risk</p>
+                    {/* Middle Column - Core Metrics */}
+                    <div className="space-y-4">
+                      <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Core Metrics</h3>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="bg-green-500/10 rounded-lg p-3 border border-green-500/20">
+                          <p className="text-xs text-muted-foreground">Avg Win</p>
+                          <p className="text-lg font-bold text-green-500">${(portfolioData.metrics?.avgWin || 0).toFixed(2)}</p>
+                          <p className="text-xs text-green-400">+{((portfolioData.metrics?.avgWin || 0) / startingCapital * 100).toFixed(3)}%</p>
+                        </div>
+                        <div className="bg-red-500/10 rounded-lg p-3 border border-red-500/20">
+                          <p className="text-xs text-muted-foreground">Avg Loss</p>
+                          <p className="text-lg font-bold text-red-500">-${Math.abs(portfolioData.metrics?.avgLoss || 0).toFixed(2)}</p>
+                          <p className="text-xs text-red-400">-{(Math.abs(portfolioData.metrics?.avgLoss || 0) / startingCapital * 100).toFixed(3)}%</p>
+                        </div>
+                        <div className="bg-muted/20 rounded-lg p-3">
+                          <p className="text-xs text-muted-foreground">Total Trades</p>
+                          <p className="text-lg font-bold">{portfolioData.metrics?.totalTrades.toLocaleString()}</p>
+                        </div>
+                        <div className="bg-blue-500/10 rounded-lg p-3 border border-blue-500/20">
+                          <p className="text-xs text-muted-foreground">Ann. Return</p>
+                          <p className="text-lg font-bold text-blue-400">{portfolioData.metrics?.annualizedReturn.toFixed(2)}%</p>
+                        </div>
                       </div>
-                      <div className="bg-muted/20 rounded-lg p-3">
-                        <p className="text-xs text-muted-foreground">Calmar Ratio</p>
-                        <p className="text-lg font-bold">{portfolioData.metrics?.calmarRatio.toFixed(2)}</p>
-                        <p className="text-xs text-muted-foreground">Return/Drawdown</p>
-                      </div>
-                      <div className="bg-green-500/10 rounded-lg p-3 border border-green-500/20">
-                        <p className="text-xs text-muted-foreground">Avg Win</p>
-                        <p className="text-lg font-bold text-green-500">${(portfolioData.metrics?.avgWin || 0).toFixed(2)}</p>
-                        <p className="text-xs text-green-400">
-                          +{((portfolioData.metrics?.avgWin || 0) / startingCapital * 100).toFixed(3)}%
-                        </p>
-                      </div>
-                      <div className="bg-red-500/10 rounded-lg p-3 border border-red-500/20">
-                        <p className="text-xs text-muted-foreground">Avg Loss</p>
-                        <p className="text-lg font-bold text-red-500">-${Math.abs(portfolioData.metrics?.avgLoss || 0).toFixed(2)}</p>
-                        <p className="text-xs text-red-400">
-                          -{(Math.abs(portfolioData.metrics?.avgLoss || 0) / startingCapital * 100).toFixed(3)}%
-                        </p>
-                      </div>
-                      <div className="bg-muted/20 rounded-lg p-3">
-                        <p className="text-xs text-muted-foreground">Total Trades</p>
-                        <p className="text-lg font-bold">{portfolioData.metrics?.totalTrades.toLocaleString()}</p>
-                        <p className="text-xs text-muted-foreground">All time</p>
-                      </div>
-                      <div className="bg-blue-500/10 rounded-lg p-3 border border-blue-500/20">
-                        <p className="text-xs text-muted-foreground">Annualized Return</p>
-                        <p className="text-lg font-bold text-blue-400">{portfolioData.metrics?.annualizedReturn.toFixed(2)}%</p>
-                        <p className="text-xs text-blue-400">
-                          ${((portfolioData.metrics?.annualizedReturn || 0) / 100 * startingCapital).toLocaleString(undefined, { maximumFractionDigits: 0 })}/yr
-                        </p>
+                      {/* Payoff Ratio Bar */}
+                      <div className="bg-muted/10 rounded-lg p-3">
+                        <div className="flex justify-between text-xs text-muted-foreground mb-2">
+                          <span>Payoff Ratio (Avg Win / Avg Loss)</span>
+                          <span className="font-bold text-foreground">
+                            {portfolioData.metrics?.avgLoss ? ((portfolioData.metrics?.avgWin || 0) / Math.abs(portfolioData.metrics?.avgLoss)).toFixed(2) : 'N/A'}:1
+                          </span>
+                        </div>
+                        <div className="h-2 bg-muted rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-gradient-to-r from-green-500 to-emerald-400 rounded-full"
+                            style={{ width: `${Math.min(100, ((portfolioData.metrics?.avgWin || 0) / (Math.abs(portfolioData.metrics?.avgLoss || 1))) * 50)}%` }}
+                          />
+                        </div>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
-              </div>
+
+                    {/* Right Column - Risk-Adjusted Metrics */}
+                    <div className="space-y-4">
+                      <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Risk-Adjusted</h3>
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center bg-muted/10 rounded-lg p-3">
+                          <div>
+                            <p className="text-xs text-muted-foreground">Sharpe Ratio</p>
+                            <p className="text-xs text-muted-foreground/70">Risk-adjusted return</p>
+                          </div>
+                          <p className={`text-xl font-bold ${(portfolioData.metrics?.sharpeRatio || 0) >= 1 ? 'text-green-400' : (portfolioData.metrics?.sharpeRatio || 0) >= 0.5 ? 'text-yellow-400' : 'text-red-400'}`}>
+                            {portfolioData.metrics?.sharpeRatio.toFixed(2)}
+                          </p>
+                        </div>
+                        <div className="flex justify-between items-center bg-muted/10 rounded-lg p-3">
+                          <div>
+                            <p className="text-xs text-muted-foreground">Sortino Ratio</p>
+                            <p className="text-xs text-muted-foreground/70">Downside risk</p>
+                          </div>
+                          <p className={`text-xl font-bold ${(portfolioData.metrics?.sortinoRatio || 0) >= 2 ? 'text-green-400' : (portfolioData.metrics?.sortinoRatio || 0) >= 1 ? 'text-yellow-400' : 'text-red-400'}`}>
+                            {portfolioData.metrics?.sortinoRatio.toFixed(2)}
+                          </p>
+                        </div>
+                        <div className="flex justify-between items-center bg-muted/10 rounded-lg p-3">
+                          <div>
+                            <p className="text-xs text-muted-foreground">Calmar Ratio</p>
+                            <p className="text-xs text-muted-foreground/70">Return / Max DD</p>
+                          </div>
+                          <p className={`text-xl font-bold ${(portfolioData.metrics?.calmarRatio || 0) >= 1 ? 'text-green-400' : (portfolioData.metrics?.calmarRatio || 0) >= 0.5 ? 'text-yellow-400' : 'text-red-400'}`}>
+                            {portfolioData.metrics?.calmarRatio.toFixed(2)}
+                          </p>
+                        </div>
+                        <div className="flex justify-between items-center bg-muted/10 rounded-lg p-3">
+                          <div>
+                            <p className="text-xs text-muted-foreground">Volatility (Ann.)</p>
+                            <p className="text-xs text-muted-foreground/70">Standard deviation</p>
+                          </div>
+                          <p className="text-xl font-bold">
+                            {((portfolioData.metrics?.annualizedReturn || 10) / (portfolioData.metrics?.sharpeRatio || 1)).toFixed(1)}%
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
 
               {/* Strategy Correlation Matrix */}
               {portfolioData.strategyCorrelation && portfolioData.strategyCorrelation.length > 1 && (

@@ -619,47 +619,60 @@ export function calculateCorrelation(
   curve1: EquityPoint[],
   curve2: EquityPoint[]
 ): number {
-  if (curve1.length === 0 || curve2.length === 0) {
+  if (curve1.length < 2 || curve2.length < 2) {
     return 0;
   }
 
-  // Build a date-aligned map of returns
-  const dateMap1 = new Map<string, number>();
-  const dateMap2 = new Map<string, number>();
+  // Build a date-aligned map of returns (P&L changes)
+  // For sparse equity curves, we need to aggregate by week or month
+  // to get enough overlapping data points
+  const weeklyReturns1 = new Map<string, number>();
+  const weeklyReturns2 = new Map<string, number>();
   
-  // Calculate returns for curve1
+  // Helper to get week key from date
+  const getWeekKey = (date: Date): string => {
+    const d = new Date(date);
+    d.setHours(0, 0, 0, 0);
+    // Get the Monday of the week
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+    d.setDate(diff);
+    return d.toISOString().split('T')[0]!;
+  };
+  
+  // Calculate weekly returns for curve1
   for (let i = 1; i < curve1.length; i++) {
     const prevEquity = curve1[i - 1]!.equity;
     if (prevEquity > 0) {
       const r = (curve1[i]!.equity - prevEquity) / prevEquity;
-      const dateKey = curve1[i]!.date.toISOString().split('T')[0]!;
-      dateMap1.set(dateKey, r);
+      const weekKey = getWeekKey(curve1[i]!.date);
+      // Accumulate returns for the same week
+      weeklyReturns1.set(weekKey, (weeklyReturns1.get(weekKey) || 0) + r);
     }
   }
   
-  // Calculate returns for curve2
+  // Calculate weekly returns for curve2
   for (let i = 1; i < curve2.length; i++) {
     const prevEquity = curve2[i - 1]!.equity;
     if (prevEquity > 0) {
       const r = (curve2[i]!.equity - prevEquity) / prevEquity;
-      const dateKey = curve2[i]!.date.toISOString().split('T')[0]!;
-      dateMap2.set(dateKey, r);
+      const weekKey = getWeekKey(curve2[i]!.date);
+      weeklyReturns2.set(weekKey, (weeklyReturns2.get(weekKey) || 0) + r);
     }
   }
   
-  // Find common dates and filter out days where BOTH have zero return
+  // Find common weeks - for weeks where one strategy has no trades, use 0 return
+  const allWeeks = new Set([...Array.from(weeklyReturns1.keys()), ...Array.from(weeklyReturns2.keys())]);
   const returns1: number[] = [];
   const returns2: number[] = [];
   
-  for (const [date, r1] of Array.from(dateMap1.entries())) {
-    const r2 = dateMap2.get(date);
-    if (r2 !== undefined) {
-      // Only include if at least one has non-zero return
-      // This filters out forward-filled "flat" days
-      if (Math.abs(r1) > 1e-10 || Math.abs(r2) > 1e-10) {
-        returns1.push(r1);
-        returns2.push(r2);
-      }
+  for (const week of Array.from(allWeeks).sort()) {
+    const r1 = weeklyReturns1.get(week) || 0;
+    const r2 = weeklyReturns2.get(week) || 0;
+    // Only include weeks where at least one strategy had activity
+    if (Math.abs(r1) > 1e-10 || Math.abs(r2) > 1e-10) {
+      returns1.push(r1);
+      returns2.push(r2);
     }
   }
 
