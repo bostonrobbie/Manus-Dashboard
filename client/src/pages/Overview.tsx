@@ -29,7 +29,7 @@ export default function Overview() {
   const [contractSize, setContractSize] = useState<'mini' | 'micro'>('mini');
   const [calendarPeriodType, setCalendarPeriodType] = useState<'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly'>('yearly');
   const [showBenchmark, setShowBenchmark] = useState(true);
-  const [showKellyEquity, setShowKellyEquity] = useState(false);
+  
 
   // Helper to format date range
   const getDateRangeText = (range: TimeRange) => {
@@ -111,35 +111,7 @@ export default function Overview() {
   // Contract size multiplier: micro = 1/10 of mini
   const contractMultiplier = contractSize === 'micro' ? 0.1 : 1;
 
-  // Get Kelly percentage from trade stats if available
-  const kellyPercentage = data.tradeStats?.kellyPercentage ?? 0;
-  const halfKelly = kellyPercentage / 2; // Use half-Kelly for safety
 
-  // Calculate Kelly-optimized equity curve using portfolio equity returns
-  const calculateKellyEquity = () => {
-    if (!portfolioEquity || portfolioEquity.length < 2 || halfKelly <= 0) return null;
-    
-    let kellyEquity = startingCapital;
-    const kellyPoints: { date: string; equity: number }[] = [];
-    
-    // Calculate daily returns from portfolio equity and apply Kelly sizing
-    for (let i = 1; i < portfolioEquity.length; i++) {
-      const prevEquity = portfolioEquity[i - 1].equity;
-      const currEquity = portfolioEquity[i].equity;
-      const dailyReturn = (currEquity - prevEquity) / prevEquity;
-      
-      // Apply Kelly position sizing: scale returns by halfKelly%
-      const kellyReturn = dailyReturn * (halfKelly / 100);
-      kellyEquity = kellyEquity * (1 + kellyReturn);
-      
-      const date = new Date(portfolioEquity[i].date).toLocaleDateString();
-      kellyPoints.push({ date, equity: kellyEquity });
-    }
-    
-    return kellyPoints;
-  };
-  
-  const kellyEquityData = showKellyEquity ? calculateKellyEquity() : null;
 
   // Prepare chart data with timestamps for proper domain calculation
   const chartData = portfolioEquity.map((point, index) => ({
@@ -147,7 +119,7 @@ export default function Overview() {
     timestamp: new Date(point.date).getTime(), // Add timestamp for domain
     portfolio: point.equity * contractMultiplier,
     benchmark: benchmarkEquity[index]?.equity ? benchmarkEquity[index].equity * contractMultiplier : null,
-    kellyEquity: kellyEquityData?.find(k => k.date === new Date(point.date).toLocaleDateString())?.equity ?? null,
+
   }));
 
   // Get top 3 major drawdown periods for highlighting
@@ -398,15 +370,7 @@ export default function Overview() {
                             S&P 500
                           </span>
                         </div>
-                        <div 
-                          className="flex items-center gap-2 cursor-pointer hover:opacity-80"
-                          onClick={() => setShowKellyEquity(!showKellyEquity)}
-                        >
-                          <div className={`w-4 h-0.5 ${showKellyEquity ? 'bg-[#22c55e]' : 'bg-muted'}`}></div>
-                          <span className={`text-sm ${!showKellyEquity ? 'line-through text-muted-foreground' : ''}`}>
-                            Kelly ({halfKelly.toFixed(1)}%)
-                          </span>
-                        </div>
+
                       </div>
                     );
                   }}
@@ -446,17 +410,7 @@ export default function Overview() {
                     name="S&P 500"
                   />
                 )}
-                {showKellyEquity && (
-                  <Line 
-                    type="monotone" 
-                    dataKey="kellyEquity" 
-                    stroke="#22c55e" 
-                    strokeWidth={2}
-                    dot={false}
-                    name={`Kelly (${halfKelly.toFixed(1)}%)`}
-                    strokeDasharray="5 5"
-                  />
-                )}
+
               </LineChart>
             </ResponsiveContainer>
           </div>

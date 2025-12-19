@@ -2819,3 +2819,5 @@
 - [x] Fix Homepage button in navigation sidebar (uses window.location for external navigation)
 
 - [x] Fix setState during render error in LandingPage component (wrapped redirect in useEffect)
+
+- [x] Remove Kelly toggle option from Overview page equity curve
