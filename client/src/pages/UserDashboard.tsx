@@ -39,6 +39,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { RiskDisclaimerModal } from '@/components/RiskDisclaimerModal';
+import { NotificationSettings } from '@/components/NotificationSettings';
 import {
   LineChart as RechartsLine,
   Line,
@@ -404,6 +405,10 @@ export default function UserDashboard() {
             <TabsTrigger value="discover" className="text-sm px-4 py-1.5">
               <Plus className="h-4 w-4 mr-1.5" />
               Discover
+            </TabsTrigger>
+            <TabsTrigger value="notifications" className="text-sm px-4 py-1.5">
+              <Bell className="h-4 w-4 mr-1.5" />
+              Notifications
             </TabsTrigger>
           </TabsList>
         </Tabs>
@@ -1346,6 +1351,11 @@ export default function UserDashboard() {
               ))}
             </div>
           )}
+        </TabsContent>
+
+        {/* Notifications Tab */}
+        <TabsContent value="notifications" className="space-y-4">
+          <NotificationSettings />
         </TabsContent>
       </Tabs>
 

@@ -1,7 +1,7 @@
 import { eq, and, gte, lte, inArray, desc } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import mysql from 'mysql2/promise';
-import { InsertUser, users, strategies, trades, benchmarks, webhookLogs, InsertWebhookLog, openPositions, InsertOpenPosition, OpenPosition } from "../drizzle/schema";
+import { InsertUser, users, strategies, trades, benchmarks, webhookLogs, InsertWebhookLog, openPositions, InsertOpenPosition, OpenPosition, notificationPreferences, strategyNotificationSettings, InsertNotificationPreference, InsertStrategyNotificationSetting, NotificationPreference, StrategyNotificationSetting } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -662,4 +662,182 @@ export async function getPositionStats(): Promise<{
     console.error("[Database] Failed to get position stats:", error);
     return { open: 0, closedToday: 0, totalPnlToday: 0 };
   }
+}
+
+
+// ============================================================================
+// Notification Preferences Functions
+// ============================================================================
+
+/**
+ * Get notification preferences for a user
+ */
+export async function getNotificationPreferences(userId: number): Promise<NotificationPreference | null> {
+  const db = await getDb();
+  if (!db) return null;
+  
+  const result = await db.select().from(notificationPreferences).where(eq(notificationPreferences.userId, userId)).limit(1);
+  return result[0] || null;
+}
+
+/**
+ * Create or update notification preferences for a user
+ */
+export async function upsertNotificationPreferences(userId: number, prefs: Partial<InsertNotificationPreference>): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  
+  const existing = await getNotificationPreferences(userId);
+  
+  if (existing) {
+    await db.update(notificationPreferences)
+      .set({ ...prefs, updatedAt: new Date() })
+      .where(eq(notificationPreferences.userId, userId));
+  } else {
+    await db.insert(notificationPreferences).values({
+      userId,
+      emailNotificationsEnabled: prefs.emailNotificationsEnabled ?? true,
+      pushNotificationsEnabled: prefs.pushNotificationsEnabled ?? true,
+      notifyOnEntry: prefs.notifyOnEntry ?? true,
+      notifyOnExit: prefs.notifyOnExit ?? true,
+      notifyOnProfit: prefs.notifyOnProfit ?? true,
+      notifyOnLoss: prefs.notifyOnLoss ?? true,
+      quietHoursStart: prefs.quietHoursStart,
+      quietHoursEnd: prefs.quietHoursEnd,
+      quietHoursTimezone: prefs.quietHoursTimezone ?? 'America/New_York',
+    });
+  }
+}
+
+/**
+ * Get strategy notification settings for a user
+ */
+export async function getStrategyNotificationSettings(userId: number): Promise<StrategyNotificationSetting[]> {
+  const db = await getDb();
+  if (!db) return [];
+  
+  return db.select().from(strategyNotificationSettings).where(eq(strategyNotificationSettings.userId, userId));
+}
+
+/**
+ * Get notification setting for a specific strategy
+ */
+export async function getStrategyNotificationSetting(userId: number, strategyId: number): Promise<StrategyNotificationSetting | null> {
+  const db = await getDb();
+  if (!db) return null;
+  
+  const result = await db.select().from(strategyNotificationSettings)
+    .where(and(
+      eq(strategyNotificationSettings.userId, userId),
+      eq(strategyNotificationSettings.strategyId, strategyId)
+    ))
+    .limit(1);
+  
+  return result[0] || null;
+}
+
+/**
+ * Update notification setting for a specific strategy
+ */
+export async function upsertStrategyNotificationSetting(
+  userId: number, 
+  strategyId: number, 
+  settings: { emailEnabled?: boolean; pushEnabled?: boolean }
+): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  
+  const existing = await getStrategyNotificationSetting(userId, strategyId);
+  
+  if (existing) {
+    await db.update(strategyNotificationSettings)
+      .set({ ...settings, updatedAt: new Date() })
+      .where(and(
+        eq(strategyNotificationSettings.userId, userId),
+        eq(strategyNotificationSettings.strategyId, strategyId)
+      ));
+  } else {
+    await db.insert(strategyNotificationSettings).values({
+      userId,
+      strategyId,
+      emailEnabled: settings.emailEnabled ?? true,
+      pushEnabled: settings.pushEnabled ?? true,
+    });
+  }
+}
+
+/**
+ * Check if notifications are enabled for a user and strategy
+ * Returns true if notifications should be sent
+ */
+export async function shouldSendNotification(
+  userId: number, 
+  strategyId: number, 
+  type: 'entry' | 'exit' | 'profit' | 'loss'
+): Promise<{ email: boolean; push: boolean }> {
+  const prefs = await getNotificationPreferences(userId);
+  const strategySettings = await getStrategyNotificationSetting(userId, strategyId);
+  
+  // Default to enabled if no preferences set
+  if (!prefs) {
+    return { email: true, push: true };
+  }
+  
+  // Check global toggles
+  const globalEmailEnabled = prefs.emailNotificationsEnabled;
+  const globalPushEnabled = prefs.pushNotificationsEnabled;
+  
+  // Check type-specific toggles
+  let typeEnabled = true;
+  switch (type) {
+    case 'entry':
+      typeEnabled = prefs.notifyOnEntry;
+      break;
+    case 'exit':
+      typeEnabled = prefs.notifyOnExit;
+      break;
+    case 'profit':
+      typeEnabled = prefs.notifyOnProfit;
+      break;
+    case 'loss':
+      typeEnabled = prefs.notifyOnLoss;
+      break;
+  }
+  
+  // Check strategy-specific settings (default to enabled if not set)
+  const strategyEmailEnabled = strategySettings?.emailEnabled ?? true;
+  const strategyPushEnabled = strategySettings?.pushEnabled ?? true;
+  
+  return {
+    email: globalEmailEnabled && typeEnabled && strategyEmailEnabled,
+    push: globalPushEnabled && typeEnabled && strategyPushEnabled,
+  };
+}
+
+/**
+ * Get all strategies with their notification settings for a user
+ */
+export async function getStrategiesWithNotificationSettings(userId: number): Promise<Array<{
+  id: number;
+  symbol: string;
+  name: string;
+  emailEnabled: boolean;
+  pushEnabled: boolean;
+}>> {
+  const db = await getDb();
+  if (!db) return [];
+  
+  const allStrategies = await db.select().from(strategies).where(eq(strategies.active, true));
+  const userSettings = await getStrategyNotificationSettings(userId);
+  
+  // Create a map of strategy settings
+  const settingsMap = new Map(userSettings.map(s => [s.strategyId, s]));
+  
+  return allStrategies.map(strategy => ({
+    id: strategy.id,
+    symbol: strategy.symbol,
+    name: strategy.name,
+    emailEnabled: settingsMap.get(strategy.id)?.emailEnabled ?? true,
+    pushEnabled: settingsMap.get(strategy.id)?.pushEnabled ?? true,
+  }));
 }

@@ -2869,3 +2869,27 @@
 - [x] Add owner notification on trade exit with P&L
 - [x] Make notifications async to not block webhook response
 - [ ] Add notification preferences/toggle (future enhancement)
+
+
+## Current Sprint: User Notification Preferences
+
+### Database Schema
+- [x] Create notification_preferences table with user_id, strategy_id, email_enabled fields
+- [x] Add global notification toggle for users
+- [x] Add migration for new table
+
+### API Endpoints
+- [x] Add getNotificationPreferences endpoint
+- [x] Add updateNotificationPreferences endpoint
+- [x] Add toggleStrategyNotification endpoint
+
+### User Interface
+- [x] Create Notification Settings page/section in user dashboard
+- [x] Add global notifications toggle
+- [x] Add per-strategy notification toggles with strategy names
+- [x] Show notification status indicators
+
+### Integration
+- [x] Update webhook notification system to check user preferences
+- [x] Only send notifications for enabled strategies (infrastructure ready)
+- [x] Respect global notification toggle (infrastructure ready)

@@ -469,3 +469,50 @@ export type InsertOpenPosition = typeof openPositions.$inferInsert;
  */
 export const signalTypeEnum = ["entry", "exit", "scale_in", "scale_out"] as const;
 export type SignalType = typeof signalTypeEnum[number];
+
+
+/**
+ * User notification preferences table
+ * Stores per-user, per-strategy notification settings
+ */
+export const notificationPreferences = mysqlTable("notification_preferences", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  // Global settings
+  emailNotificationsEnabled: boolean("emailNotificationsEnabled").default(true).notNull(),
+  pushNotificationsEnabled: boolean("pushNotificationsEnabled").default(true).notNull(),
+  // Notification types
+  notifyOnEntry: boolean("notifyOnEntry").default(true).notNull(),
+  notifyOnExit: boolean("notifyOnExit").default(true).notNull(),
+  notifyOnProfit: boolean("notifyOnProfit").default(true).notNull(),
+  notifyOnLoss: boolean("notifyOnLoss").default(true).notNull(),
+  // Quiet hours (optional)
+  quietHoursStart: varchar("quietHoursStart", { length: 5 }), // HH:MM format
+  quietHoursEnd: varchar("quietHoursEnd", { length: 5 }), // HH:MM format
+  quietHoursTimezone: varchar("quietHoursTimezone", { length: 50 }).default("America/New_York"),
+  // Metadata
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type NotificationPreference = typeof notificationPreferences.$inferSelect;
+export type InsertNotificationPreference = typeof notificationPreferences.$inferInsert;
+
+/**
+ * Strategy notification settings table
+ * Per-strategy notification toggles for each user
+ */
+export const strategyNotificationSettings = mysqlTable("strategy_notification_settings", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  strategyId: int("strategyId").notNull(),
+  // Notification toggles
+  emailEnabled: boolean("emailEnabled").default(true).notNull(),
+  pushEnabled: boolean("pushEnabled").default(true).notNull(),
+  // Metadata
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type StrategyNotificationSetting = typeof strategyNotificationSettings.$inferSelect;
+export type InsertStrategyNotificationSetting = typeof strategyNotificationSettings.$inferInsert;

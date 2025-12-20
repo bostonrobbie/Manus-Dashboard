@@ -1773,6 +1773,90 @@ Please check the Webhooks page in your dashboard for more details.
         return subscriptionService.updateSubscriptionSettings(ctx.user.id, strategyId, settings);
       }),
   }),
+
+  // Notification preferences router
+  notifications: router({
+    /**
+     * Get user's notification preferences
+     */
+    getPreferences: protectedProcedure.query(async ({ ctx }) => {
+      const prefs = await db.getNotificationPreferences(ctx.user.id);
+      const strategies = await db.getStrategiesWithNotificationSettings(ctx.user.id);
+      
+      return {
+        global: prefs || {
+          emailNotificationsEnabled: true,
+          pushNotificationsEnabled: true,
+          notifyOnEntry: true,
+          notifyOnExit: true,
+          notifyOnProfit: true,
+          notifyOnLoss: true,
+          quietHoursStart: null,
+          quietHoursEnd: null,
+          quietHoursTimezone: 'America/New_York',
+        },
+        strategies,
+      };
+    }),
+
+    /**
+     * Update global notification preferences
+     */
+    updateGlobalPreferences: protectedProcedure
+      .input(z.object({
+        emailNotificationsEnabled: z.boolean().optional(),
+        pushNotificationsEnabled: z.boolean().optional(),
+        notifyOnEntry: z.boolean().optional(),
+        notifyOnExit: z.boolean().optional(),
+        notifyOnProfit: z.boolean().optional(),
+        notifyOnLoss: z.boolean().optional(),
+        quietHoursStart: z.string().nullable().optional(),
+        quietHoursEnd: z.string().nullable().optional(),
+        quietHoursTimezone: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        await db.upsertNotificationPreferences(ctx.user.id, input);
+        return { success: true };
+      }),
+
+    /**
+     * Toggle notifications for a specific strategy
+     */
+    toggleStrategy: protectedProcedure
+      .input(z.object({
+        strategyId: z.number(),
+        emailEnabled: z.boolean().optional(),
+        pushEnabled: z.boolean().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const { strategyId, ...settings } = input;
+        await db.upsertStrategyNotificationSetting(ctx.user.id, strategyId, settings);
+        return { success: true };
+      }),
+
+    /**
+     * Bulk update strategy notification settings
+     */
+    bulkUpdateStrategies: protectedProcedure
+      .input(z.object({
+        strategies: z.array(z.object({
+          strategyId: z.number(),
+          emailEnabled: z.boolean(),
+          pushEnabled: z.boolean(),
+        })),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        await Promise.all(
+          input.strategies.map(s => 
+            db.upsertStrategyNotificationSetting(ctx.user.id, s.strategyId, {
+              emailEnabled: s.emailEnabled,
+              pushEnabled: s.pushEnabled,
+            })
+          )
+        );
+        return { success: true };
+      }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;

@@ -39,6 +39,8 @@ import {
   getAllOpenPositions,
   getRecentPositions,
   getPositionStats,
+  // Notification preferences
+  shouldSendNotification,
 } from './db';
 import { InsertWebhookLog, InsertOpenPosition } from '../drizzle/schema';
 import { notifyOwnerAsync } from './_core/notification';
@@ -617,6 +619,9 @@ async function handleEntrySignal(
   });
 
   // Send async notification for entry signal (non-blocking)
+  // Note: For now, we send to owner. In the future, this could be extended
+  // to send to subscribed users based on their notification preferences.
+  // The shouldSendNotification function is available for per-user checks.
   notifyOwnerAsync({
     title: `📈 ${payload.direction} Entry: ${payload.strategySymbol}`,
     content: `New ${payload.direction.toLowerCase()} position opened\n\n` +

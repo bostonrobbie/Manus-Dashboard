@@ -57,6 +57,13 @@
       "when": 1766247678092,
       "tag": "0007_nasty_beast",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "5",
+      "when": 1766249265293,
+      "tag": "0008_pale_ultron",
+      "breakpoints": true
     }
   ]
 }
