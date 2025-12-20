@@ -322,7 +322,7 @@ function DashboardLayoutContent({
             </div>
           </div>
         )}
-        <main className="flex-1 p-3 sm:p-4 md:p-6 animate-fade-in">
+        <main className="flex-1 p-2 sm:p-4 md:p-6 animate-fade-in overflow-x-hidden">
           <div className="max-w-7xl mx-auto">
             {children}
           </div>

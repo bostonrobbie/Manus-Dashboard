@@ -186,12 +186,12 @@ export default function Strategies() {
       {/* All Strategies Equity Chart */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div>
               <CardTitle>All Strategies Performance</CardTitle>
               <CardDescription>Compare all strategy equity curves</CardDescription>
             </div>
-            <div className="w-[180px]">
+            <div className="w-full sm:w-[180px]">
               <Label htmlFor="chart-time-range" className="sr-only">Time Range</Label>
               <Select value={timeRange} onValueChange={(v) => setTimeRange(v as TimeRange)}>
                 <SelectTrigger id="chart-time-range">
@@ -221,9 +221,9 @@ export default function Strategies() {
               <p className="text-xs text-muted-foreground">View individual strategy details below</p>
             </div>
           ) : (
-            <div className="h-[300px] sm:h-[350px] md:h-[400px] lg:h-[450px]">
+            <div className="h-[280px] sm:h-[350px] md:h-[400px] lg:h-[450px] -mx-2 sm:mx-0">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
+                <LineChart data={chartData} margin={{ top: 10, right: 5, left: 0, bottom: 10 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted-foreground))" strokeOpacity={0.2} vertical={false} />
                   <XAxis 
                     dataKey="date" 
@@ -241,7 +241,7 @@ export default function Strategies() {
                     tickLine={{ stroke: 'rgba(255,255,255,0.3)' }}
                     axisLine={{ stroke: 'rgba(255,255,255,0.3)' }}
                     tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
-                    width={65}
+                    width={50}
                     label={{ value: 'Portfolio Value', angle: -90, position: 'insideLeft', fill: '#ffffff', fontSize: 12, dx: -5 }}
                   />
                   <Tooltip 
@@ -257,7 +257,7 @@ export default function Strategies() {
                       content={(props) => {
                         const { payload } = props;
                         return (
-                          <div className="flex flex-wrap justify-center gap-4 pt-4">
+                          <div className="flex flex-wrap justify-center gap-2 sm:gap-4 pt-4 px-2">
                             {payload?.map((entry: any, index: number) => {
                               const isHidden = hiddenStrategies.has(entry.dataKey);
                               return (
@@ -305,7 +305,7 @@ export default function Strategies() {
       <div>
         <h2 className="text-2xl font-bold mb-6">Individual Strategies</h2>
       </div>
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
         {strategies?.map((strategy) => {
           // Get market-specific icon
           const getMarketIcon = (market: string) => {
@@ -355,7 +355,7 @@ export default function Strategies() {
               </CardHeader>
               <CardContent className="space-y-4 relative z-10 flex-1 flex flex-col">
                 {/* Performance Metrics Grid */}
-                <div className="grid grid-cols-3 gap-2.5">
+                <div className="grid grid-cols-3 gap-1.5 sm:gap-2.5">
                   <div className="bg-blue-500/5 rounded-lg p-2.5 border border-border/40">
                     <div className="text-[9px] text-muted-foreground mb-0.5 uppercase tracking-wide font-semibold">Return</div>
                     <div className="text-sm font-bold text-blue-600 truncate">
@@ -386,7 +386,7 @@ export default function Strategies() {
                 </div>
 
                 {/* Market & Type Info */}
-                <div className="grid grid-cols-2 gap-2.5">
+                <div className="grid grid-cols-2 gap-1.5 sm:gap-2.5">
                   <div className="bg-muted/10 rounded-lg p-2.5 border border-border/40">
                     <div className="text-[9px] text-muted-foreground mb-0.5 uppercase tracking-wide font-semibold">Market</div>
                     <div className="text-sm font-bold">{strategy.market}</div>

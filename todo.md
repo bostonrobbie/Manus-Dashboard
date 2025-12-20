@@ -2970,3 +2970,25 @@
 - [x] Create notification setup guide email template
 - [ ] Implement email sending on subscription activation (requires email service provider integration)
 - [x] Add onboarding checklist to dashboard for new users
+
+
+## Current Sprint: Mobile Responsiveness Fixes ✅ COMPLETE
+
+### Strategies Page Mobile Issues
+- [x] Fix chart not loading on individual strategy pages
+- [x] Fix boxes/cards going off-screen on mobile
+- [x] Ensure strategy list is scrollable on mobile
+
+### Overview Page Mobile Issues
+- [x] Fix content getting cut off on left side
+- [x] Fix equity curve chart overflow on mobile
+- [x] Ensure time range buttons wrap properly on small screens
+- [x] Fix KPI cards layout for mobile
+
+### Landing Page Updates
+- [x] Replace portfolio screenshot to show only portfolio (without S&P 500)
+
+### General Mobile Optimization
+- [x] Test all dashboard pages on mobile viewport
+- [x] Ensure touch-friendly tap targets
+- [x] Fix any horizontal scrolling issues

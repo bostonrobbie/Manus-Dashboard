@@ -337,7 +337,7 @@ export default function StrategyDetail() {
       </div>
 
       {/* Performance Metrics */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Total Return</CardTitle>
@@ -398,7 +398,7 @@ export default function StrategyDetail() {
           <CardDescription>Industry-standard metrics for comprehensive strategy analysis</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
             {/* Risk Metrics */}
             <div className="space-y-4">
               <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Risk Metrics</h4>
@@ -539,9 +539,9 @@ export default function StrategyDetail() {
           <CardDescription>Strategy performance vs S&P 500 benchmark</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="h-[300px] sm:h-[350px] md:h-[400px] lg:h-[450px]">
+          <div className="h-[280px] sm:h-[350px] md:h-[400px] lg:h-[450px] -mx-2 sm:mx-0">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
+              <LineChart data={chartData} margin={{ top: 10, right: 5, left: 0, bottom: 10 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted-foreground))" strokeOpacity={0.15} vertical={false} />
                 <XAxis 
                   dataKey="date" 
@@ -611,9 +611,9 @@ export default function StrategyDetail() {
           <CardDescription>Drawdown from peak equity over time</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="h-[250px] sm:h-[280px] md:h-[320px] lg:h-[350px]">
+          <div className="h-[230px] sm:h-[280px] md:h-[320px] lg:h-[350px] -mx-2 sm:mx-0">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={underwaterData} margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
+              <LineChart data={underwaterData} margin={{ top: 10, right: 5, left: 0, bottom: 10 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted-foreground))" strokeOpacity={0.15} vertical={false} />
                 <XAxis 
                   dataKey="date" 

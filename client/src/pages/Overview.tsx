@@ -217,7 +217,7 @@ export default function Overview() {
           </div>
 
           {/* Key Metrics Cards - At Top */}
-          <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-5">
+          <div className="grid gap-2 sm:gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
             {/* Total Return */}
             <div className="bg-muted/30 border border-muted rounded-lg p-4 text-center">
               <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">Total Return</div>
@@ -292,7 +292,7 @@ export default function Overview() {
       {/* Equity Curve Chart */}
       <Card>
         <CardHeader>
-          <div className="flex justify-between items-start">
+          <div className="flex flex-col sm:flex-row justify-between items-start gap-3">
             <div>
               <CardTitle className="flex items-center gap-2">
                 Equity Curve
@@ -306,7 +306,7 @@ export default function Overview() {
               </CardDescription>
             </div>
             {/* Time Range Selector */}
-            <div className="flex gap-1">
+            <div className="flex gap-1 flex-wrap">
               {(['6M', 'YTD', '1Y', '5Y', '10Y', 'ALL'] as const).map((range) => (
                 <Button
                   key={range}
@@ -322,9 +322,9 @@ export default function Overview() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="h-[300px] sm:h-[350px] md:h-[400px] lg:h-[450px]">
+          <div className="h-[280px] sm:h-[350px] md:h-[400px] lg:h-[450px] -mx-2 sm:mx-0">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
+              <LineChart data={chartData} margin={{ top: 10, right: 5, left: 0, bottom: 10 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted-foreground))" strokeOpacity={0.2} vertical={false} />
                 <XAxis 
                   dataKey="date" 
@@ -346,7 +346,7 @@ export default function Overview() {
                   tickLine={{ stroke: 'rgba(255,255,255,0.3)' }}
                   axisLine={{ stroke: 'rgba(255,255,255,0.4)' }}
                   tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
-                  width={65}
+                  width={50}
                   label={{ value: 'Portfolio Value', angle: -90, position: 'insideLeft', fill: '#ffffff', fontSize: 12, dx: -5 }}
                 />
                 <Tooltip 
