@@ -21,11 +21,39 @@ import {
   RefreshCw
 } from "lucide-react";
 import { useLocation } from "wouter";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { trpc } from "@/lib/trpc";
 
 export default function LandingPage() {
   const { user, loading } = useAuth();
   const [, setLocation] = useLocation();
+  const [isCheckingOut, setIsCheckingOut] = useState(false);
+
+  // Stripe checkout mutation
+  const checkoutMutation = trpc.stripe.createCheckoutSession.useMutation({
+    onSuccess: (data) => {
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    },
+    onError: (error) => {
+      console.error('Checkout error:', error);
+      setIsCheckingOut(false);
+    },
+  });
+
+  const handleSubscribe = () => {
+    if (!user) {
+      // Redirect to login first
+      window.location.href = getLoginUrl();
+      return;
+    }
+    setIsCheckingOut(true);
+    checkoutMutation.mutate({
+      tier: 'pro',
+      interval: 'monthly',
+    });
+  };
 
   // Note: We no longer auto-redirect logged-in users
   // They can view the landing page and click "Go to Dashboard" if they want
@@ -391,15 +419,16 @@ export default function LandingPage() {
                 
                 <Button 
                   size="lg"
-                  onClick={() => user ? setLocation('/my-dashboard?tab=subscription') : window.location.href = getLoginUrl()}
-                  className="w-full bg-gradient-to-r from-emerald-600 to-cyan-500 hover:from-emerald-500 hover:to-cyan-400 text-white py-6 text-lg shadow-lg shadow-emerald-500/25"
+                  onClick={handleSubscribe}
+                  disabled={isCheckingOut}
+                  className="w-full bg-gradient-to-r from-emerald-600 to-cyan-500 hover:from-emerald-500 hover:to-cyan-400 text-white py-6 text-lg shadow-lg shadow-emerald-500/25 disabled:opacity-50"
                 >
-                  {user ? 'Subscribe Now' : 'Start 14-Day Free Trial'}
-                  <ArrowRight className="ml-2 h-5 w-5" />
+                  {isCheckingOut ? 'Redirecting to Checkout...' : (user ? 'Subscribe Now' : 'Login to Subscribe')}
+                  {!isCheckingOut && <ArrowRight className="ml-2 h-5 w-5" />}
                 </Button>
                 
                 <p className="text-center text-sm text-slate-500 mt-4">
-                  No credit card required for trial
+                  Secure checkout powered by Stripe
                 </p>
               </CardContent>
             </Card>

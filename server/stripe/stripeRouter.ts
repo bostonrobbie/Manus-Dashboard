@@ -51,13 +51,13 @@ export const stripeRouter = router({
       const amount = interval === "yearly" ? tierConfig.priceYearly : tierConfig.priceMonthly;
 
       // Create checkout session with dynamic pricing
+      // Note: When customer is provided, don't pass customer_email (Stripe doesn't allow both)
       const session = await stripe.checkout.sessions.create({
         customer: customerId,
         mode: "subscription",
         payment_method_types: ["card"],
         allow_promotion_codes: true,
         client_reference_id: user.id.toString(),
-        customer_email: user.email || undefined,
         metadata: {
           user_id: user.id.toString(),
           customer_email: user.email || "",
