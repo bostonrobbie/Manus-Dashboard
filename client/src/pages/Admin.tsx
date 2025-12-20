@@ -1232,19 +1232,23 @@ function SetupTab() {
 // ============================================================================
 
 function BrokersTab() {
-  const [showTradovateDialog, setShowTradovateDialog] = useState(false);
   const [showIBKRDialog, setShowIBKRDialog] = useState(false);
-  const [tradovateCredentials, setTradovateCredentials] = useState({ username: '', password: '', isDemo: true });
   const [ibkrCredentials, setIBKRCredentials] = useState({ username: '', accountId: '', isPaper: true });
   const [connecting, setConnecting] = useState(false);
+  const [tradovateMode, setTradovateMode] = useState<'demo' | 'live'>('demo');
   
   // Get existing broker connections
   const { data: connections, refetch: refetchConnections } = trpc.broker.getConnections.useQuery();
+  
+  // Get OAuth URL for Tradovate
+  const { data: tradovateOAuthUrl } = trpc.broker.getTradovateOAuthUrl.useQuery({ 
+    isLive: tradovateMode === 'live' 
+  });
+  
   const connectBroker = trpc.broker.connect.useMutation({
     onSuccess: () => {
       toast.success('Broker connected successfully!');
       refetchConnections();
-      setShowTradovateDialog(false);
       setShowIBKRDialog(false);
     },
     onError: (error: { message?: string }) => {
@@ -1261,19 +1265,13 @@ function BrokersTab() {
   const tradovateConnection = connections?.find(c => c.broker === 'tradovate');
   const ibkrConnection = connections?.find(c => c.broker === 'ibkr');
   
-  const handleTradovateConnect = async () => {
-    setConnecting(true);
-    try {
-      await connectBroker.mutateAsync({
-        broker: 'tradovate',
-        credentials: {
-          username: tradovateCredentials.username,
-          password: tradovateCredentials.password,
-        },
-        isDemo: tradovateCredentials.isDemo,
-      });
-    } finally {
-      setConnecting(false);
+  // Handle Tradovate OAuth redirect - opens Tradovate login in same window
+  const handleTradovateConnect = () => {
+    if (tradovateOAuthUrl?.url) {
+      // Redirect to Tradovate OAuth login page
+      window.location.href = tradovateOAuthUrl.url;
+    } else {
+      toast.error('Tradovate OAuth not configured. Please contact support.');
     }
   };
   
@@ -1339,9 +1337,9 @@ function BrokersTab() {
               ) : (
                 <>
                   <Badge className="bg-gray-500/20 text-gray-400">Not Connected</Badge>
-                  <Button variant="outline" size="sm" onClick={() => setShowTradovateDialog(true)}>
-                    <Link2 className="h-4 w-4 mr-2" />
-                    Connect
+                  <Button variant="outline" size="sm" onClick={handleTradovateConnect}>
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    Connect to Tradovate
                   </Button>
                 </>
               )}
@@ -1411,72 +1409,64 @@ function BrokersTab() {
         </CardContent>
       </Card>
       
-      {/* Tradovate Connection Dialog */}
-      {showTradovateDialog && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <Card className="w-full max-w-md mx-4">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <div className="h-8 w-8 rounded-lg bg-emerald-500/20 flex items-center justify-center">
-                  <span className="font-bold text-emerald-400 text-sm">TV</span>
-                </div>
-                Connect Tradovate
-              </CardTitle>
-              <CardDescription>
-                Enter your Tradovate credentials to enable automated trading
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="tv-username">Username</Label>
-                <Input 
-                  id="tv-username"
-                  placeholder="Your Tradovate username"
-                  value={tradovateCredentials.username}
-                  onChange={(e) => setTradovateCredentials(prev => ({ ...prev, username: e.target.value }))}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="tv-password">Password</Label>
-                <Input 
-                  id="tv-password"
-                  type="password"
-                  placeholder="Your Tradovate password"
-                  value={tradovateCredentials.password}
-                  onChange={(e) => setTradovateCredentials(prev => ({ ...prev, password: e.target.value }))}
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <Label htmlFor="tv-demo">Demo Account</Label>
-                <Switch 
-                  id="tv-demo"
-                  checked={tradovateCredentials.isDemo}
-                  onCheckedChange={(checked) => setTradovateCredentials(prev => ({ ...prev, isDemo: checked }))}
-                />
-              </div>
-              <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3">
-                <p className="text-sm text-amber-400">
-                  <AlertTriangle className="h-4 w-4 inline mr-1" />
-                  Your credentials are encrypted and stored securely. We recommend starting with a demo account.
-                </p>
-              </div>
-              <div className="flex gap-3 pt-2">
-                <Button variant="outline" className="flex-1" onClick={() => setShowTradovateDialog(false)}>
-                  Cancel
-                </Button>
-                <Button 
-                  className="flex-1 bg-emerald-600 hover:bg-emerald-700" 
-                  onClick={handleTradovateConnect}
-                  disabled={connecting || !tradovateCredentials.username || !tradovateCredentials.password}
-                >
-                  {connecting ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <Link2 className="h-4 w-4 mr-2" />}
-                  Connect
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+      {/* Tradovate OAuth Info Card */}
+      <Card className="bg-card/50 border-border/50">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <div className="h-6 w-6 rounded bg-emerald-500/20 flex items-center justify-center">
+              <span className="font-bold text-emerald-400 text-xs">TV</span>
+            </div>
+            Tradovate OAuth Setup
+          </CardTitle>
+          <CardDescription>
+            Connect securely via Tradovate's official OAuth login
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-4">
+            <h4 className="font-medium text-emerald-400 mb-2">How it works:</h4>
+            <ol className="text-sm text-muted-foreground space-y-2 list-decimal list-inside">
+              <li>Click "Connect to Tradovate" above</li>
+              <li>You'll be redirected to Tradovate's secure login page</li>
+              <li>Log in with your Tradovate credentials</li>
+              <li>Authorize IntraDay Strategies to access your account</li>
+              <li>You'll be redirected back here, connected!</li>
+            </ol>
+          </div>
+          <div className="flex items-center justify-between p-3 bg-background/50 rounded-lg border border-border/50">
+            <div>
+              <Label>Account Type</Label>
+              <p className="text-xs text-muted-foreground">Select before connecting</p>
+            </div>
+            <div className="flex gap-2">
+              <Button 
+                variant={tradovateMode === 'demo' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setTradovateMode('demo')}
+                className={tradovateMode === 'demo' ? 'bg-emerald-600' : ''}
+              >
+                Demo
+              </Button>
+              <Button 
+                variant={tradovateMode === 'live' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setTradovateMode('live')}
+                className={tradovateMode === 'live' ? 'bg-red-600' : ''}
+              >
+                Live
+              </Button>
+            </div>
+          </div>
+          {tradovateMode === 'live' && (
+            <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3">
+              <p className="text-sm text-red-400">
+                <AlertTriangle className="h-4 w-4 inline mr-1" />
+                Live trading uses real money. Make sure you understand the risks.
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
       
       {/* IBKR Connection Dialog */}
       {showIBKRDialog && (

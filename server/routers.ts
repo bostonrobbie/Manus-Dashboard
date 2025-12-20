@@ -1311,6 +1311,37 @@ Please check the Webhooks page in your dashboard for more details.
   // Broker router for trading integrations (Admin-only)
   broker: router({
     /**
+     * Get Tradovate OAuth URL for redirect-based authentication
+     */
+    getTradovateOAuthUrl: adminProcedure
+      .input(z.object({ isLive: z.boolean().optional().default(false) }))
+      .query(async ({ ctx, input }) => {
+        // Generate OAuth state for security
+        const state = `${ctx.user.id}_${Date.now()}_${input.isLive ? 'live' : 'demo'}`;
+        
+        // Build OAuth URL - Tradovate OAuth endpoint
+        const clientId = process.env.TRADOVATE_CLIENT_ID;
+        if (!clientId) {
+          return { url: null, error: 'Tradovate OAuth not configured' };
+        }
+        
+        const baseUrl = process.env.VITE_APP_URL || 'https://intradaystrategies.com';
+        const redirectUri = `${baseUrl}/api/oauth/tradovate/callback`;
+        
+        const params = new URLSearchParams({
+          response_type: 'code',
+          client_id: clientId,
+          redirect_uri: redirectUri,
+          state: state,
+        });
+        
+        return { 
+          url: `https://trader.tradovate.com/oauth?${params.toString()}`,
+          state,
+        };
+      }),
+
+    /**
      * Get all broker connections for the current user
      */
     getConnections: adminProcedure.query(async ({ ctx }) => {
@@ -1655,11 +1686,42 @@ Please check the Webhooks page in your dashboard for more details.
         }
 
         // Get today's trades for the "Today's Activity" section
+        // Only show REAL trades from webhook activity, not historical backtest data
+        // We identify real trades by checking the webhook_logs table for trades created today
         const todayStart = new Date();
         todayStart.setHours(0, 0, 0, 0);
+        const todayEnd = new Date();
+        todayEnd.setHours(23, 59, 59, 999);
+        
+        // Get today's webhook logs that resulted in trades
+        const todayWebhookLogs = await db.getWebhookLogs({
+          status: 'success',
+          startDate: todayStart,
+          endDate: todayEnd,
+          limit: 100,
+        });
+        
+        // Extract trade IDs from successful webhooks
+        const webhookTradeIds = new Set(
+          todayWebhookLogs
+            .filter((log: any) => log.tradeId != null)
+            .map((log: any) => log.tradeId)
+        );
+        
+        // Filter allTrades to only include those created by today's webhooks
+        // OR check if the trade was created today (by checking createdAt timestamp)
         const todayTrades = allTrades.filter((t: any) => {
-          const entryDate = new Date(t.entryDate);
-          return entryDate >= todayStart;
+          // If trade was created by a webhook today, include it
+          if (webhookTradeIds.has(t.id)) return true;
+          
+          // Also include trades that were created today (createdAt is today)
+          // This catches trades created via webhooks that we might have missed
+          const createdAt = t.createdAt ? new Date(t.createdAt) : null;
+          if (createdAt && createdAt >= todayStart && createdAt <= todayEnd) {
+            return true;
+          }
+          
+          return false;
         }).map((t: any) => {
           const sub = subscriptions.find(s => s.strategyId === t.strategyId);
           return {
@@ -1673,7 +1735,7 @@ Please check the Webhooks page in your dashboard for more details.
             exitDate: t.exitDate,
             exitPrice: t.exitPrice ? t.exitPrice / 100 : null, // Convert from cents to dollars
             pnl: (t.pnl / 100) * (Number(sub?.quantityMultiplier) || 1), // Convert from cents to dollars
-            isActive: !t.exitDate || new Date(t.exitDate) > new Date(), // Still active if no exit or exit in future
+            isActive: !t.exitDate, // Active if no exit date yet
           };
         });
 

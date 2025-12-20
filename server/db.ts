@@ -320,9 +320,39 @@ export async function updateWebhookLog(id: number, updates: Partial<InsertWebhoo
 /**
  * Get recent webhook logs for display
  */
-export async function getWebhookLogs(limit: number = 100) {
+export async function getWebhookLogs(params?: {
+  status?: string;
+  startDate?: Date;
+  endDate?: Date;
+  limit?: number;
+} | number) {
   const db = await getDb();
   if (!db) return [];
+
+  // Handle legacy call with just limit number
+  if (typeof params === 'number') {
+    return await db.select().from(webhookLogs).orderBy(desc(webhookLogs.createdAt)).limit(params);
+  }
+
+  const { status, startDate, endDate, limit = 100 } = params || {};
+  
+  const conditions = [];
+  if (status) {
+    conditions.push(eq(webhookLogs.status, status as any));
+  }
+  if (startDate) {
+    conditions.push(gte(webhookLogs.createdAt, startDate));
+  }
+  if (endDate) {
+    conditions.push(lte(webhookLogs.createdAt, endDate));
+  }
+
+  if (conditions.length > 0) {
+    return await db.select().from(webhookLogs)
+      .where(and(...conditions))
+      .orderBy(desc(webhookLogs.createdAt))
+      .limit(limit);
+  }
 
   return await db.select().from(webhookLogs).orderBy(desc(webhookLogs.createdAt)).limit(limit);
 }

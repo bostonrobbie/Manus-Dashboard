@@ -224,19 +224,19 @@ export default function Overview() {
               <div className={`text-3xl font-bold mb-1 ${
                 metrics.totalReturn >= 0 ? 'text-green-500' : 'text-red-500'
               }`}>
-                {metrics.totalReturn >= 0 ? '+' : ''}{metrics.totalReturn.toFixed(2)}%
+                {metrics.totalReturn >= 0 ? '+' : ''}${Math.round((metrics.totalReturn / 100) * startingCapital).toLocaleString()}
               </div>
               <div className="text-xs text-muted-foreground">
-                {metrics.annualizedReturn.toFixed(2)}% annualized
+                {metrics.totalReturn.toFixed(2)}% ({metrics.annualizedReturn.toFixed(2)}% ann.)
               </div>
             </div>
 
             {/* Max Drawdown */}
             <div className="bg-muted/30 border border-muted rounded-lg p-4 text-center">
               <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">Max Drawdown</div>
-              <div className="text-3xl font-bold mb-1 text-amber-500">{metrics.maxDrawdown.toFixed(2)}%</div>
+              <div className="text-3xl font-bold mb-1 text-amber-500">-${Math.round((metrics.maxDrawdown / 100) * startingCapital).toLocaleString()}</div>
               <div className="text-xs text-muted-foreground">
-                Peak to trough
+                {metrics.maxDrawdown.toFixed(2)}% peak to trough
               </div>
             </div>
 

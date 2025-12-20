@@ -120,17 +120,16 @@ export default function LandingPage() {
                 onClick={() => window.location.href = getLoginUrl()}
                 className="bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white px-8 py-6 text-lg shadow-lg shadow-blue-500/25"
               >
-                Start Free Trial
+                Login to Dashboard
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
               <Button 
                 size="lg"
                 variant="outline"
                 className="border-slate-700 text-slate-300 hover:bg-slate-800 px-8 py-6 text-lg"
-                onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
+                onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })}
               >
-                <Play className="mr-2 h-5 w-5" />
-                Watch Demo
+                View Pricing
               </Button>
             </div>
           </div>
@@ -138,20 +137,20 @@ export default function LandingPage() {
           {/* Stats Bar */}
           <div className="mt-20 grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto">
             <div className="text-center">
-              <div className="text-3xl sm:text-4xl font-bold text-white mb-1">15+</div>
+              <div className="text-3xl sm:text-4xl font-bold text-white mb-1">8</div>
               <div className="text-slate-400 text-sm">Active Strategies</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl sm:text-4xl font-bold text-emerald-400 mb-1">12.8%</div>
+              <div className="text-3xl sm:text-4xl font-bold text-emerald-400 mb-1">$17,628</div>
               <div className="text-slate-400 text-sm">Avg Annual Return</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl sm:text-4xl font-bold text-white mb-1">3,500+</div>
-              <div className="text-slate-400 text-sm">Trades Executed</div>
+              <div className="text-3xl sm:text-4xl font-bold text-white mb-1">15+ Years</div>
+              <div className="text-slate-400 text-sm">Backtested History</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl sm:text-4xl font-bold text-blue-400 mb-1">1.65</div>
-              <div className="text-slate-400 text-sm">Sharpe Ratio</div>
+              <div className="text-3xl sm:text-4xl font-bold text-blue-400 mb-1">$1M+</div>
+              <div className="text-slate-400 text-sm">Total Returns</div>
             </div>
           </div>
         </div>

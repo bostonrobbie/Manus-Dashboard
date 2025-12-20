@@ -892,11 +892,13 @@ export default function UserDashboard() {
                     </div>
                     <div className="bg-gradient-to-br from-cyan-500/15 to-cyan-600/5 rounded-lg p-3 border border-cyan-500/20">
                       <div className="flex items-center gap-1.5 mb-1">
-                        <BarChart3 className="h-3.5 w-3.5 text-cyan-400" />
-                        <span className="text-xs text-muted-foreground">Sharpe Ratio</span>
+                        <Scale className="h-3.5 w-3.5 text-cyan-400" />
+                        <span className="text-xs text-muted-foreground">Avg Trade</span>
                       </div>
-                      <p className={`text-xl font-bold ${(portfolioData.metrics?.sharpeRatio || 0) >= 1 ? 'text-emerald-400' : 'text-cyan-400'}`}>{portfolioData.metrics?.sharpeRatio.toFixed(2)}</p>
-                      <p className="text-xs text-cyan-300/60">Risk-adjusted</p>
+                      <p className={`text-xl font-bold ${((portfolioData.metrics?.avgWin || 0) * (portfolioData.metrics?.winRate || 0) / 100 - Math.abs(portfolioData.metrics?.avgLoss || 0) * (100 - (portfolioData.metrics?.winRate || 0)) / 100) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                        ${((portfolioData.metrics?.avgWin || 0) * (portfolioData.metrics?.winRate || 0) / 100 - Math.abs(portfolioData.metrics?.avgLoss || 0) * (100 - (portfolioData.metrics?.winRate || 0)) / 100).toFixed(2)}
+                      </p>
+                      <p className="text-xs text-cyan-300/60">Expectancy</p>
                     </div>
                     <div className="bg-gradient-to-br from-rose-500/15 to-rose-600/5 rounded-lg p-3 border border-rose-500/20">
                       <div className="flex items-center gap-1.5 mb-1">
