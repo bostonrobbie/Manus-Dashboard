@@ -2949,3 +2949,9 @@
 - [ ] Optimize frontend bundle size
 - [ ] Add lazy loading for heavy components
 - [ ] Run performance benchmarks
+
+
+## Current Sprint: Stripe Test & FAQ
+- [ ] Complete test Stripe purchase with test card 4242 4242 4242 4242
+- [ ] Verify subscription activates correctly in dashboard
+- [ ] Add FAQ section to landing page with common questions

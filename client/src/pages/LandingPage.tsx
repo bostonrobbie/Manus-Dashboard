@@ -94,6 +94,13 @@ export default function LandingPage() {
               >
                 Pricing
               </Button>
+              <Button 
+                variant="ghost" 
+                className="text-slate-300 hover:text-white"
+                onClick={() => document.getElementById('faq')?.scrollIntoView({ behavior: 'smooth' })}
+              >
+                FAQ
+              </Button>
               {user ? (
                 <Button 
                   onClick={() => setLocation('/my-dashboard')}
@@ -444,6 +451,58 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* FAQ Section */}
+      <section id="faq" className="py-20 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-16">
+            <Badge className="mb-4 bg-cyan-500/20 text-cyan-400 border-cyan-500/30">
+              FAQ
+            </Badge>
+            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
+              Frequently Asked Questions
+            </h2>
+            <p className="text-xl text-slate-400">
+              Everything you need to know about our trading strategies
+            </p>
+          </div>
+          
+          <div className="space-y-4">
+            <FAQItem 
+              question="How do the trading strategies work?"
+              answer="Our strategies are algorithmic trading systems that analyze market data in real-time and generate buy/sell signals based on proven quantitative methods. When a signal is generated, it's sent to your connected broker for automatic execution, or you can receive notifications to execute manually."
+            />
+            <FAQItem 
+              question="What is the historical performance?"
+              answer="Our backtested results show an average annual return of $17,628 on a $100,000 account over 15+ years of historical data. Past performance doesn't guarantee future results, but our strategies have been rigorously tested across multiple market conditions including the 2008 financial crisis and 2020 COVID crash."
+            />
+            <FAQItem 
+              question="Which brokers are supported?"
+              answer="We currently support Tradovate for futures trading and Interactive Brokers (IBKR) for stocks and options. You connect your broker account securely through OAuth - we never see your login credentials. More brokers will be added based on user demand."
+            />
+            <FAQItem 
+              question="What markets do the strategies trade?"
+              answer="Our strategies focus on highly liquid futures markets including ES (S&P 500), NQ (Nasdaq), CL (Crude Oil), GC (Gold), YM (Dow Jones), and BTC (Bitcoin futures). These markets offer excellent liquidity and tight spreads for intraday trading."
+            />
+            <FAQItem 
+              question="What is the minimum account size?"
+              answer="We recommend a minimum of $25,000 for futures trading to properly manage risk and meet margin requirements. However, you can start with a smaller account and scale up as you become comfortable with the strategies."
+            />
+            <FAQItem 
+              question="Can I cancel my subscription anytime?"
+              answer="Yes, you can cancel your subscription at any time from your dashboard. We also offer a 30-day money-back guarantee - if you're not satisfied with the service, contact us for a full refund."
+            />
+            <FAQItem 
+              question="How do I get notified of trades?"
+              answer="You can customize your notification preferences in the dashboard. Options include email alerts, push notifications, and in-app alerts. You can enable/disable notifications for each strategy individually."
+            />
+            <FAQItem 
+              question="Is my broker account secure?"
+              answer="Absolutely. We use OAuth 2.0 authentication which means you log in directly with your broker - we never see or store your password. We only receive permission to place trades on your behalf, and you can revoke access at any time from your broker's settings."
+            />
+          </div>
+        </div>
+      </section>
+
       {/* CTA Section */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-slate-900/50">
         <div className="max-w-4xl mx-auto text-center">
@@ -530,6 +589,36 @@ function StepCard({ number, title, description }: {
           <p className="text-slate-400 leading-relaxed">{description}</p>
         </div>
       </div>
+    </div>
+  );
+}
+
+
+// FAQ Item Component
+function FAQItem({ question, answer }: { question: string; answer: string }) {
+  const [isOpen, setIsOpen] = useState(false);
+  
+  return (
+    <div className="border border-slate-700/50 rounded-lg overflow-hidden">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full px-6 py-4 flex items-center justify-between text-left bg-slate-800/30 hover:bg-slate-800/50 transition-colors"
+      >
+        <span className="font-medium text-white">{question}</span>
+        <svg
+          className={`h-5 w-5 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      {isOpen && (
+        <div className="px-6 py-4 bg-slate-800/20 border-t border-slate-700/50">
+          <p className="text-slate-400 leading-relaxed">{answer}</p>
+        </div>
+      )}
     </div>
   );
 }
