@@ -41,6 +41,7 @@ import {
   getPositionStats,
 } from './db';
 import { InsertWebhookLog, InsertOpenPosition } from '../drizzle/schema';
+import { notifyOwnerAsync } from './_core/notification';
 
 // TradingView payload format (enhanced with position tracking)
 export interface TradingViewPayload {
@@ -409,6 +410,26 @@ export function parseTimestamp(timestamp: string): Date {
 }
 
 /**
+ * Format duration between two dates in human-readable format
+ */
+function formatDuration(start: Date, end: Date): string {
+  const diffMs = end.getTime() - start.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHours / 24);
+  
+  if (diffDays > 0) {
+    const hours = diffHours % 24;
+    return `${diffDays}d ${hours}h`;
+  } else if (diffHours > 0) {
+    const mins = diffMins % 60;
+    return `${diffHours}h ${mins}m`;
+  } else {
+    return `${diffMins}m`;
+  }
+}
+
+/**
  * Calculate P&L based on entry/exit prices and direction
  */
 export function calculatePnL(
@@ -595,6 +616,17 @@ async function handleEntrySignal(
     processingTimeMs,
   });
 
+  // Send async notification for entry signal (non-blocking)
+  notifyOwnerAsync({
+    title: `📈 ${payload.direction} Entry: ${payload.strategySymbol}`,
+    content: `New ${payload.direction.toLowerCase()} position opened\n\n` +
+      `**Strategy:** ${payload.strategySymbol}\n` +
+      `**Direction:** ${payload.direction}\n` +
+      `**Entry Price:** $${payload.price.toFixed(2)}\n` +
+      `**Quantity:** ${payload.quantity} contract${payload.quantity !== 1 ? 's' : ''}\n` +
+      `**Time:** ${payload.timestamp.toLocaleString()}`
+  });
+
   return {
     success: true,
     logId,
@@ -731,6 +763,22 @@ async function handleExitSignal(
     entryTime,
     exitTime: payload.timestamp,
     processingTimeMs,
+  });
+
+  // Send async notification for exit signal with P&L (non-blocking)
+  const pnlEmoji = pnlDollars >= 0 ? '✅' : '❌';
+  const pnlSign = pnlDollars >= 0 ? '+' : '';
+  
+  notifyOwnerAsync({
+    title: `${pnlEmoji} Trade Closed: ${payload.strategySymbol} ${pnlSign}$${pnlDollars.toFixed(2)}`,
+    content: `Position closed with ${pnlDollars >= 0 ? 'profit' : 'loss'}\n\n` +
+      `**Strategy:** ${payload.strategySymbol}\n` +
+      `**Direction:** ${direction}\n` +
+      `**Entry Price:** $${entryPrice.toFixed(2)}\n` +
+      `**Exit Price:** $${payload.price.toFixed(2)}\n` +
+      `**P&L:** ${pnlSign}$${pnlDollars.toFixed(2)}\n` +
+      `**Quantity:** ${quantity} contract${quantity !== 1 ? 's' : ''}\n` +
+      `**Duration:** ${formatDuration(entryTime, payload.timestamp)}`
   });
 
   return {

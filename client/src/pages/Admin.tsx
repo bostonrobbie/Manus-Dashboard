@@ -15,7 +15,8 @@ import {
   AlertTriangle, Pause, Play, Trash2, Activity, Zap, Settings,
   Code, BookOpen, Shield, FlaskConical, Send, Eye, Lock, BarChart3,
   Search, Filter, Download, ChevronRight, ExternalLink, Link2,
-  TrendingUp, TrendingDown, Server, Database, Wifi, WifiOff
+  TrendingUp, TrendingDown, Server, Database, Wifi, WifiOff,
+  ArrowUpRight, ArrowDownRight, Target, DollarSign
 } from "lucide-react";
 import { toast } from "sonner";
 import { useLocation, useSearch } from "wouter";
@@ -277,6 +278,9 @@ function OverviewTab() {
         </Card>
       </div>
 
+      {/* Open Positions Panel */}
+      <OpenPositionsPanel />
+
       {/* Health Status & Quick Actions */}
       <div className="grid md:grid-cols-2 gap-6">
         {/* Health Status */}
@@ -424,6 +428,157 @@ function OverviewTab() {
         </CardContent>
       </Card>
     </>
+  );
+}
+
+// ============================================================================
+// OPEN POSITIONS PANEL
+// ============================================================================
+
+function OpenPositionsPanel() {
+  const { data: positions, refetch, isLoading } = trpc.webhook.getOpenPositions.useQuery();
+  const { data: stats } = trpc.webhook.getPositionStats.useQuery();
+  const { data: strategies } = trpc.portfolio.listStrategies.useQuery();
+  
+  const deletePositionMutation = trpc.webhook.deletePosition.useMutation({
+    onSuccess: () => {
+      toast.success("Position closed");
+      refetch();
+    },
+    onError: (error) => {
+      toast.error(`Failed to close position: ${error.message}`);
+    },
+  });
+  
+  const clearStrategyPositionsMutation = trpc.webhook.clearPositionsForStrategy.useMutation({
+    onSuccess: (data) => {
+      toast.success(`Cleared ${data.deleted} positions`);
+      refetch();
+    },
+    onError: (error) => {
+      toast.error(`Failed to clear positions: ${error.message}`);
+    },
+  });
+
+  const getStrategyName = (symbol: string) => {
+    const strategy = strategies?.find(s => s.symbol === symbol);
+    return strategy?.name || symbol;
+  };
+
+  if (isLoading) {
+    return (
+      <Card className="bg-card/50 border-border/50">
+        <CardContent className="py-8 text-center text-muted-foreground">
+          Loading positions...
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="bg-gradient-to-br from-blue-500/5 to-transparent border-blue-500/20">
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle className="flex items-center gap-2">
+            <Target className="h-5 w-5 text-blue-400" />
+            Open Positions
+            {positions && positions.length > 0 && (
+              <Badge variant="outline" className="text-blue-400 border-blue-400/50 ml-2">
+                {positions.length} active
+              </Badge>
+            )}
+          </CardTitle>
+          <CardDescription>Trades waiting for exit signals</CardDescription>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="sm" onClick={() => refetch()}>
+            <RefreshCw className="h-4 w-4" />
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {positions && positions.length > 0 ? (
+          <div className="space-y-4">
+            {/* Position Stats */}
+            {stats && (
+              <div className="grid grid-cols-3 gap-4 p-3 rounded-lg bg-background/50 border border-border/30">
+                <div className="text-center">
+                  <div className="text-lg font-bold text-blue-400">{stats.openPositions}</div>
+                  <div className="text-xs text-muted-foreground">Open</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-lg font-bold text-green-400">{stats.closedToday}</div>
+                  <div className="text-xs text-muted-foreground">Closed Today</div>
+                </div>
+                <div className="text-center">
+                  <div className={`text-lg font-bold ${stats.totalPnlToday >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                    {stats.totalPnlToday >= 0 ? '+' : ''}${stats.totalPnlToday.toFixed(2)}
+                  </div>
+                  <div className="text-xs text-muted-foreground">Today's P&L</div>
+                </div>
+              </div>
+            )}
+
+            {/* Positions List */}
+            <div className="space-y-2">
+              {positions.map((position) => (
+                <div 
+                  key={position.id} 
+                  className="flex items-center justify-between p-3 rounded-lg border border-border/30 bg-background/50 hover:bg-background/70 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`h-8 w-8 rounded-full flex items-center justify-center ${
+                      position.direction === 'Long' 
+                        ? 'bg-green-500/20 text-green-400' 
+                        : 'bg-red-500/20 text-red-400'
+                    }`}>
+                      {position.direction === 'Long' ? (
+                        <ArrowUpRight className="h-4 w-4" />
+                      ) : (
+                        <ArrowDownRight className="h-4 w-4" />
+                      )}
+                    </div>
+                    <div>
+                      <div className="font-medium">{getStrategyName(position.strategySymbol)}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {position.direction} @ ${position.entryPrice.toFixed(2)} • {position.quantity} contract{position.quantity !== 1 ? 's' : ''}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="text-right text-sm">
+                      <div className="text-muted-foreground">
+                        {new Date(position.entryTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {new Date(position.entryTime).toLocaleDateString()}
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                      onClick={() => deletePositionMutation.mutate({ positionId: position.id })}
+                      disabled={deletePositionMutation.isPending}
+                    >
+                      <XCircle className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="text-center py-8">
+            <Target className="h-12 w-12 mx-auto mb-3 text-muted-foreground/50" />
+            <p className="text-muted-foreground">No open positions</p>
+            <p className="text-sm text-muted-foreground/70 mt-1">
+              Entry signals will appear here until matched with exit signals
+            </p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
@@ -644,6 +799,9 @@ function SetupTab() {
     toast.success("Copied to clipboard!");
   };
 
+  // Template types for different signal scenarios
+  const [templateType, setTemplateType] = useState<'unified' | 'entry' | 'exit'>('unified');
+  
   // Unified template that handles both entry and exit signals
   // TradingView will populate the action based on strategy.order.action
   // Token is auto-populated from the configured webhook token
@@ -651,14 +809,10 @@ function SetupTab() {
     // Determine quantity field based on user settings
     let quantityValue: string | number;
     if (useFixedQuantity) {
-      // Use fixed quantity (user overrides strategy quantity)
       quantityValue = fixedQuantity;
     } else if (quantityMultiplier !== 1) {
-      // Use multiplier - this will be a formula that TradingView can't evaluate,
-      // so we'll use a comment to explain
-      quantityValue = `{{strategy.order.contracts}}`; // Multiplier applied server-side
+      quantityValue = `{{strategy.order.contracts}}`;
     } else {
-      // Use TradingView's dynamic quantity
       quantityValue = "{{strategy.order.contracts}}";
     }
 
@@ -666,20 +820,79 @@ function SetupTab() {
       symbol: selectedStrategy || "ESTrend",
       date: "{{timenow}}",
       data: "{{strategy.order.action}}",
+      position: "{{strategy.market_position}}",
       quantity: quantityValue,
       price: "{{close}}",
-      direction: "{{strategy.market_position}}",
       entryPrice: "{{strategy.position_avg_price}}",
       pnl: "{{strategy.order.profit}}",
       token: webhookConfig?.webhookToken || "your_secret_token"
     };
 
-    // Add quantity multiplier if set (server will apply this)
     if (!useFixedQuantity && quantityMultiplier !== 1) {
       template.quantityMultiplier = quantityMultiplier;
     }
 
     return JSON.stringify(template, null, 2);
+  };
+
+  // Entry-only template with explicit signalType
+  const getEntryTemplate = () => {
+    let quantityValue: string | number;
+    if (useFixedQuantity) {
+      quantityValue = fixedQuantity;
+    } else {
+      quantityValue = "{{strategy.order.contracts}}";
+    }
+
+    const template: Record<string, any> = {
+      symbol: selectedStrategy || "ESTrend",
+      signalType: "entry",
+      date: "{{timenow}}",
+      data: "{{strategy.order.action}}",
+      position: "{{strategy.market_position}}",
+      quantity: quantityValue,
+      price: "{{close}}",
+      token: webhookConfig?.webhookToken || "your_secret_token"
+    };
+
+    if (!useFixedQuantity && quantityMultiplier !== 1) {
+      template.quantityMultiplier = quantityMultiplier;
+    }
+
+    return JSON.stringify(template, null, 2);
+  };
+
+  // Exit-only template with explicit signalType
+  const getExitTemplate = () => {
+    let quantityValue: string | number;
+    if (useFixedQuantity) {
+      quantityValue = fixedQuantity;
+    } else {
+      quantityValue = "{{strategy.order.contracts}}";
+    }
+
+    const template: Record<string, any> = {
+      symbol: selectedStrategy || "ESTrend",
+      signalType: "exit",
+      date: "{{timenow}}",
+      data: "exit",
+      position: "flat",
+      quantity: quantityValue,
+      price: "{{close}}",
+      entryPrice: "{{strategy.position_avg_price}}",
+      pnl: "{{strategy.order.profit}}",
+      token: webhookConfig?.webhookToken || "your_secret_token"
+    };
+
+    return JSON.stringify(template, null, 2);
+  };
+
+  const getCurrentTemplate = () => {
+    switch (templateType) {
+      case 'entry': return getEntryTemplate();
+      case 'exit': return getExitTemplate();
+      default: return getUnifiedTemplate();
+    }
   };
 
   return (
@@ -833,25 +1046,72 @@ function SetupTab() {
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Unified Template */}
+          {/* Template Type Selector */}
+          <div className="flex gap-2 p-1 bg-muted/50 rounded-lg w-fit">
+            <Button
+              variant={templateType === 'unified' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setTemplateType('unified')}
+              className="gap-2"
+            >
+              <Zap className="h-4 w-4" />
+              Unified
+            </Button>
+            <Button
+              variant={templateType === 'entry' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setTemplateType('entry')}
+              className="gap-2"
+            >
+              <ArrowUpRight className="h-4 w-4 text-green-400" />
+              Entry Only
+            </Button>
+            <Button
+              variant={templateType === 'exit' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setTemplateType('exit')}
+              className="gap-2"
+            >
+              <ArrowDownRight className="h-4 w-4 text-red-400" />
+              Exit Only
+            </Button>
+          </div>
+
+          {/* Template Display */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <Label className="flex items-center gap-2">
-                <Zap className="h-4 w-4 text-yellow-400" />
-                Unified Signal Template
+                {templateType === 'unified' && <><Zap className="h-4 w-4 text-yellow-400" /> Unified Signal Template</>}
+                {templateType === 'entry' && <><ArrowUpRight className="h-4 w-4 text-green-400" /> Entry Signal Template</>}
+                {templateType === 'exit' && <><ArrowDownRight className="h-4 w-4 text-red-400" /> Exit Signal Template</>}
               </Label>
               <Button 
                 variant="ghost" 
                 size="sm"
-                onClick={() => copyToClipboard(getUnifiedTemplate(), 'template')}
+                onClick={() => copyToClipboard(getCurrentTemplate(), 'template')}
               >
                 {copiedTemplate ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
               </Button>
             </div>
             <div className="space-y-2">
-              <p className="text-sm text-muted-foreground">
-                This template is ready to copy and paste - token and quantity settings are already configured.
-              </p>
+              {templateType === 'unified' && (
+                <p className="text-sm text-muted-foreground">
+                  <strong>Recommended:</strong> Auto-detects entry/exit based on <code className="text-xs bg-muted px-1 rounded">position</code> field. 
+                  When position changes to "flat", it's treated as an exit signal.
+                </p>
+              )}
+              {templateType === 'entry' && (
+                <p className="text-sm text-muted-foreground">
+                  Use this template for <strong>entry-only alerts</strong>. The <code className="text-xs bg-muted px-1 rounded">signalType: "entry"</code> field 
+                  explicitly marks this as an entry signal, creating an open position.
+                </p>
+              )}
+              {templateType === 'exit' && (
+                <p className="text-sm text-muted-foreground">
+                  Use this template for <strong>exit-only alerts</strong>. The <code className="text-xs bg-muted px-1 rounded">signalType: "exit"</code> field 
+                  explicitly marks this as an exit, closing the open position and calculating P&L.
+                </p>
+              )}
               {webhookConfig?.hasToken ? (
                 <div className="flex items-center gap-2 text-sm text-green-400">
                   <CheckCircle2 className="h-4 w-4" />
@@ -865,7 +1125,7 @@ function SetupTab() {
               )}
             </div>
             <Textarea 
-              value={getUnifiedTemplate()} 
+              value={getCurrentTemplate()} 
               readOnly 
               className="font-mono text-xs h-64"
             />

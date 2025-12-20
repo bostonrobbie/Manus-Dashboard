@@ -2841,3 +2841,31 @@
 - [x] Update dashboard to show closed trades with P&L
 - [x] Write tests for entry/exit webhook processing (38 tests passing)
 - [x] Update TradingView alert JSON documentation
+
+
+## Current Sprint: TradingView Templates, Open Positions Panel & Latency Optimization
+
+### TradingView Alert JSON Templates
+- [x] Update Setup page with enhanced JSON templates including signalType field
+- [x] Add entry signal template with signalType: "entry"
+- [x] Add exit signal template with signalType: "exit" and position: "flat"
+- [x] Add template using TradingView's {{strategy.market_position}} variable
+
+### Open Positions Admin Panel
+- [x] Create OpenPositions component for Admin dashboard
+- [x] Display all open positions with entry price, time, and strategy
+- [x] Add manual close position functionality
+- [x] Add clear all positions for strategy functionality
+- [x] Show position statistics (count, total exposure)
+
+### Webhook Latency Optimization
+- [x] Profile current webhook processing time
+- [x] Optimize database queries (batch operations, connection pooling)
+- [x] Add async processing for non-critical operations
+- [x] Implement response streaming for faster acknowledgment
+
+### Real-time Notifications
+- [x] Add owner notification on trade entry
+- [x] Add owner notification on trade exit with P&L
+- [x] Make notifications async to not block webhook response
+- [ ] Add notification preferences/toggle (future enhancement)

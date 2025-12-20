@@ -63,6 +63,18 @@ const validatePayload = (input: NotificationPayload): NotificationPayload => {
  * cannot be reached (callers can fall back to email/slack). Validation errors
  * bubble up as TRPC errors so callers can fix the payload.
  */
+/**
+ * Fire-and-forget notification that doesn't block the caller.
+ * Useful for webhook handlers where latency is critical.
+ * Logs errors but doesn't throw.
+ */
+export function notifyOwnerAsync(payload: NotificationPayload): void {
+  // Fire and forget - don't await
+  notifyOwner(payload).catch((error) => {
+    console.warn('[Notification] Async notification failed:', error);
+  });
+}
+
 export async function notifyOwner(
   payload: NotificationPayload
 ): Promise<boolean> {
