@@ -18,7 +18,9 @@ import {
   Users,
   Award,
   Lock,
-  RefreshCw
+  RefreshCw,
+  Menu,
+  X
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { useEffect, useState } from "react";
@@ -28,6 +30,7 @@ export default function LandingPage() {
   const { user, loading } = useAuth();
   const [, setLocation] = useLocation();
   const [isCheckingOut, setIsCheckingOut] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Stripe checkout mutation
   const checkoutMutation = trpc.stripe.createCheckoutSession.useMutation({
@@ -72,7 +75,9 @@ export default function LandingPage() {
                 IntraDay Strategies
               </span>
             </div>
-            <div className="flex items-center gap-4">
+            
+            {/* Desktop Navigation */}
+            <div className="hidden md:flex items-center gap-4">
               <Button 
                 variant="ghost" 
                 className="text-slate-300 hover:text-white"
@@ -117,51 +122,129 @@ export default function LandingPage() {
                 </Button>
               )}
             </div>
+            
+            {/* Mobile Hamburger Button */}
+            <button 
+              className="md:hidden p-2 text-slate-300 hover:text-white"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-label="Toggle menu"
+            >
+              {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            </button>
           </div>
         </div>
+        
+        {/* Mobile Menu Dropdown */}
+        {mobileMenuOpen && (
+          <div className="md:hidden bg-slate-950/95 backdrop-blur-xl border-b border-slate-800/50">
+            <div className="px-4 py-4 space-y-3">
+              <button 
+                className="block w-full text-left px-4 py-3 text-slate-300 hover:text-white hover:bg-slate-800/50 rounded-lg transition-colors"
+                onClick={() => {
+                  document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' });
+                  setMobileMenuOpen(false);
+                }}
+              >
+                Features
+              </button>
+              <button 
+                className="block w-full text-left px-4 py-3 text-slate-300 hover:text-white hover:bg-slate-800/50 rounded-lg transition-colors"
+                onClick={() => {
+                  document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' });
+                  setMobileMenuOpen(false);
+                }}
+              >
+                How It Works
+              </button>
+              <button 
+                className="block w-full text-left px-4 py-3 text-slate-300 hover:text-white hover:bg-slate-800/50 rounded-lg transition-colors"
+                onClick={() => {
+                  document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' });
+                  setMobileMenuOpen(false);
+                }}
+              >
+                Pricing
+              </button>
+              <button 
+                className="block w-full text-left px-4 py-3 text-slate-300 hover:text-white hover:bg-slate-800/50 rounded-lg transition-colors"
+                onClick={() => {
+                  document.getElementById('faq')?.scrollIntoView({ behavior: 'smooth' });
+                  setMobileMenuOpen(false);
+                }}
+              >
+                FAQ
+              </button>
+              <div className="pt-2 border-t border-slate-800">
+                {user ? (
+                  <Button 
+                    onClick={() => {
+                      setLocation('/my-dashboard');
+                      setMobileMenuOpen(false);
+                    }}
+                    className="w-full bg-gradient-to-r from-emerald-600 to-cyan-500 hover:from-emerald-500 hover:to-cyan-400 text-white"
+                  >
+                    Go to Dashboard
+                  </Button>
+                ) : (
+                  <Button 
+                    onClick={() => window.location.href = getLoginUrl()}
+                    className="w-full bg-gradient-to-r from-emerald-600 to-cyan-500 hover:from-emerald-500 hover:to-cyan-400 text-white"
+                  >
+                    Get Started
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </nav>
 
       {/* Hero Section */}
-      <section className="pt-32 pb-20 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-        {/* Background Effects */}
-        <div className="absolute inset-0 overflow-hidden">
+      <section className="pt-24 md:pt-32 pb-12 md:pb-20 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+        {/* Background Effects - hidden on mobile for performance */}
+        <div className="absolute inset-0 overflow-hidden hidden md:block">
           <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl" />
           <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl" />
         </div>
         
         <div className="max-w-7xl mx-auto relative">
           <div className="text-center max-w-4xl mx-auto">
-            <Badge className="mb-6 bg-blue-500/20 text-blue-400 border-blue-500/30 px-4 py-1.5">
-              <Zap className="w-3.5 h-3.5 mr-1.5" />
-              Professional-Grade Trading Strategies
+            {/* Badge - smaller on mobile */}
+            <Badge className="mb-4 md:mb-6 bg-blue-500/20 text-blue-400 border-blue-500/30 px-3 md:px-4 py-1 md:py-1.5 text-xs md:text-sm">
+              <Zap className="w-3 h-3 md:w-3.5 md:h-3.5 mr-1 md:mr-1.5" />
+              Professional Trading Strategies
             </Badge>
             
-            <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight mb-6">
-              <span className="text-white">Trade Smarter with</span>
+            {/* Mobile-optimized headline - much smaller on mobile */}
+            <h1 className="text-3xl sm:text-5xl lg:text-7xl font-bold tracking-tight mb-4 md:mb-6">
+              <span className="text-white">Trade Smarter</span>
               <br />
               <span className="bg-gradient-to-r from-blue-400 via-cyan-400 to-emerald-400 bg-clip-text text-transparent">
                 Quantitative Strategies
               </span>
             </h1>
             
-            <p className="text-xl text-slate-400 mb-10 max-w-2xl mx-auto leading-relaxed">
-              Access institutional-quality intraday trading strategies. Subscribe to signals, 
-              track performance, and automate your trading with real-time webhook integration.
+            {/* Simplified description on mobile */}
+            <p className="text-base md:text-xl text-slate-400 mb-6 md:mb-10 max-w-2xl mx-auto leading-relaxed px-2 md:px-0">
+              <span className="hidden md:inline">Access institutional-quality intraday trading strategies. Subscribe to signals, 
+              track performance, and automate your trading with real-time webhook integration.</span>
+              <span className="md:hidden">Access institutional-quality trading strategies with real-time signals and automation.</span>
             </p>
             
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            {/* CTA Buttons - full width on mobile */}
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 md:gap-4 w-full px-4 sm:px-0">
               <Button 
                 size="lg"
                 onClick={() => window.location.href = getLoginUrl()}
-                className="bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white px-8 py-6 text-lg shadow-lg shadow-blue-500/25"
+                className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white px-6 md:px-8 py-4 md:py-6 text-base md:text-lg shadow-lg shadow-blue-500/25"
               >
                 Login to Dashboard
-                <ArrowRight className="ml-2 h-5 w-5" />
+                <ArrowRight className="ml-2 h-4 w-4 md:h-5 md:w-5" />
               </Button>
               <Button 
                 size="lg"
                 variant="outline"
-                className="border-slate-700 text-slate-300 hover:bg-slate-800 px-8 py-6 text-lg"
+                className="w-full sm:w-auto border-slate-700 text-slate-300 hover:bg-slate-800 px-6 md:px-8 py-4 md:py-6 text-base md:text-lg"
                 onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })}
               >
                 View Pricing
@@ -169,28 +252,28 @@ export default function LandingPage() {
             </div>
           </div>
           
-          {/* Stats Bar */}
-          <div className="mt-20 grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto">
+          {/* Stats Bar - simplified on mobile */}
+          <div className="mt-10 md:mt-20 grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8 max-w-4xl mx-auto">
             <div className="text-center">
-              <div className="text-3xl sm:text-4xl font-bold text-white mb-1">8</div>
-              <div className="text-slate-400 text-sm">Active Strategies</div>
+              <div className="text-2xl sm:text-4xl font-bold text-white mb-1">8</div>
+              <div className="text-slate-400 text-xs sm:text-sm">Active Strategies</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl sm:text-4xl font-bold text-emerald-400 mb-1">$17,628</div>
-              <div className="text-slate-400 text-sm">Avg Annual Return</div>
+              <div className="text-2xl sm:text-4xl font-bold text-emerald-400 mb-1">$17.6K</div>
+              <div className="text-slate-400 text-xs sm:text-sm">Avg Annual Return</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl sm:text-4xl font-bold text-white mb-1">15+ Years</div>
-              <div className="text-slate-400 text-sm">Backtested History</div>
+              <div className="text-2xl sm:text-4xl font-bold text-white mb-1">15+ Yrs</div>
+              <div className="text-slate-400 text-xs sm:text-sm">Backtested History</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl sm:text-4xl font-bold text-blue-400 mb-1">$1M+</div>
-              <div className="text-slate-400 text-sm">Total Returns</div>
+              <div className="text-2xl sm:text-4xl font-bold text-blue-400 mb-1">$1M+</div>
+              <div className="text-slate-400 text-xs sm:text-sm">Total Returns</div>
             </div>
           </div>
           
-          {/* Portfolio Preview Chart */}
-          <div className="mt-16 relative">
+          {/* Portfolio Preview Chart - smaller margin on mobile */}
+          <div className="mt-8 md:mt-16 relative">
             <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent z-10 pointer-events-none" />
             <div className="rounded-xl overflow-hidden border border-slate-700/50 shadow-2xl shadow-blue-500/10">
               <img 
@@ -259,6 +342,78 @@ export default function LandingPage() {
               description="Connect to Tradovate, Interactive Brokers, and more for automated order execution."
               color="cyan"
             />
+          </div>
+        </div>
+      </section>
+
+      {/* Product Screenshots Gallery */}
+      <section className="py-12 md:py-20 px-4 sm:px-6 lg:px-8 bg-slate-950">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-8 md:mb-12">
+            <Badge className="mb-4 bg-purple-500/20 text-purple-400 border-purple-500/30">
+              Platform Preview
+            </Badge>
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-4">
+              See the Platform in Action
+            </h2>
+            <p className="text-slate-400 max-w-2xl mx-auto text-sm md:text-base">
+              Professional-grade tools designed for serious traders
+            </p>
+          </div>
+          
+          {/* Screenshot Grid */}
+          <div className="grid md:grid-cols-2 gap-6 md:gap-8">
+            {/* Strategy Comparison */}
+            <div className="group">
+              <div className="rounded-xl overflow-hidden border border-slate-700/50 shadow-xl transition-transform group-hover:scale-[1.02]">
+                <img 
+                  src="/feature-compare.webp" 
+                  alt="Strategy Comparison - Compare performance and correlation between multiple strategies"
+                  className="w-full h-auto"
+                />
+              </div>
+              <h3 className="text-white font-semibold mt-4 text-center">Strategy Comparison</h3>
+              <p className="text-slate-400 text-sm text-center">Compare equity curves, drawdowns, and correlations</p>
+            </div>
+            
+            {/* Portfolio Dashboard */}
+            <div className="group">
+              <div className="rounded-xl overflow-hidden border border-slate-700/50 shadow-xl transition-transform group-hover:scale-[1.02]">
+                <img 
+                  src="/feature-dashboard.webp" 
+                  alt="Portfolio Dashboard - Combined equity curves and underwater analysis"
+                  className="w-full h-auto"
+                />
+              </div>
+              <h3 className="text-white font-semibold mt-4 text-center">Portfolio Dashboard</h3>
+              <p className="text-slate-400 text-sm text-center">Track combined portfolio with individual strategy breakdown</p>
+            </div>
+            
+            {/* Performance Metrics */}
+            <div className="group">
+              <div className="rounded-xl overflow-hidden border border-slate-700/50 shadow-xl transition-transform group-hover:scale-[1.02]">
+                <img 
+                  src="/feature-metrics.webp" 
+                  alt="Performance Metrics - Monthly returns heatmap and risk analysis"
+                  className="w-full h-auto"
+                />
+              </div>
+              <h3 className="text-white font-semibold mt-4 text-center">Performance Analytics</h3>
+              <p className="text-slate-400 text-sm text-center">Monthly returns, risk metrics, and allocation breakdown</p>
+            </div>
+            
+            {/* Strategy Detail */}
+            <div className="group">
+              <div className="rounded-xl overflow-hidden border border-slate-700/50 shadow-xl transition-transform group-hover:scale-[1.02]">
+                <img 
+                  src="/feature-strategy.webp" 
+                  alt="Strategy Detail - Deep dive into individual strategy performance"
+                  className="w-full h-auto"
+                />
+              </div>
+              <h3 className="text-white font-semibold mt-4 text-center">Strategy Deep Dive</h3>
+              <p className="text-slate-400 text-sm text-center">Detailed metrics, Kelly Criterion, and trade history</p>
+            </div>
           </div>
         </div>
       </section>
