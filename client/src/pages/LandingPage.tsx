@@ -153,6 +153,21 @@ export default function LandingPage() {
               <div className="text-slate-400 text-sm">Total Returns</div>
             </div>
           </div>
+          
+          {/* Portfolio Preview Chart */}
+          <div className="mt-16 relative">
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent z-10 pointer-events-none" />
+            <div className="rounded-xl overflow-hidden border border-slate-700/50 shadow-2xl shadow-blue-500/10">
+              <img 
+                src="/portfolio-preview.webp" 
+                alt="Portfolio Performance - 15 years of backtested equity curve showing $1M+ returns"
+                className="w-full h-auto"
+              />
+            </div>
+            <p className="text-center text-slate-500 text-sm mt-4">
+              Live portfolio performance dashboard with 15+ years of backtested data
+            </p>
+          </div>
         </div>
       </section>
 
