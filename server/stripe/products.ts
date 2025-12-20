@@ -18,53 +18,38 @@ export interface SubscriptionTier {
 export const SUBSCRIPTION_TIERS: Record<string, SubscriptionTier> = {
   free: {
     id: 'free',
-    name: 'Free',
-    description: 'Get started with basic access',
+    name: 'Free Trial',
+    description: '14-day free trial',
     priceMonthly: 0,
     priceYearly: 0,
     features: [
       'View all strategy performance',
       'Basic analytics dashboard',
-      'Community access',
+      'Limited signal access',
       '24-hour signal delay',
     ],
-    strategyLimit: 1,
+    strategyLimit: 2,
     signalDelay: 1440, // 24 hours
   },
   pro: {
     id: 'pro',
-    name: 'Pro',
-    description: 'For active traders',
-    priceMonthly: 4900, // $49
-    priceYearly: 47000, // $470 (20% off)
+    name: 'Pro Trader',
+    description: 'Full access to all features',
+    priceMonthly: 5000, // $50
+    priceYearly: 48000, // $480 (20% off - $40/month)
     features: [
-      'Subscribe to up to 5 strategies',
-      'Real-time trade signals',
-      'Advanced analytics & metrics',
-      'Email notifications',
+      'Access to all 8+ trading strategies',
+      'Real-time webhook signals',
+      'Tradovate & IBKR broker integration',
+      'Automated trade execution',
+      'Portfolio analytics & risk management',
+      'Email & push notifications',
       'Priority support',
-    ],
-    strategyLimit: 5,
-    signalDelay: 0,
-    popular: true,
-  },
-  premium: {
-    id: 'premium',
-    name: 'Premium',
-    description: 'For professional traders',
-    priceMonthly: 9900, // $99
-    priceYearly: 95000, // $950 (20% off)
-    features: [
-      'Unlimited strategy subscriptions',
-      'Real-time trade signals',
-      'Full analytics suite',
-      'API access',
-      'Custom alerts',
-      'Dedicated support',
-      'Early access to new strategies',
+      '30-day money-back guarantee',
     ],
     strategyLimit: -1, // unlimited
     signalDelay: 0,
+    popular: true,
   },
 };
 
@@ -73,16 +58,11 @@ export const SUBSCRIPTION_TIERS: Record<string, SubscriptionTier> = {
 export const STRIPE_PRICE_IDS = {
   pro_monthly: process.env.STRIPE_PRO_MONTHLY_PRICE_ID || 'price_pro_monthly',
   pro_yearly: process.env.STRIPE_PRO_YEARLY_PRICE_ID || 'price_pro_yearly',
-  premium_monthly: process.env.STRIPE_PREMIUM_MONTHLY_PRICE_ID || 'price_premium_monthly',
-  premium_yearly: process.env.STRIPE_PREMIUM_YEARLY_PRICE_ID || 'price_premium_yearly',
 };
 
 export function getTierByPriceId(priceId: string): SubscriptionTier | null {
   if (priceId.includes('pro')) {
     return SUBSCRIPTION_TIERS.pro;
-  }
-  if (priceId.includes('premium')) {
-    return SUBSCRIPTION_TIERS.premium;
   }
   return SUBSCRIPTION_TIERS.free;
 }

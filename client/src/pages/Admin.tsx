@@ -1232,6 +1232,67 @@ function SetupTab() {
 // ============================================================================
 
 function BrokersTab() {
+  const [showTradovateDialog, setShowTradovateDialog] = useState(false);
+  const [showIBKRDialog, setShowIBKRDialog] = useState(false);
+  const [tradovateCredentials, setTradovateCredentials] = useState({ username: '', password: '', isDemo: true });
+  const [ibkrCredentials, setIBKRCredentials] = useState({ username: '', accountId: '', isPaper: true });
+  const [connecting, setConnecting] = useState(false);
+  
+  // Get existing broker connections
+  const { data: connections, refetch: refetchConnections } = trpc.broker.getConnections.useQuery();
+  const connectBroker = trpc.broker.connect.useMutation({
+    onSuccess: () => {
+      toast.success('Broker connected successfully!');
+      refetchConnections();
+      setShowTradovateDialog(false);
+      setShowIBKRDialog(false);
+    },
+    onError: (error: { message?: string }) => {
+      toast.error(error.message || 'Failed to connect broker');
+    },
+  });
+  const disconnectBroker = trpc.broker.disconnect.useMutation({
+    onSuccess: () => {
+      toast.success('Broker disconnected');
+      refetchConnections();
+    },
+  });
+  
+  const tradovateConnection = connections?.find(c => c.broker === 'tradovate');
+  const ibkrConnection = connections?.find(c => c.broker === 'ibkr');
+  
+  const handleTradovateConnect = async () => {
+    setConnecting(true);
+    try {
+      await connectBroker.mutateAsync({
+        broker: 'tradovate',
+        credentials: {
+          username: tradovateCredentials.username,
+          password: tradovateCredentials.password,
+        },
+        isDemo: tradovateCredentials.isDemo,
+      });
+    } finally {
+      setConnecting(false);
+    }
+  };
+  
+  const handleIBKRConnect = async () => {
+    setConnecting(true);
+    try {
+      await connectBroker.mutateAsync({
+        broker: 'ibkr',
+        credentials: {
+          username: ibkrCredentials.username,
+          accountId: ibkrCredentials.accountId,
+        },
+        isDemo: ibkrCredentials.isPaper,
+      });
+    } finally {
+      setConnecting(false);
+    }
+  };
+  
   return (
     <>
       {/* Broker Connections */}
@@ -1249,20 +1310,41 @@ function BrokersTab() {
           {/* Tradovate */}
           <div className="flex items-center justify-between p-4 rounded-lg border border-border/50 bg-background/50">
             <div className="flex items-center gap-4">
-              <div className="h-12 w-12 rounded-lg bg-blue-500/20 flex items-center justify-center">
-                <span className="font-bold text-blue-400">TV</span>
+              <div className="h-12 w-12 rounded-lg bg-emerald-500/20 flex items-center justify-center">
+                <span className="font-bold text-emerald-400">TV</span>
               </div>
               <div>
                 <h3 className="font-medium">Tradovate</h3>
                 <p className="text-sm text-muted-foreground">Futures trading platform</p>
+                {tradovateConnection && (
+                  <p className="text-xs text-emerald-400 mt-1">Account: {tradovateConnection.accountId || 'Connected'}</p>
+                )}
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <Badge className="bg-gray-500/20 text-gray-400">Not Connected</Badge>
-              <Button variant="outline" size="sm">
-                <Link2 className="h-4 w-4 mr-2" />
-                Connect
-              </Button>
+              {tradovateConnection ? (
+                <>
+                  <Badge className="bg-emerald-500/20 text-emerald-400">
+                    <CheckCircle2 className="h-3 w-3 mr-1" />
+                    Connected
+                  </Badge>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => disconnectBroker.mutate({ connectionId: tradovateConnection.id })}
+                  >
+                    Disconnect
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Badge className="bg-gray-500/20 text-gray-400">Not Connected</Badge>
+                  <Button variant="outline" size="sm" onClick={() => setShowTradovateDialog(true)}>
+                    <Link2 className="h-4 w-4 mr-2" />
+                    Connect
+                  </Button>
+                </>
+              )}
             </div>
           </div>
 
@@ -1275,14 +1357,35 @@ function BrokersTab() {
               <div>
                 <h3 className="font-medium">Interactive Brokers</h3>
                 <p className="text-sm text-muted-foreground">Multi-asset broker</p>
+                {ibkrConnection && (
+                  <p className="text-xs text-emerald-400 mt-1">Account: {ibkrConnection.accountId || 'Connected'}</p>
+                )}
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <Badge className="bg-gray-500/20 text-gray-400">Not Connected</Badge>
-              <Button variant="outline" size="sm">
-                <Link2 className="h-4 w-4 mr-2" />
-                Connect
-              </Button>
+              {ibkrConnection ? (
+                <>
+                  <Badge className="bg-emerald-500/20 text-emerald-400">
+                    <CheckCircle2 className="h-3 w-3 mr-1" />
+                    Connected
+                  </Badge>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => disconnectBroker.mutate({ connectionId: ibkrConnection.id })}
+                  >
+                    Disconnect
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Badge className="bg-gray-500/20 text-gray-400">Not Connected</Badge>
+                  <Button variant="outline" size="sm" onClick={() => setShowIBKRDialog(true)}>
+                    <Link2 className="h-4 w-4 mr-2" />
+                    Connect
+                  </Button>
+                </>
+              )}
             </div>
           </div>
 
@@ -1307,6 +1410,142 @@ function BrokersTab() {
           </div>
         </CardContent>
       </Card>
+      
+      {/* Tradovate Connection Dialog */}
+      {showTradovateDialog && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <Card className="w-full max-w-md mx-4">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <div className="h-8 w-8 rounded-lg bg-emerald-500/20 flex items-center justify-center">
+                  <span className="font-bold text-emerald-400 text-sm">TV</span>
+                </div>
+                Connect Tradovate
+              </CardTitle>
+              <CardDescription>
+                Enter your Tradovate credentials to enable automated trading
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="tv-username">Username</Label>
+                <Input 
+                  id="tv-username"
+                  placeholder="Your Tradovate username"
+                  value={tradovateCredentials.username}
+                  onChange={(e) => setTradovateCredentials(prev => ({ ...prev, username: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="tv-password">Password</Label>
+                <Input 
+                  id="tv-password"
+                  type="password"
+                  placeholder="Your Tradovate password"
+                  value={tradovateCredentials.password}
+                  onChange={(e) => setTradovateCredentials(prev => ({ ...prev, password: e.target.value }))}
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="tv-demo">Demo Account</Label>
+                <Switch 
+                  id="tv-demo"
+                  checked={tradovateCredentials.isDemo}
+                  onCheckedChange={(checked) => setTradovateCredentials(prev => ({ ...prev, isDemo: checked }))}
+                />
+              </div>
+              <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3">
+                <p className="text-sm text-amber-400">
+                  <AlertTriangle className="h-4 w-4 inline mr-1" />
+                  Your credentials are encrypted and stored securely. We recommend starting with a demo account.
+                </p>
+              </div>
+              <div className="flex gap-3 pt-2">
+                <Button variant="outline" className="flex-1" onClick={() => setShowTradovateDialog(false)}>
+                  Cancel
+                </Button>
+                <Button 
+                  className="flex-1 bg-emerald-600 hover:bg-emerald-700" 
+                  onClick={handleTradovateConnect}
+                  disabled={connecting || !tradovateCredentials.username || !tradovateCredentials.password}
+                >
+                  {connecting ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <Link2 className="h-4 w-4 mr-2" />}
+                  Connect
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+      
+      {/* IBKR Connection Dialog */}
+      {showIBKRDialog && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <Card className="w-full max-w-md mx-4">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <div className="h-8 w-8 rounded-lg bg-red-500/20 flex items-center justify-center">
+                  <span className="font-bold text-red-400 text-sm">IB</span>
+                </div>
+                Connect Interactive Brokers
+              </CardTitle>
+              <CardDescription>
+                Connect your IBKR account for automated trading
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
+                <p className="text-sm text-blue-400">
+                  <AlertCircle className="h-4 w-4 inline mr-1" />
+                  IBKR requires the Client Portal Gateway to be running locally. 
+                  <a href="https://www.interactivebrokers.com/campus/ibkr-api-page/cpapi-v1/" target="_blank" rel="noopener" className="underline ml-1">
+                    Learn more
+                  </a>
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="ibkr-username">Username</Label>
+                <Input 
+                  id="ibkr-username"
+                  placeholder="Your IBKR username"
+                  value={ibkrCredentials.username}
+                  onChange={(e) => setIBKRCredentials(prev => ({ ...prev, username: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="ibkr-account">Account ID (Optional)</Label>
+                <Input 
+                  id="ibkr-account"
+                  placeholder="e.g., U1234567"
+                  value={ibkrCredentials.accountId}
+                  onChange={(e) => setIBKRCredentials(prev => ({ ...prev, accountId: e.target.value }))}
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="ibkr-paper">Paper Trading</Label>
+                <Switch 
+                  id="ibkr-paper"
+                  checked={ibkrCredentials.isPaper}
+                  onCheckedChange={(checked) => setIBKRCredentials(prev => ({ ...prev, isPaper: checked }))}
+                />
+              </div>
+              <div className="flex gap-3 pt-2">
+                <Button variant="outline" className="flex-1" onClick={() => setShowIBKRDialog(false)}>
+                  Cancel
+                </Button>
+                <Button 
+                  className="flex-1 bg-red-600 hover:bg-red-700" 
+                  onClick={handleIBKRConnect}
+                  disabled={connecting || !ibkrCredentials.username}
+                >
+                  {connecting ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <Link2 className="h-4 w-4 mr-2" />}
+                  Connect
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Routing Rules */}
       <Card className="bg-card/50 border-border/50">

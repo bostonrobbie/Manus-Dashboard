@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { trpc } from '@/lib/trpc';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -42,7 +42,7 @@ export function NotificationSettings() {
   const [strategySettings, setStrategySettings] = useState<Record<number, { emailEnabled: boolean; pushEnabled: boolean }>>({});
 
   // Update local state when data loads
-  useState(() => {
+  useEffect(() => {
     if (preferences) {
       setGlobalSettings({
         emailNotificationsEnabled: preferences.global.emailNotificationsEnabled,
@@ -61,7 +61,7 @@ export function NotificationSettings() {
       });
       setStrategySettings(stratSettings);
     }
-  });
+  }, [preferences]);
 
   // Mutations
   const updateGlobalMutation = trpc.notifications.updateGlobalPreferences.useMutation({

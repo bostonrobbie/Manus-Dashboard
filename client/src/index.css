@@ -79,53 +79,54 @@
 }
 
 .dark {
-  /* High-contrast dark mode optimized for trading dashboards */
+  /* Unified vibrant trading dashboard theme - Emerald/Cyan accent */
   /* Using WCAG AAA standards for text contrast (7:1 ratio) */
   
-  --primary: var(--color-blue-500);  /* Brighter blue for better visibility */
-  --primary-foreground: oklch(0.98 0 0);  /* Near-white for maximum contrast */
-  --sidebar-primary: var(--color-blue-500);
-  --sidebar-primary-foreground: oklch(0.98 0 0);
+  /* Primary: Vibrant emerald-cyan for trading signals */
+  --primary: oklch(0.72 0.17 168);  /* Vibrant emerald */
+  --primary-foreground: oklch(0.12 0.02 168);  /* Dark text on primary */
+  --sidebar-primary: oklch(0.72 0.17 168);
+  --sidebar-primary-foreground: oklch(0.12 0.02 168);
   
   /* Deep black background for maximum contrast */
-  --background: oklch(0.12 0.005 285.823);  /* Very dark blue-gray */
+  --background: oklch(0.11 0.01 240);  /* Deep navy-black */
   --foreground: oklch(0.95 0.005 65);  /* Near-white text for AAA contrast */
   
   /* Cards with subtle elevation */
-  --card: oklch(0.18 0.008 285.885);  /* Slightly lighter than background */
+  --card: oklch(0.16 0.015 240);  /* Slightly lighter navy */
   --card-foreground: oklch(0.95 0.005 65);  /* High contrast text */
   
   /* Popovers */
-  --popover: oklch(0.18 0.008 285.885);
+  --popover: oklch(0.16 0.015 240);
   --popover-foreground: oklch(0.95 0.005 65);
   
   /* Secondary elements */
-  --secondary: oklch(0.25 0.01 286.033);  /* Increased saturation */
+  --secondary: oklch(0.22 0.02 240);  /* Navy secondary */
   --secondary-foreground: oklch(0.92 0.005 65);  /* High contrast */
   
   /* Muted elements with better contrast */
-  --muted: oklch(0.28 0.01 286.033);  /* Slightly brighter */
-  --muted-foreground: oklch(0.75 0.015 286.067);  /* Improved readability */
+  --muted: oklch(0.25 0.02 240);  /* Muted navy */
+  --muted-foreground: oklch(0.70 0.02 240);  /* Improved readability */
   
-  /* Accent colors */
-  --accent: oklch(0.30 0.012 286.033);  /* More saturated */
+  /* Accent colors - matching emerald theme */
+  --accent: oklch(0.28 0.025 240);  /* Navy accent */
   --accent-foreground: oklch(0.98 0.005 65);  /* Maximum contrast */
   
   /* Destructive (red) with high visibility */
-  --destructive: oklch(0.65 0.25 25);  /* Vibrant red */
+  --destructive: oklch(0.60 0.22 25);  /* Vibrant red */
   --destructive-foreground: oklch(0.98 0 0);  /* White text */
   
   /* Borders and inputs with better definition */
-  --border: oklch(1 0 0 / 18%);  /* More visible borders */
-  --input: oklch(1 0 0 / 22%);  /* Clearer input fields */
-  --ring: oklch(0.55 0.25 264.376);  /* Brighter focus ring */
+  --border: oklch(0.72 0.17 168 / 20%);  /* Emerald-tinted borders */
+  --input: oklch(0.72 0.17 168 / 25%);  /* Emerald-tinted inputs */
+  --ring: oklch(0.72 0.17 168);  /* Emerald focus ring */
   
-  /* Chart colors optimized for dark backgrounds */
-  --chart-1: var(--color-blue-400);  /* Brighter blues */
-  --chart-2: var(--color-blue-500);
-  --chart-3: var(--color-green-400);  /* Add green for variety */
-  --chart-4: var(--color-amber-400);  /* Add amber for variety */
-  --chart-5: var(--color-purple-400);  /* Add purple for variety */
+  /* Unified chart colors - emerald/cyan palette */
+  --chart-1: oklch(0.72 0.17 168);  /* Emerald primary */
+  --chart-2: oklch(0.75 0.15 185);  /* Cyan secondary */
+  --chart-3: oklch(0.70 0.12 200);  /* Teal tertiary */
+  --chart-4: oklch(0.65 0.10 215);  /* Blue-teal */
+  --chart-5: oklch(0.60 0.08 230);  /* Navy accent */
   
   /* Chart axis colors - white for visibility on dark background */
   --chart-axis-color: oklch(1 0 0);  /* White axis lines */
@@ -133,12 +134,17 @@
   --chart-grid-color: oklch(1 0 0 / 10%);  /* Subtle white grid */
   
   /* Sidebar */
-  --sidebar: oklch(0.16 0.008 285.885);  /* Slightly darker than cards */
+  --sidebar: oklch(0.13 0.015 240);  /* Slightly darker than cards */
   --sidebar-foreground: oklch(0.95 0.005 65);
-  --sidebar-accent: oklch(0.28 0.012 286.033);
+  --sidebar-accent: oklch(0.25 0.02 240);
   --sidebar-accent-foreground: oklch(0.98 0 0);
-  --sidebar-border: oklch(1 0 0 / 15%);
-  --sidebar-ring: oklch(0.55 0.25 264.376);
+  --sidebar-border: oklch(0.72 0.17 168 / 15%);
+  --sidebar-ring: oklch(0.72 0.17 168);
+  
+  /* Custom semantic colors for trading */
+  --profit: oklch(0.72 0.17 168);  /* Emerald for profits */
+  --loss: oklch(0.60 0.22 25);  /* Red for losses */
+  --neutral: oklch(0.75 0.15 185);  /* Cyan for neutral */
 }
 
 @layer base {

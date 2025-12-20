@@ -27,17 +27,8 @@ export default function LandingPage() {
   const { user, loading } = useAuth();
   const [, setLocation] = useLocation();
 
-  // If user is logged in, redirect to dashboard
-  useEffect(() => {
-    if (user) {
-      setLocation("/my-dashboard");
-    }
-  }, [user, setLocation]);
-
-  // Show nothing while redirecting
-  if (user) {
-    return null;
-  }
+  // Note: We no longer auto-redirect logged-in users
+  // They can view the landing page and click "Go to Dashboard" if they want
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
@@ -69,11 +60,27 @@ export default function LandingPage() {
                 How It Works
               </Button>
               <Button 
-                onClick={() => window.location.href = getLoginUrl()}
-                className="bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white"
+                variant="ghost" 
+                className="text-slate-300 hover:text-white"
+                onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })}
               >
-                Get Started
+                Pricing
               </Button>
+              {user ? (
+                <Button 
+                  onClick={() => setLocation('/my-dashboard')}
+                  className="bg-gradient-to-r from-emerald-600 to-cyan-500 hover:from-emerald-500 hover:to-cyan-400 text-white"
+                >
+                  Go to Dashboard
+                </Button>
+              ) : (
+                <Button 
+                  onClick={() => window.location.href = getLoginUrl()}
+                  className="bg-gradient-to-r from-emerald-600 to-cyan-500 hover:from-emerald-500 hover:to-cyan-400 text-white"
+                >
+                  Get Started
+                </Button>
+              )}
             </div>
           </div>
         </div>
@@ -307,26 +314,110 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Pricing Section */}
+      <section id="pricing" className="py-20 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-16">
+            <Badge className="mb-4 bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
+              Simple Pricing
+            </Badge>
+            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
+              One Plan, Everything Included
+            </h2>
+            <p className="text-slate-400 max-w-2xl mx-auto">
+              Get full access to all strategies, real-time signals, and broker integrations for one simple monthly price.
+            </p>
+          </div>
+          
+          <div className="max-w-lg mx-auto">
+            <Card className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 border-emerald-500/30 relative overflow-hidden">
+              <div className="absolute top-0 right-0 bg-emerald-500 text-white text-xs font-bold px-3 py-1 rounded-bl-lg">
+                MOST POPULAR
+              </div>
+              <CardContent className="p-8">
+                <div className="text-center mb-8">
+                  <h3 className="text-2xl font-bold text-white mb-2">Pro Trader</h3>
+                  <div className="flex items-baseline justify-center gap-1">
+                    <span className="text-5xl font-bold text-white">$50</span>
+                    <span className="text-slate-400">/month</span>
+                  </div>
+                  <p className="text-slate-400 mt-2">Cancel anytime</p>
+                </div>
+                
+                <ul className="space-y-4 mb-8">
+                  <li className="flex items-center gap-3 text-slate-300">
+                    <CheckCircle2 className="h-5 w-5 text-emerald-400 flex-shrink-0" />
+                    <span>Access to all 8+ trading strategies</span>
+                  </li>
+                  <li className="flex items-center gap-3 text-slate-300">
+                    <CheckCircle2 className="h-5 w-5 text-emerald-400 flex-shrink-0" />
+                    <span>Real-time webhook signals</span>
+                  </li>
+                  <li className="flex items-center gap-3 text-slate-300">
+                    <CheckCircle2 className="h-5 w-5 text-emerald-400 flex-shrink-0" />
+                    <span>Tradovate & IBKR broker integration</span>
+                  </li>
+                  <li className="flex items-center gap-3 text-slate-300">
+                    <CheckCircle2 className="h-5 w-5 text-emerald-400 flex-shrink-0" />
+                    <span>Automated trade execution</span>
+                  </li>
+                  <li className="flex items-center gap-3 text-slate-300">
+                    <CheckCircle2 className="h-5 w-5 text-emerald-400 flex-shrink-0" />
+                    <span>Portfolio analytics & risk management</span>
+                  </li>
+                  <li className="flex items-center gap-3 text-slate-300">
+                    <CheckCircle2 className="h-5 w-5 text-emerald-400 flex-shrink-0" />
+                    <span>Email & push notifications</span>
+                  </li>
+                  <li className="flex items-center gap-3 text-slate-300">
+                    <CheckCircle2 className="h-5 w-5 text-emerald-400 flex-shrink-0" />
+                    <span>Priority support</span>
+                  </li>
+                </ul>
+                
+                <Button 
+                  size="lg"
+                  onClick={() => user ? setLocation('/my-dashboard?tab=subscription') : window.location.href = getLoginUrl()}
+                  className="w-full bg-gradient-to-r from-emerald-600 to-cyan-500 hover:from-emerald-500 hover:to-cyan-400 text-white py-6 text-lg shadow-lg shadow-emerald-500/25"
+                >
+                  {user ? 'Subscribe Now' : 'Start 14-Day Free Trial'}
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Button>
+                
+                <p className="text-center text-sm text-slate-500 mt-4">
+                  No credit card required for trial
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+          
+          {/* Money-back guarantee */}
+          <div className="text-center mt-12">
+            <div className="inline-flex items-center gap-2 bg-slate-800/50 border border-slate-700/50 rounded-full px-6 py-3">
+              <RefreshCw className="h-5 w-5 text-emerald-400" />
+              <span className="text-slate-300">30-day money-back guarantee</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* CTA Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8">
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-slate-900/50">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
             Ready to Transform Your Trading?
           </h2>
           <p className="text-xl text-slate-400 mb-8">
-            Start your free trial today and discover the power of quantitative trading strategies.
+            Join traders who are already using quantitative strategies to improve their results.
           </p>
           <Button 
             size="lg"
-            onClick={() => window.location.href = getLoginUrl()}
-            className="bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white px-10 py-6 text-lg shadow-lg shadow-blue-500/25"
+            onClick={() => user ? setLocation('/my-dashboard') : window.location.href = getLoginUrl()}
+            className="bg-gradient-to-r from-emerald-600 to-cyan-500 hover:from-emerald-500 hover:to-cyan-400 text-white px-10 py-6 text-lg shadow-lg shadow-emerald-500/25"
           >
-            Get Started Free
+            {user ? 'Go to Dashboard' : 'Get Started Free'}
             <ArrowRight className="ml-2 h-5 w-5" />
           </Button>
-          <p className="text-sm text-slate-500 mt-4">
-            No credit card required • Free 14-day trial
-          </p>
         </div>
       </section>
 

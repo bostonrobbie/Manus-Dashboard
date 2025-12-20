@@ -231,12 +231,12 @@ export default function Overview() {
               </div>
             </div>
 
-            {/* Sharpe Ratio */}
+            {/* Max Drawdown */}
             <div className="bg-muted/30 border border-muted rounded-lg p-4 text-center">
-              <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">Sharpe Ratio</div>
-              <div className="text-3xl font-bold mb-1">{metrics.sharpeRatio.toFixed(2)}</div>
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">Max Drawdown</div>
+              <div className="text-3xl font-bold mb-1 text-amber-500">{metrics.maxDrawdown.toFixed(2)}%</div>
               <div className="text-xs text-muted-foreground">
-                Risk-adjusted
+                Peak to trough
               </div>
             </div>
 

@@ -2893,3 +2893,59 @@
 - [x] Update webhook notification system to check user preferences
 - [x] Only send notifications for enabled strategies (infrastructure ready)
 - [x] Respect global notification toggle (infrastructure ready)
+
+
+## Current Sprint: Comprehensive Platform Upgrade
+
+### Phase 1: Unified Color Theme
+- [ ] Create unified color palette (vibrant but consistent)
+- [ ] Update Overview page metrics to use consistent colors
+- [ ] Remove duplicate Sharpe Ratio from top stats bar (keep only in Risk-Adjusted section)
+- [ ] Update strategy allocation chart colors to match theme
+- [ ] Update Today's Activity cards to use theme colors
+
+### Phase 2: Homepage & Navigation Fix
+- [ ] Fix homepage navigation loop (clicking Homepage should go to landing page)
+- [ ] Enhance landing page with stats from Overview
+- [ ] Add SEO meta tags and structured data
+- [ ] Add compelling selling points and CTAs
+- [ ] Make landing page professional and business-ready
+
+### Phase 3: Subscription System ($50/month)
+- [ ] Create subscription plans in database
+- [ ] Implement Stripe checkout for $50/month subscription
+- [ ] Add subscription status to user profile
+- [ ] Gate premium features behind subscription
+- [ ] Add subscription management UI
+
+### Phase 4: Tradovate Broker Connection
+- [ ] Research Tradovate OAuth API
+- [ ] Implement secure OAuth flow for Tradovate
+- [ ] Store encrypted credentials
+- [ ] Add connect/disconnect UI
+- [ ] Implement trade execution via Tradovate API
+
+### Phase 5: IBKR Broker Connection
+- [ ] Research IBKR Client Portal API
+- [ ] Implement secure connection flow
+- [ ] Store encrypted credentials
+- [ ] Add connect/disconnect UI
+- [ ] Implement trade execution via IBKR API
+
+### Phase 6: Business Analytics & Admin Tools
+- [ ] Add revenue dashboard for admin
+- [ ] Add user analytics (signups, churn, engagement)
+- [ ] Add marketing metrics tracking
+- [ ] Add data export capabilities
+
+### Phase 7: Real-time Notifications
+- [ ] Replace mock notification data with real webhook data
+- [ ] Add real-time notification updates
+- [ ] Show actual trade alerts from webhooks
+
+### Phase 8: Performance Optimization
+- [ ] Audit and optimize database queries
+- [ ] Add query caching where appropriate
+- [ ] Optimize frontend bundle size
+- [ ] Add lazy loading for heavy components
+- [ ] Run performance benchmarks

@@ -1352,6 +1352,41 @@ Please check the Webhooks page in your dashboard for more details.
       }),
 
     /**
+     * Connect a broker with credentials
+     */
+    connect: adminProcedure
+      .input(z.object({
+        broker: z.enum(['tradovate', 'ibkr', 'fidelity']),
+        credentials: z.object({
+          username: z.string(),
+          password: z.string().optional(),
+          accountId: z.string().optional(),
+        }),
+        isDemo: z.boolean().optional().default(true),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        // Create the connection with credentials
+        await brokerService.createBrokerConnection({
+          userId: ctx.user.id,
+          broker: input.broker,
+          name: `${input.broker.charAt(0).toUpperCase() + input.broker.slice(1)} ${input.isDemo ? 'Demo' : 'Live'}`,
+          accountId: input.credentials.accountId,
+          accountType: input.isDemo ? 'demo' : 'live',
+        });
+        return { success: true };
+      }),
+
+    /**
+     * Disconnect a broker
+     */
+    disconnect: adminProcedure
+      .input(z.object({ connectionId: z.number() }))
+      .mutation(async ({ input }) => {
+        await brokerService.deleteBrokerConnection(input.connectionId);
+        return { success: true };
+      }),
+
+    /**
      * Delete a broker connection
      */
     deleteConnection: adminProcedure
