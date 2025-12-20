@@ -431,3 +431,41 @@ export const userSignals = mysqlTable("user_signals", {
 
 export type UserSignal = typeof userSignals.$inferSelect;
 export type InsertUserSignal = typeof userSignals.$inferInsert;
+
+/**
+ * Open positions table
+ * Tracks currently open trades waiting for exit signals
+ * This replaces the in-memory pendingEntries for persistence across server restarts
+ */
+export const openPositions = mysqlTable("open_positions", {
+  id: int("id").autoincrement().primaryKey(),
+  strategyId: int("strategyId").notNull(),
+  strategySymbol: varchar("strategySymbol", { length: 20 }).notNull(),
+  // Position details
+  direction: varchar("direction", { length: 10 }).notNull(), // "Long" or "Short"
+  entryPrice: int("entryPrice").notNull(), // Entry price in cents
+  quantity: int("quantity").notNull().default(1),
+  // Timing
+  entryTime: datetime("entryTime").notNull(),
+  entryWebhookLogId: int("entryWebhookLogId"), // Link to entry webhook log
+  // Status
+  status: mysqlEnum("status", ["open", "closing", "closed"]).default("open").notNull(),
+  // Exit details (filled when closed)
+  exitPrice: int("exitPrice"),
+  exitTime: datetime("exitTime"),
+  exitWebhookLogId: int("exitWebhookLogId"), // Link to exit webhook log
+  pnl: int("pnl"), // P&L in cents
+  tradeId: int("tradeId"), // Link to created trade record
+  // Metadata
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type OpenPosition = typeof openPositions.$inferSelect;
+export type InsertOpenPosition = typeof openPositions.$inferInsert;
+
+/**
+ * Signal types enum for webhook processing
+ */
+export const signalTypeEnum = ["entry", "exit", "scale_in", "scale_out"] as const;
+export type SignalType = typeof signalTypeEnum[number];

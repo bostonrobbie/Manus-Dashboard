@@ -1,7 +1,7 @@
 import { eq, and, gte, lte, inArray, desc } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import mysql from 'mysql2/promise';
-import { InsertUser, users, strategies, trades, benchmarks, webhookLogs, InsertWebhookLog } from "../drizzle/schema";
+import { InsertUser, users, strategies, trades, benchmarks, webhookLogs, InsertWebhookLog, openPositions, InsertOpenPosition, OpenPosition } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -463,5 +463,203 @@ export async function deleteTradesByIds(tradeIds: number[]): Promise<number> {
   } catch (error) {
     console.error("[Database] Failed to delete trades:", error);
     return 0;
+  }
+}
+
+
+// ============================================
+// Open Positions Management (Persistent Trade Tracking)
+// ============================================
+
+/**
+ * Create a new open position when an entry signal is received
+ */
+export async function createOpenPosition(position: InsertOpenPosition): Promise<number | null> {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  try {
+    const result = await db.insert(openPositions).values(position);
+    // MySQL returns insertId in the result
+    const insertId = (result as any)[0]?.insertId || (result as any).insertId;
+    return insertId || null;
+  } catch (error) {
+    console.error("[Database] Failed to create open position:", error);
+    throw error;
+  }
+}
+
+/**
+ * Get open position for a strategy (there should only be one open position per strategy at a time)
+ */
+export async function getOpenPositionByStrategy(strategySymbol: string): Promise<OpenPosition | null> {
+  const db = await getDb();
+  if (!db) return null;
+
+  const result = await db.select()
+    .from(openPositions)
+    .where(
+      and(
+        eq(openPositions.strategySymbol, strategySymbol),
+        eq(openPositions.status, 'open')
+      )
+    )
+    .orderBy(desc(openPositions.createdAt))
+    .limit(1);
+
+  return result.length > 0 ? result[0] : null;
+}
+
+/**
+ * Get open position by ID
+ */
+export async function getOpenPositionById(id: number): Promise<OpenPosition | null> {
+  const db = await getDb();
+  if (!db) return null;
+
+  const result = await db.select()
+    .from(openPositions)
+    .where(eq(openPositions.id, id))
+    .limit(1);
+
+  return result.length > 0 ? result[0] : null;
+}
+
+/**
+ * Get all open positions (for dashboard display)
+ */
+export async function getAllOpenPositions(): Promise<OpenPosition[]> {
+  const db = await getDb();
+  if (!db) return [];
+
+  return await db.select()
+    .from(openPositions)
+    .where(eq(openPositions.status, 'open'))
+    .orderBy(desc(openPositions.entryTime));
+}
+
+/**
+ * Get all positions (open and recently closed) for dashboard
+ */
+export async function getRecentPositions(limit: number = 50): Promise<OpenPosition[]> {
+  const db = await getDb();
+  if (!db) return [];
+
+  return await db.select()
+    .from(openPositions)
+    .orderBy(desc(openPositions.updatedAt))
+    .limit(limit);
+}
+
+/**
+ * Close an open position when an exit signal is received
+ */
+export async function closeOpenPosition(
+  positionId: number,
+  exitData: {
+    exitPrice: number;
+    exitTime: Date;
+    exitWebhookLogId?: number;
+    pnl: number;
+    tradeId?: number;
+  }
+): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+
+  try {
+    await db.update(openPositions)
+      .set({
+        status: 'closed',
+        exitPrice: exitData.exitPrice,
+        exitTime: exitData.exitTime,
+        exitWebhookLogId: exitData.exitWebhookLogId,
+        pnl: exitData.pnl,
+        tradeId: exitData.tradeId,
+      })
+      .where(eq(openPositions.id, positionId));
+    return true;
+  } catch (error) {
+    console.error("[Database] Failed to close open position:", error);
+    return false;
+  }
+}
+
+/**
+ * Delete an open position (admin function)
+ */
+export async function deleteOpenPosition(positionId: number): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+
+  try {
+    await db.delete(openPositions).where(eq(openPositions.id, positionId));
+    return true;
+  } catch (error) {
+    console.error("[Database] Failed to delete open position:", error);
+    return false;
+  }
+}
+
+/**
+ * Clear all open positions for a strategy (admin function)
+ */
+export async function clearOpenPositionsForStrategy(strategySymbol: string): Promise<number> {
+  const db = await getDb();
+  if (!db) return 0;
+
+  try {
+    const result = await db.delete(openPositions)
+      .where(eq(openPositions.strategySymbol, strategySymbol));
+    return (result as any).affectedRows || 0;
+  } catch (error) {
+    console.error("[Database] Failed to clear open positions:", error);
+    return 0;
+  }
+}
+
+/**
+ * Get position counts by status for dashboard stats
+ */
+export async function getPositionStats(): Promise<{
+  open: number;
+  closedToday: number;
+  totalPnlToday: number;
+}> {
+  const db = await getDb();
+  if (!db) return { open: 0, closedToday: 0, totalPnlToday: 0 };
+
+  try {
+    // Get open positions count
+    const openResult = await db.select()
+      .from(openPositions)
+      .where(eq(openPositions.status, 'open'));
+    
+    // Get today's closed positions
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const closedResult = await db.select()
+      .from(openPositions)
+      .where(
+        and(
+          eq(openPositions.status, 'closed'),
+          gte(openPositions.exitTime!, today)
+        )
+      );
+    
+    // Calculate total P&L for today
+    const totalPnlToday = closedResult.reduce((sum, pos) => sum + (pos.pnl || 0), 0);
+    
+    return {
+      open: openResult.length,
+      closedToday: closedResult.length,
+      totalPnlToday,
+    };
+  } catch (error) {
+    console.error("[Database] Failed to get position stats:", error);
+    return { open: 0, closedToday: 0, totalPnlToday: 0 };
   }
 }

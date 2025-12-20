@@ -1,21 +1,22 @@
 /**
- * TradingView Webhook Processing Service
+ * TradingView Webhook Processing Service - Enhanced with Persistent Position Tracking
  * 
  * Handles incoming webhook notifications from TradingView alerts,
  * validates the payload, processes trades, and updates the database.
  * 
- * TradingView Webhook Format (as provided by user):
+ * NEW: Uses database-backed open positions for reliable entry/exit tracking
+ * that persists across server restarts.
+ * 
+ * TradingView Webhook Format (Enhanced):
  * {
- *   "symbol": "BTCUSD",
+ *   "symbol": "ESTrend",
  *   "date": "{{timenow}}",
  *   "data": "{{strategy.order.action}}",
+ *   "position": "{{strategy.market_position}}",  // NEW: "long", "short", or "flat"
  *   "quantity": 1,
  *   "price": "{{close}}",
  *   "token": "your_secret_token",
- *   "multiple_accounts": [
- *     {"account": "account1", "quantity": 1},
- *     {"account": "account2", "quantity": 2}
- *   ]
+ *   "signalType": "entry" | "exit"  // NEW: Explicit signal type (optional)
  * }
  */
 
@@ -30,11 +31,18 @@ import {
   deleteWebhookLog,
   deleteAllWebhookLogs,
   getWebhookSettings,
-  updateWebhookSettings
+  updateWebhookSettings,
+  // New position tracking functions
+  createOpenPosition,
+  getOpenPositionByStrategy,
+  closeOpenPosition,
+  getAllOpenPositions,
+  getRecentPositions,
+  getPositionStats,
 } from './db';
-import { InsertWebhookLog } from '../drizzle/schema';
+import { InsertWebhookLog, InsertOpenPosition } from '../drizzle/schema';
 
-// TradingView payload format (actual format from user)
+// TradingView payload format (enhanced with position tracking)
 export interface TradingViewPayload {
   symbol: string;              // Strategy/instrument symbol (e.g., "BTCUSD", "ES", "NQ")
   date: string;                // Timestamp from {{timenow}}
@@ -54,6 +62,10 @@ export interface TradingViewPayload {
   strategy?: string;           // Strategy name (alternative to symbol)
   comment?: string;            // Additional trade comment
   quantityMultiplier?: number; // Multiplier for quantity (e.g., 2 = double the signal quantity)
+  // NEW: Enhanced position tracking fields
+  position?: string;           // From {{strategy.market_position}} - "long", "short", "flat"
+  signalType?: string;         // Explicit signal type: "entry", "exit", "scale_in", "scale_out"
+  prevPosition?: string;       // Previous position state (for detecting transitions)
 }
 
 // Internal normalized payload after parsing
@@ -68,15 +80,20 @@ export interface NormalizedPayload {
   entryTime?: Date;
   pnl?: number;
   token?: string;
+  // NEW: Enhanced fields
+  signalType: 'entry' | 'exit';  // Determined signal type
+  marketPosition: 'long' | 'short' | 'flat';  // Current market position
 }
 
 export interface WebhookResult {
   success: boolean;
   logId: number;
   tradeId?: number;
+  positionId?: number;  // NEW: Link to open position
   message: string;
   error?: string;
   processingTimeMs?: number;
+  signalType?: 'entry' | 'exit';  // NEW: What type of signal was processed
 }
 
 // Validation errors
@@ -95,28 +112,34 @@ const SYMBOL_MAPPING: Record<string, string> = {
   'ESH2024': 'ESTrend',
   'ES_TREND': 'ESTrend',
   'ES_ORB': 'ESORB',
+  'ESTREND': 'ESTrend',
   // NQ (E-mini Nasdaq)
   'NQ': 'NQTrend',
   'NQ1!': 'NQTrend',
   'NQ_TREND': 'NQTrend',
   'NQ_ORB': 'NQORB',
+  'NQTREND': 'NQTrend',
   // CL (Crude Oil)
   'CL': 'CLTrend',
   'CL1!': 'CLTrend',
   'CL_TREND': 'CLTrend',
+  'CLTREND': 'CLTrend',
   // BTC (Bitcoin)
   'BTC': 'BTCTrend',
   'BTCUSD': 'BTCTrend',
   'BTC1!': 'BTCTrend',
   'BTC_TREND': 'BTCTrend',
+  'BTCTREND': 'BTCTrend',
   // GC (Gold)
   'GC': 'GCTrend',
   'GC1!': 'GCTrend',
   'GC_TREND': 'GCTrend',
+  'GCTREND': 'GCTrend',
   // YM (E-mini Dow)
   'YM': 'YMORB',
   'YM1!': 'YMORB',
   'YM_ORB': 'YMORB',
+  'YMORB': 'YMORB',
 };
 
 /**
@@ -138,6 +161,84 @@ export function mapSymbolToStrategy(symbol: string): string {
   
   // Return original if no mapping found
   return symbol;
+}
+
+/**
+ * Determine signal type from payload
+ * Priority: explicit signalType > position change > action inference
+ */
+function determineSignalType(payload: Record<string, unknown>): 'entry' | 'exit' {
+  // 1. Check explicit signalType field
+  if (payload.signalType && typeof payload.signalType === 'string') {
+    const st = payload.signalType.toLowerCase().trim();
+    if (st === 'entry' || st === 'open' || st === 'enter') return 'entry';
+    if (st === 'exit' || st === 'close' || st === 'flat') return 'exit';
+  }
+  
+  // 2. Check market position (from {{strategy.market_position}})
+  if (payload.position && typeof payload.position === 'string') {
+    const pos = payload.position.toLowerCase().trim();
+    // "flat" means no position = exit signal
+    if (pos === 'flat') return 'exit';
+    // "long" or "short" with no previous position = entry
+    // This is a new position being opened
+  }
+  
+  // 3. Infer from action/data field
+  const action = (payload.data || payload.action) as string;
+  if (action && typeof action === 'string') {
+    const actionLower = action.toLowerCase().trim();
+    // Exit-related actions
+    if (actionLower.includes('exit') || actionLower.includes('close') || actionLower === 'flat') {
+      return 'exit';
+    }
+    // Entry-related actions (buy/sell are entries)
+    if (actionLower === 'buy' || actionLower === 'sell' || 
+        actionLower === 'long' || actionLower === 'short' ||
+        actionLower.includes('entry')) {
+      return 'entry';
+    }
+  }
+  
+  // Default to entry if we can't determine
+  return 'entry';
+}
+
+/**
+ * Determine market position from payload
+ */
+function determineMarketPosition(payload: Record<string, unknown>): 'long' | 'short' | 'flat' {
+  // Check explicit position field first
+  if (payload.position && typeof payload.position === 'string') {
+    const pos = payload.position.toLowerCase().trim();
+    if (pos === 'long') return 'long';
+    if (pos === 'short') return 'short';
+    if (pos === 'flat' || pos === 'none' || pos === '') return 'flat';
+  }
+  
+  // Infer from direction
+  if (payload.direction && typeof payload.direction === 'string') {
+    const dir = payload.direction.toLowerCase().trim();
+    if (dir === 'long') return 'long';
+    if (dir === 'short') return 'short';
+  }
+  
+  // Infer from action
+  const action = (payload.data || payload.action) as string;
+  if (action && typeof action === 'string') {
+    const actionLower = action.toLowerCase().trim();
+    if (actionLower === 'buy' || actionLower === 'long' || actionLower.includes('entry_long')) {
+      return 'long';
+    }
+    if (actionLower === 'sell' || actionLower === 'short' || actionLower.includes('entry_short')) {
+      return 'short';
+    }
+    if (actionLower.includes('exit') || actionLower === 'flat' || actionLower === 'close') {
+      return 'flat';
+    }
+  }
+  
+  return 'flat';
 }
 
 /**
@@ -163,6 +264,10 @@ export function validatePayload(payload: unknown): NormalizedPayload {
     throw new WebhookValidationError('Missing or invalid "data" or "action" field');
   }
   
+  // Determine signal type and market position
+  const signalType = determineSignalType(p);
+  const marketPosition = determineMarketPosition(p);
+  
   // Normalize action
   const actionLower = rawAction.toString().toLowerCase().trim();
   let action: 'entry' | 'exit' | 'buy' | 'sell';
@@ -174,7 +279,7 @@ export function validatePayload(payload: unknown): NormalizedPayload {
   } else if (actionLower === 'sell' || actionLower === 'short' || actionLower === 'entry_short') {
     action = 'sell';
     direction = 'Short';
-  } else if (actionLower === 'exit' || actionLower === 'close' || actionLower === 'exit_long' || actionLower === 'exit_short') {
+  } else if (actionLower === 'exit' || actionLower === 'close' || actionLower === 'exit_long' || actionLower === 'exit_short' || actionLower === 'flat') {
     action = 'exit';
     // For exits, try to get direction from explicit field or infer from action
     if (actionLower === 'exit_long') {
@@ -261,6 +366,8 @@ export function validatePayload(payload: unknown): NormalizedPayload {
     entryTime,
     pnl,
     token: typeof p.token === 'string' ? p.token : undefined,
+    signalType,
+    marketPosition,
   };
 }
 
@@ -317,23 +424,9 @@ export function calculatePnL(
   }
 }
 
-// In-memory state for pending entries (waiting for exit)
-const pendingEntries = new Map<string, {
-  direction: 'Long' | 'Short';
-  entryPrice: number;
-  entryTime: Date;
-  quantity: number;
-}>();
-
-/**
- * Get key for pending entry lookup
- */
-function getPendingKey(strategySymbol: string): string {
-  return strategySymbol.toUpperCase();
-}
-
 /**
  * Process a TradingView webhook notification
+ * Enhanced with persistent position tracking
  */
 export async function processWebhook(
   rawPayload: unknown,
@@ -391,148 +484,34 @@ export async function processWebhook(
 
     await updateWebhookLog(logId, { strategyId: strategy.id });
 
-    // Step 5: Handle entry vs exit signals
-    const pendingKey = getPendingKey(payload.strategySymbol);
+    // Step 5: Determine if this is an entry or exit signal
+    const isEntrySignal = payload.signalType === 'entry' || 
+                          (payload.action === 'buy' || payload.action === 'sell') && 
+                          payload.marketPosition !== 'flat';
+    
+    const isExitSignal = payload.signalType === 'exit' || 
+                         payload.action === 'exit' || 
+                         payload.marketPosition === 'flat';
 
-    if (payload.action === 'buy' || payload.action === 'sell') {
-      // This is an entry signal - store it for later matching with exit
-      pendingEntries.set(pendingKey, {
-        direction: payload.direction,
-        entryPrice: payload.price,
-        entryTime: payload.timestamp,
-        quantity: payload.quantity,
-      });
-
-      await updateWebhookLog(logId, {
-        status: 'success',
-        direction: payload.direction,
-        entryPrice: Math.round(payload.price * 100),
-        entryTime: payload.timestamp,
-        processingTimeMs: Date.now() - startTime,
-      });
-
-      return {
-        success: true,
-        logId,
-        message: `Entry signal logged for ${payload.strategySymbol}: ${payload.direction} @ $${payload.price}`,
-        processingTimeMs: Date.now() - startTime,
-      };
+    // Step 6: Handle based on signal type
+    if (isEntrySignal && !isExitSignal) {
+      // ENTRY SIGNAL: Create a new open position
+      return await handleEntrySignal(logId, payload, strategy, startTime);
+    } else if (isExitSignal) {
+      // EXIT SIGNAL: Close the open position and create trade
+      return await handleExitSignal(logId, payload, strategy, startTime);
+    } else {
+      // Ambiguous signal - try to determine from existing positions
+      const existingPosition = await getOpenPositionByStrategy(payload.strategySymbol);
+      
+      if (existingPosition) {
+        // We have an open position, treat this as an exit
+        return await handleExitSignal(logId, payload, strategy, startTime);
+      } else {
+        // No open position, treat this as an entry
+        return await handleEntrySignal(logId, payload, strategy, startTime);
+      }
     }
-
-    // This is an exit signal - create the trade
-    let entryPrice = payload.entryPrice;
-    let entryTime = payload.entryTime;
-    let direction = payload.direction;
-
-    // Try to get entry data from pending entries
-    const pendingEntry = pendingEntries.get(pendingKey);
-    if (pendingEntry) {
-      entryPrice = entryPrice || pendingEntry.entryPrice;
-      entryTime = entryTime || pendingEntry.entryTime;
-      direction = pendingEntry.direction;
-      pendingEntries.delete(pendingKey); // Clear the pending entry
-    }
-
-    // If no entry data available, we can't create a trade
-    if (!entryPrice || !entryTime) {
-      await updateWebhookLog(logId, {
-        status: 'failed',
-        direction: payload.direction,
-        exitPrice: Math.round(payload.price * 100),
-        exitTime: payload.timestamp,
-        processingTimeMs: Date.now() - startTime,
-        errorMessage: 'Exit signal received but no matching entry found',
-      });
-
-      return {
-        success: false,
-        logId,
-        message: 'Exit signal received but no matching entry found',
-        error: 'NO_ENTRY',
-        processingTimeMs: Date.now() - startTime,
-      };
-    }
-
-    // Step 6: Check for duplicate trades
-    const isDuplicate = await checkDuplicateTrade({
-      strategyId: strategy.id,
-      entryDate: entryTime,
-      exitDate: payload.timestamp,
-      direction,
-    });
-
-    if (isDuplicate) {
-      await updateWebhookLog(logId, {
-        status: 'duplicate',
-        direction,
-        entryPrice: Math.round(entryPrice * 100),
-        exitPrice: Math.round(payload.price * 100),
-        entryTime,
-        exitTime: payload.timestamp,
-        processingTimeMs: Date.now() - startTime,
-        errorMessage: 'Duplicate trade detected',
-      });
-
-      return {
-        success: false,
-        logId,
-        message: 'Duplicate trade detected - skipped',
-        error: 'DUPLICATE',
-        processingTimeMs: Date.now() - startTime,
-      };
-    }
-
-    // Step 7: Calculate P&L
-    const pnlDollars = payload.pnl !== undefined 
-      ? payload.pnl 
-      : calculatePnL(direction, entryPrice, payload.price, payload.quantity);
-
-    // Convert to cents for database storage
-    const pnlCents = Math.round(pnlDollars * 100);
-    const entryPriceCents = Math.round(entryPrice * 100);
-    const exitPriceCents = Math.round(payload.price * 100);
-
-    // Calculate P&L percentage (based on entry price)
-    const pnlPercent = Math.round((pnlDollars / entryPrice) * 10000);
-
-    // Step 8: Insert trade
-    await insertTrade({
-      strategyId: strategy.id,
-      entryDate: entryTime,
-      exitDate: payload.timestamp,
-      direction,
-      entryPrice: entryPriceCents,
-      exitPrice: exitPriceCents,
-      quantity: payload.quantity,
-      pnl: pnlCents,
-      pnlPercent,
-      commission: 0,
-    });
-
-    // Get the trade ID
-    const tradeId = await getLastInsertedTradeId(strategy.id);
-
-    // Step 9: Update log with success
-    await updateWebhookLog(logId, {
-      status: 'success',
-      tradeId: tradeId || undefined,
-      direction,
-      entryPrice: entryPriceCents,
-      exitPrice: exitPriceCents,
-      pnl: pnlCents,
-      entryTime,
-      exitTime: payload.timestamp,
-      processingTimeMs: Date.now() - startTime,
-    });
-
-    const processingTimeMs = Date.now() - startTime;
-    return {
-      success: true,
-      logId,
-      tradeId: tradeId || undefined,
-      message: `Trade created for ${payload.strategySymbol}: ${direction} ${pnlDollars >= 0 ? '+' : ''}$${pnlDollars.toFixed(2)}`,
-      processingTimeMs,
-    };
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -558,6 +537,214 @@ export async function processWebhook(
 }
 
 /**
+ * Handle an entry signal - create a new open position
+ */
+async function handleEntrySignal(
+  logId: number,
+  payload: NormalizedPayload,
+  strategy: { id: number; symbol: string },
+  startTime: number
+): Promise<WebhookResult> {
+  const processingTimeMs = Date.now() - startTime;
+  
+  // Check if there's already an open position for this strategy
+  const existingPosition = await getOpenPositionByStrategy(payload.strategySymbol);
+  
+  if (existingPosition) {
+    // Already have an open position - this might be a scale-in or duplicate
+    await updateWebhookLog(logId, {
+      status: 'duplicate',
+      direction: payload.direction,
+      entryPrice: Math.round(payload.price * 100),
+      entryTime: payload.timestamp,
+      processingTimeMs,
+      errorMessage: `Position already open for ${payload.strategySymbol} (ID: ${existingPosition.id})`,
+    });
+
+    return {
+      success: false,
+      logId,
+      positionId: existingPosition.id,
+      message: `Position already open for ${payload.strategySymbol}. Close existing position first or use scale_in signal.`,
+      error: 'POSITION_EXISTS',
+      processingTimeMs,
+      signalType: 'entry',
+    };
+  }
+
+  // Create new open position
+  const newPosition: InsertOpenPosition = {
+    strategyId: strategy.id,
+    strategySymbol: payload.strategySymbol,
+    direction: payload.direction,
+    entryPrice: Math.round(payload.price * 100),
+    quantity: payload.quantity,
+    entryTime: payload.timestamp,
+    entryWebhookLogId: logId,
+    status: 'open',
+  };
+
+  const positionId = await createOpenPosition(newPosition);
+
+  // Update webhook log with success
+  await updateWebhookLog(logId, {
+    status: 'success',
+    direction: payload.direction,
+    entryPrice: Math.round(payload.price * 100),
+    entryTime: payload.timestamp,
+    processingTimeMs,
+  });
+
+  return {
+    success: true,
+    logId,
+    positionId: positionId || undefined,
+    message: `Entry signal logged: ${payload.strategySymbol} ${payload.direction} @ $${payload.price.toFixed(2)}`,
+    processingTimeMs,
+    signalType: 'entry',
+  };
+}
+
+/**
+ * Handle an exit signal - close open position and create trade
+ */
+async function handleExitSignal(
+  logId: number,
+  payload: NormalizedPayload,
+  strategy: { id: number; symbol: string },
+  startTime: number
+): Promise<WebhookResult> {
+  // Find the open position for this strategy
+  const openPosition = await getOpenPositionByStrategy(payload.strategySymbol);
+
+  if (!openPosition) {
+    // No open position found - can't process exit
+    const processingTimeMs = Date.now() - startTime;
+    
+    await updateWebhookLog(logId, {
+      status: 'failed',
+      direction: payload.direction,
+      exitPrice: Math.round(payload.price * 100),
+      exitTime: payload.timestamp,
+      processingTimeMs,
+      errorMessage: 'Exit signal received but no matching open position found',
+    });
+
+    return {
+      success: false,
+      logId,
+      message: 'Exit signal received but no matching open position found',
+      error: 'NO_OPEN_POSITION',
+      processingTimeMs: Date.now() - startTime,
+      signalType: 'exit',
+    };
+  }
+
+  // Get entry data from open position
+  const entryPrice = openPosition.entryPrice / 100; // Convert from cents
+  const entryTime = openPosition.entryTime;
+  const direction = openPosition.direction;
+  const quantity = openPosition.quantity;
+
+  // Check for duplicate trades
+  const isDuplicate = await checkDuplicateTrade({
+    strategyId: strategy.id,
+    entryDate: entryTime,
+    exitDate: payload.timestamp,
+    direction,
+  });
+
+  if (isDuplicate) {
+    const processingTimeMs = Date.now() - startTime;
+    
+    await updateWebhookLog(logId, {
+      status: 'duplicate',
+      direction,
+      entryPrice: openPosition.entryPrice,
+      exitPrice: Math.round(payload.price * 100),
+      entryTime,
+      exitTime: payload.timestamp,
+      processingTimeMs,
+      errorMessage: 'Duplicate trade detected',
+    });
+
+    return {
+      success: false,
+      logId,
+      positionId: openPosition.id,
+      message: 'Duplicate trade detected - skipped',
+      error: 'DUPLICATE',
+      processingTimeMs,
+      signalType: 'exit',
+    };
+  }
+
+  // Calculate P&L
+  const pnlDollars = payload.pnl !== undefined 
+    ? payload.pnl 
+    : calculatePnL(direction, entryPrice, payload.price, quantity);
+
+  // Convert to cents for database storage
+  const pnlCents = Math.round(pnlDollars * 100);
+  const entryPriceCents = openPosition.entryPrice;
+  const exitPriceCents = Math.round(payload.price * 100);
+
+  // Calculate P&L percentage (based on entry price)
+  const pnlPercent = Math.round((pnlDollars / entryPrice) * 10000);
+
+  // Insert trade record
+  await insertTrade({
+    strategyId: strategy.id,
+    entryDate: entryTime,
+    exitDate: payload.timestamp,
+    direction,
+    entryPrice: entryPriceCents,
+    exitPrice: exitPriceCents,
+    quantity,
+    pnl: pnlCents,
+    pnlPercent,
+    commission: 0,
+  });
+
+  // Get the trade ID
+  const tradeId = await getLastInsertedTradeId(strategy.id);
+
+  // Close the open position
+  await closeOpenPosition(openPosition.id, {
+    exitPrice: exitPriceCents,
+    exitTime: payload.timestamp,
+    exitWebhookLogId: logId,
+    pnl: pnlCents,
+    tradeId: tradeId || undefined,
+  });
+
+  // Update webhook log with success
+  const processingTimeMs = Date.now() - startTime;
+  
+  await updateWebhookLog(logId, {
+    status: 'success',
+    tradeId: tradeId || undefined,
+    direction,
+    entryPrice: entryPriceCents,
+    exitPrice: exitPriceCents,
+    pnl: pnlCents,
+    entryTime,
+    exitTime: payload.timestamp,
+    processingTimeMs,
+  });
+
+  return {
+    success: true,
+    logId,
+    tradeId: tradeId || undefined,
+    positionId: openPosition.id,
+    message: `Trade closed: ${payload.strategySymbol} ${direction} ${pnlDollars >= 0 ? '+' : ''}$${pnlDollars.toFixed(2)}`,
+    processingTimeMs,
+    signalType: 'exit',
+  };
+}
+
+/**
  * Generate the webhook URL for TradingView
  */
 export function getWebhookUrl(baseUrl: string): string {
@@ -565,14 +752,15 @@ export function getWebhookUrl(baseUrl: string): string {
 }
 
 /**
- * Generate the TradingView alert message template for a strategy
+ * Generate the TradingView alert message template for a strategy (Enhanced)
  */
 export function getAlertMessageTemplate(strategySymbol: string, token?: string): string {
   const template: Record<string, unknown> = {
     symbol: strategySymbol,
     date: "{{timenow}}",
     data: "{{strategy.order.action}}",
-    quantity: 1,
+    position: "{{strategy.market_position}}",  // NEW: Track position state
+    quantity: "{{strategy.order.contracts}}",
     price: "{{close}}",
   };
   
@@ -584,12 +772,56 @@ export function getAlertMessageTemplate(strategySymbol: string, token?: string):
 }
 
 /**
- * Get all available strategy templates
+ * Generate entry-specific alert template
+ */
+export function getEntryAlertTemplate(strategySymbol: string, token?: string): string {
+  const template: Record<string, unknown> = {
+    symbol: strategySymbol,
+    signalType: "entry",
+    date: "{{timenow}}",
+    data: "{{strategy.order.action}}",
+    direction: "{{strategy.market_position}}",
+    quantity: "{{strategy.order.contracts}}",
+    price: "{{strategy.order.price}}",
+  };
+  
+  if (token) {
+    template.token = token;
+  }
+  
+  return JSON.stringify(template, null, 2);
+}
+
+/**
+ * Generate exit-specific alert template
+ */
+export function getExitAlertTemplate(strategySymbol: string, token?: string): string {
+  const template: Record<string, unknown> = {
+    symbol: strategySymbol,
+    signalType: "exit",
+    date: "{{timenow}}",
+    data: "exit",
+    position: "flat",
+    quantity: "{{strategy.order.contracts}}",
+    price: "{{strategy.order.price}}",
+  };
+  
+  if (token) {
+    template.token = token;
+  }
+  
+  return JSON.stringify(template, null, 2);
+}
+
+/**
+ * Get all available strategy templates (Enhanced with entry/exit templates)
  */
 export function getAllStrategyTemplates(token?: string): Array<{
   symbol: string;
   name: string;
   template: string;
+  entryTemplate: string;
+  exitTemplate: string;
 }> {
   const strategies = [
     { symbol: 'ESTrend', name: 'ES Trend Following' },
@@ -605,6 +837,8 @@ export function getAllStrategyTemplates(token?: string): Array<{
   return strategies.map(s => ({
     ...s,
     template: getAlertMessageTemplate(s.symbol, token),
+    entryTemplate: getEntryAlertTemplate(s.symbol, token),
+    exitTemplate: getExitAlertTemplate(s.symbol, token),
   }));
 }
 
@@ -631,4 +865,25 @@ export async function resumeWebhookProcessing(): Promise<void> {
 export async function isWebhookProcessingPaused(): Promise<boolean> {
   const settings = await getWebhookSettings();
   return settings?.paused ?? false;
+}
+
+/**
+ * Get open positions for dashboard display
+ */
+export async function getOpenPositionsForDashboard() {
+  return await getAllOpenPositions();
+}
+
+/**
+ * Get recent positions (open + closed) for activity feed
+ */
+export async function getRecentPositionsForDashboard(limit: number = 50) {
+  return await getRecentPositions(limit);
+}
+
+/**
+ * Get position statistics for dashboard
+ */
+export async function getPositionStatsForDashboard() {
+  return await getPositionStats();
 }

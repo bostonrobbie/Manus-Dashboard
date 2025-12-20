@@ -1232,6 +1232,80 @@ Please check the Webhooks page in your dashboard for more details.
         
         return { success };
       }),
+
+    /**
+     * Get all open positions (trades waiting for exit signals)
+     */
+    getOpenPositions: adminProcedure.query(async () => {
+      const positions = await db.getAllOpenPositions();
+      return positions.map(p => ({
+        id: p.id,
+        strategyId: p.strategyId,
+        strategySymbol: p.strategySymbol,
+        direction: p.direction,
+        entryPrice: p.entryPrice / 100, // Convert from cents to dollars
+        quantity: p.quantity,
+        entryTime: p.entryTime,
+        status: p.status,
+        createdAt: p.createdAt,
+      }));
+    }),
+
+    /**
+     * Get recent positions (open + closed) for activity feed
+     */
+    getRecentPositions: adminProcedure
+      .input(z.object({ limit: z.number().optional().default(50) }))
+      .query(async ({ input }) => {
+        const positions = await db.getRecentPositions(input.limit);
+        return positions.map(p => ({
+          id: p.id,
+          strategyId: p.strategyId,
+          strategySymbol: p.strategySymbol,
+          direction: p.direction,
+          entryPrice: p.entryPrice / 100,
+          exitPrice: p.exitPrice ? p.exitPrice / 100 : null,
+          quantity: p.quantity,
+          entryTime: p.entryTime,
+          exitTime: p.exitTime,
+          status: p.status,
+          pnl: p.pnl ? p.pnl / 100 : null,
+          tradeId: p.tradeId,
+          createdAt: p.createdAt,
+        }));
+      }),
+
+    /**
+     * Get position statistics for dashboard
+     */
+    getPositionStats: adminProcedure.query(async () => {
+      const stats = await db.getPositionStats();
+      return {
+        openPositions: stats.open,
+        closedToday: stats.closedToday,
+        totalPnlToday: stats.totalPnlToday / 100, // Convert from cents to dollars
+      };
+    }),
+
+    /**
+     * Delete an open position (admin function)
+     */
+    deletePosition: adminProcedure
+      .input(z.object({ positionId: z.number() }))
+      .mutation(async ({ input }) => {
+        const success = await db.deleteOpenPosition(input.positionId);
+        return { success };
+      }),
+
+    /**
+     * Clear all open positions for a strategy (admin function)
+     */
+    clearPositionsForStrategy: adminProcedure
+      .input(z.object({ strategySymbol: z.string() }))
+      .mutation(async ({ input }) => {
+        const deleted = await db.clearOpenPositionsForStrategy(input.strategySymbol);
+        return { success: true, deleted };
+      }),
   }),
 
   // Broker router for trading integrations (Admin-only)
@@ -1560,10 +1634,10 @@ Please check the Webhooks page in your dashboard for more details.
             symbol: t.symbol,
             direction: t.direction,
             entryDate: t.entryDate,
-            entryPrice: t.entryPrice,
+            entryPrice: t.entryPrice / 100, // Convert from cents to dollars
             exitDate: t.exitDate,
-            exitPrice: t.exitPrice,
-            pnl: t.pnl * (Number(sub?.quantityMultiplier) || 1),
+            exitPrice: t.exitPrice ? t.exitPrice / 100 : null, // Convert from cents to dollars
+            pnl: (t.pnl / 100) * (Number(sub?.quantityMultiplier) || 1), // Convert from cents to dollars
             isActive: !t.exitDate || new Date(t.exitDate) > new Date(), // Still active if no exit or exit in future
           };
         });
