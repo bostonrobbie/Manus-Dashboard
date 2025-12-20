@@ -5,19 +5,44 @@ import { InsertUser, users, strategies, trades, benchmarks, webhookLogs, InsertW
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
+let _pool: mysql.Pool | null = null;
 
 // Lazily create the drizzle instance so local tooling can run without a DB.
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
-      const pool = mysql.createPool(process.env.DATABASE_URL);
-      _db = drizzle(pool as any);
+      // Create connection pool with resilience options
+      _pool = mysql.createPool({
+        uri: process.env.DATABASE_URL,
+        waitForConnections: true,
+        connectionLimit: 10,
+        queueLimit: 0,
+        enableKeepAlive: true,
+        keepAliveInitialDelay: 10000, // 10 seconds
+      });
+      _db = drizzle(_pool as any);
+      console.log("[Database] Connection pool created successfully");
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
       _db = null;
+      _pool = null;
     }
   }
   return _db;
+}
+
+// Reset the database connection (useful for recovery from connection errors)
+export async function resetDbConnection() {
+  if (_pool) {
+    try {
+      await _pool.end();
+    } catch (e) {
+      console.warn("[Database] Error closing pool:", e);
+    }
+  }
+  _db = null;
+  _pool = null;
+  console.log("[Database] Connection reset, will reconnect on next query");
 }
 
 export async function upsertUser(user: InsertUser): Promise<void> {
@@ -25,70 +50,117 @@ export async function upsertUser(user: InsertUser): Promise<void> {
     throw new Error("User openId is required for upsert");
   }
 
-  const db = await getDb();
-  if (!db) {
-    console.warn("[Database] Cannot upsert user: database not available");
-    return;
+  // Retry logic for transient database connection errors
+  const maxRetries = 3;
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    const db = await getDb();
+    if (!db) {
+      console.warn("[Database] Cannot upsert user: database not available");
+      return;
+    }
+
+    try {
+      const values: InsertUser = {
+        openId: user.openId,
+      };
+      const updateSet: Record<string, unknown> = {};
+
+      const textFields = ["name", "email", "loginMethod"] as const;
+      type TextField = (typeof textFields)[number];
+
+      const assignNullable = (field: TextField) => {
+        const value = user[field];
+        if (value === undefined) return;
+        const normalized = value ?? null;
+        values[field] = normalized;
+        updateSet[field] = normalized;
+      };
+
+      textFields.forEach(assignNullable);
+
+      if (user.lastSignedIn !== undefined) {
+        values.lastSignedIn = user.lastSignedIn;
+        updateSet.lastSignedIn = user.lastSignedIn;
+      }
+      if (user.role !== undefined) {
+        values.role = user.role;
+        updateSet.role = user.role;
+      } else if (user.openId === ENV.ownerOpenId) {
+        values.role = 'admin';
+        updateSet.role = 'admin';
+      }
+
+      if (!values.lastSignedIn) {
+        values.lastSignedIn = new Date();
+      }
+
+      if (Object.keys(updateSet).length === 0) {
+        updateSet.lastSignedIn = new Date();
+      }
+
+      await db.insert(users).values(values).onDuplicateKeyUpdate({
+        set: updateSet,
+      });
+      return; // Success, exit retry loop
+    } catch (error) {
+      lastError = error;
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const isRetryable = errorMessage.includes('ECONNRESET') || 
+                          errorMessage.includes('ETIMEDOUT') || 
+                          errorMessage.includes('ECONNREFUSED');
+      
+      if (isRetryable && attempt < maxRetries) {
+        console.warn(`[Database] Upsert user failed (attempt ${attempt}/${maxRetries}), resetting connection and retrying in ${attempt * 500}ms...`);
+        await resetDbConnection(); // Reset connection pool on transient errors
+        await new Promise(resolve => setTimeout(resolve, attempt * 500));
+      } else {
+        console.error("[Database] Failed to upsert user:", error);
+        throw error;
+      }
+    }
   }
 
-  try {
-    const values: InsertUser = {
-      openId: user.openId,
-    };
-    const updateSet: Record<string, unknown> = {};
-
-    const textFields = ["name", "email", "loginMethod"] as const;
-    type TextField = (typeof textFields)[number];
-
-    const assignNullable = (field: TextField) => {
-      const value = user[field];
-      if (value === undefined) return;
-      const normalized = value ?? null;
-      values[field] = normalized;
-      updateSet[field] = normalized;
-    };
-
-    textFields.forEach(assignNullable);
-
-    if (user.lastSignedIn !== undefined) {
-      values.lastSignedIn = user.lastSignedIn;
-      updateSet.lastSignedIn = user.lastSignedIn;
-    }
-    if (user.role !== undefined) {
-      values.role = user.role;
-      updateSet.role = user.role;
-    } else if (user.openId === ENV.ownerOpenId) {
-      values.role = 'admin';
-      updateSet.role = 'admin';
-    }
-
-    if (!values.lastSignedIn) {
-      values.lastSignedIn = new Date();
-    }
-
-    if (Object.keys(updateSet).length === 0) {
-      updateSet.lastSignedIn = new Date();
-    }
-
-    await db.insert(users).values(values).onDuplicateKeyUpdate({
-      set: updateSet,
-    });
-  } catch (error) {
-    console.error("[Database] Failed to upsert user:", error);
-    throw error;
-  }
+  // If we get here, all retries failed
+  console.error("[Database] All retry attempts failed for upsert user");
+  throw lastError;
 }
 
 export async function getUserByOpenId(openId: string) {
-  const db = await getDb();
-  if (!db) {
-    console.warn("[Database] Cannot get user: database not available");
-    return undefined;
+  // Retry logic for transient database connection errors
+  const maxRetries = 3;
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    const db = await getDb();
+    if (!db) {
+      console.warn("[Database] Cannot get user: database not available");
+      return undefined;
+    }
+
+    try {
+      const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
+      return result.length > 0 ? result[0] : undefined;
+    } catch (error) {
+      lastError = error;
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const isRetryable = errorMessage.includes('ECONNRESET') || 
+                          errorMessage.includes('ETIMEDOUT') || 
+                          errorMessage.includes('ECONNREFUSED');
+      
+      if (isRetryable && attempt < maxRetries) {
+        console.warn(`[Database] Get user failed (attempt ${attempt}/${maxRetries}), resetting connection and retrying in ${attempt * 500}ms...`);
+        await resetDbConnection(); // Reset connection pool on transient errors
+        await new Promise(resolve => setTimeout(resolve, attempt * 500));
+      } else {
+        console.error("[Database] Failed to get user by openId:", error);
+        throw error;
+      }
+    }
   }
 
-  const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
-
-  return result.length > 0 ? result[0] : undefined;
+  throw lastError;
 }
 
 /**

@@ -2821,3 +2821,5 @@
 - [x] Fix setState during render error in LandingPage component (wrapped redirect in useEffect)
 
 - [x] Remove Kelly toggle option from Overview page equity curve
+
+- [x] Fix OAuth callback failed error when logging in from homepage (added retry logic for ECONNRESET)
