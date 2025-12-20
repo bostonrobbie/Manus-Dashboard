@@ -14,6 +14,7 @@ import NotFound from "./pages/NotFound";
 import LandingPage from "./pages/LandingPage";
 import Pricing from "./pages/Pricing";
 import Onboarding from "./pages/Onboarding";
+import CheckoutSuccess from "./pages/CheckoutSuccess";
 
 function Router() {
   return (
@@ -23,6 +24,8 @@ function Router() {
       <Route path="/pricing" component={Pricing} />
       
       <Route path="/onboarding" component={Onboarding} />
+      
+      <Route path="/checkout/success" component={CheckoutSuccess} />
       
       <Route path="/overview" component={() => (
         <DashboardLayout>

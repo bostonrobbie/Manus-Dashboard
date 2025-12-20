@@ -81,7 +81,7 @@ export const stripeRouter = router({
             quantity: 1,
           },
         ],
-        success_url: `${ctx.req.headers.origin}/my-dashboard?payment=success&tier=${tier}`,
+        success_url: `${ctx.req.headers.origin}/checkout/success?tier=${tier}`,
         cancel_url: `${ctx.req.headers.origin}/pricing?payment=canceled`,
       });
 

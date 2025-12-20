@@ -40,6 +40,7 @@ import {
 } from '@/components/ui/dialog';
 import { RiskDisclaimerModal } from '@/components/RiskDisclaimerModal';
 import { NotificationSettings } from '@/components/NotificationSettings';
+import OnboardingChecklist from '@/components/OnboardingChecklist';
 import {
   LineChart as RechartsLine,
   Line,
@@ -91,6 +92,7 @@ export default function UserDashboard() {
   });
   const [showSP500, setShowSP500] = useState(true);
   const [riskDisclaimerOpen, setRiskDisclaimerOpen] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(true);
 
   // Fetch user subscriptions
   const { data: subscriptions, isLoading: loadingSubscriptions, refetch: refetchSubscriptions } = 
@@ -413,6 +415,36 @@ export default function UserDashboard() {
           </TabsList>
         </Tabs>
       </div>
+
+      {/* Onboarding Checklist for new users */}
+      {showOnboarding && user?.subscriptionTier !== 'free' && (
+        <OnboardingChecklist
+          items={[
+            {
+              id: 'strategies',
+              title: 'Select Your Strategies',
+              description: 'Choose which trading strategies to follow from our portfolio',
+              href: '/my-dashboard?tab=discover',
+              completed: (subscriptions?.length || 0) > 0
+            },
+            {
+              id: 'broker',
+              title: 'Connect Your Broker',
+              description: 'Link Tradovate or IBKR for automated trade execution',
+              href: '/admin?tab=brokers',
+              completed: false // TODO: Check broker connection status
+            },
+            {
+              id: 'notifications',
+              title: 'Configure Notifications',
+              description: 'Set up email and push alerts for trade signals',
+              href: '/my-dashboard?tab=notifications',
+              completed: false // TODO: Check notification preferences
+            }
+          ]}
+          onDismiss={() => setShowOnboarding(false)}
+        />
+      )}
 
       {/* Today's Trades Section - Always visible */}
       <Card className="bg-gradient-to-br from-blue-500/5 to-transparent border-blue-500/20">

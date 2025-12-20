@@ -448,6 +448,11 @@ export default function LandingPage() {
               <span className="text-slate-300">30-day money-back guarantee</span>
             </div>
           </div>
+          
+          {/* Risk Notice */}
+          <p className="text-center text-xs text-slate-500 mt-6 max-w-2xl mx-auto">
+            Past performance is not indicative of future results. Trading involves substantial risk of loss.
+          </p>
         </div>
       </section>
 
@@ -526,6 +531,13 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="py-12 px-4 sm:px-6 lg:px-8 border-t border-slate-800">
         <div className="max-w-7xl mx-auto">
+          {/* Risk Disclaimer */}
+          <div className="mb-8 p-4 bg-slate-800/30 border border-slate-700/50 rounded-lg">
+            <p className="text-xs text-slate-500 leading-relaxed">
+              <strong className="text-slate-400">Risk Disclaimer:</strong> Trading futures and other financial instruments involves substantial risk of loss and is not suitable for all investors. Past performance is not indicative of future results. The performance data shown is based on backtested results and may not reflect actual trading conditions. You should carefully consider whether trading is appropriate for you in light of your financial condition. Never trade with money you cannot afford to lose. IntraDay Strategies provides educational and informational content only and does not provide personalized investment advice.
+            </p>
+          </div>
+          
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2">
               <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center">
@@ -533,8 +545,15 @@ export default function LandingPage() {
               </div>
               <span className="text-lg font-bold text-white">IntraDay Strategies</span>
             </div>
-            <div className="text-sm text-slate-500">
-              © 2025 IntraDay Strategies. All rights reserved.
+            <div className="flex flex-col md:flex-row items-center gap-4">
+              <div className="flex gap-4 text-sm text-slate-500">
+                <a href="#" className="hover:text-slate-300 transition-colors">Terms of Service</a>
+                <a href="#" className="hover:text-slate-300 transition-colors">Privacy Policy</a>
+                <a href="#" className="hover:text-slate-300 transition-colors">Risk Disclosure</a>
+              </div>
+              <div className="text-sm text-slate-500">
+                © 2025 IntraDay Strategies. All rights reserved.
+              </div>
             </div>
           </div>
         </div>

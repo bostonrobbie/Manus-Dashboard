@@ -2955,3 +2955,18 @@
 - [ ] Complete test Stripe purchase with test card 4242 4242 4242 4242
 - [ ] Verify subscription activates correctly in dashboard
 - [ ] Add FAQ section to landing page with common questions
+
+
+## Current Sprint: Risk Disclaimer & Welcome Emails
+
+### Risk Disclaimer
+- [x] Add risk disclaimer to landing page footer
+- [x] Add risk disclaimer near pricing section
+- [x] Add disclaimer to Stripe checkout success page
+
+### Welcome Email Sequence
+- [x] Create welcome email template for new subscribers
+- [x] Create broker connection guide email template
+- [x] Create notification setup guide email template
+- [ ] Implement email sending on subscription activation (requires email service provider integration)
+- [x] Add onboarding checklist to dashboard for new users
