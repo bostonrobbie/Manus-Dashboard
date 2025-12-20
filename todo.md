@@ -2823,3 +2823,21 @@
 - [x] Remove Kelly toggle option from Overview page equity curve
 
 - [x] Fix OAuth callback failed error when logging in from homepage (added retry logic for ECONNRESET)
+
+- [x] Test OAuth login flow from fresh browser session to verify ECONNRESET fix (confirmed working)
+
+
+## Current Sprint: Webhook Entry/Exit Signal Enhancement
+
+### Webhook Signal Type Enhancement
+- [ ] Analyze current webhook handler implementation
+- [ ] Design enhanced JSON schema with signalType (entry/exit)
+- [ ] Update database schema with trade status field (open/closed)
+- [ ] Add entryWebhookId field to link exit signals to entries
+- [ ] Implement entry signal handler (creates open trade)
+- [ ] Implement exit signal handler (closes existing trade, calculates P&L)
+- [ ] Add trade matching logic (match exit to open entry by strategy)
+- [ ] Update dashboard to show pending/open trades
+- [ ] Update dashboard to show closed trades with P&L
+- [ ] Write tests for entry/exit webhook processing
+- [ ] Update TradingView alert JSON documentation
