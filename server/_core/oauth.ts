@@ -13,6 +13,7 @@ export function registerOAuthRoutes(app: Express) {
   app.get("/api/oauth/callback", async (req: Request, res: Response) => {
     const code = getQueryParam(req, "code");
     const state = getQueryParam(req, "state");
+    const returnTo = getQueryParam(req, "returnTo");
 
     if (!code || !state) {
       res.status(400).json({ error: "code and state are required" });
@@ -44,7 +45,15 @@ export function registerOAuthRoutes(app: Express) {
       const cookieOptions = getSessionCookieOptions(req);
       res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
 
-      res.redirect(302, "/");
+      // Redirect to the intended page or dashboard overview by default
+      // Validate returnTo to prevent open redirect vulnerabilities
+      let redirectUrl = "/overview";
+      if (returnTo && returnTo.startsWith("/") && !returnTo.startsWith("//")) {
+        redirectUrl = returnTo;
+      }
+      
+      console.log("[OAuth] Login successful, redirecting to:", redirectUrl);
+      res.redirect(302, redirectUrl);
     } catch (error) {
       console.error("[OAuth] Callback failed", error);
       res.status(500).json({ error: "OAuth callback failed" });

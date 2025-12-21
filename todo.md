@@ -3245,3 +3245,33 @@
 - [ ] Test session persistence
 - [ ] Add auth health check endpoint
 - [ ] Create auth monitoring dashboard or alerts
+
+
+## Current Sprint: Auth Login Flow Fix (Dec 21, 2025) ✅ COMPLETE
+
+### Auth Bug Investigation ✅
+- [x] Investigated OAuth callback redirect logic
+- [x] Fixed redirect to go to /overview instead of / (homepage)
+- [x] Added returnTo parameter support for redirecting to intended page
+- [x] Added open redirect vulnerability protection
+
+### Auth Flow Improvements ✅
+- [x] Updated getLoginUrl() to accept optional returnTo parameter
+- [x] Updated useAuth hook to pass current path as returnTo
+- [x] Updated DashboardLayout to pass current path when redirecting to login
+- [x] Added logging for OAuth redirect debugging
+
+### Auth Monitoring Tests ✅ (20 tests)
+- [x] Test login URL generation with OAuth parameters
+- [x] Test returnTo parameter encoding
+- [x] Test OAuth callback redirect logic (default and with returnTo)
+- [x] Test open redirect prevention (reject // and https:// URLs)
+- [x] Test session cookie configuration
+- [x] Test logout flow (cookie clearing)
+- [x] Test auth state management (loading, authenticated, unauthenticated)
+- [x] Test protected route access (user and admin roles)
+- [x] Test JWT token structure validation
+
+### All Tests Passing ✅
+- 739 tests passed, 2 skipped
+- 37 test files

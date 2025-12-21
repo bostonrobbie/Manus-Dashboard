@@ -61,6 +61,9 @@ export default function DashboardLayout({
   }
 
   if (!user) {
+    // Get current path to redirect back after login
+    const currentPath = typeof window !== 'undefined' ? window.location.pathname : '/overview';
+    
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="flex flex-col items-center gap-8 p-8 max-w-md w-full">
@@ -74,7 +77,7 @@ export default function DashboardLayout({
           </div>
           <Button
             onClick={() => {
-              window.location.href = getLoginUrl();
+              window.location.href = getLoginUrl(currentPath);
             }}
             size="lg"
             className="w-full shadow-lg hover:shadow-xl transition-all"

@@ -65,12 +65,17 @@ export function useAuth(options?: UseAuthOptions) {
     if (meQuery.isLoading || logoutMutation.isPending) return;
     if (state.user) return;
     if (typeof window === "undefined") return;
-    if (window.location.pathname === redirectPath) return;
+    
+    // Get the login URL with returnTo set to current path
+    const currentPath = window.location.pathname;
+    const loginUrl = getLoginUrl(currentPath);
+    
+    // Avoid redirect loop if already on login page
+    if (window.location.href.includes('app-auth')) return;
 
-    window.location.href = redirectPath
+    window.location.href = loginUrl;
   }, [
     redirectOnUnauthenticated,
-    redirectPath,
     logoutMutation.isPending,
     meQuery.isLoading,
     state.user,
