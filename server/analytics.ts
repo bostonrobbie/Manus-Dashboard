@@ -3,6 +3,12 @@
  * Comprehensive calculations for trading strategy performance metrics
  */
 
+import {
+  calculateDailyEquityCurve as calculateDailyEquityCurveSync,
+  calculateDailySharpeRatio as calculateDailySharpeRatioSync,
+  calculateDailySortinoRatio as calculateDailySortinoRatioSync,
+} from './core/dailyEquityCurve';
+
 export interface Trade {
   id: number;
   strategyId: number;
@@ -504,7 +510,7 @@ export function calculatePerformanceMetrics(
   const avgLoss = losingTrades.length > 0 ? totalLosses / losingTrades.length : 0;
   const profitFactor = totalLosses > 0 ? totalWins / totalLosses : totalWins > 0 ? Infinity : 0;
 
-  // Calculate equity curve for drawdown and Sharpe
+  // Calculate equity curve for drawdown (trade-by-trade for display)
   const equityCurve = calculateEquityCurve(trades, startingCapital);
   const maxDrawdown = Math.max(...equityCurve.map(p => p.drawdown), 0);
 
@@ -521,42 +527,17 @@ export function calculatePerformanceMetrics(
     }
   }
 
-  // Calculate daily returns for Sharpe and Sortino
-  const dailyReturns: number[] = [];
-  for (let i = 1; i < equityCurve.length; i++) {
-    const prevEquity = equityCurve[i - 1]!.equity;
-    const currEquity = equityCurve[i]!.equity;
-    const dailyReturn = (currEquity - prevEquity) / prevEquity;
-    dailyReturns.push(dailyReturn);
-  }
-
-  const avgDailyReturn = dailyReturns.length > 0
-    ? dailyReturns.reduce((sum, r) => sum + r, 0) / dailyReturns.length
-    : 0;
-
-  const stdDev = dailyReturns.length > 1
-    ? Math.sqrt(
-        dailyReturns.reduce((sum, r) => sum + Math.pow(r - avgDailyReturn, 2), 0) /
-          (dailyReturns.length - 1)
-      )
-    : 0;
-
-  const sharpeRatio = stdDev > 0
-    ? (avgDailyReturn / stdDev) * Math.sqrt(252) // Annualized
-    : 0;
-
-  // Sortino ratio (only downside deviation)
-  const downsideReturns = dailyReturns.filter(r => r < 0);
-  const downsideStdDev = downsideReturns.length > 1
-    ? Math.sqrt(
-        downsideReturns.reduce((sum, r) => sum + Math.pow(r, 2), 0) /
-          (downsideReturns.length - 1)
-      )
-    : 0;
-
-  const sortinoRatio = downsideStdDev > 0
-    ? (avgDailyReturn / downsideStdDev) * Math.sqrt(252) // Annualized
-    : sharpeRatio; // Fallback to Sharpe if no downside
+  // ============================================================
+  // INDUSTRY-STANDARD SHARPE/SORTINO CALCULATION
+  // Uses proper daily equity curve with forward-filling
+  // ============================================================
+  
+  // Calculate proper daily equity curve
+  const dailyEquityResult = calculateDailyEquityCurveSync(trades, startingCapital);
+  
+  // Use proper daily returns for Sharpe/Sortino
+  const sharpeRatio = calculateDailySharpeRatioSync(dailyEquityResult.dailyReturns);
+  const sortinoRatio = calculateDailySortinoRatioSync(dailyEquityResult.dailyReturns)
 
   // Calmar ratio: annualized return / max drawdown
   const calmarRatio = maxDrawdown > 0 ? annualizedReturn / maxDrawdown : 0;

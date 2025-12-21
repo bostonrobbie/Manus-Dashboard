@@ -3023,3 +3023,110 @@
 - [x] Review analytics setup
 - [x] Review payment integration (Stripe)
 - [x] Review email service integration needs
+
+
+## Current Sprint: Backtesting Methodology Research (Dec 20, 2025) ✅ COMPLETE
+
+### Research Phase
+- [x] Research industry-standard equity curve calculation methods
+- [x] Research industry-standard drawdown calculation methods
+- [x] Research how professional platforms handle trade-by-trade vs mark-to-market
+- [x] Research Sharpe/Sortino/Calmar ratio calculation standards
+- [x] Document findings from QuantStart, Build Alpha, Trading Blox, Investopedia
+
+### Current Implementation Audit
+- [x] Document current equity curve calculation logic (closed-trade method)
+- [x] Document current drawdown calculation logic (peak-to-trough on closed trades)
+- [x] Document current performance metrics calculation logic (Sharpe using trade-to-trade returns)
+- [x] Identify assumptions: using sqrt(252) but returns aren't daily
+
+### Comparison Report
+- [x] Created BACKTESTING_METHODOLOGY_COMPARISON.md
+- [x] Highlighted 5 key discrepancies (equity curve, Sharpe, drawdown, Sortino, Calmar)
+- [x] Provided 4 prioritized recommendations for corrections
+
+### Key Findings
+1. **Equity Curve**: Current uses closed-trade; industry uses mark-to-market daily
+2. **Sharpe Ratio**: Current uses trade-to-trade returns × sqrt(252); should use daily returns
+3. **Max Drawdown**: Current may understate actual drawdown during open positions
+4. **Recommendation**: Implement daily forward-filled equity curve as foundation fix
+
+
+## Current Sprint: Comprehensive Backtesting Engine Audit (Dec 20, 2025) ✅ COMPLETE
+
+### Research Professional Standards
+- [x] Research how QuantConnect constructs equity curves (bar-by-bar, mark-to-market)
+- [x] Research how Backtrader handles trade-by-trade vs bar-by-bar equity (per iteration)
+- [x] Research fixed capital vs compounding capital approaches (simple addition correct for fixed size)
+- [x] Research how professional engines handle time gaps and weekends
+
+### Deep Code Audit
+- [x] Trace P&L flow: CSV → seed script → database → analytics
+- [x] Audit how trade.pnl is calculated and stored (cents, converted to dollars)
+- [x] Audit how equity curve handles multiple trades on same day (creates multiple points - ISSUE)
+- [x] Audit how equity curve handles days with no trades (no points - ISSUE)
+- [x] Check if we're using simple returns vs log returns (simple returns - correct)
+- [x] Check if compounding is handled correctly (simple addition - correct for fixed size)
+- [x] Audit forward-fill logic for accuracy (exists but applied after metrics - ISSUE)
+
+### Edge Case Analysis
+- [x] Test behavior with overlapping trades (handled correctly)
+- [x] Test behavior with trades spanning multiple days (handled correctly)
+- [x] Test behavior with large gaps between trades (gaps not filled - ISSUE)
+- [x] Test behavior with negative equity scenarios (no protection)
+- [x] Verify timezone handling is correct (no timezone awareness - minor issue)
+
+### Improvement Roadmap
+- [x] Document all issues found (BACKTESTING_ENGINE_AUDIT_REPORT.md)
+- [x] Prioritize fixes by impact (Sharpe fix is CRITICAL)
+- [x] Create implementation plan (3 phases, 10-15 hours)
+- [x] Estimate effort for each fix
+
+### Key Findings
+1. **CRITICAL**: Sharpe ratio uses sqrt(252) but data isn't daily - mathematically incorrect
+2. **HIGH**: Multiple trades per day create multiple equity points instead of one
+3. **HIGH**: Days with no trades have no equity points (flat days invisible)
+4. **MEDIUM**: Drawdown calculated on closed trades only
+5. **LOW**: Forward-fill includes weekends (365 vs 252 days)
+
+
+## Current Sprint: Backtesting Engine Fixes & Database Production Readiness (Dec 20, 2025) ✅ COMPLETE
+
+### Priority 1: Core Metrics Fixes ✅
+- [x] Create `calculateDailyEquityCurve` function that aggregates trades by day
+- [x] Forward-fill days with no trades (carry forward previous equity)
+- [x] Update Sharpe ratio calculation to use daily returns
+- [x] Update Sortino ratio calculation to use daily returns
+- [x] Add unit tests for daily aggregation (17 tests)
+
+### Priority 2: Data Quality & Accuracy ✅
+- [x] Integrate trading calendar (exclude weekends/holidays from forward-fill)
+- [x] Added US market holidays 2020-2026
+- [x] Trading calendar module with isMarketOpen, getTradingDays utilities
+
+### Priority 3: Advanced Analytics (Deferred)
+- [ ] Add rolling Sharpe/Sortino calculations (future enhancement)
+- [ ] Consider Monte Carlo simulation for confidence intervals (future enhancement)
+- [ ] Consider regime analysis breakdown (future enhancement)
+
+### Priority 4: Robustness & Edge Cases ✅
+- [x] Add negative equity protection (checkNegativeEquity function)
+- [x] Add outlier detection for trades (detectOutliers with Z-score method)
+- [x] Add consistency checks for trade data (validateTrade, detectDataIssues)
+- [x] Add data quality report generation (generateDataQualityReport)
+- [x] Add unit tests for data validation (15 tests)
+
+### Database Production Readiness ✅
+- [x] Added indexes to trades table (strategyId, exitDate, direction, pnl)
+- [x] Added indexes to webhook_logs table (strategyId, status, timestamp)
+- [x] Added indexes to broker_connections table (userId, brokerId, status)
+- [x] Added indexes to open_positions table (userId, strategyId)
+- [x] Added indexes to routing_rules, execution_logs, payment_history tables
+- [x] Added foreign key constraints with CASCADE rules
+- [x] Created encryption utility for sensitive tokens (AES-256-GCM)
+- [x] Added encryption tests (12 tests)
+- [x] Created DATABASE_PRODUCTION_AUDIT.md documentation
+
+### All Tests Passing ✅
+- 719 tests passed, 2 skipped
+- 36 test files

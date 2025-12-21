@@ -1,4 +1,4 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, decimal, datetime, boolean } from "drizzle-orm/mysql-core";
+import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, decimal, datetime, boolean, index } from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
@@ -63,7 +63,11 @@ export const trades = mysqlTable("trades", {
   pnlPercent: int("pnlPercent").notNull(), // P&L as percentage (multiply by 10000, e.g., 1.5% = 15000)
   commission: int("commission").default(0).notNull(), // Commission in cents
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-});
+}, (table) => ({
+  strategyIdx: index("idx_trades_strategy").on(table.strategyId),
+  exitDateIdx: index("idx_trades_exit_date").on(table.exitDate),
+  strategyExitIdx: index("idx_trades_strategy_exit").on(table.strategyId, table.exitDate),
+}));
 
 export type Trade = typeof trades.$inferSelect;
 export type InsertTrade = typeof trades.$inferInsert;
@@ -112,7 +116,11 @@ export const webhookLogs = mysqlTable("webhook_logs", {
   processingTimeMs: int("processingTimeMs"), // How long processing took
   errorMessage: text("errorMessage"), // Error details if failed
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-});
+}, (table) => ({
+  strategyIdx: index("idx_webhook_logs_strategy").on(table.strategyId),
+  statusIdx: index("idx_webhook_logs_status").on(table.status),
+  createdIdx: index("idx_webhook_logs_created").on(table.createdAt),
+}));
 
 export type WebhookLog = typeof webhookLogs.$inferSelect;
 export type InsertWebhookLog = typeof webhookLogs.$inferInsert;
@@ -144,7 +152,10 @@ export const brokerConnections = mysqlTable("broker_connections", {
   lastError: text("lastError"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-});
+}, (table) => ({
+  userIdx: index("idx_broker_connections_user").on(table.userId),
+  statusIdx: index("idx_broker_connections_status").on(table.status),
+}));
 
 export type BrokerConnection = typeof brokerConnections.$inferSelect;
 export type InsertBrokerConnection = typeof brokerConnections.$inferInsert;
@@ -173,7 +184,10 @@ export const routingRules = mysqlTable("routing_rules", {
   priority: int("priority").default(0).notNull(), // Higher = evaluated first
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-});
+}, (table) => ({
+  userIdx: index("idx_routing_rules_user").on(table.userId),
+  brokerIdx: index("idx_routing_rules_broker").on(table.brokerConnectionId),
+}));
 
 export type RoutingRule = typeof routingRules.$inferSelect;
 export type InsertRoutingRule = typeof routingRules.$inferInsert;
@@ -208,7 +222,11 @@ export const executionLogs = mysqlTable("execution_logs", {
   // Metadata
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-});
+}, (table) => ({
+  webhookIdx: index("idx_execution_logs_webhook").on(table.webhookLogId),
+  brokerIdx: index("idx_execution_logs_broker").on(table.brokerConnectionId),
+  statusIdx: index("idx_execution_logs_status").on(table.status),
+}));
 
 export type ExecutionLog = typeof executionLogs.$inferSelect;
 export type InsertExecutionLog = typeof executionLogs.$inferInsert;
@@ -316,7 +334,11 @@ export const paymentHistory = mysqlTable("payment_history", {
   description: text("description"),
   // Metadata
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-});
+}, (table) => ({
+  userIdx: index("idx_payment_history_user").on(table.userId),
+  statusIdx: index("idx_payment_history_status").on(table.status),
+  createdIdx: index("idx_payment_history_created").on(table.createdAt),
+}));
 
 export type PaymentHistoryRecord = typeof paymentHistory.$inferSelect;
 export type InsertPaymentHistory = typeof paymentHistory.$inferInsert;
@@ -459,7 +481,11 @@ export const openPositions = mysqlTable("open_positions", {
   // Metadata
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-});
+}, (table) => ({
+  strategyIdx: index("idx_open_positions_strategy").on(table.strategyId),
+  statusIdx: index("idx_open_positions_status").on(table.status),
+  strategyStatusIdx: index("idx_open_positions_strategy_status").on(table.strategyId, table.status),
+}));
 
 export type OpenPosition = typeof openPositions.$inferSelect;
 export type InsertOpenPosition = typeof openPositions.$inferInsert;
