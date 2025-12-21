@@ -3176,3 +3176,49 @@
 ### All Tests Passing ✅
 - 719 tests passed, 2 skipped
 - 36 test files
+
+
+## Current Sprint: Overview Page Sharpe & Email Integration (Dec 21, 2025)
+
+### Wire Daily Sharpe to Overview Page
+- [ ] Update portfolio.overview tRPC procedure to include daily Sharpe/Sortino
+- [ ] Update Overview page to display both daily and trade-based metrics
+- [ ] Add "Daily" badge indicator to Overview page metrics
+
+### Add Explanatory Tooltips
+- [ ] Create reusable MetricTooltip component
+- [ ] Add tooltip to Sharpe ratio explaining daily vs trade-based
+- [ ] Add tooltip to Sortino ratio with same explanation
+- [ ] Style tooltips for readability
+
+### Resend Email Integration
+- [ ] Install Resend SDK
+- [ ] Create email service wrapper with Resend
+- [ ] Update welcome email templates for Resend format
+- [ ] Create tRPC procedure for sending welcome emails
+- [ ] Wire email sending to subscription activation webhook
+
+
+## Current Sprint: Overview Page & Email Integration (Dec 21, 2025) ✅ COMPLETE
+
+### Overview Page Daily Metrics
+- [x] Wire daily Sharpe/Sortino calculation to portfolio.overview endpoint
+- [x] Update Overview page to display both daily and trade-based metrics
+- [x] Add "Daily" badge to indicate industry-standard calculation
+
+### Explanatory Tooltips
+- [x] Create MetricTooltip component with pre-defined explanations
+- [x] Add tooltips to Sharpe and Sortino ratio cards on Overview page
+- [x] Add tooltips to StrategyDetail page metrics
+
+### Resend Email Integration
+- [x] Install Resend SDK
+- [x] Create resendEmail.ts service with welcome email template
+- [x] Add RESEND_API_KEY and EMAIL_FROM to environment config
+- [x] Create Stripe webhook handler for subscription events
+- [x] Wire welcome email to checkout.session.completed event
+- [x] Register Stripe webhook route in Express app
+
+### All Tests Passing ✅
+- 719 tests passed, 2 skipped
+- 36 test files

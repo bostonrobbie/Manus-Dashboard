@@ -20,6 +20,7 @@ import { PortfolioSummary } from "@/components/PortfolioSummary";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { DistributionSnapshot } from "@/components/DistributionSnapshot";
+import { MetricTooltip, METRIC_TOOLTIPS } from "@/components/MetricTooltip";
 
 type TimeRange = '6M' | 'YTD' | '1Y' | '3Y' | '5Y' | '10Y' | 'ALL';
 
@@ -240,12 +241,29 @@ export default function Overview() {
               </div>
             </div>
 
-            {/* Sortino Ratio */}
+            {/* Sortino Ratio - Daily (Industry Standard) */}
             <div className="bg-muted/30 border border-muted rounded-lg p-4 text-center">
-              <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">Sortino Ratio</div>
-              <div className="text-3xl font-bold mb-1">{metrics.sortinoRatio.toFixed(2)}</div>
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2 flex items-center justify-center gap-1">
+                Sortino Ratio
+                <Badge variant="outline" className="text-[8px] px-1 py-0 h-4 bg-emerald-500/10 text-emerald-500 border-emerald-500/30">Daily</Badge>
+                <MetricTooltip {...METRIC_TOOLTIPS.sortinoDaily} />
+              </div>
+              <div className="text-3xl font-bold mb-1">{data.dailyMetrics?.sortino?.toFixed(2) ?? metrics.sortinoRatio.toFixed(2)}</div>
               <div className="text-xs text-muted-foreground">
-                Downside risk
+                Trade-based: {metrics.sortinoRatio.toFixed(2)}
+              </div>
+            </div>
+
+            {/* Sharpe Ratio - Daily (Industry Standard) */}
+            <div className="bg-muted/30 border border-muted rounded-lg p-4 text-center">
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2 flex items-center justify-center gap-1">
+                Sharpe Ratio
+                <Badge variant="outline" className="text-[8px] px-1 py-0 h-4 bg-emerald-500/10 text-emerald-500 border-emerald-500/30">Daily</Badge>
+                <MetricTooltip {...METRIC_TOOLTIPS.sharpeDaily} />
+              </div>
+              <div className="text-3xl font-bold mb-1">{data.dailyMetrics?.sharpe?.toFixed(2) ?? metrics.sharpeRatio.toFixed(2)}</div>
+              <div className="text-xs text-muted-foreground">
+                Trade-based: {metrics.sharpeRatio.toFixed(2)}
               </div>
             </div>
 

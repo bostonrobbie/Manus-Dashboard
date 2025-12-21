@@ -7,4 +7,8 @@ export const ENV = {
   isProduction: process.env.NODE_ENV === "production",
   forgeApiUrl: process.env.BUILT_IN_FORGE_API_URL ?? "",
   forgeApiKey: process.env.BUILT_IN_FORGE_API_KEY ?? "",
+  // Email configuration
+  RESEND_API_KEY: process.env.RESEND_API_KEY ?? "",
+  EMAIL_FROM: process.env.EMAIL_FROM ?? "IntraDay Strategies <noreply@intradaystrategies.com>",
+  VITE_APP_URL: process.env.VITE_APP_URL ?? "",
 };

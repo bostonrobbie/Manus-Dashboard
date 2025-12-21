@@ -8,6 +8,7 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import webhookRouter from "../webhooks";
+import stripeWebhookRouter from "../stripe/stripeWebhook";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -38,6 +39,8 @@ async function startServer() {
   registerOAuthRoutes(app);
   // Webhook endpoints (mounted at /api/webhook to match UI display)
   app.use("/api/webhook", webhookRouter);
+  // Stripe webhook (must be before json body parser for raw body access)
+  app.use("/api/stripe/webhook", stripeWebhookRouter);
   // tRPC API
   app.use(
     "/api/trpc",

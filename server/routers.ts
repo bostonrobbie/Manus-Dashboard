@@ -9,6 +9,7 @@ import * as breakdown from "./breakdown";
 import * as brokerService from "./brokerService";
 import * as subscriptionService from "./subscriptionService";
 import * as dataValidation from "./core/dataValidation";
+import * as dailyEquityCurve from "./core/dailyEquityCurve";
 import { stripeRouter } from "./stripe/stripeRouter";
 
 // Time range enum for filtering  
@@ -294,6 +295,12 @@ export const appRouter = router({
         const effectiveStartDate = startDate || (allTrades.length > 0 ? allTrades[0]!.entryDate : now);
         const summary = analytics.generatePortfolioSummary(metrics, underwater, effectiveStartDate, now);
 
+        // Calculate industry-standard daily Sharpe/Sortino using proper daily equity curve
+        const dailyEquityResult = dailyEquityCurve.calculateDailyEquityCurve(allTrades, startingCapital);
+        const dailySharpe = dailyEquityCurve.calculateDailySharpeRatio(dailyEquityResult.dailyReturns);
+        const dailySortino = dailyEquityCurve.calculateDailySortinoRatio(dailyEquityResult.dailyReturns);
+        const tradingDaysCount = dailyEquityResult.tradingDays;
+
         // Calculate daily returns distribution
         const distribution = analytics.calculateDailyReturnsDistribution(portfolioEquity);
 
@@ -305,6 +312,13 @@ export const appRouter = router({
           metrics,
           tradeStats: metrics.tradeStats, // Expose tradeStats directly for easier frontend access
           summary, // Portfolio narrative summary
+          // Industry-standard daily-based metrics
+          dailyMetrics: {
+            sharpe: dailySharpe,
+            sortino: dailySortino,
+            tradingDays: tradingDaysCount,
+            tradesPerDay: tradingDaysCount > 0 ? allTrades.length / tradingDaysCount : 0,
+          },
           portfolioEquity,
           benchmarkEquity,
           underwater,

@@ -12,6 +12,7 @@ import { TradeFilters, TradeFilterState } from "@/components/TradeFilters";
 import { exportTradesToCSV } from "@/lib/csvExport";
 import { Button } from "@/components/ui/button";
 import { DataQualityBadge } from "@/components/DataQualityBadge";
+import { MetricTooltip, METRIC_TOOLTIPS } from "@/components/MetricTooltip";
 
 type TimeRange = '6M' | 'YTD' | '1Y' | '5Y' | '10Y' | 'ALL';
 
