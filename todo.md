@@ -3275,3 +3275,36 @@
 ### All Tests Passing ✅
 - 739 tests passed, 2 skipped
 - 37 test files
+
+## Current Sprint: Backtesting Engine Integration & QA Auth Flow (Dec 21, 2025)
+
+### Backtesting Engine Integration
+- [ ] Review dailyEquityCurve.ts module and trading calendar
+- [ ] Integrate daily equity curve into portfolio.overview procedure
+- [ ] Update Sharpe/Sortino to use daily returns (industry standard)
+- [ ] Update strategy detail page to use daily-based metrics
+- [ ] Verify calculations match audit report specifications
+
+### QA Auth Flow Test Suite (Executable)
+- [ ] Create auth flow QA script that can be run programmatically
+- [ ] Test login URL generation and OAuth redirect
+- [ ] Test session cookie creation and validation
+- [ ] Test protected route access with valid/invalid sessions
+- [ ] Test logout flow and cookie clearing
+- [ ] Test admin vs user role access
+- [ ] Generate QA report with pass/fail status
+
+### Completed ✅
+- [x] Review dailyEquityCurve.ts module and trading calendar
+- [x] Integrate daily equity curve into portfolio.overview procedure (already done)
+- [x] Update Sharpe/Sortino to use daily returns (industry standard) (already done)
+- [x] Update strategy detail page to use daily-based metrics (already done)
+- [x] Verify calculations match audit report specifications
+- [x] Create auth flow QA script that can be run programmatically
+- [x] Test login URL generation and OAuth redirect
+- [x] Test session cookie creation and validation
+- [x] Test protected route access with valid/invalid sessions
+- [x] Test logout flow and cookie clearing
+- [x] Test admin vs user role access
+- [x] Generate QA report with pass/fail status
+- [x] All 748 tests passing
