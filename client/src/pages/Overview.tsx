@@ -217,15 +217,15 @@ export default function Overview() {
             </div>
           </div>
 
-          {/* Key Metrics Cards - At Top */}
-          <div className="grid gap-2 sm:gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
+          {/* Key Metrics Cards - All in one row with auto-sizing */}
+          <div className="grid gap-2 sm:gap-3 grid-cols-3 lg:grid-cols-6">
             {/* Total Return */}
             <div className="bg-muted/30 border border-muted rounded-lg p-4 text-center">
               <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">Total Return</div>
-              <div className={`text-3xl font-bold mb-1 ${
+              <div className={`text-2xl sm:text-3xl font-bold mb-1 truncate ${
                 metrics.totalReturn >= 0 ? 'text-green-500' : 'text-red-500'
               }`}>
-                {metrics.totalReturn >= 0 ? '+' : ''}${Math.round((metrics.totalReturn / 100) * startingCapital).toLocaleString()}
+                <span className="truncate">{metrics.totalReturn >= 0 ? '+' : ''}${Math.round((metrics.totalReturn / 100) * startingCapital).toLocaleString()}</span>
               </div>
               <div className="text-xs text-muted-foreground">
                 {metrics.totalReturn.toFixed(2)}% ({metrics.annualizedReturn.toFixed(2)}% ann.)
@@ -235,7 +235,7 @@ export default function Overview() {
             {/* Max Drawdown */}
             <div className="bg-muted/30 border border-muted rounded-lg p-4 text-center">
               <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">Max Drawdown</div>
-              <div className="text-3xl font-bold mb-1 text-amber-500">-${Math.round((metrics.maxDrawdown / 100) * startingCapital).toLocaleString()}</div>
+              <div className="text-2xl sm:text-3xl font-bold mb-1 text-amber-500 truncate">-${Math.round((metrics.maxDrawdown / 100) * startingCapital).toLocaleString()}</div>
               <div className="text-xs text-muted-foreground">
                 {metrics.maxDrawdown.toFixed(2)}% peak to trough
               </div>
@@ -248,7 +248,7 @@ export default function Overview() {
                 <Badge variant="outline" className="text-[8px] px-1 py-0 h-4 bg-emerald-500/10 text-emerald-500 border-emerald-500/30">Daily</Badge>
                 <MetricTooltip {...METRIC_TOOLTIPS.sortinoDaily} />
               </div>
-              <div className="text-3xl font-bold mb-1">{data.dailyMetrics?.sortino?.toFixed(2) ?? metrics.sortinoRatio.toFixed(2)}</div>
+              <div className="text-2xl sm:text-3xl font-bold mb-1 truncate">{data.dailyMetrics?.sortino?.toFixed(2) ?? metrics.sortinoRatio.toFixed(2)}</div>
               <div className="text-xs text-muted-foreground">
                 Trade-based: {metrics.sortinoRatio.toFixed(2)}
               </div>
@@ -261,7 +261,7 @@ export default function Overview() {
                 <Badge variant="outline" className="text-[8px] px-1 py-0 h-4 bg-emerald-500/10 text-emerald-500 border-emerald-500/30">Daily</Badge>
                 <MetricTooltip {...METRIC_TOOLTIPS.sharpeDaily} />
               </div>
-              <div className="text-3xl font-bold mb-1">{data.dailyMetrics?.sharpe?.toFixed(2) ?? metrics.sharpeRatio.toFixed(2)}</div>
+              <div className="text-2xl sm:text-3xl font-bold mb-1 truncate">{data.dailyMetrics?.sharpe?.toFixed(2) ?? metrics.sharpeRatio.toFixed(2)}</div>
               <div className="text-xs text-muted-foreground">
                 Trade-based: {metrics.sharpeRatio.toFixed(2)}
               </div>
@@ -270,7 +270,7 @@ export default function Overview() {
             {/* Win Rate */}
             <div className="bg-muted/30 border border-muted rounded-lg p-4 text-center">
               <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">Win Rate</div>
-              <div className="text-3xl font-bold mb-1">{metrics.winRate.toFixed(1)}%</div>
+              <div className="text-2xl sm:text-3xl font-bold mb-1 truncate">{metrics.winRate.toFixed(1)}%</div>
               <div className="text-xs text-muted-foreground">
                 {metrics.totalTrades.toLocaleString()} trades
               </div>
@@ -279,31 +279,14 @@ export default function Overview() {
             {/* Calmar Ratio */}
             <div className="bg-muted/30 border border-muted rounded-lg p-4 text-center">
               <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">Calmar Ratio</div>
-              <div className="text-3xl font-bold mb-1">{metrics.calmarRatio.toFixed(2)}</div>
+              <div className="text-2xl sm:text-3xl font-bold mb-1 truncate">{metrics.calmarRatio.toFixed(2)}</div>
               <div className="text-xs text-muted-foreground">
                 Return / DD
               </div>
             </div>
           </div>
 
-          {/* Portfolio Summary */}
-          {data.summary && (
-            <div className="bg-gradient-to-br from-primary/5 to-primary/10 border border-primary/20 rounded-lg p-4">
-              <div className="flex gap-3">
-                <div className="p-2 bg-primary/15 rounded-lg flex-shrink-0 h-fit">
-                  <Info className="w-5 h-5 text-primary" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-xs font-semibold text-primary mb-1.5 uppercase tracking-wide">
-                    Portfolio Summary
-                  </h3>
-                  <p className="text-sm leading-relaxed text-foreground/90">
-                    {data.summary}
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
+          {/* Portfolio Summary removed per user request */}
         </CardContent>
       </Card>
 

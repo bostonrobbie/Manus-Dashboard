@@ -118,53 +118,16 @@ function DashboardLayoutContent({
   const { state, toggleSidebar, setOpenMobile, openMobile, setOpen } = useSidebar();
   const isCollapsed = state === "collapsed";
   const [isResizing, setIsResizing] = useState(false);
-  const [isHovering, setIsHovering] = useState(false);
+
   const sidebarRef = useRef<HTMLDivElement>(null);
-  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   const isMobile = useIsMobile();
   
   // Filter menu items based on user role
   const isAdmin = user?.role === 'admin';
   const menuItems = baseMenuItems.filter(item => !item.adminOnly || isAdmin);
   
-  // Handle hover to expand sidebar with delay to prevent accidental triggers
-  const handleMouseEnter = () => {
-    if (isMobile) return;
-    if (hoverTimeoutRef.current) {
-      clearTimeout(hoverTimeoutRef.current);
-      hoverTimeoutRef.current = null;
-    }
-    // Add 500ms delay before expanding to prevent accidental triggers
-    hoverTimeoutRef.current = setTimeout(() => {
-      setIsHovering(true);
-      if (isCollapsed) {
-        setOpen(true);
-      }
-    }, 500);
-  };
-  
-  const handleMouseLeave = () => {
-    if (isMobile) return;
-    if (hoverTimeoutRef.current) {
-      clearTimeout(hoverTimeoutRef.current);
-      hoverTimeoutRef.current = null;
-    }
-    // Immediate collapse when mouse leaves
-    setIsHovering(false);
-    // Only collapse if it was expanded via hover
-    if (!isCollapsed) {
-      setOpen(false);
-    }
-  };
-  
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (hoverTimeoutRef.current) {
-        clearTimeout(hoverTimeoutRef.current);
-      }
-    };
-  }, []);
+  // Navigation is now click-only (no hover expansion) for better UX
   const activeMenuItem = menuItems.find(item => item.path === location);
 
   useEffect(() => {
@@ -208,8 +171,6 @@ function DashboardLayoutContent({
       <div 
         className="relative" 
         ref={sidebarRef}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
       >
         <Sidebar
           collapsible="icon"

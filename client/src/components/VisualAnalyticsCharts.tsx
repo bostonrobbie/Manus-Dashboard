@@ -47,11 +47,12 @@ export function VisualAnalyticsCharts({ timeRange }: VisualAnalyticsChartsProps)
     return aNum - bNum;
   });
 
-  // Prepare day of week data
-  const dayOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  // Prepare day of week data - only show Monday-Friday for intraday strategies
+  // Weekend trades (if any) are likely data entry errors or timezone issues
+  const dayOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
   const dayOfWeekData = dayOrder
     .map(day => data.dayOfWeekPerformance.find(d => d.dayOfWeek === day))
-    .filter(Boolean)
+    .filter(d => d && d.trades > 0) // Only include days with actual trades
     .map(day => ({
       day: day!.dayOfWeek.slice(0, 3),
       trades: day!.trades,

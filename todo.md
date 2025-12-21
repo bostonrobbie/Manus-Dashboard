@@ -3339,3 +3339,47 @@
 - [ ] Improve hero section CTA text
 - [ ] Add competitor comparison table
 - [ ] Add trust badges
+
+
+## Current Sprint: User-Requested Improvements - December 21, 2025
+
+### Pricing & Marketing
+- [ ] Add $500/year annual pricing option to landing page
+
+### Navigation & UX
+- [ ] Fix navigation menu to click-to-open instead of hover (reduce lag)
+- [ ] Make page icons clickable to navigate directly to pages
+
+### Portfolio Overview Page
+- [ ] Remove Portfolio Summary component from Overview page
+- [ ] Format metric boxes to stay in one line
+- [ ] Auto-size text to stay within box boundaries on screen resize
+
+### Data Quality
+- [ ] Investigate Sunday trades in day-of-week breakdown
+- [ ] Fix any incorrectly dated trades
+- [ ] Ensure no trades appear on weekends (intraday strategies only)
+
+### Admin & Testing
+- [ ] Fix Clear Logs button functionality
+- [ ] Ensure test data is properly cleaned from database after tests
+
+
+## Current Sprint: User-Requested Improvements (Dec 21, 2024)
+
+### Pricing & Marketing
+- [x] Add $500/year annual pricing option with billing toggle
+
+### Navigation & UX
+- [x] Fix navigation menu (click-to-open instead of hover)
+- [x] Remove Portfolio Summary from Overview page
+- [x] Fix metric box layout (all in one row, auto-sizing text)
+
+### Data Quality
+- [x] Investigate Sunday trades data issue (filtered to Mon-Fri only in charts)
+- [x] Fix Clear Logs button functionality (improved SQL count query)
+- [x] Test webhook validates without persisting test data
+
+### Testing
+- [x] All 748 tests passing
+- [x] TypeScript compilation: 0 errors

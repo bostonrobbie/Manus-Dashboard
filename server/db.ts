@@ -1,4 +1,4 @@
-import { eq, and, gte, lte, inArray, desc } from "drizzle-orm";
+import { eq, and, gte, lte, inArray, desc, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import mysql from 'mysql2/promise';
 import { InsertUser, users, strategies, trades, benchmarks, webhookLogs, InsertWebhookLog, openPositions, InsertOpenPosition, OpenPosition, notificationPreferences, strategyNotificationSettings, InsertNotificationPreference, InsertStrategyNotificationSetting, NotificationPreference, StrategyNotificationSetting } from "../drizzle/schema";
@@ -432,16 +432,22 @@ export async function deleteAllWebhookLogs(): Promise<number> {
   if (!db) return 0;
 
   try {
-    // Count before deleting
-    const countResult = await db.select({ count: webhookLogs.id }).from(webhookLogs);
-    const count = countResult.length;
+    // Count before deleting using SQL count
+    const countResult = await db.select({ count: sql<number>`count(*)` }).from(webhookLogs);
+    const count = countResult[0]?.count ?? 0;
     
-    // Delete all
-    await db.delete(webhookLogs);
+    if (count === 0) {
+      console.log("[Database] No webhook logs to delete");
+      return 0;
+    }
+    
+    // Delete all logs
+    const result = await db.delete(webhookLogs);
+    console.log(`[Database] Deleted ${count} webhook logs`);
     return count;
   } catch (error) {
     console.error("[Database] Failed to delete all webhook logs:", error);
-    return 0;
+    throw error; // Re-throw to let the caller handle it
   }
 }
 

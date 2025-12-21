@@ -31,6 +31,7 @@ export default function LandingPage() {
   const [, setLocation] = useLocation();
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [billingInterval, setBillingInterval] = useState<'monthly' | 'annual'>('monthly');
 
   // Stripe checkout mutation
   const checkoutMutation = trpc.stripe.createCheckoutSession.useMutation({
@@ -54,7 +55,7 @@ export default function LandingPage() {
     setIsCheckingOut(true);
     checkoutMutation.mutate({
       tier: 'pro',
-      interval: 'monthly',
+      interval: billingInterval === 'annual' ? 'yearly' : 'monthly',
     });
   };
 
@@ -533,19 +534,57 @@ export default function LandingPage() {
             </p>
           </div>
           
+          {/* Billing Toggle */}
+          <div className="flex justify-center mb-8">
+            <div className="bg-slate-800/50 border border-slate-700/50 rounded-full p-1 flex gap-1">
+              <button
+                onClick={() => setBillingInterval('monthly')}
+                className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${
+                  billingInterval === 'monthly'
+                    ? 'bg-emerald-500 text-white'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                Monthly
+              </button>
+              <button
+                onClick={() => setBillingInterval('annual')}
+                className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${
+                  billingInterval === 'annual'
+                    ? 'bg-emerald-500 text-white'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                Annual <span className="text-emerald-400 ml-1">Save 17%</span>
+              </button>
+            </div>
+          </div>
+
           <div className="max-w-lg mx-auto">
             <Card className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 border-emerald-500/30 relative overflow-hidden">
               <div className="absolute top-0 right-0 bg-emerald-500 text-white text-xs font-bold px-3 py-1 rounded-bl-lg">
-                MOST POPULAR
+                {billingInterval === 'annual' ? 'BEST VALUE' : 'MOST POPULAR'}
               </div>
               <CardContent className="p-8">
                 <div className="text-center mb-8">
                   <h3 className="text-2xl font-bold text-white mb-2">Pro Trader</h3>
-                  <div className="flex items-baseline justify-center gap-1">
-                    <span className="text-5xl font-bold text-white">$50</span>
-                    <span className="text-slate-400">/month</span>
-                  </div>
-                  <p className="text-slate-400 mt-2">Cancel anytime</p>
+                  {billingInterval === 'monthly' ? (
+                    <>
+                      <div className="flex items-baseline justify-center gap-1">
+                        <span className="text-5xl font-bold text-white">$50</span>
+                        <span className="text-slate-400">/month</span>
+                      </div>
+                      <p className="text-slate-400 mt-2">Cancel anytime</p>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex items-baseline justify-center gap-1">
+                        <span className="text-5xl font-bold text-white">$500</span>
+                        <span className="text-slate-400">/year</span>
+                      </div>
+                      <p className="text-emerald-400 mt-2">Save $100 vs monthly ($41.67/mo)</p>
+                    </>
+                  )}
                 </div>
                 
                 <ul className="space-y-4 mb-8">
