@@ -10,6 +10,7 @@
 import { getDb } from "./db";
 import { brokerConnections, routingRules, executionLogs } from "../drizzle/schema";
 import { eq, desc } from "drizzle-orm";
+import { encrypt, decrypt } from "./utils/encryption";
 
 // ============================================================================
 // TYPES
@@ -307,9 +308,22 @@ export async function createBrokerConnection(data: {
   accountId?: string;
   accountName?: string;
   accountType?: string;
+  credentials?: BrokerCredentials;
 }) {
   const db = await getDb();
   if (!db) throw new Error('Database not available');
+  
+  // Encrypt credentials if provided
+  let encryptedCredentials: string | undefined;
+  if (data.credentials) {
+    try {
+      encryptedCredentials = encrypt(JSON.stringify(data.credentials));
+    } catch (error) {
+      console.error('[BrokerService] Failed to encrypt credentials:', error);
+      throw new Error('Failed to securely store credentials');
+    }
+  }
+  
   const result = await db.insert(brokerConnections).values({
     userId: data.userId,
     broker: data.broker,
@@ -318,6 +332,7 @@ export async function createBrokerConnection(data: {
     accountId: data.accountId,
     accountName: data.accountName,
     accountType: data.accountType,
+    encryptedCredentials,
   });
   return result;
 }
@@ -342,6 +357,47 @@ export async function deleteBrokerConnection(id: number) {
   const db = await getDb();
   if (!db) return;
   await db.delete(brokerConnections).where(eq(brokerConnections.id, id));
+}
+
+/**
+ * Retrieve and decrypt credentials for a broker connection
+ * Returns null if no credentials are stored or decryption fails
+ */
+export async function getDecryptedCredentials(connectionId: number): Promise<BrokerCredentials | null> {
+  const connection = await getBrokerConnection(connectionId);
+  if (!connection?.encryptedCredentials) {
+    return null;
+  }
+  
+  try {
+    const decrypted = decrypt(connection.encryptedCredentials);
+    return JSON.parse(decrypted) as BrokerCredentials;
+  } catch (error) {
+    console.error('[BrokerService] Failed to decrypt credentials:', error);
+    return null;
+  }
+}
+
+/**
+ * Update encrypted credentials for an existing broker connection
+ */
+export async function updateBrokerCredentials(
+  connectionId: number,
+  credentials: BrokerCredentials
+): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+  
+  try {
+    const encryptedCredentials = encrypt(JSON.stringify(credentials));
+    await db.update(brokerConnections)
+      .set({ encryptedCredentials })
+      .where(eq(brokerConnections.id, connectionId));
+    return true;
+  } catch (error) {
+    console.error('[BrokerService] Failed to update credentials:', error);
+    return false;
+  }
 }
 
 export async function getRoutingRules(userId: number) {

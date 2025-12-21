@@ -3130,3 +3130,49 @@
 ### All Tests Passing ✅
 - 719 tests passed, 2 skipped
 - 36 test files
+
+
+## Current Sprint: UI Enhancements & Security Integration (Dec 21, 2025)
+
+### Sharpe/Sortino UI Display
+- [ ] Add trade-based Sharpe to PerformanceMetrics interface
+- [ ] Update analytics to return both daily and trade-based Sharpe
+- [ ] Update strategy detail page to show both metrics with explanation
+- [ ] Add tooltip explaining the difference between the two calculations
+
+### Data Quality Indicator
+- [ ] Create tRPC endpoint for data quality report
+- [ ] Create DataQualityBadge component
+- [ ] Add data quality section to strategy detail page
+- [ ] Show outlier warnings if detected
+
+### Broker Token Encryption
+- [ ] Update broker connection save to encrypt tokens
+- [ ] Update broker connection retrieval to decrypt tokens
+- [ ] Add migration to encrypt existing tokens
+- [ ] Test encryption/decryption flow
+
+
+## Current Sprint: UI Enhancements & Integration (Dec 21, 2025) ✅ COMPLETE
+
+### Sharpe Ratio Display ✅
+- [x] Update StrategyDetail to show both Trade-Based and Daily Sharpe ratios
+- [x] Add visual indicator (badge) to distinguish Daily vs Trade-Based
+- [x] Show trade-based values in smaller text below main ratio
+
+### Data Quality Indicator ✅
+- [x] Create DataQualityBadge component with compact and full modes
+- [x] Add data quality endpoint to API (via strategyDetail)
+- [x] Display data quality on strategy detail page
+- [x] Show outlier warnings and validation issues
+- [x] Added Trading Statistics card with trading days and trades per day
+
+### Broker Token Encryption ✅
+- [x] Integrate encryption utility into brokerService
+- [x] Update createBrokerConnection to encrypt credentials
+- [x] Add getDecryptedCredentials function
+- [x] Add updateBrokerCredentials function
+
+### All Tests Passing ✅
+- 719 tests passed, 2 skipped
+- 36 test files

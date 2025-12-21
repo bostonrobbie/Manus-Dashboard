@@ -11,6 +11,7 @@ import { Loader2, ArrowLeft } from "lucide-react";
 import { TradeFilters, TradeFilterState } from "@/components/TradeFilters";
 import { exportTradesToCSV } from "@/lib/csvExport";
 import { Button } from "@/components/ui/button";
+import { DataQualityBadge } from "@/components/DataQualityBadge";
 
 type TimeRange = '6M' | 'YTD' | '1Y' | '5Y' | '10Y' | 'ALL';
 
@@ -354,13 +355,23 @@ export default function StrategyDetail() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Sharpe Ratio</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+              Sharpe Ratio
+              <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded">Daily</span>
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">{metrics.sharpeRatio.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Sortino: {metrics.sortinoRatio.toFixed(2)}
-            </p>
+            <div className="mt-2 space-y-1">
+              <p className="text-xs text-muted-foreground">
+                Sortino: {metrics.sortinoRatio.toFixed(2)}
+              </p>
+              <div className="pt-1 border-t border-border/50">
+                <p className="text-[10px] text-muted-foreground/70">
+                  Trade-based: {metrics.tradeBasedSharpe?.toFixed(2) ?? 'N/A'} / {metrics.tradeBasedSortino?.toFixed(2) ?? 'N/A'}
+                </p>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
@@ -390,6 +401,45 @@ export default function StrategyDetail() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Data Quality Indicator */}
+      {data?.dataQuality && (
+        <div className="grid gap-4 md:grid-cols-2">
+          <DataQualityBadge quality={data.dataQuality} />
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Trading Statistics</CardTitle>
+              <CardDescription className="text-xs">Data coverage and activity metrics</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="text-muted-foreground text-xs">Trading Days</p>
+                  <p className="font-medium">{metrics.tradingDays?.toLocaleString() ?? 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground text-xs">Trades per Day</p>
+                  <p className="font-medium">
+                    {metrics.tradingDays && metrics.tradingDays > 0 
+                      ? (metrics.totalTrades / metrics.tradingDays).toFixed(2)
+                      : 'N/A'}
+                  </p>
+                </div>
+              </div>
+              <div className="pt-2 border-t border-border/50">
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">Data Period</span>
+                  <span className="font-medium">
+                    {equityCurve.length > 0 
+                      ? `${new Date(equityCurve[0]?.date).toLocaleDateString()} - ${new Date(equityCurve[equityCurve.length - 1]?.date).toLocaleDateString()}`
+                      : 'N/A'}
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Extended Performance Metrics */}
       <Card>

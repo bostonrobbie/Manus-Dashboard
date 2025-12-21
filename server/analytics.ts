@@ -66,11 +66,13 @@ export interface TradeStats {
 export interface PerformanceMetrics {
   totalReturn: number; // percentage
   annualizedReturn: number; // percentage
-  sharpeRatio: number;
-  sortinoRatio: number;
-  calmarRatio: number; // NEW: Calmar ratio
+  sharpeRatio: number; // Daily-based (industry standard)
+  sortinoRatio: number; // Daily-based (industry standard)
+  tradeBasedSharpe: number; // Trade-to-trade based (legacy)
+  tradeBasedSortino: number; // Trade-to-trade based (legacy)
+  calmarRatio: number; // Calmar ratio
   maxDrawdown: number; // percentage
-  maxDrawdownDollars: number; // NEW: Max drawdown in dollars (peak to trough)
+  maxDrawdownDollars: number; // Max drawdown in dollars (peak to trough)
   winRate: number; // percentage
   profitFactor: number;
   avgWin: number; // dollars
@@ -78,6 +80,7 @@ export interface PerformanceMetrics {
   totalTrades: number;
   winningTrades: number;
   losingTrades: number;
+  tradingDays: number; // Number of trading days in period
   tradeStats: TradeStats; // Enhanced trade statistics
 }
 
@@ -465,6 +468,8 @@ export function calculatePerformanceMetrics(
       annualizedReturn: 0,
       sharpeRatio: 0,
       sortinoRatio: 0,
+      tradeBasedSharpe: 0,
+      tradeBasedSortino: 0,
       calmarRatio: 0,
       maxDrawdown: 0,
       maxDrawdownDollars: 0,
@@ -475,6 +480,7 @@ export function calculatePerformanceMetrics(
       totalTrades: 0,
       winningTrades: 0,
       losingTrades: 0,
+      tradingDays: 0,
       tradeStats: calculateTradeStats([], startingCapital),
     };
   }
@@ -528,6 +534,45 @@ export function calculatePerformanceMetrics(
   }
 
   // ============================================================
+  // TRADE-BASED SHARPE/SORTINO (Legacy - for comparison)
+  // Uses trade-to-trade returns (not industry standard)
+  // ============================================================
+  const tradeReturns: number[] = [];
+  for (let i = 1; i < equityCurve.length; i++) {
+    const prevEquity = equityCurve[i - 1]!.equity;
+    const currEquity = equityCurve[i]!.equity;
+    const tradeReturn = (currEquity - prevEquity) / prevEquity;
+    tradeReturns.push(tradeReturn);
+  }
+
+  const avgTradeReturn = tradeReturns.length > 0
+    ? tradeReturns.reduce((sum, r) => sum + r, 0) / tradeReturns.length
+    : 0;
+
+  const tradeStdDev = tradeReturns.length > 1
+    ? Math.sqrt(
+        tradeReturns.reduce((sum, r) => sum + Math.pow(r - avgTradeReturn, 2), 0) /
+          (tradeReturns.length - 1)
+      )
+    : 0;
+
+  const tradeBasedSharpe = tradeStdDev > 0
+    ? (avgTradeReturn / tradeStdDev) * Math.sqrt(252)
+    : 0;
+
+  const downsideTradeReturns = tradeReturns.filter(r => r < 0);
+  const downsideTradeStdDev = downsideTradeReturns.length > 1
+    ? Math.sqrt(
+        downsideTradeReturns.reduce((sum, r) => sum + Math.pow(r, 2), 0) /
+          (downsideTradeReturns.length - 1)
+      )
+    : 0;
+
+  const tradeBasedSortino = downsideTradeStdDev > 0
+    ? (avgTradeReturn / downsideTradeStdDev) * Math.sqrt(252)
+    : tradeBasedSharpe;
+
+  // ============================================================
   // INDUSTRY-STANDARD SHARPE/SORTINO CALCULATION
   // Uses proper daily equity curve with forward-filling
   // ============================================================
@@ -537,7 +582,7 @@ export function calculatePerformanceMetrics(
   
   // Use proper daily returns for Sharpe/Sortino
   const sharpeRatio = calculateDailySharpeRatioSync(dailyEquityResult.dailyReturns);
-  const sortinoRatio = calculateDailySortinoRatioSync(dailyEquityResult.dailyReturns)
+  const sortinoRatio = calculateDailySortinoRatioSync(dailyEquityResult.dailyReturns);
 
   // Calmar ratio: annualized return / max drawdown
   const calmarRatio = maxDrawdown > 0 ? annualizedReturn / maxDrawdown : 0;
@@ -550,6 +595,8 @@ export function calculatePerformanceMetrics(
     annualizedReturn,
     sharpeRatio,
     sortinoRatio,
+    tradeBasedSharpe: Number(tradeBasedSharpe.toFixed(2)),
+    tradeBasedSortino: Number(tradeBasedSortino.toFixed(2)),
     calmarRatio,
     maxDrawdown,
     maxDrawdownDollars,
@@ -560,6 +607,7 @@ export function calculatePerformanceMetrics(
     totalTrades: trades.length,
     winningTrades: winningTrades.length,
     losingTrades: losingTrades.length,
+    tradingDays: dailyEquityResult.tradingDays,
     tradeStats,
   };
 }

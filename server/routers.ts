@@ -8,6 +8,7 @@ import * as analytics from "./analytics";
 import * as breakdown from "./breakdown";
 import * as brokerService from "./brokerService";
 import * as subscriptionService from "./subscriptionService";
+import * as dataValidation from "./core/dataValidation";
 import { stripeRouter } from "./stripe/stripeRouter";
 
 // Time range enum for filtering  
@@ -454,6 +455,9 @@ export const appRouter = router({
         }));
         const benchmarkUnderwater = analytics.calculateUnderwaterCurve(benchmarkEquityCurve);
 
+        // Generate data quality report
+        const dataQuality = dataValidation.generateDataQualityReport(strategyTrades, startingCapital);
+
         return {
           strategy,
           metrics,
@@ -462,6 +466,7 @@ export const appRouter = router({
           underwaterCurve,
           benchmarkUnderwater,
           recentTrades,
+          dataQuality,
         };
       }),
 
