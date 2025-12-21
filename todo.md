@@ -3222,3 +3222,26 @@
 ### All Tests Passing ✅
 - 719 tests passed, 2 skipped
 - 36 test files
+
+
+## Current Sprint: Auth Login Flow Fix & Monitoring (Dec 21, 2025)
+
+### GitHub Backup
+- [ ] Check git status and remote configuration
+- [ ] Push all latest changes to GitHub
+- [ ] Verify backup is complete
+
+### Auth Login Flow Bug (CRITICAL)
+- [ ] Investigate OAuth callback handler
+- [ ] Check redirect logic after successful auth
+- [ ] Fix login loop (login → select account → homepage instead of dashboard)
+- [ ] Verify session/cookie is being set correctly
+- [ ] Test login flow works on first attempt
+
+### Auth Monitoring & Tests
+- [ ] Create auth flow integration tests
+- [ ] Test logout functionality
+- [ ] Test login functionality
+- [ ] Test session persistence
+- [ ] Add auth health check endpoint
+- [ ] Create auth monitoring dashboard or alerts
