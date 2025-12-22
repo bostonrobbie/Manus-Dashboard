@@ -3404,3 +3404,22 @@
 - [x] Compare profit factor (target: 1.467) ✓ MATCH
 - [x] Update database - deleted 87 test trades, re-imported 890 from TradingView CSV
 - [x] Verify ES Trend strategy card displays correct metrics
+
+
+## YM ORB Strategy Verification
+### TradingView Target Metrics
+- Total P&L: $110,974.00 (+221.95%)
+- Max equity drawdown: $14,498.00 (14.21%)
+- Total trades: 988
+- Profitable trades: 33.40% (330/988)
+- Profit factor: 1.346
+- Note: TradingView uses 2 contracts per trade
+
+### Verification Tasks
+- [x] Analyze TradingView CSV data structure
+- [x] Delete existing YM ORB trades
+- [x] Import 988 trades from CSV (with 2 contracts per trade)
+- [x] Verify trade count matches (988) ✓
+- [x] Verify total P&L matches ($110,974.00) ✓
+- [x] Verify win rate matches (33.40%) ✓
+- [x] Verify profit factor matches (1.346) ✓
