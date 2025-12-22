@@ -25,11 +25,11 @@ import { MetricTooltip, METRIC_TOOLTIPS } from "@/components/MetricTooltip";
 type TimeRange = '6M' | 'YTD' | '1Y' | '3Y' | '5Y' | '10Y' | 'ALL';
 
 export default function Overview() {
-  const [timeRange, setTimeRange] = useState<TimeRange>('ALL');
+  const [timeRange, setTimeRange] = useState<TimeRange>('1Y');
   const [startingCapital, setStartingCapital] = useState(100000);
   const [contractSize, setContractSize] = useState<'mini' | 'micro'>('mini');
   const [calendarPeriodType, setCalendarPeriodType] = useState<'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly'>('yearly');
-  const [showBenchmark, setShowBenchmark] = useState(true);
+  // S&P 500 benchmark comparison removed per user request
   
 
   // Helper to format date range
@@ -220,69 +220,69 @@ export default function Overview() {
           </div>
 
           {/* Key Metrics Cards - All in one row with auto-sizing */}
-          <div className="grid gap-2 sm:gap-3 grid-cols-3 lg:grid-cols-6">
+          <div className="grid gap-2 sm:gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
             {/* Total Return */}
-            <div className="bg-muted/30 border border-muted rounded-lg p-4 text-center">
-              <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">Total Return</div>
-              <div className={`text-2xl sm:text-3xl font-bold mb-1 truncate ${
+            <div className="bg-muted/30 border border-muted rounded-lg p-2 sm:p-3 md:p-4 text-center">
+              <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1 sm:mb-2">Total Return</div>
+              <div className={`text-base sm:text-xl md:text-2xl lg:text-3xl font-bold mb-1 ${
                 metrics.totalReturn >= 0 ? 'text-green-500' : 'text-red-500'
               }`}>
-                <span className="truncate">{metrics.totalReturn >= 0 ? '+' : ''}${Math.round((metrics.totalReturn / 100) * startingCapital).toLocaleString()}</span>
+                {metrics.totalReturn >= 0 ? '+' : ''}${Math.round((metrics.totalReturn / 100) * startingCapital).toLocaleString()}
               </div>
-              <div className="text-xs text-muted-foreground">
+              <div className="text-[10px] sm:text-xs text-muted-foreground">
                 {metrics.totalReturn.toFixed(2)}% ({metrics.annualizedReturn.toFixed(2)}% ann.)
               </div>
             </div>
 
             {/* Max Drawdown */}
-            <div className="bg-muted/30 border border-muted rounded-lg p-4 text-center">
-              <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">Max Drawdown</div>
-              <div className="text-2xl sm:text-3xl font-bold mb-1 text-amber-500 truncate">-${Math.round(metrics.maxDrawdownDollars).toLocaleString()}</div>
-              <div className="text-xs text-muted-foreground">
+            <div className="bg-muted/30 border border-muted rounded-lg p-2 sm:p-3 md:p-4 text-center">
+              <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1 sm:mb-2">Max Drawdown</div>
+              <div className="text-base sm:text-xl md:text-2xl lg:text-3xl font-bold mb-1 text-amber-500">-${Math.round(metrics.maxDrawdownDollars).toLocaleString()}</div>
+              <div className="text-[10px] sm:text-xs text-muted-foreground">
                 {metrics.maxDrawdown.toFixed(2)}% peak to trough
               </div>
             </div>
 
             {/* Sortino Ratio - Daily (Industry Standard) */}
-            <div className="bg-muted/30 border border-muted rounded-lg p-4 text-center">
-              <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2 flex items-center justify-center gap-1">
-                Sortino Ratio
-                <Badge variant="outline" className="text-[8px] px-1 py-0 h-4 bg-emerald-500/10 text-emerald-500 border-emerald-500/30">Daily</Badge>
-                <MetricTooltip {...METRIC_TOOLTIPS.sortinoDaily} />
+            <div className="bg-muted/30 border border-muted rounded-lg p-2 sm:p-3 md:p-4 text-center">
+              <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1 sm:mb-2 flex items-center justify-center gap-1">
+                <span className="hidden sm:inline">Sortino Ratio</span>
+                <span className="sm:hidden">Sortino</span>
+                <Badge variant="outline" className="text-[7px] sm:text-[8px] px-1 py-0 h-3 sm:h-4 bg-emerald-500/10 text-emerald-500 border-emerald-500/30">Daily</Badge>
               </div>
-              <div className="text-2xl sm:text-3xl font-bold mb-1 truncate">{data.dailyMetrics?.sortino?.toFixed(2) ?? metrics.sortinoRatio.toFixed(2)}</div>
-              <div className="text-xs text-muted-foreground">
+              <div className="text-base sm:text-xl md:text-2xl lg:text-3xl font-bold mb-1">{data.dailyMetrics?.sortino?.toFixed(2) ?? metrics.sortinoRatio.toFixed(2)}</div>
+              <div className="text-[10px] sm:text-xs text-muted-foreground">
                 Trade-based: {metrics.sortinoRatio.toFixed(2)}
               </div>
             </div>
 
             {/* Sharpe Ratio - Daily (Industry Standard) */}
-            <div className="bg-muted/30 border border-muted rounded-lg p-4 text-center">
-              <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2 flex items-center justify-center gap-1">
-                Sharpe Ratio
-                <Badge variant="outline" className="text-[8px] px-1 py-0 h-4 bg-emerald-500/10 text-emerald-500 border-emerald-500/30">Daily</Badge>
-                <MetricTooltip {...METRIC_TOOLTIPS.sharpeDaily} />
+            <div className="bg-muted/30 border border-muted rounded-lg p-2 sm:p-3 md:p-4 text-center">
+              <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1 sm:mb-2 flex items-center justify-center gap-1">
+                <span className="hidden sm:inline">Sharpe Ratio</span>
+                <span className="sm:hidden">Sharpe</span>
+                <Badge variant="outline" className="text-[7px] sm:text-[8px] px-1 py-0 h-3 sm:h-4 bg-emerald-500/10 text-emerald-500 border-emerald-500/30">Daily</Badge>
               </div>
-              <div className="text-2xl sm:text-3xl font-bold mb-1 truncate">{data.dailyMetrics?.sharpe?.toFixed(2) ?? metrics.sharpeRatio.toFixed(2)}</div>
-              <div className="text-xs text-muted-foreground">
+              <div className="text-base sm:text-xl md:text-2xl lg:text-3xl font-bold mb-1">{data.dailyMetrics?.sharpe?.toFixed(2) ?? metrics.sharpeRatio.toFixed(2)}</div>
+              <div className="text-[10px] sm:text-xs text-muted-foreground">
                 Trade-based: {metrics.sharpeRatio.toFixed(2)}
               </div>
             </div>
 
             {/* Win Rate */}
-            <div className="bg-muted/30 border border-muted rounded-lg p-4 text-center">
-              <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">Win Rate</div>
-              <div className="text-2xl sm:text-3xl font-bold mb-1 truncate">{metrics.winRate.toFixed(1)}%</div>
-              <div className="text-xs text-muted-foreground">
+            <div className="bg-muted/30 border border-muted rounded-lg p-2 sm:p-3 md:p-4 text-center">
+              <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1 sm:mb-2">Win Rate</div>
+              <div className="text-base sm:text-xl md:text-2xl lg:text-3xl font-bold mb-1">{metrics.winRate.toFixed(1)}%</div>
+              <div className="text-[10px] sm:text-xs text-muted-foreground">
                 {metrics.totalTrades.toLocaleString()} trades
               </div>
             </div>
 
             {/* Calmar Ratio */}
-            <div className="bg-muted/30 border border-muted rounded-lg p-4 text-center">
-              <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">Calmar Ratio</div>
-              <div className="text-2xl sm:text-3xl font-bold mb-1 truncate">{metrics.calmarRatio.toFixed(2)}</div>
-              <div className="text-xs text-muted-foreground">
+            <div className="bg-muted/30 border border-muted rounded-lg p-2 sm:p-3 md:p-4 text-center">
+              <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1 sm:mb-2">Calmar Ratio</div>
+              <div className="text-base sm:text-xl md:text-2xl lg:text-3xl font-bold mb-1">{metrics.calmarRatio.toFixed(2)}</div>
+              <div className="text-[10px] sm:text-xs text-muted-foreground">
                 Return / DD
               </div>
             </div>
@@ -305,7 +305,7 @@ export default function Overview() {
                 </Badge>
               </CardTitle>
               <CardDescription>
-                Portfolio performance vs S&P 500 benchmark
+                Portfolio performance over time
               </CardDescription>
             </div>
             {/* Time Range Selector */}
@@ -364,16 +364,6 @@ export default function Overview() {
                           <div className="w-4 h-0.5 bg-[#60a5fa]"></div>
                           <span className="text-sm">Portfolio</span>
                         </div>
-                        <div 
-                          className="flex items-center gap-2 cursor-pointer hover:opacity-80"
-                          onClick={() => setShowBenchmark(!showBenchmark)}
-                        >
-                          <div className={`w-4 h-0.5 ${showBenchmark ? 'bg-[#a3a3a3]' : 'bg-muted'}`}></div>
-                          <span className={`text-sm ${!showBenchmark ? 'line-through text-muted-foreground' : ''}`}>
-                            S&P 500
-                          </span>
-                        </div>
-
                       </div>
                     );
                   }}
@@ -398,16 +388,7 @@ export default function Overview() {
                   dot={false}
                   name="Portfolio"
                 />
-                {showBenchmark && (
-                  <Line 
-                    type="monotone" 
-                    dataKey="benchmark" 
-                    stroke="#a3a3a3" 
-                    strokeWidth={2}
-                    dot={false}
-                    name="S&P 500"
-                  />
-                )}
+
 
               </LineChart>
             </ResponsiveContainer>
@@ -421,7 +402,7 @@ export default function Overview() {
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Underwater Equity Curve</CardTitle>
             <CardDescription className="text-xs">
-              Drawdown from peak over time vs S&P 500 benchmark
+              Drawdown from peak over time
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -511,16 +492,7 @@ export default function Overview() {
                     fill="url(#drawdownGradient)"
                     name="Portfolio"
                   />
-                  {showBenchmark && data.benchmarkUnderwater?.curve && (
-                    <Area
-                      type="monotone"
-                      dataKey="benchmarkDrawdown"
-                      stroke="#a3a3a3"
-                      strokeWidth={2}
-                      fill="none"
-                      name="S&P 500"
-                    />
-                  )}
+
                 </AreaChart>
               </ResponsiveContainer>
             </div>

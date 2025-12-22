@@ -159,7 +159,7 @@ export const CalendarPnL = memo(function CalendarPnL({ data, periodType, onPerio
       return {
         key,
         monthName,
-        weeks: weeks.sort((a, b) => b.weekStart.getTime() - a.weekStart.getTime()),
+        weeks: weeks.sort((a, b) => a.weekStart.getTime() - b.weekStart.getTime()),
         totalPnL,
         totalTrades,
         winRate: avgWinRate,

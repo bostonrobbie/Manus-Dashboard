@@ -3545,3 +3545,22 @@
 - [x] Add uploadTrades mutation to webhook router
 - [x] Create TradeUploadSection component in Admin page
 - [x] Support TradingView CSV format parsing
+
+
+## Sprint: December 21, 2025 - UI Fixes
+
+### Weekly P&L Organization
+- [x] Fix weekly P&L sorting order (earliest week first within each month)
+- [x] Ensure weeks are properly organized chronologically
+
+### S&P 500 Comparison Removal
+- [x] Remove S&P 500 toggle from equity curve
+- [x] Remove S&P 500 toggle from underwater equity curve
+
+### Stats Card Responsiveness
+- [x] Make Total Return value scale properly on smaller screens
+- [x] Make Max Drawdown value scale properly on smaller screens
+- [x] Ensure all stats cards compress correctly
+
+### Default Time Range
+- [x] Change default time range to 1Y on Overview page
