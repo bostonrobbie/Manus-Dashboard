@@ -3868,3 +3868,20 @@
 - [ ] Set up Resend email API for notifications
 - [ ] Configure Stripe products for subscriptions
 - [ ] Test end-to-end webhook flow
+
+
+## Stripe Subscription Setup (Dec 22, 2025)
+
+### Completed
+- [x] Create Pro Monthly product in Stripe (prod_TeYkzmXcVbEWlL)
+- [x] Create $49/month price for Pro Monthly (price_1ShFd7LgSNEpPzB5xbrFnQoT)
+- [x] Create Pro Yearly product in Stripe (prod_TeYk6jTM70mUuD)
+- [x] Create $500/year price for Pro Yearly (price_1ShFdGLgSNEpPzB5A0MpiAOS)
+- [x] Update products.ts with actual Stripe price IDs
+- [x] Test webhook entry/exit flow end-to-end
+- [x] Verify token authentication is working
+
+### Production Readiness
+- [ ] Switch to Stripe live mode when ready for real payments
+- [ ] Configure Stripe webhook for subscription events
+- [ ] Set up email notifications for subscription changes
