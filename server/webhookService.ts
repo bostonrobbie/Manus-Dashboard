@@ -44,6 +44,7 @@ import {
 } from './db';
 import { InsertWebhookLog, InsertOpenPosition } from '../drizzle/schema';
 import { notifyOwnerAsync } from './_core/notification';
+import { cache } from './cache';
 
 // TradingView payload format (enhanced with position tracking)
 export interface TradingViewPayload {
@@ -785,6 +786,9 @@ async function handleExitSignal(
     pnlPercent,
     commission: 0,
   });
+
+  // Invalidate portfolio caches after new trade
+  cache.invalidatePortfolio();
 
   // Get the trade ID
   const tradeId = await getLastInsertedTradeId(strategy.id);

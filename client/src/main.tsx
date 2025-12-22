@@ -9,7 +9,20 @@ import { getLoginUrl } from "./const";
 import "./index.css";
 import { ContractSizeProvider } from "@/contexts/ContractSizeContext";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // Default stale time of 2 minutes - data won't refetch unless stale
+      staleTime: 2 * 60 * 1000,
+      // Keep unused data in cache for 10 minutes
+      gcTime: 10 * 60 * 1000,
+      // Don't refetch on window focus for better performance
+      refetchOnWindowFocus: false,
+      // Retry failed queries once
+      retry: 1,
+    },
+  },
+});
 
 const redirectToLoginIfUnauthorized = (error: unknown) => {
   if (!(error instanceof TRPCClientError)) return;
