@@ -193,7 +193,7 @@ export default function LandingPage() {
             
             {/* Contract Size Toggle - Moved up */}
             <div className="flex items-center justify-center gap-2 mb-6">
-              <span className="text-sm text-gray-500">Contract Size:</span>
+              <span className="text-sm text-gray-300">Contract Size:</span>
               <div className="inline-flex bg-gray-900 rounded-lg p-1">
                 <button
                   onClick={() => setContractSize('micro')}
@@ -224,31 +224,31 @@ export default function LandingPage() {
                 <div className="text-2xl sm:text-3xl font-bold text-emerald-400 mb-1">
                   {displayStats.totalReturn}
                 </div>
-                <div className="text-[10px] text-gray-500 uppercase tracking-wider">{displayStats.totalReturnLabel}</div>
+                <div className="text-[10px] text-gray-300 uppercase tracking-wider">{displayStats.totalReturnLabel}</div>
               </div>
               <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-4">
                 <div className="text-2xl sm:text-3xl font-bold text-emerald-400 mb-1">
                   {displayStats.avgReturnPerYear}
                 </div>
-                <div className="text-[10px] text-gray-500 uppercase tracking-wider">{displayStats.avgReturnPerYearLabel}</div>
+                <div className="text-[10px] text-gray-300 uppercase tracking-wider">{displayStats.avgReturnPerYearLabel}</div>
               </div>
               <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-4">
                 <div className="text-2xl sm:text-3xl font-bold text-white mb-1">
                   {displayStats.sharpe}
                 </div>
-                <div className="text-[10px] text-gray-500 uppercase tracking-wider">Sharpe Ratio</div>
+                <div className="text-[10px] text-gray-300 uppercase tracking-wider">Sharpe Ratio</div>
               </div>
               <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-4">
                 <div className="text-2xl sm:text-3xl font-bold text-orange-400 mb-1">
                   {displayStats.maxDrawdown}
                 </div>
-                <div className="text-[10px] text-gray-500 uppercase tracking-wider">{displayStats.maxDrawdownLabel}</div>
+                <div className="text-[10px] text-gray-300 uppercase tracking-wider">{displayStats.maxDrawdownLabel}</div>
               </div>
               <div className="col-span-2 md:col-span-1 bg-gray-900/50 border border-gray-800 rounded-xl p-4">
                 <div className="text-2xl sm:text-3xl font-bold text-white mb-1">
                   {displayStats.yearsData}
                 </div>
-                <div className="text-[10px] text-gray-500 uppercase tracking-wider">Years Data</div>
+                <div className="text-[10px] text-gray-300 uppercase tracking-wider">Years Data</div>
               </div>
             </div>
             
@@ -279,7 +279,7 @@ export default function LandingPage() {
             </div>
 
             {/* Trust Badges */}
-            <div className="flex flex-wrap justify-center gap-6 text-sm text-gray-500">
+            <div className="flex flex-wrap justify-center gap-6 text-sm text-gray-300">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                 <span>7-day money-back guarantee</span>
@@ -470,7 +470,7 @@ export default function LandingPage() {
                       ) : row.discretionary === false ? (
                         <X className="w-5 h-5 text-red-400 mx-auto" />
                       ) : (
-                        <span className="text-gray-500 text-sm">{row.discretionary}</span>
+                        <span className="text-gray-300 text-sm">{row.discretionary}</span>
                       )}
                     </td>
                     <td className="py-4 px-4 text-center">
@@ -479,7 +479,7 @@ export default function LandingPage() {
                       ) : row.diy === false ? (
                         <X className="w-5 h-5 text-red-400 mx-auto" />
                       ) : (
-                        <span className="text-gray-500 text-sm">{row.diy}</span>
+                        <span className="text-gray-300 text-sm">{row.diy}</span>
                       )}
                     </td>
                   </tr>
@@ -572,7 +572,7 @@ export default function LandingPage() {
               ${savingsData.yearlySavings}+
             </div>
             <div className="text-gray-400 mb-4">Annual savings on brokerage connector alone</div>
-            <p className="text-sm text-gray-500 max-w-xl mx-auto">
+            <p className="text-sm text-gray-300 max-w-xl mx-auto">
               Plus you get 8 backtested strategies, professional analytics, and portfolio tools — 
               things you'd spend months building yourself.
             </p>
@@ -707,14 +707,14 @@ export default function LandingPage() {
                     </Button>
                   </a>
                 )}
-                <p className="text-center text-sm text-gray-500 mt-4">
+                <p className="text-center text-sm text-gray-300 mt-4">
                   7-day money-back guarantee. Cancel anytime.
                 </p>
               </CardContent>
             </Card>
           </div>
           
-          <p className="text-center text-sm text-gray-500 mt-8">
+          <p className="text-center text-sm text-gray-300 mt-8">
             All prices in USD. Questions?{' '}
             <a href="mailto:support@ststrading.com" className="text-emerald-400 hover:underline">
               Contact us
@@ -787,7 +787,7 @@ export default function LandingPage() {
               </Button>
             </a>
           )}
-          <p className="text-sm text-gray-500 mt-4">
+          <p className="text-sm text-gray-300 mt-4">
             7-day money-back guarantee • Brokerage connector included • Lock in your rate for life
           </p>
         </div>
@@ -803,17 +803,17 @@ export default function LandingPage() {
               </div>
               <span className="text-lg font-semibold text-white">STS</span>
             </div>
-            <div className="flex items-center gap-6 text-sm text-gray-500">
+            <div className="flex items-center gap-6 text-sm text-gray-300">
               <a href="#" className="hover:text-white transition-colors">Terms</a>
               <a href="#" className="hover:text-white transition-colors">Privacy</a>
               <a href="mailto:support@ststrading.com" className="hover:text-white transition-colors">Contact</a>
             </div>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-gray-300">
               © 2025 STS. All rights reserved.
             </p>
           </div>
           <div className="mt-8 pt-8 border-t border-gray-800/50">
-            <p className="text-xs text-gray-600 text-center max-w-4xl mx-auto">
+            <p className="text-xs text-gray-400 text-center max-w-4xl mx-auto">
               <strong>Risk Disclosure:</strong> Trading futures involves substantial risk of loss and is not suitable for all investors. 
               Past performance is not indicative of future results. The information provided is for educational purposes only and 
               should not be considered investment advice.

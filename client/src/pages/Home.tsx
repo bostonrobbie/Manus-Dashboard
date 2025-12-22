@@ -256,32 +256,32 @@ export default function Home() {
                   <div className="text-2xl sm:text-3xl font-bold text-emerald-400 mb-1">
                     +{stats.annualizedReturn.toFixed(1)}%
                   </div>
-                  <div className="text-xs text-gray-500 uppercase tracking-wider">Avg Return/Year</div>
+                  <div className="text-xs text-gray-300 uppercase tracking-wider">Avg Return/Year</div>
                 </div>
                 <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-4">
                   <div className="text-2xl sm:text-3xl font-bold text-white mb-1">
                     {stats.sharpeRatio.toFixed(2)}
                   </div>
-                  <div className="text-xs text-gray-500 uppercase tracking-wider">Sharpe Ratio</div>
+                  <div className="text-xs text-gray-300 uppercase tracking-wider">Sharpe Ratio</div>
                 </div>
                 <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-4">
                   <div className="text-2xl sm:text-3xl font-bold text-white mb-1">
                     ${contractSize === 'micro' ? potentialReturns.microAnnual.toLocaleString() : potentialReturns.miniAnnual.toLocaleString()}
                   </div>
-                  <div className="text-xs text-gray-500 uppercase tracking-wider">Avg Annual ({contractSize})</div>
+                  <div className="text-xs text-gray-300 uppercase tracking-wider">Avg Annual ({contractSize})</div>
                 </div>
                 <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-4">
                   <div className="text-2xl sm:text-3xl font-bold text-white mb-1">
                     14+
                   </div>
-                  <div className="text-xs text-gray-500 uppercase tracking-wider">Years Data</div>
+                  <div className="text-xs text-gray-300 uppercase tracking-wider">Years Data</div>
                 </div>
               </div>
             )}
 
             {/* Contract Size Toggle */}
             <div className="flex items-center justify-center gap-2 mb-8">
-              <span className="text-sm text-gray-500">Contract Size:</span>
+              <span className="text-sm text-gray-300">Contract Size:</span>
               <div className="inline-flex bg-gray-900 rounded-lg p-1">
                 <button
                   onClick={() => setContractSize('micro')}
@@ -326,7 +326,7 @@ export default function Home() {
             </div>
 
             {/* Trust Badges */}
-            <div className="flex flex-wrap justify-center gap-6 text-sm text-gray-500">
+            <div className="flex flex-wrap justify-center gap-6 text-sm text-gray-300">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                 <span>No credit card required</span>
@@ -510,7 +510,7 @@ export default function Home() {
                       ) : typeof row.sts === 'string' ? (
                         <span className="text-emerald-400 text-sm font-medium">{row.sts}</span>
                       ) : (
-                        <X className="w-5 h-5 text-gray-600 mx-auto" />
+                        <X className="w-5 h-5 text-gray-400 mx-auto" />
                       )}
                     </td>
                     <td className="py-4 px-4 text-center">
@@ -519,7 +519,7 @@ export default function Home() {
                       ) : row.discretionary === false ? (
                         <X className="w-5 h-5 text-red-400 mx-auto" />
                       ) : (
-                        <span className="text-gray-500 text-sm">{row.discretionary}</span>
+                        <span className="text-gray-300 text-sm">{row.discretionary}</span>
                       )}
                     </td>
                     <td className="py-4 px-4 text-center">
@@ -639,7 +639,7 @@ export default function Home() {
                 ${savingsData.yearlySavings}+
               </div>
               <div className="text-gray-400 mb-4">Annual savings on brokerage connector alone</div>
-              <p className="text-sm text-gray-500 max-w-xl mx-auto">
+              <p className="text-sm text-gray-300 max-w-xl mx-auto">
                 Plus you get 8 backtested strategies, professional analytics, and portfolio tools — 
                 things you'd spend months building yourself.
               </p>
@@ -768,7 +768,7 @@ export default function Home() {
             ))}
           </div>
           
-          <p className="text-center text-sm text-gray-500 mt-8">
+          <p className="text-center text-sm text-gray-300 mt-8">
             All prices in USD. Enterprise plans available for institutions.{' '}
             <a href="mailto:support@ststrading.com" className="text-emerald-400 hover:underline">
               Contact us
@@ -847,7 +847,7 @@ export default function Home() {
               )}
             </div>
             
-            <div className="mt-12 flex flex-wrap justify-center gap-8 text-sm text-gray-500">
+            <div className="mt-12 flex flex-wrap justify-center gap-8 text-sm text-gray-300">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                 <span>No credit card required</span>
@@ -876,42 +876,42 @@ export default function Home() {
                 </div>
                 <span className="text-white font-semibold">STS</span>
               </div>
-              <p className="text-gray-500 text-sm">
+              <p className="text-gray-300 text-sm">
                 Systematic Trading Strategies for futures traders. Professional analytics, real-time signals, and auto-execution.
               </p>
             </div>
             <div>
               <h4 className="text-gray-300 font-medium mb-4">Product</h4>
               <ul className="space-y-2 text-sm">
-                <li><a href="#what-you-get" className="text-gray-500 hover:text-white transition-colors">What You Get</a></li>
-                <li><a href="#compare" className="text-gray-500 hover:text-white transition-colors">Compare</a></li>
-                <li><a href="#savings" className="text-gray-500 hover:text-white transition-colors">Savings</a></li>
-                <li><a href="#pricing" className="text-gray-500 hover:text-white transition-colors">Pricing</a></li>
+                <li><a href="#what-you-get" className="text-gray-300 hover:text-white transition-colors">What You Get</a></li>
+                <li><a href="#compare" className="text-gray-300 hover:text-white transition-colors">Compare</a></li>
+                <li><a href="#savings" className="text-gray-300 hover:text-white transition-colors">Savings</a></li>
+                <li><a href="#pricing" className="text-gray-300 hover:text-white transition-colors">Pricing</a></li>
               </ul>
             </div>
             <div>
               <h4 className="text-gray-300 font-medium mb-4">Resources</h4>
               <ul className="space-y-2 text-sm">
-                <li><Link href="/overview"><span className="text-gray-500 hover:text-white transition-colors cursor-pointer">Dashboard</span></Link></li>
-                <li><Link href="/strategies"><span className="text-gray-500 hover:text-white transition-colors cursor-pointer">All Strategies</span></Link></li>
-                <li><Link href="/compare"><span className="text-gray-500 hover:text-white transition-colors cursor-pointer">Compare</span></Link></li>
+                <li><Link href="/overview"><span className="text-gray-300 hover:text-white transition-colors cursor-pointer">Dashboard</span></Link></li>
+                <li><Link href="/strategies"><span className="text-gray-300 hover:text-white transition-colors cursor-pointer">All Strategies</span></Link></li>
+                <li><Link href="/compare"><span className="text-gray-300 hover:text-white transition-colors cursor-pointer">Compare</span></Link></li>
               </ul>
             </div>
             <div>
               <h4 className="text-gray-300 font-medium mb-4">Legal</h4>
               <ul className="space-y-2 text-sm">
-                <li><span className="text-gray-500">Terms of Service</span></li>
-                <li><span className="text-gray-500">Privacy Policy</span></li>
-                <li><span className="text-gray-500">Risk Disclosure</span></li>
+                <li><span className="text-gray-300">Terms of Service</span></li>
+                <li><span className="text-gray-300">Privacy Policy</span></li>
+                <li><span className="text-gray-300">Risk Disclosure</span></li>
               </ul>
             </div>
           </div>
           
           <div className="pt-8 border-t border-gray-800/50 flex flex-col md:flex-row justify-between items-center gap-6">
-            <div className="text-gray-500 text-sm">
+            <div className="text-gray-300 text-sm">
               © {new Date().getFullYear()} STS Systematic Trading Strategies. All rights reserved.
             </div>
-            <div className="text-gray-600 text-xs max-w-xl text-center md:text-right">
+            <div className="text-gray-400 text-xs max-w-xl text-center md:text-right">
               Trading involves substantial risk of loss and is not suitable for all investors. 
               Past performance is not indicative of future results. 
               This platform is for informational purposes only and does not constitute financial advice.

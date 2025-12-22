@@ -3816,3 +3816,32 @@
 - [x] Add label showing contract count (1 CONTRACT / 2 CONTRACTS)
 - [x] Ensure responsive grid layout works with 5 boxes
 - [x] Updated description text to say 15+ years instead of 14+
+
+
+## Accessibility Audit - Dec 22, 2025
+
+### Homepage/Landing Page
+- [x] Check hero section stat labels contrast - fixed gray-500 to gray-300
+- [x] Check navigation text contrast - already using gray-400
+- [x] Check feature cards text contrast - already using gray-400
+- [x] Check pricing section text contrast - fixed gray-500 to gray-300
+- [x] Check FAQ section text contrast - already using gray-400
+- [x] Check footer text contrast - fixed gray-500/600 to gray-300/400
+
+### Dashboard Pages
+- [x] Check Overview page stat cards and labels - using muted-foreground (improved)
+- [x] Check Strategies page card labels and metrics - using gray-400
+- [x] Check Compare page table text - using gray-400
+- [x] Check My Dashboard page elements - using gray-400
+
+### Admin Pages
+- [x] Check Admin tabs and form labels - no gray-500 found, using gray-400
+- [x] Check table text and status badges - using gray-400
+- [x] Check input field labels and placeholders - using muted-foreground
+
+### Global Fixes
+- [x] Improved gray-500 text to gray-300 for better contrast (38 instances fixed)
+- [x] Improved gray-600 text to gray-400 (3 instances fixed)
+- [x] Updated muted-foreground CSS variable from 0.70 to 0.75 for WCAG AA compliance
+- [x] Verified focus states use emerald ring color
+- [x] Color-blind friendly: using emerald/orange instead of pure red/green

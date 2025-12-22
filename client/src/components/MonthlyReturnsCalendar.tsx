@@ -98,7 +98,7 @@ export function MonthlyReturnsCalendar({ monthlyReturns }: MonthlyReturnsCalenda
                       if (!monthData) {
                         return (
                           <td key={monthNum} className="p-1">
-                            <div className="h-12 flex items-center justify-center bg-gray-700 rounded text-gray-500 text-xs">
+                            <div className="h-12 flex items-center justify-center bg-gray-700 rounded text-gray-300 text-xs">
                               -
                             </div>
                           </td>

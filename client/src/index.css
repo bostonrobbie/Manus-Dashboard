@@ -106,7 +106,7 @@
   
   /* Muted elements with better contrast */
   --muted: oklch(0.25 0.02 240);  /* Muted navy */
-  --muted-foreground: oklch(0.70 0.02 240);  /* Improved readability */
+  --muted-foreground: oklch(0.75 0.02 240);  /* Improved readability - WCAG AA compliant */
   
   /* Accent colors - matching emerald theme */
   --accent: oklch(0.28 0.025 240);  /* Navy accent */
