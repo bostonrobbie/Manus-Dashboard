@@ -188,7 +188,7 @@ export default function LandingPage() {
             {/* Main Headline - H1 for SEO */}
             <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold text-white mb-10 tracking-tight leading-tight">
               <span className="bg-gradient-to-r from-emerald-400 to-blue-400 bg-clip-text text-transparent">Systematic Trading Strategies</span><br />
-              <span className="text-white">for Futures.</span>
+              <span className="text-white">for Futures Markets</span>
             </h1>
             
             {/* Contract Size Toggle - Moved up */}
@@ -290,7 +290,7 @@ export default function LandingPage() {
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                <span>Lock in your rate for life</span>
+                <span>Lock in your rate</span>
               </div>
             </div>
           </div>
@@ -652,7 +652,7 @@ export default function LandingPage() {
               <CardHeader className="text-center pb-4 pt-8">
                 <CardTitle className="text-2xl text-white">Pro</CardTitle>
                 <div className="mt-4">
-                  <span className="text-5xl font-bold text-white">$49</span>
+                  <span className="text-5xl font-bold text-white">$50</span>
                   <span className="text-gray-400">/month</span>
                 </div>
                 <p className="text-sm text-emerald-400 mt-2">

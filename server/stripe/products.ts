@@ -35,7 +35,7 @@ export const SUBSCRIPTION_TIERS: Record<string, SubscriptionTier> = {
     id: 'pro',
     name: 'Pro Trader',
     description: 'Full access to all features',
-    priceMonthly: 4900, // $49
+    priceMonthly: 5000, // $50
     priceYearly: 50000, // $500 (15% off - ~$42/month)
     features: [
       'Access to all 8+ trading strategies',
@@ -55,7 +55,7 @@ export const SUBSCRIPTION_TIERS: Record<string, SubscriptionTier> = {
 
 // Stripe Price IDs - created in Stripe Dashboard (test mode)
 export const STRIPE_PRICE_IDS = {
-  pro_monthly: 'price_1ShFd7LgSNEpPzB5xbrFnQoT',
+  pro_monthly: 'price_1ShGEXLgSNEpPzB5vpNCobQO',
   pro_yearly: 'price_1ShFdGLgSNEpPzB5A0MpiAOS',
 };
 
