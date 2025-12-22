@@ -180,7 +180,7 @@ export default function LandingPage() {
         
         <div className="container relative z-10 py-12">
           <div className="max-w-5xl mx-auto text-center">
-            {/* Main Headline */}
+            {/* Main Headline - H1 for SEO */}
             <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold text-white mb-10 tracking-tight leading-tight">
               <span className="bg-gradient-to-r from-emerald-400 to-blue-400 bg-clip-text text-transparent">Systematic Trading Strategies</span><br />
               <span className="text-white">for Futures.</span>
@@ -291,7 +291,7 @@ export default function LandingPage() {
         <div className="container">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-light text-white mb-4">
-              Everything You Need to <span className="font-bold text-emerald-400">Trade Systematically</span>
+              Everything You Need to <span className="font-bold text-emerald-400">Trade Futures Systematically</span>
             </h2>
             <p className="text-gray-400 max-w-2xl mx-auto">
               Stop spending months building infrastructure. Get proven strategies, real-time signals, and auto-execution — all in one platform.
@@ -404,7 +404,7 @@ export default function LandingPage() {
         <div className="container">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-light text-white mb-4">
-              Why <span className="font-bold text-emerald-400">STS</span> vs. The Alternatives?
+              Why Choose <span className="font-bold text-emerald-400">Algorithmic Futures Trading</span> with STS?
             </h2>
             <p className="text-gray-400 max-w-2xl mx-auto">
               Compare systematic trading with STS against discretionary trading or building your own tech stack.
@@ -484,7 +484,7 @@ export default function LandingPage() {
         <div className="container">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-light text-white mb-4">
-              Save <span className="font-bold text-emerald-400">${savingsData.yearlySavings}+</span> Per Year
+              Save <span className="font-bold text-emerald-400">${savingsData.yearlySavings}+</span> on Trading Automation
             </h2>
             <p className="text-gray-400 max-w-2xl mx-auto">
               Our brokerage connector alone saves you more than most third-party services charge.
@@ -574,7 +574,7 @@ export default function LandingPage() {
         <div className="container">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-light text-white mb-4">
-              See <span className="font-bold text-emerald-400">Inside the Platform</span>
+              Professional <span className="font-bold text-emerald-400">Trading Analytics Dashboard</span>
             </h2>
             <p className="text-gray-400 max-w-2xl mx-auto">
               Full transparency. Every metric, every trade, every correlation — visible before you subscribe.
@@ -624,7 +624,7 @@ export default function LandingPage() {
         <div className="container">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-light text-white mb-4">
-              Simple, <span className="font-bold text-emerald-400">Transparent Pricing</span>
+              Futures Trading <span className="font-bold text-emerald-400">Subscription Pricing</span>
             </h2>
             <p className="text-gray-400 max-w-xl mx-auto">
               One plan. Everything included. Lock in your rate for life.
@@ -717,7 +717,7 @@ export default function LandingPage() {
         <div className="container">
           <div className="text-center mb-16">
             <h2 className="text-3xl font-light text-white mb-4">
-              Frequently Asked <span className="font-semibold">Questions</span>
+              Futures Trading <span className="font-semibold text-emerald-400">FAQ</span>
             </h2>
             <p className="text-gray-400 max-w-xl mx-auto">
               Everything you need to know about the platform
@@ -756,7 +756,7 @@ export default function LandingPage() {
       <section className="py-20 border-t border-gray-800/50 bg-gradient-to-b from-emerald-950/20 to-transparent">
         <div className="container text-center">
           <h2 className="text-3xl sm:text-4xl font-light text-white mb-4">
-            Ready to <span className="font-bold text-emerald-400">Trade Systematically</span>?
+            Start <span className="font-bold text-emerald-400">Algorithmic Futures Trading</span> Today
           </h2>
           <p className="text-gray-400 max-w-xl mx-auto mb-8">
             Join traders who've replaced guesswork with proven, backtested strategies.

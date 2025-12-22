@@ -3780,3 +3780,15 @@
 - [ ] Load test critical endpoints (future)
 - [ ] Document performance benchmarks (future)
 
+
+
+## SEO Fixes - Dec 22, 2025
+
+### Homepage SEO Issues
+- [x] Add H1 heading to homepage ("Systematic Trading Strategies for Futures")
+- [x] Add H2 headings to homepage sections (7 keyword-rich H2s added)
+- [x] Optimize page title (55 characters: "STS Futures - Systematic Trading Strategies for ES, NQ, CL")
+- [x] Add meta description (160 characters with keywords)
+- [x] Add relevant keywords to content (futures trading, algorithmic trading, TradingView signals, etc.)
+- [x] Add meta robots tag for indexing
+- [x] Add canonical URL
