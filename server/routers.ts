@@ -79,6 +79,10 @@ export const appRouter = router({
       await db.updateUserOnboarding(ctx.user.id, true);
       return { success: true };
     }),
+    dismissOnboarding: protectedProcedure.mutation(async ({ ctx }) => {
+      await db.dismissUserOnboarding(ctx.user.id);
+      return { success: true };
+    }),
   }),
 
   portfolio: router({
@@ -1005,6 +1009,64 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         const success = await db.deleteTrade(input.tradeId);
         return { success };
+      }),
+
+    /**
+     * Upload trades from TradingView CSV with optional overwrite
+     * Parses CSV data and inserts trades for a strategy
+     */
+    uploadTrades: adminProcedure
+      .input(z.object({
+        strategyId: z.number(),
+        trades: z.array(z.object({
+          entryDate: z.string(),
+          exitDate: z.string(),
+          direction: z.string(),
+          entryPrice: z.number(),
+          exitPrice: z.number(),
+          quantity: z.number().optional().default(1),
+          pnl: z.number(),
+          commission: z.number().optional().default(0),
+        })),
+        overwrite: z.boolean().optional().default(false),
+      }))
+      .mutation(async ({ input }) => {
+        // Convert string dates to Date objects and calculate pnlPercent
+        const tradesToUpload = input.trades.map(t => {
+          const entryDate = new Date(t.entryDate);
+          const exitDate = new Date(t.exitDate);
+          const entryPriceCents = Math.round(t.entryPrice * 100);
+          const exitPriceCents = Math.round(t.exitPrice * 100);
+          const pnlCents = Math.round(t.pnl * 100);
+          const pnlPercent = Math.round((t.pnl / t.entryPrice) * 10000);
+          
+          return {
+            entryDate,
+            exitDate,
+            direction: t.direction,
+            entryPrice: entryPriceCents,
+            exitPrice: exitPriceCents,
+            quantity: t.quantity,
+            pnl: pnlCents,
+            pnlPercent,
+            commission: Math.round(t.commission * 100),
+          };
+        });
+        
+        const result = await db.uploadTradesForStrategy(
+          input.strategyId,
+          tradesToUpload,
+          input.overwrite
+        );
+        
+        return {
+          success: true,
+          deleted: result.deleted,
+          inserted: result.inserted,
+          message: input.overwrite
+            ? `Replaced ${result.deleted} trades with ${result.inserted} new trades`
+            : `Added ${result.inserted} new trades`,
+        };
       }),
 
     /**

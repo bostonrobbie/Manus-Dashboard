@@ -177,6 +177,19 @@ export async function updateUserOnboarding(userId: number, completed: boolean) {
 }
 
 /**
+ * Dismiss user onboarding permanently
+ */
+export async function dismissUserOnboarding(userId: number) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot dismiss user onboarding: database not available");
+    return;
+  }
+
+  await db.update(users).set({ onboardingDismissed: true }).where(eq(users.id, userId));
+}
+
+/**
  * Get all strategies
  */
 export async function getAllStrategies() {
@@ -502,6 +515,110 @@ export async function deleteTradesByIds(tradeIds: number[]): Promise<number> {
   }
 }
 
+/**
+ * Delete all trades for a strategy (for overwrite functionality)
+ */
+export async function deleteTradesByStrategy(strategyId: number): Promise<number> {
+  const db = await getDb();
+  if (!db) return 0;
+
+  try {
+    // Count before deleting
+    const countResult = await db.select({ count: sql<number>`count(*)` })
+      .from(trades)
+      .where(eq(trades.strategyId, strategyId));
+    const count = countResult[0]?.count ?? 0;
+    
+    if (count === 0) {
+      return 0;
+    }
+    
+    await db.delete(trades).where(eq(trades.strategyId, strategyId));
+    console.log(`[Database] Deleted ${count} trades for strategy ${strategyId}`);
+    return count;
+  } catch (error) {
+    console.error("[Database] Failed to delete trades for strategy:", error);
+    throw error;
+  }
+}
+
+/**
+ * Bulk insert trades (for CSV upload)
+ */
+export async function bulkInsertTrades(tradesToInsert: Array<{
+  strategyId: number;
+  entryDate: Date;
+  exitDate: Date;
+  direction: string;
+  entryPrice: number;
+  exitPrice: number;
+  quantity: number;
+  pnl: number;
+  pnlPercent: number;
+  commission: number;
+}>): Promise<number> {
+  const db = await getDb();
+  if (!db || tradesToInsert.length === 0) return 0;
+
+  try {
+    // Insert in batches of 100 to avoid query size limits
+    const batchSize = 100;
+    let inserted = 0;
+    
+    for (let i = 0; i < tradesToInsert.length; i += batchSize) {
+      const batch = tradesToInsert.slice(i, i + batchSize);
+      await db.insert(trades).values(batch);
+      inserted += batch.length;
+    }
+    
+    console.log(`[Database] Bulk inserted ${inserted} trades`);
+    return inserted;
+  } catch (error) {
+    console.error("[Database] Failed to bulk insert trades:", error);
+    throw error;
+  }
+}
+
+/**
+ * Upload trades with overwrite option
+ * If overwrite is true, deletes all existing trades for the strategy first
+ */
+export async function uploadTradesForStrategy(
+  strategyId: number,
+  tradesToUpload: Array<{
+    entryDate: Date;
+    exitDate: Date;
+    direction: string;
+    entryPrice: number;
+    exitPrice: number;
+    quantity: number;
+    pnl: number;
+    pnlPercent: number;
+    commission: number;
+  }>,
+  overwrite: boolean = false
+): Promise<{ deleted: number; inserted: number }> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  let deleted = 0;
+  
+  // Delete existing trades if overwrite is enabled
+  if (overwrite) {
+    deleted = await deleteTradesByStrategy(strategyId);
+  }
+  
+  // Add strategyId to each trade
+  const tradesWithStrategy = tradesToUpload.map(t => ({
+    ...t,
+    strategyId,
+  }));
+  
+  // Insert new trades
+  const inserted = await bulkInsertTrades(tradesWithStrategy);
+  
+  return { deleted, inserted };
+}
 
 // ============================================
 // Open Positions Management (Persistent Trade Tracking)

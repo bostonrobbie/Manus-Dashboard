@@ -17,6 +17,7 @@ export const users = mysqlTable("users", {
   subscriptionStatus: varchar("subscriptionStatus", { length: 50 }).default("active"), // active, canceled, past_due
   // Onboarding
   onboardingCompleted: boolean("onboardingCompleted").default(false).notNull(),
+  onboardingDismissed: boolean("onboardingDismissed").default(false).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),

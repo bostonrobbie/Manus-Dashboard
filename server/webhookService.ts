@@ -65,6 +65,7 @@ export interface TradingViewPayload {
   strategy?: string;           // Strategy name (alternative to symbol)
   comment?: string;            // Additional trade comment
   quantityMultiplier?: number; // Multiplier for quantity (e.g., 2 = double the signal quantity)
+  isTest?: boolean;            // Flag to indicate test webhook (won't create trades)
   // NEW: Enhanced position tracking fields
   position?: string;           // From {{strategy.market_position}} - "long", "short", "flat"
   signalType?: string;         // Explicit signal type: "entry", "exit", "scale_in", "scale_out"
@@ -86,6 +87,7 @@ export interface NormalizedPayload {
   // NEW: Enhanced fields
   signalType: 'entry' | 'exit';  // Determined signal type
   marketPosition: 'long' | 'short' | 'flat';  // Current market position
+  isTest: boolean;  // Whether this is a test webhook
 }
 
 export interface WebhookResult {
@@ -358,6 +360,12 @@ export function validatePayload(payload: unknown): NormalizedPayload {
     pnl = typeof p.pnl === 'string' ? parseFloat(p.pnl) : Number(p.pnl);
   }
 
+  // Check if this is a test webhook (won't create trades in database)
+  const isTest = p.isTest === true || 
+                 p.isTest === 'true' || 
+                 (typeof p.comment === 'string' && p.comment.toLowerCase().includes('test')) ||
+                 (typeof p.symbol === 'string' && p.symbol.toLowerCase().includes('test'));
+
   return {
     strategySymbol,
     action,
@@ -371,6 +379,7 @@ export function validatePayload(payload: unknown): NormalizedPayload {
     token: typeof p.token === 'string' ? p.token : undefined,
     signalType,
     marketPosition,
+    isTest,
   };
 }
 
@@ -728,6 +737,40 @@ async function handleExitSignal(
 
   // Calculate P&L percentage (based on entry price)
   const pnlPercent = Math.round((pnlDollars / entryPrice) * 10000);
+
+  // Skip trade insertion for test webhooks
+  if (payload.isTest) {
+    const processingTimeMs = Date.now() - startTime;
+    
+    await updateWebhookLog(logId, {
+      status: 'success',
+      direction,
+      entryPrice: entryPriceCents,
+      exitPrice: exitPriceCents,
+      pnl: pnlCents,
+      entryTime,
+      exitTime: payload.timestamp,
+      processingTimeMs,
+      errorMessage: 'Test webhook - trade not saved to database',
+    });
+
+    // Close the open position without creating a trade
+    await closeOpenPosition(openPosition.id, {
+      exitPrice: exitPriceCents,
+      exitTime: payload.timestamp,
+      exitWebhookLogId: logId,
+      pnl: pnlCents,
+    });
+
+    return {
+      success: true,
+      logId,
+      positionId: openPosition.id,
+      message: `Test exit signal processed (trade not saved): ${payload.strategySymbol} ${direction} closed at $${payload.price.toFixed(2)} (P&L: $${pnlDollars.toFixed(2)})`,
+      processingTimeMs,
+      signalType: 'exit',
+    };
+  }
 
   // Insert trade record
   await insertTrade({

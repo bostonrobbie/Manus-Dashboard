@@ -92,7 +92,12 @@ export default function UserDashboard() {
   });
   const [showSP500, setShowSP500] = useState(true);
   const [riskDisclaimerOpen, setRiskDisclaimerOpen] = useState(false);
-  const [showOnboarding, setShowOnboarding] = useState(true);
+  
+  // Check if user has dismissed onboarding
+  const showOnboarding = user && !user.onboardingDismissed && !user.onboardingCompleted;
+  
+  // Dismiss onboarding mutation
+  const dismissOnboardingMutation = trpc.auth.dismissOnboarding.useMutation();
 
   // Fetch user subscriptions
   const { data: subscriptions, isLoading: loadingSubscriptions, refetch: refetchSubscriptions } = 
@@ -442,7 +447,7 @@ export default function UserDashboard() {
               completed: false // TODO: Check notification preferences
             }
           ]}
-          onDismiss={() => setShowOnboarding(false)}
+          onDismiss={() => dismissOnboardingMutation.mutate()}
         />
       )}
 

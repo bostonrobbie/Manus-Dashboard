@@ -3463,3 +3463,85 @@
 - [x] Admin Activity page Clear All button clears all webhook logs
 - [x] Strategy detail pages load correctly with all metrics
 - [x] Data quality indicators showing properly on strategy pages
+
+
+## Sprint: December 21, 2025 - User Requested Improvements
+
+### Getting Started Tab
+- [ ] Add permanent dismiss option for Getting Started section
+- [ ] Save dismiss preference to user database/local storage
+- [ ] Hide Getting Started when dismissed
+
+### Drawdown Markers on Equity Curve
+- [ ] Reduce visual clutter of drawdown markers
+- [ ] Show only major drawdowns (e.g., top 3 or threshold-based)
+- [ ] Make markers less distracting (lighter colors, smaller)
+
+### Sharpe Ratio Investigation
+- [ ] Audit Sharpe ratio calculation on individual strategy pages
+- [ ] Verify formula: (mean return - risk-free) / std deviation
+- [ ] Check if using daily vs annualized returns correctly
+- [ ] Compare with industry standard calculations
+
+### Admin Page Access Control
+- [ ] Hide Admin link from non-admin users in navigation
+- [ ] Verify admin-only routes are protected on backend
+
+### Admin Page Enhancements
+- [ ] Organize admin page layout and functionality
+- [ ] Ensure webhook trades update database correctly
+- [ ] Verify equity charts update when new trades arrive
+
+### Test Trade Prevention
+- [ ] Add flag to identify test webhooks
+- [ ] Prevent test trades from being saved to trades table
+- [ ] Allow test trades in webhook logs only
+
+### Trade Upload Overwrite
+- [ ] Add option to overwrite previous trades when uploading
+- [ ] Implement bulk delete before insert for strategy trades
+- [ ] Add confirmation dialog for overwrite action
+
+
+## Sprint: December 21, 2025 - User Requested Improvements
+
+### Getting Started Tab
+- [x] Add permanent dismiss option for Getting Started tab
+- [x] Add onboardingDismissed field to users schema
+- [x] Create dismissOnboarding mutation
+- [x] Update UserDashboard to persist dismiss state
+
+### Equity Curve Improvements
+- [x] Improve drawdown markers on equity curve (less distracting)
+- [x] Show only max drawdown with subtle styling
+- [x] Remove clustered drawdown annotations
+
+### Sharpe Ratio Verification
+- [x] Verify Sharpe ratio calculation on strategy pages (confirmed correct)
+- [x] Sharpe uses daily returns with √252 annualization
+- [x] Individual strategy Sharpe is lower than portfolio due to diversification
+
+### Admin Page Security
+- [x] Hide Admin page from non-admin users in navigation (already implemented)
+- [x] Admin menu item has adminOnly: true flag
+- [x] DashboardLayout filters menu items based on user role
+
+### Admin Page Enhancements
+- [x] Enhance admin page organization and functionality
+- [x] Add trade upload section with CSV parsing
+- [x] Add overwrite option for replacing existing trades
+
+### Test Trade Prevention
+- [x] Prevent test trades from being added to database
+- [x] Add isTest field to webhook payload interface
+- [x] Detect test webhooks via isTest flag, "test" in comment, or "test" in symbol
+- [x] Skip trade insertion for test webhooks while still logging
+
+### Trade Upload Functionality
+- [x] Add trade upload with overwrite functionality
+- [x] Create uploadTradesForStrategy function in db.ts
+- [x] Create bulkInsertTrades function for batch insertion
+- [x] Create deleteTradesByStrategy function for overwrite
+- [x] Add uploadTrades mutation to webhook router
+- [x] Create TradeUploadSection component in Admin page
+- [x] Support TradingView CSV format parsing

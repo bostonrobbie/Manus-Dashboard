@@ -1971,6 +1971,216 @@ function SettingsTab() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Trade Upload */}
+      <TradeUploadSection />
     </>
+  );
+}
+
+// ============================================================================
+// TRADE UPLOAD SECTION
+// ============================================================================
+
+function TradeUploadSection() {
+  const [selectedStrategy, setSelectedStrategy] = useState<string>('');
+  const [csvData, setCsvData] = useState('');
+  const [overwrite, setOverwrite] = useState(false);
+  const [parseResult, setParseResult] = useState<{ trades: any[]; errors: string[] } | null>(null);
+  
+  const { data: strategies } = trpc.portfolio.listStrategies.useQuery();
+  const uploadMutation = trpc.webhook.uploadTrades.useMutation({
+    onSuccess: (data) => {
+      toast.success(data.message);
+      setCsvData('');
+      setParseResult(null);
+    },
+    onError: (error) => {
+      toast.error(`Upload failed: ${error.message}`);
+    },
+  });
+  
+  // Parse TradingView CSV format
+  const parseCSV = (csv: string) => {
+    const lines = csv.trim().split('\n');
+    if (lines.length < 2) {
+      return { trades: [], errors: ['CSV must have at least a header row and one data row'] };
+    }
+    
+    const header = lines[0].toLowerCase();
+    const trades: any[] = [];
+    const errors: string[] = [];
+    
+    // Detect column indices from header
+    const cols = header.split(',').map(c => c.trim());
+    const findCol = (names: string[]) => cols.findIndex(c => names.some(n => c.includes(n)));
+    
+    const entryDateIdx = findCol(['entry date', 'entry time', 'entry_date']);
+    const exitDateIdx = findCol(['exit date', 'exit time', 'exit_date']);
+    const directionIdx = findCol(['type', 'direction', 'side']);
+    const entryPriceIdx = findCol(['entry price', 'entry_price', 'avg entry']);
+    const exitPriceIdx = findCol(['exit price', 'exit_price', 'avg exit']);
+    const pnlIdx = findCol(['profit', 'pnl', 'p&l', 'net profit']);
+    const qtyIdx = findCol(['qty', 'quantity', 'contracts', 'size']);
+    
+    if (entryDateIdx === -1 || exitDateIdx === -1 || pnlIdx === -1) {
+      return { trades: [], errors: ['Missing required columns: entry date, exit date, and profit/pnl'] };
+    }
+    
+    for (let i = 1; i < lines.length; i++) {
+      const row = lines[i].split(',').map(c => c.trim());
+      if (row.length < 3) continue;
+      
+      try {
+        const entryDate = row[entryDateIdx];
+        const exitDate = row[exitDateIdx];
+        const direction = directionIdx !== -1 ? row[directionIdx] : 'Long';
+        const entryPrice = entryPriceIdx !== -1 ? parseFloat(row[entryPriceIdx].replace(/[^0-9.-]/g, '')) : 0;
+        const exitPrice = exitPriceIdx !== -1 ? parseFloat(row[exitPriceIdx].replace(/[^0-9.-]/g, '')) : 0;
+        const pnl = parseFloat(row[pnlIdx].replace(/[^0-9.-]/g, ''));
+        const quantity = qtyIdx !== -1 ? parseInt(row[qtyIdx]) || 1 : 1;
+        
+        if (!entryDate || !exitDate || isNaN(pnl)) {
+          errors.push(`Row ${i + 1}: Invalid data`);
+          continue;
+        }
+        
+        trades.push({
+          entryDate,
+          exitDate,
+          direction: direction.toLowerCase().includes('short') ? 'Short' : 'Long',
+          entryPrice: entryPrice || 100,
+          exitPrice: exitPrice || 100,
+          quantity,
+          pnl,
+          commission: 0,
+        });
+      } catch (e) {
+        errors.push(`Row ${i + 1}: Parse error`);
+      }
+    }
+    
+    return { trades, errors };
+  };
+  
+  const handleParse = () => {
+    const result = parseCSV(csvData);
+    setParseResult(result);
+  };
+  
+  const handleUpload = () => {
+    if (!selectedStrategy || !parseResult?.trades.length) {
+      toast.error('Select a strategy and parse valid CSV data first');
+      return;
+    }
+    
+    const confirmMsg = overwrite
+      ? `This will DELETE all existing trades for this strategy and replace with ${parseResult.trades.length} new trades. Continue?`
+      : `This will add ${parseResult.trades.length} trades. Continue?`;
+    
+    if (confirm(confirmMsg)) {
+      uploadMutation.mutate({
+        strategyId: parseInt(selectedStrategy),
+        trades: parseResult.trades,
+        overwrite,
+      });
+    }
+  };
+  
+  return (
+    <Card className="bg-card/50 border-border/50">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <TrendingUp className="h-5 w-5" />
+          Trade Upload
+        </CardTitle>
+        <CardDescription>
+          Upload trades from TradingView CSV export. Overwrite mode replaces all existing trades for the strategy.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label>Strategy</Label>
+            <Select value={selectedStrategy} onValueChange={setSelectedStrategy}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select strategy" />
+              </SelectTrigger>
+              <SelectContent>
+                {strategies?.map((s: { id: number; name: string }) => (
+                  <SelectItem key={s.id} value={s.id.toString()}>{s.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-center gap-2 pt-6">
+            <Switch
+              id="overwrite"
+              checked={overwrite}
+              onCheckedChange={setOverwrite}
+            />
+            <Label htmlFor="overwrite" className="text-sm">
+              Overwrite existing trades
+            </Label>
+          </div>
+        </div>
+        
+        <div className="space-y-2">
+          <Label>CSV Data (paste from TradingView)</Label>
+          <Textarea
+            value={csvData}
+            onChange={(e) => setCsvData(e.target.value)}
+            placeholder="Entry Date,Exit Date,Type,Entry Price,Exit Price,Profit\n2024-01-15 09:30,2024-01-15 10:45,Long,4500,4520,500..."
+            className="font-mono text-xs h-32"
+          />
+        </div>
+        
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleParse} disabled={!csvData}>
+            Parse CSV
+          </Button>
+          <Button 
+            onClick={handleUpload} 
+            disabled={!parseResult?.trades.length || !selectedStrategy || uploadMutation.isPending}
+            className={overwrite ? 'bg-orange-600 hover:bg-orange-700' : ''}
+          >
+            {uploadMutation.isPending ? (
+              <><RefreshCw className="h-4 w-4 mr-2 animate-spin" />Uploading...</>
+            ) : overwrite ? (
+              <><AlertTriangle className="h-4 w-4 mr-2" />Replace All Trades</>
+            ) : (
+              'Upload Trades'
+            )}
+          </Button>
+        </div>
+        
+        {parseResult && (
+          <div className={`p-4 rounded-lg ${parseResult.trades.length > 0 ? 'bg-green-500/10 border border-green-500/30' : 'bg-red-500/10 border border-red-500/30'}`}>
+            {parseResult.trades.length > 0 ? (
+              <div className="space-y-2">
+                <p className="text-green-400 font-medium flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4" />
+                  Parsed {parseResult.trades.length} trades
+                </p>
+                {parseResult.errors.length > 0 && (
+                  <p className="text-yellow-400 text-sm">
+                    {parseResult.errors.length} rows skipped due to errors
+                  </p>
+                )}
+                <div className="text-xs text-muted-foreground">
+                  <p>First trade: {parseResult.trades[0]?.entryDate} ({parseResult.trades[0]?.direction})</p>
+                  <p>Last trade: {parseResult.trades[parseResult.trades.length - 1]?.entryDate}</p>
+                </div>
+              </div>
+            ) : (
+              <p className="text-red-400 flex items-center gap-2">
+                <XCircle className="h-4 w-4" />
+                {parseResult.errors[0] || 'No valid trades found'}
+              </p>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }

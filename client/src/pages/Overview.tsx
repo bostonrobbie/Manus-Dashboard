@@ -123,9 +123,10 @@ export default function Overview() {
 
   }));
 
-  // Get top 3 major drawdown periods for highlighting
-  const top3Drawdowns = data.majorDrawdowns && data.majorDrawdowns.length > 0
-    ? data.majorDrawdowns.slice(0, 3).map((dd: any, index: number) => {
+  // Get only the max drawdown period for subtle highlighting (less distracting)
+  const maxDrawdownPeriod = data.majorDrawdowns && data.majorDrawdowns.length > 0
+    ? (() => {
+        const dd = data.majorDrawdowns[0]; // Max drawdown is always first
         const startDate = new Date(dd.startDate).toLocaleDateString();
         const endDate = dd.recoveryDate 
           ? new Date(dd.recoveryDate).toLocaleDateString()
@@ -134,15 +135,16 @@ export default function Overview() {
         let endIndex = chartData.findIndex(d => d.date === endDate);
         if (endIndex === -1) endIndex = chartData.length - 1;
         
-        return {
-          startIndex,
-          endIndex,
-          depthPct: dd.depthPct,
-          label: index === 0 ? 'Max Drawdown' : index === 1 ? '2nd Drawdown' : '3rd Drawdown',
-          color: index === 0 ? '#ef4444' : index === 1 ? '#f97316' : '#f59e0b',
-        };
-      }).filter((dd: any) => dd.startIndex >= 0 && dd.endIndex >= 0)
-    : [];
+        if (startIndex >= 0 && endIndex >= 0) {
+          return {
+            startIndex,
+            endIndex,
+            depthPct: dd.depthPct,
+          };
+        }
+        return null;
+      })()
+    : null;
 
   // Calculate domain boundaries for X-axis to ensure chart extends full width
   const minTimestamp = chartData.length > 0 ? chartData[0]!.timestamp : 0;
@@ -376,23 +378,18 @@ export default function Overview() {
                     );
                   }}
                 />
-                {/* Highlight top 3 drawdown periods */}
-                {top3Drawdowns.map((dd: any, index: number) => (
+                {/* Subtle max drawdown indicator - only show if significant */}
+                {maxDrawdownPeriod && maxDrawdownPeriod.depthPct > 10 && (
                   <ReferenceArea
-                    key={index}
-                    x1={chartData[dd.startIndex]!.date}
-                    x2={chartData[dd.endIndex]!.date}
-                    fill={dd.color}
-                    fillOpacity={0.1}
-                    label={{ 
-                      value: `${dd.label} (${dd.depthPct.toFixed(1)}%)`, 
-                      position: 'insideTop', 
-                      fill: dd.color, 
-                      fontSize: 11,
-                      offset: index * 15 // Offset labels vertically so they don't overlap
-                    }}
+                    x1={chartData[maxDrawdownPeriod.startIndex]!.date}
+                    x2={chartData[maxDrawdownPeriod.endIndex]!.date}
+                    fill="#ef4444"
+                    fillOpacity={0.05}
+                    stroke="#ef4444"
+                    strokeOpacity={0.2}
+                    strokeDasharray="3 3"
                   />
-                ))}
+                )}
                 <Line 
                   type="monotone" 
                   dataKey="portfolio" 
