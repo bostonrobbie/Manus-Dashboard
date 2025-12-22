@@ -222,67 +222,79 @@ export default function Overview() {
           {/* Key Metrics Cards - All in one row with auto-sizing */}
           <div className="grid gap-2 sm:gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
             {/* Total Return */}
-            <div className="bg-muted/30 border border-muted rounded-lg p-2 sm:p-3 md:p-4 text-center">
+            <div className="bg-muted/30 border border-muted rounded-lg p-2 sm:p-3 md:p-4 text-center overflow-hidden">
               <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1 sm:mb-2">Total Return</div>
-              <div className={`text-base sm:text-xl md:text-2xl lg:text-3xl font-bold mb-1 ${
+              <div className={`text-xs sm:text-base md:text-lg lg:text-xl font-bold mb-1 ${
                 metrics.totalReturn >= 0 ? 'text-green-500' : 'text-red-500'
-              }`}>
-                {metrics.totalReturn >= 0 ? '+' : ''}${Math.round((metrics.totalReturn / 100) * startingCapital).toLocaleString()}
+              }`} title={`${metrics.totalReturn >= 0 ? '+' : ''}$${Math.round((metrics.totalReturn / 100) * startingCapital).toLocaleString()}`}>
+                {metrics.totalReturn >= 0 ? '+' : ''}${(() => {
+                  const value = Math.round((metrics.totalReturn / 100) * startingCapital);
+                  if (Math.abs(value) >= 1000000) return (value / 1000000).toFixed(1) + 'M';
+                  if (Math.abs(value) >= 1000) return (value / 1000).toFixed(1) + 'K';
+                  return value.toLocaleString();
+                })()}
               </div>
-              <div className="text-[10px] sm:text-xs text-muted-foreground">
-                {metrics.totalReturn.toFixed(2)}% ({metrics.annualizedReturn.toFixed(2)}% ann.)
+              <div className="text-[8px] sm:text-[9px] text-muted-foreground">
+                {metrics.totalReturn.toFixed(1)}% ({metrics.annualizedReturn.toFixed(0)}% ann.)
               </div>
             </div>
 
             {/* Max Drawdown */}
-            <div className="bg-muted/30 border border-muted rounded-lg p-2 sm:p-3 md:p-4 text-center">
+            <div className="bg-muted/30 border border-muted rounded-lg p-2 sm:p-3 md:p-4 text-center overflow-hidden">
               <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1 sm:mb-2">Max Drawdown</div>
-              <div className="text-base sm:text-xl md:text-2xl lg:text-3xl font-bold mb-1 text-amber-500">-${Math.round(metrics.maxDrawdownDollars).toLocaleString()}</div>
-              <div className="text-[10px] sm:text-xs text-muted-foreground">
-                {metrics.maxDrawdown.toFixed(2)}% peak to trough
+              <div className="text-xs sm:text-base md:text-lg lg:text-xl font-bold mb-1 text-amber-500" title={`-$${Math.round(metrics.maxDrawdownDollars).toLocaleString()}`}>
+                -${(() => {
+                  const value = Math.round(metrics.maxDrawdownDollars);
+                  if (Math.abs(value) >= 1000000) return (value / 1000000).toFixed(1) + 'M';
+                  if (Math.abs(value) >= 1000) return (value / 1000).toFixed(1) + 'K';
+                  return value.toLocaleString();
+                })()}
+              </div>
+              <div className="text-[8px] sm:text-[9px] text-muted-foreground">
+                {metrics.maxDrawdown.toFixed(1)}% peak to trough
               </div>
             </div>
 
             {/* Sortino Ratio - Daily (Industry Standard) */}
-            <div className="bg-muted/30 border border-muted rounded-lg p-2 sm:p-3 md:p-4 text-center">
+            <div className="bg-muted/30 border border-muted rounded-lg p-2 sm:p-3 md:p-4 text-center overflow-hidden">
               <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1 sm:mb-2 flex items-center justify-center gap-1">
-                <span className="hidden sm:inline">Sortino Ratio</span>
+                <span className="hidden sm:inline">Sortino</span>
                 <span className="sm:hidden">Sortino</span>
                 <Badge variant="outline" className="text-[7px] sm:text-[8px] px-1 py-0 h-3 sm:h-4 bg-emerald-500/10 text-emerald-500 border-emerald-500/30">Daily</Badge>
               </div>
-              <div className="text-base sm:text-xl md:text-2xl lg:text-3xl font-bold mb-1">{data.dailyMetrics?.sortino?.toFixed(2) ?? metrics.sortinoRatio.toFixed(2)}</div>
-              <div className="text-[10px] sm:text-xs text-muted-foreground">
-                Trade-based: {metrics.sortinoRatio.toFixed(2)}
+              <div className="text-sm sm:text-lg md:text-xl lg:text-2xl font-bold mb-1">{data.dailyMetrics?.sortino?.toFixed(2) ?? metrics.sortinoRatio.toFixed(2)}</div>
+              <div className="text-[9px] sm:text-[10px] text-muted-foreground truncate">
+                Trade: {metrics.sortinoRatio.toFixed(2)}
               </div>
             </div>
 
             {/* Sharpe Ratio - Daily (Industry Standard) */}
-            <div className="bg-muted/30 border border-muted rounded-lg p-2 sm:p-3 md:p-4 text-center">
+            <div className="bg-muted/30 border border-muted rounded-lg p-2 sm:p-3 md:p-4 text-center overflow-hidden">
               <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1 sm:mb-2 flex items-center justify-center gap-1">
-                <span className="hidden sm:inline">Sharpe Ratio</span>
+                <span className="hidden sm:inline">Sharpe</span>
                 <span className="sm:hidden">Sharpe</span>
                 <Badge variant="outline" className="text-[7px] sm:text-[8px] px-1 py-0 h-3 sm:h-4 bg-emerald-500/10 text-emerald-500 border-emerald-500/30">Daily</Badge>
               </div>
-              <div className="text-base sm:text-xl md:text-2xl lg:text-3xl font-bold mb-1">{data.dailyMetrics?.sharpe?.toFixed(2) ?? metrics.sharpeRatio.toFixed(2)}</div>
-              <div className="text-[10px] sm:text-xs text-muted-foreground">
-                Trade-based: {metrics.sharpeRatio.toFixed(2)}
+              <div className="text-sm sm:text-lg md:text-xl lg:text-2xl font-bold mb-1">{data.dailyMetrics?.sharpe?.toFixed(2) ?? metrics.sharpeRatio.toFixed(2)}</div>
+              <div className="text-[9px] sm:text-[10px] text-muted-foreground truncate">
+                Trade: {metrics.sharpeRatio.toFixed(2)}
               </div>
             </div>
 
             {/* Win Rate */}
-            <div className="bg-muted/30 border border-muted rounded-lg p-2 sm:p-3 md:p-4 text-center">
+            <div className="bg-muted/30 border border-muted rounded-lg p-2 sm:p-3 md:p-4 text-center overflow-hidden">
               <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1 sm:mb-2">Win Rate</div>
-              <div className="text-base sm:text-xl md:text-2xl lg:text-3xl font-bold mb-1">{metrics.winRate.toFixed(1)}%</div>
-              <div className="text-[10px] sm:text-xs text-muted-foreground">
+              <div className="text-sm sm:text-lg md:text-xl lg:text-2xl font-bold mb-1">{metrics.winRate.toFixed(1)}%</div>
+              <div className="text-[9px] sm:text-[10px] text-muted-foreground truncate">
                 {metrics.totalTrades.toLocaleString()} trades
               </div>
             </div>
 
             {/* Calmar Ratio */}
-            <div className="bg-muted/30 border border-muted rounded-lg p-2 sm:p-3 md:p-4 text-center">
-              <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1 sm:mb-2">Calmar Ratio</div>
-              <div className="text-base sm:text-xl md:text-2xl lg:text-3xl font-bold mb-1">{metrics.calmarRatio.toFixed(2)}</div>
-              <div className="text-[10px] sm:text-xs text-muted-foreground">
+            <div className="bg-muted/30 border border-muted rounded-lg p-2 sm:p-3 md:p-4 text-center overflow-hidden">
+              <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1 sm:mb-2">Calmar</div>
+              <div className="text-sm sm:text-lg md:text-xl lg:text-2xl font-bold mb-1">{metrics.calmarRatio.toFixed(2)}</div>
+              <div className="text-[9px] sm:text-[10px] text-muted-foreground truncate">
                 Return / DD
               </div>
             </div>
