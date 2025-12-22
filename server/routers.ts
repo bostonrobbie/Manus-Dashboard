@@ -1727,20 +1727,12 @@ Please check the Webhooks page in your dashboard for more details.
             .map((log: any) => log.tradeId)
         );
         
-        // Filter allTrades to only include those created by today's webhooks
-        // OR check if the trade was created today (by checking createdAt timestamp)
+        // Filter allTrades to ONLY include those created by today's webhooks
+        // Do NOT include backtest data based on createdAt - only real webhook trades
         const todayTrades = allTrades.filter((t: any) => {
-          // If trade was created by a webhook today, include it
-          if (webhookTradeIds.has(t.id)) return true;
-          
-          // Also include trades that were created today (createdAt is today)
-          // This catches trades created via webhooks that we might have missed
-          const createdAt = t.createdAt ? new Date(t.createdAt) : null;
-          if (createdAt && createdAt >= todayStart && createdAt <= todayEnd) {
-            return true;
-          }
-          
-          return false;
+          // ONLY include trades that were created by a webhook today
+          // This ensures backtest data (which has recent createdAt from import) is excluded
+          return webhookTradeIds.has(t.id);
         }).map((t: any) => {
           const sub = subscriptions.find(s => s.strategyId === t.strategyId);
           return {

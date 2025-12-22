@@ -3430,3 +3430,36 @@
 - [x] Fix max drawdown calculation for portfolio-level analysis
 - [x] Research futures return advertising best practices
 - [x] Implement contract-agnostic return metrics (points, R-multiples, etc.) - documented in docs/FUTURES_RETURN_ADVERTISING_STRATEGY.md
+
+
+## Bug Fixes - Dec 21
+- [ ] Fix Today's Activity to show only current day trades (not all 9,367)
+- [ ] Fix Clear All button on Admin Activity page
+- [ ] Fix strategy page data errors
+
+- [ ] Change title to "STS Systematic Trading Strategies"
+- [ ] Make futures strategies prominent in messaging
+- [ ] Show both mini and micro returns on landing page
+
+
+## Sprint: December 21, 2025 - Branding & Bug Fixes
+
+### Branding Updates
+- [x] Change title from "Quantitative Strategies" to "STS Systematic Trading Strategies"
+- [x] Update landing page badge to "Futures Trading Strategies"
+- [x] Update description to emphasize futures strategies (ES, NQ, YM, CL, GC & BTC)
+- [x] Display mini/micro returns on landing page stats ($74K mini / $7.4K micro avg annual)
+- [x] Display total returns with mini/micro breakdown ($1.1M mini / $111K micro)
+- [x] Update all "IntraDay Strategies" references to "STS Futures"
+
+### Bug Fixes
+- [x] Today's Activity - Fixed to only show real webhook trades (not historical backtest data)
+- [x] Clear All button - Verified working correctly on Admin Activity page
+- [x] Strategy pages - Verified working correctly with all metrics displaying properly
+
+### Verified Working
+- [x] Landing page displays new STS branding
+- [x] Stats bar shows 8 Futures Strategies, mini/micro returns
+- [x] Admin Activity page Clear All button clears all webhook logs
+- [x] Strategy detail pages load correctly with all metrics
+- [x] Data quality indicators showing properly on strategy pages

@@ -73,7 +73,7 @@ export default function LandingPage() {
                 <TrendingUp className="h-5 w-5 text-white" />
               </div>
               <span className="text-xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
-                IntraDay Strategies
+                STS Futures
               </span>
             </div>
             
@@ -213,23 +213,23 @@ export default function LandingPage() {
             {/* Badge - smaller on mobile */}
             <Badge className="mb-4 md:mb-6 bg-blue-500/20 text-blue-400 border-blue-500/30 px-3 md:px-4 py-1 md:py-1.5 text-xs md:text-sm">
               <Zap className="w-3 h-3 md:w-3.5 md:h-3.5 mr-1 md:mr-1.5" />
-              Professional Trading Strategies
+              Futures Trading Strategies
             </Badge>
             
             {/* Mobile-optimized headline - much smaller on mobile */}
             <h1 className="text-3xl sm:text-5xl lg:text-7xl font-bold tracking-tight mb-4 md:mb-6">
-              <span className="text-white">Trade Smarter</span>
+              <span className="text-white">STS</span>
               <br />
               <span className="bg-gradient-to-r from-blue-400 via-cyan-400 to-emerald-400 bg-clip-text text-transparent">
-                Quantitative Strategies
+                Systematic Trading Strategies
               </span>
             </h1>
             
             {/* Simplified description on mobile */}
             <p className="text-base md:text-xl text-slate-400 mb-6 md:mb-10 max-w-2xl mx-auto leading-relaxed px-2 md:px-0">
-              <span className="hidden md:inline">Access institutional-quality intraday trading strategies. Subscribe to signals, 
+              <span className="hidden md:inline">Intraday futures strategies for ES, NQ, YM, CL, GC & BTC. Subscribe to signals, 
               track performance, and automate your trading with real-time webhook integration.</span>
-              <span className="md:hidden">Access institutional-quality trading strategies with real-time signals and automation.</span>
+              <span className="md:hidden">Intraday futures strategies with real-time signals and automation.</span>
             </p>
             
             {/* CTA Buttons - full width on mobile */}
@@ -254,14 +254,15 @@ export default function LandingPage() {
           </div>
           
           {/* Stats Bar - simplified on mobile */}
-          <div className="mt-10 md:mt-20 grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8 max-w-4xl mx-auto">
+          <div className="mt-10 md:mt-20 grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8 max-w-5xl mx-auto">
             <div className="text-center">
               <div className="text-2xl sm:text-4xl font-bold text-white mb-1">8</div>
-              <div className="text-slate-400 text-xs sm:text-sm">Active Strategies</div>
+              <div className="text-slate-400 text-xs sm:text-sm">Futures Strategies</div>
             </div>
             <div className="text-center">
               <div className="text-2xl sm:text-4xl font-bold text-emerald-400 mb-1">$74K</div>
-              <div className="text-slate-400 text-xs sm:text-sm">Avg Annual Return</div>
+              <div className="text-slate-400 text-xs sm:text-sm">Avg/Year (Mini)</div>
+              <div className="text-slate-500 text-[10px] sm:text-xs">$7.4K (Micro)</div>
             </div>
             <div className="text-center">
               <div className="text-2xl sm:text-4xl font-bold text-white mb-1">15+ Yrs</div>
@@ -269,7 +270,8 @@ export default function LandingPage() {
             </div>
             <div className="text-center">
               <div className="text-2xl sm:text-4xl font-bold text-blue-400 mb-1">$1.1M</div>
-              <div className="text-slate-400 text-xs sm:text-sm">Total Returns</div>
+              <div className="text-slate-400 text-xs sm:text-sm">Total (Mini)</div>
+              <div className="text-slate-500 text-[10px] sm:text-xs">$111K (Micro)</div>
             </div>
           </div>
           
@@ -728,7 +730,7 @@ export default function LandingPage() {
           {/* Risk Disclaimer */}
           <div className="mb-8 p-4 bg-slate-800/30 border border-slate-700/50 rounded-lg">
             <p className="text-xs text-slate-500 leading-relaxed">
-              <strong className="text-slate-400">Risk Disclaimer:</strong> Trading futures and other financial instruments involves substantial risk of loss and is not suitable for all investors. Past performance is not indicative of future results. The performance data shown is based on backtested results and may not reflect actual trading conditions. You should carefully consider whether trading is appropriate for you in light of your financial condition. Never trade with money you cannot afford to lose. IntraDay Strategies provides educational and informational content only and does not provide personalized investment advice.
+              <strong className="text-slate-400">Risk Disclaimer:</strong> Trading futures and other financial instruments involves substantial risk of loss and is not suitable for all investors. Past performance is not indicative of future results. The performance data shown is based on backtested results and may not reflect actual trading conditions. You should carefully consider whether trading is appropriate for you in light of your financial condition. Never trade with money you cannot afford to lose. STS Futures provides educational and informational content only and does not provide personalized investment advice.
             </p>
           </div>
           
@@ -737,7 +739,7 @@ export default function LandingPage() {
               <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center">
                 <TrendingUp className="h-5 w-5 text-white" />
               </div>
-              <span className="text-lg font-bold text-white">IntraDay Strategies</span>
+              <span className="text-lg font-bold text-white">STS Futures</span>
             </div>
             <div className="flex flex-col md:flex-row items-center gap-4">
               <div className="flex gap-4 text-sm text-slate-500">
@@ -746,7 +748,7 @@ export default function LandingPage() {
                 <a href="#" className="hover:text-slate-300 transition-colors">Risk Disclosure</a>
               </div>
               <div className="text-sm text-slate-500">
-                © 2025 IntraDay Strategies. All rights reserved.
+                © 2025 STS Futures. All rights reserved.
               </div>
             </div>
           </div>
