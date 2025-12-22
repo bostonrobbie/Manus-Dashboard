@@ -117,7 +117,7 @@ export default function LandingPage() {
     // $110K total over 15 years = $7.3K/year average (Micro)
     return {
       totalReturn: isMicro ? '+$110K' : '+$1.1M',
-      totalReturnLabel: isMicro ? 'TOTAL RETURN (1 CONTRACT)' : 'TOTAL RETURN (2 CONTRACTS)',
+      totalReturnLabel: 'TOTAL RETURN (1-2 CONTRACTS MAX/TRADE)',
       totalReturnPct: '1111.5%',
       avgReturnPerYear: isMicro ? '+$7.3K' : '+$73.3K',
       avgReturnPerYearLabel: isMicro ? 'AVG RETURN/YEAR (1 CONTRACT)' : 'AVG RETURN/YEAR (2 CONTRACTS)',
