@@ -1674,6 +1674,187 @@ Please check the Webhooks page in your dashboard for more details.
       }),
 
     /**
+     * Test IBKR connection - pings the gateway and returns account info
+     */
+    testIBKRConnection: adminProcedure
+      .input(z.object({
+        gatewayUrl: z.string().optional().default('http://localhost:5000'),
+      }))
+      .mutation(async ({ input }) => {
+        try {
+          // Try to ping the IBKR Client Portal Gateway
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 5000);
+          
+          const response = await fetch(`${input.gatewayUrl}/v1/api/iserver/auth/status`, {
+            method: 'POST',
+            signal: controller.signal,
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          }).catch(() => null);
+          
+          clearTimeout(timeoutId);
+          
+          if (!response || !response.ok) {
+            return {
+              success: false,
+              error: 'Cannot reach IBKR Gateway. Make sure the Client Portal Gateway is running on your machine.',
+              details: {
+                gatewayUrl: input.gatewayUrl,
+                status: response?.status || 'unreachable',
+              },
+            };
+          }
+          
+          const authStatus = await response.json();
+          
+          // If authenticated, get account info
+          if (authStatus.authenticated) {
+            const accountsResponse = await fetch(`${input.gatewayUrl}/v1/api/portfolio/accounts`, {
+              method: 'GET',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+            }).catch(() => null);
+            
+            const accounts = accountsResponse?.ok ? await accountsResponse.json() : [];
+            
+            return {
+              success: true,
+              authenticated: true,
+              accounts: accounts,
+              message: `Connected! Found ${accounts.length} account(s).`,
+            };
+          } else {
+            return {
+              success: true,
+              authenticated: false,
+              message: 'Gateway is running but not authenticated. Please log in to the Client Portal.',
+            };
+          }
+        } catch (error) {
+          return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Connection test failed',
+          };
+        }
+      }),
+
+    /**
+     * Place a test order on IBKR paper account
+     */
+    placeIBKRTestOrder: adminProcedure
+      .input(z.object({
+        gatewayUrl: z.string().optional().default('http://localhost:5000'),
+        accountId: z.string(),
+        symbol: z.string().optional().default('MES'),
+        quantity: z.number().optional().default(1),
+        side: z.enum(['BUY', 'SELL']).optional().default('BUY'),
+      }))
+      .mutation(async ({ input }) => {
+        try {
+          // First, search for the contract
+          const searchResponse = await fetch(
+            `${input.gatewayUrl}/v1/api/iserver/secdef/search?symbol=${input.symbol}&secType=FUT`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ symbol: input.symbol }),
+            }
+          ).catch(() => null);
+          
+          if (!searchResponse?.ok) {
+            return {
+              success: false,
+              error: 'Failed to search for contract. Make sure IBKR Gateway is running and authenticated.',
+            };
+          }
+          
+          const contracts = await searchResponse.json();
+          if (!contracts || contracts.length === 0) {
+            return {
+              success: false,
+              error: `Contract ${input.symbol} not found.`,
+            };
+          }
+          
+          const conid = contracts[0].conid;
+          
+          // Place a market order
+          const orderResponse = await fetch(
+            `${input.gatewayUrl}/v1/api/iserver/account/${input.accountId}/orders`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                orders: [{
+                  conid: conid,
+                  orderType: 'MKT',
+                  side: input.side,
+                  quantity: input.quantity,
+                  tif: 'DAY',
+                }],
+              }),
+            }
+          ).catch(() => null);
+          
+          if (!orderResponse?.ok) {
+            const errorText = await orderResponse?.text().catch(() => 'Unknown error');
+            return {
+              success: false,
+              error: `Order failed: ${errorText}`,
+            };
+          }
+          
+          const orderResult = await orderResponse.json();
+          
+          // IBKR may require order confirmation
+          if (orderResult[0]?.id === 'confirm') {
+            // Auto-confirm the order for paper trading
+            const confirmResponse = await fetch(
+              `${input.gatewayUrl}/v1/api/iserver/reply/${orderResult[0].id}`,
+              {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ confirmed: true }),
+              }
+            ).catch(() => null);
+            
+            const confirmResult = confirmResponse?.ok ? await confirmResponse.json() : null;
+            return {
+              success: true,
+              message: `Test order placed and confirmed!`,
+              orderId: confirmResult?.[0]?.order_id || orderResult[0]?.id,
+              details: {
+                symbol: input.symbol,
+                side: input.side,
+                quantity: input.quantity,
+                conid: conid,
+              },
+            };
+          }
+          
+          return {
+            success: true,
+            message: `Test order placed successfully!`,
+            orderId: orderResult[0]?.order_id,
+            details: {
+              symbol: input.symbol,
+              side: input.side,
+              quantity: input.quantity,
+              conid: conid,
+            },
+          };
+        } catch (error) {
+          return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Failed to place test order',
+          };
+        }
+      }),
+
+    /**
      * Get supported brokers with their status
      */
     getSupportedBrokers: adminProcedure.query(() => {

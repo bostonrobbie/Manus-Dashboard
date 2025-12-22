@@ -1244,6 +1244,10 @@ function BrokersTab() {
   const [ibkrCredentials, setIBKRCredentials] = useState({ username: '', accountId: '', isPaper: true });
   const [connecting, setConnecting] = useState(false);
   const [tradovateMode, setTradovateMode] = useState<'demo' | 'live'>('demo');
+  const [ibkrGatewayUrl, setIBKRGatewayUrl] = useState('http://localhost:5000');
+  const [testingConnection, setTestingConnection] = useState(false);
+  const [placingTestOrder, setPlacingTestOrder] = useState(false);
+  const [connectionTestResult, setConnectionTestResult] = useState<{ success: boolean; message: string; accounts?: { id: string; accountId: string }[] } | null>(null);
   
   // Get existing broker connections
   const { data: connections, refetch: refetchConnections } = trpc.broker.getConnections.useQuery();
@@ -1269,6 +1273,65 @@ function BrokersTab() {
       refetchConnections();
     },
   });
+
+  // Test IBKR connection mutation
+  const testIBKRConnection = trpc.broker.testIBKRConnection.useMutation({
+    onSuccess: (result) => {
+      setConnectionTestResult(result as { success: boolean; message: string; accounts?: { id: string; accountId: string }[] });
+      if (result.success) {
+        toast.success(result.message || 'Connection test successful!');
+      } else {
+        toast.error(result.error || 'Connection test failed');
+      }
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Connection test failed');
+      setConnectionTestResult({ success: false, message: error.message || 'Connection test failed' });
+    },
+  });
+
+  // Place test order mutation
+  const placeTestOrder = trpc.broker.placeIBKRTestOrder.useMutation({
+    onSuccess: (result) => {
+      if (result.success) {
+        toast.success(result.message || 'Test order placed!');
+      } else {
+        toast.error(result.error || 'Failed to place test order');
+      }
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to place test order');
+    },
+  });
+
+  const handleTestConnection = async () => {
+    setTestingConnection(true);
+    setConnectionTestResult(null);
+    try {
+      await testIBKRConnection.mutateAsync({ gatewayUrl: ibkrGatewayUrl });
+    } finally {
+      setTestingConnection(false);
+    }
+  };
+
+  const handlePlaceTestOrder = async () => {
+    if (!connectionTestResult?.accounts?.[0]?.id) {
+      toast.error('Please test connection first to get account ID');
+      return;
+    }
+    setPlacingTestOrder(true);
+    try {
+      await placeTestOrder.mutateAsync({
+        gatewayUrl: ibkrGatewayUrl,
+        accountId: connectionTestResult.accounts[0].id,
+        symbol: 'MES',
+        quantity: 1,
+        side: 'BUY',
+      });
+    } finally {
+      setPlacingTestOrder(false);
+    }
+  };
   
   const tradovateConnection = connections?.find(c => c.broker === 'tradovate');
   const ibkrConnection = connections?.find(c => c.broker === 'ibkr');
@@ -1394,6 +1457,76 @@ function BrokersTab() {
               )}
             </div>
           </div>
+
+          {/* IBKR Connection Testing */}
+          {ibkrConnection && (
+            <div className="p-4 rounded-lg border border-red-500/30 bg-red-500/5 space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="font-medium text-red-400">IBKR Gateway Testing</h4>
+                  <p className="text-sm text-muted-foreground">Test your connection and place a paper trade</p>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-3">
+                <Label className="text-sm">Gateway URL:</Label>
+                <Input
+                  value={ibkrGatewayUrl}
+                  onChange={(e) => setIBKRGatewayUrl(e.target.value)}
+                  placeholder="http://localhost:5000"
+                  className="max-w-xs bg-background/50"
+                />
+              </div>
+              
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleTestConnection}
+                  disabled={testingConnection}
+                  className="border-red-500/50 text-red-400 hover:bg-red-500/10"
+                >
+                  {testingConnection ? (
+                    <><RefreshCw className="h-4 w-4 mr-2 animate-spin" />Testing...</>
+                  ) : (
+                    <><Wifi className="h-4 w-4 mr-2" />Test Connection</>
+                  )}
+                </Button>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handlePlaceTestOrder}
+                  disabled={placingTestOrder || !connectionTestResult?.success}
+                  className="border-emerald-500/50 text-emerald-400 hover:bg-emerald-500/10"
+                >
+                  {placingTestOrder ? (
+                    <><RefreshCw className="h-4 w-4 mr-2 animate-spin" />Placing...</>
+                  ) : (
+                    <><TrendingUp className="h-4 w-4 mr-2" />Place Test Order (1 MES)</>
+                  )}
+                </Button>
+              </div>
+              
+              {connectionTestResult && (
+                <div className={`p-3 rounded-lg ${connectionTestResult.success ? 'bg-emerald-500/10 border border-emerald-500/30' : 'bg-red-500/10 border border-red-500/30'}`}>
+                  <p className={`text-sm ${connectionTestResult.success ? 'text-emerald-400' : 'text-red-400'}`}>
+                    {connectionTestResult.success ? '✓' : '✗'} {connectionTestResult.message}
+                  </p>
+                  {connectionTestResult.accounts && connectionTestResult.accounts.length > 0 && (
+                    <div className="mt-2 text-xs text-muted-foreground">
+                      <p>Accounts found:</p>
+                      <ul className="list-disc list-inside">
+                        {connectionTestResult.accounts.map((acc: { id: string; accountId: string }) => (
+                          <li key={acc.id}>{acc.accountId || acc.id}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Fidelity */}
           <div className="flex items-center justify-between p-4 rounded-lg border border-border/50 bg-background/50 opacity-60">

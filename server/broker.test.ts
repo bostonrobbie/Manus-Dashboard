@@ -5,7 +5,7 @@
  * and admin access control for webhook management.
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   TradovateClient,
   SYMBOL_MAPPING,
@@ -432,5 +432,204 @@ describe('Execution Logging', () => {
     }
     
     expect(retryCount).toBe(maxRetries);
+  });
+});
+
+
+// ============================================================================
+// IBKR GATEWAY API TESTS
+// ============================================================================
+
+describe('IBKR Gateway API', () => {
+  // Mock fetch for testing
+  const originalFetch = global.fetch;
+  let mockFetch: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    mockFetch = vi.fn();
+    global.fetch = mockFetch;
+  });
+
+  afterEach(() => {
+    global.fetch = originalFetch;
+  });
+
+  describe('testIBKRConnection', () => {
+    it('should return success when gateway is reachable and authenticated', async () => {
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ authenticated: true, connected: true }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => [
+            { id: 'DU1234567', accountId: 'DU1234567', type: 'INDIVIDUAL' },
+          ],
+        });
+
+      const gatewayUrl = 'http://localhost:5000';
+      
+      const authResponse = await fetch(`${gatewayUrl}/v1/api/iserver/auth/status`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      
+      expect(authResponse.ok).toBe(true);
+      const authStatus = await authResponse.json();
+      expect(authStatus.authenticated).toBe(true);
+      
+      const accountsResponse = await fetch(`${gatewayUrl}/v1/api/portfolio/accounts`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      
+      expect(accountsResponse.ok).toBe(true);
+      const accounts = await accountsResponse.json();
+      expect(accounts).toHaveLength(1);
+      expect(accounts[0].accountId).toBe('DU1234567');
+    });
+
+    it('should return not authenticated when gateway is running but user not logged in', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ authenticated: false, connected: false }),
+      });
+
+      const gatewayUrl = 'http://localhost:5000';
+      
+      const authResponse = await fetch(`${gatewayUrl}/v1/api/iserver/auth/status`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      
+      expect(authResponse.ok).toBe(true);
+      const authStatus = await authResponse.json();
+      expect(authStatus.authenticated).toBe(false);
+    });
+  });
+
+  describe('placeIBKRTestOrder', () => {
+    it('should successfully search for a contract', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => [{ conid: 495512552, symbol: 'MES', secType: 'FUT' }],
+      });
+
+      const gatewayUrl = 'http://localhost:5000';
+      
+      const searchResponse = await fetch(
+        `${gatewayUrl}/v1/api/iserver/secdef/search?symbol=MES&secType=FUT`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ symbol: 'MES' }),
+        }
+      );
+      
+      expect(searchResponse.ok).toBe(true);
+      const contracts = await searchResponse.json();
+      expect(contracts[0].conid).toBe(495512552);
+      expect(contracts[0].symbol).toBe('MES');
+    });
+
+    it('should place a market order', async () => {
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => [{ conid: 495512552, symbol: 'MES' }],
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => [{ order_id: '12345', order_status: 'Submitted' }],
+        });
+
+      const gatewayUrl = 'http://localhost:5000';
+      const accountId = 'DU1234567';
+      
+      // Search for contract
+      await fetch(`${gatewayUrl}/v1/api/iserver/secdef/search?symbol=MES&secType=FUT`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ symbol: 'MES' }),
+      });
+      
+      // Place order
+      const orderResponse = await fetch(
+        `${gatewayUrl}/v1/api/iserver/account/${accountId}/orders`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            orders: [{
+              conid: 495512552,
+              orderType: 'MKT',
+              side: 'BUY',
+              quantity: 1,
+              tif: 'DAY',
+            }],
+          }),
+        }
+      );
+      
+      expect(orderResponse.ok).toBe(true);
+      const orderResult = await orderResponse.json();
+      expect(orderResult[0].order_id).toBe('12345');
+    });
+
+    it('should handle order confirmation requirement', async () => {
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => [{ conid: 495512552, symbol: 'MES' }],
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => [{ id: 'confirm', message: ['Please confirm order'] }],
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => [{ order_id: '12345', order_status: 'Submitted' }],
+        });
+
+      const gatewayUrl = 'http://localhost:5000';
+      const accountId = 'DU1234567';
+      
+      // Search
+      await fetch(`${gatewayUrl}/v1/api/iserver/secdef/search?symbol=MES&secType=FUT`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ symbol: 'MES' }),
+      });
+      
+      // Place order
+      const orderResponse = await fetch(
+        `${gatewayUrl}/v1/api/iserver/account/${accountId}/orders`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            orders: [{ conid: 495512552, orderType: 'MKT', side: 'BUY', quantity: 1, tif: 'DAY' }],
+          }),
+        }
+      );
+      
+      const orderResult = await orderResponse.json();
+      expect(orderResult[0].id).toBe('confirm');
+      
+      // Confirm order
+      const confirmResponse = await fetch(
+        `${gatewayUrl}/v1/api/iserver/reply/${orderResult[0].id}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ confirmed: true }),
+        }
+      );
+      
+      expect(confirmResponse.ok).toBe(true);
+      const confirmResult = await confirmResponse.json();
+      expect(confirmResult[0].order_id).toBe('12345');
+    });
   });
 });

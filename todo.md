@@ -3845,3 +3845,26 @@
 - [x] Updated muted-foreground CSS variable from 0.70 to 0.75 for WCAG AA compliance
 - [x] Verified focus states use emerald ring color
 - [x] Color-blind friendly: using emerald/orange instead of pure red/green
+
+
+## IBKR Broker Integration (Dec 22, 2025)
+
+### Completed
+- [x] Add Test Connection button to Admin Brokers tab
+- [x] Add Place Test Order button (1 MES micro contract)
+- [x] Implement testIBKRConnection tRPC procedure
+- [x] Implement placeIBKRTestOrder tRPC procedure
+- [x] Add IBKR Gateway API tests (44 tests)
+- [x] Create IBKR_CONNECTIVITY_GUIDE.md documentation
+
+### Localhost Connectivity Issue
+- [ ] Document ngrok tunnel solution for testing
+- [ ] Document Cloudflare Tunnel solution for production
+- [ ] Consider browser extension approach for future
+- [ ] Add connectivity status indicator to UI
+
+### Production Readiness
+- [ ] Register for Tradovate OAuth partner program
+- [ ] Set up Resend email API for notifications
+- [ ] Configure Stripe products for subscriptions
+- [ ] Test end-to-end webhook flow
