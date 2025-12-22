@@ -117,11 +117,12 @@ export default function LandingPage() {
     // $110K total over 15 years = $7.3K/year average (Micro)
     return {
       totalReturn: isMicro ? '+$110K' : '+$1.1M',
+      totalReturnLabel: isMicro ? 'TOTAL RETURN (1 CONTRACT)' : 'TOTAL RETURN (2 CONTRACTS)',
       totalReturnPct: '1111.5%',
       avgReturnPerYear: isMicro ? '+$7.3K' : '+$73.3K',
-      avgReturnPerYearLabel: isMicro ? 'AVG RETURN/YEAR (MICRO)' : 'AVG RETURN/YEAR (MINI)',
+      avgReturnPerYearLabel: isMicro ? 'AVG RETURN/YEAR (1 CONTRACT)' : 'AVG RETURN/YEAR (2 CONTRACTS)',
       maxDrawdown: isMicro ? '-$4.9K' : '-$48.8K',
-      maxDrawdownLabel: isMicro ? 'MAX DRAWDOWN (MICRO)' : 'MAX DRAWDOWN (MINI)',
+      maxDrawdownLabel: isMicro ? 'MAX DRAWDOWN (1 CONTRACT)' : 'MAX DRAWDOWN (2 CONTRACTS)',
       maxDrawdownPct: '18.6%',
       sharpe: '1.50',
       sortino: '2.33',
@@ -218,36 +219,42 @@ export default function LandingPage() {
             </div>
 
             {/* Key Stats - Now updates based on contract size */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl mx-auto mb-8">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3 max-w-4xl mx-auto mb-8">
+              <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-4">
+                <div className="text-2xl sm:text-3xl font-bold text-emerald-400 mb-1">
+                  {displayStats.totalReturn}
+                </div>
+                <div className="text-[10px] text-gray-500 uppercase tracking-wider">{displayStats.totalReturnLabel}</div>
+              </div>
               <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-4">
                 <div className="text-2xl sm:text-3xl font-bold text-emerald-400 mb-1">
                   {displayStats.avgReturnPerYear}
                 </div>
-                <div className="text-xs text-gray-500 uppercase tracking-wider">{displayStats.avgReturnPerYearLabel}</div>
+                <div className="text-[10px] text-gray-500 uppercase tracking-wider">{displayStats.avgReturnPerYearLabel}</div>
               </div>
               <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-4">
                 <div className="text-2xl sm:text-3xl font-bold text-white mb-1">
                   {displayStats.sharpe}
                 </div>
-                <div className="text-xs text-gray-500 uppercase tracking-wider">Sharpe Ratio</div>
+                <div className="text-[10px] text-gray-500 uppercase tracking-wider">Sharpe Ratio</div>
               </div>
               <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-4">
                 <div className="text-2xl sm:text-3xl font-bold text-orange-400 mb-1">
                   {displayStats.maxDrawdown}
                 </div>
-                <div className="text-xs text-gray-500 uppercase tracking-wider">{displayStats.maxDrawdownLabel}</div>
+                <div className="text-[10px] text-gray-500 uppercase tracking-wider">{displayStats.maxDrawdownLabel}</div>
               </div>
-              <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-4">
+              <div className="col-span-2 md:col-span-1 bg-gray-900/50 border border-gray-800 rounded-xl p-4">
                 <div className="text-2xl sm:text-3xl font-bold text-white mb-1">
                   {displayStats.yearsData}
                 </div>
-                <div className="text-xs text-gray-500 uppercase tracking-wider">Years Data</div>
+                <div className="text-[10px] text-gray-500 uppercase tracking-wider">Years Data</div>
               </div>
             </div>
             
             {/* Description - Moved below stats */}
             <p className="text-lg text-gray-400 mb-10 max-w-2xl mx-auto font-light leading-relaxed">
-              Get access to <span className="text-white font-medium">8 backtested futures strategies</span> with 14+ years of data, 
+              Get access to <span className="text-white font-medium">8 backtested futures strategies</span> with 15+ years of data, 
               real-time TradingView signals, and <span className="text-emerald-400 font-medium">built-in brokerage execution</span>.
             </p>
             

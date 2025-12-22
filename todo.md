@@ -3805,3 +3805,14 @@
 - [x] Update label to show "AVG RETURN/YEAR (MINI)" or "(MICRO)"
 - [x] Also updated Max Drawdown label to show (MINI) or (MICRO)
 - [x] Updated Years Data to 15+ to match All Time data
+
+
+## Homepage Total Return Stat Box - Dec 22, 2025
+
+### Add Total Return Stat Box
+- [x] Add Total Return as 5th stat box in hero section
+- [x] Keep all existing stat boxes (Avg Return/Year, Sharpe, Max Drawdown, Years Data)
+- [x] Show +$1.1M (Mini) / +$110K (Micro) with proper toggle
+- [x] Add label showing contract count (1 CONTRACT / 2 CONTRACTS)
+- [x] Ensure responsive grid layout works with 5 boxes
+- [x] Updated description text to say 15+ years instead of 14+
