@@ -193,14 +193,14 @@ export const CalendarPnL = memo(function CalendarPnL({ data, periodType, onPerio
               
               {/* Week cards */}
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                {weeks.map((week) => {
+                {weeks.map((week, idx) => {
                   const weekEnd = new Date(week.weekStart);
                   weekEnd.setDate(weekEnd.getDate() + 6);
                   const dateRange = `${week.weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
                   
                   return (
                     <div
-                      key={week.period}
+                      key={`${week.period}-${week.weekStart.getTime()}-${idx}`}
                       className={`p-3 rounded-md ${getColor(week.totalPnL, week.returnPercent)} hover:opacity-90 transition-opacity`}
                     >
                       <div className="text-xs font-medium opacity-80">{week.period}</div>
@@ -240,11 +240,11 @@ export const CalendarPnL = memo(function CalendarPnL({ data, periodType, onPerio
               <div className="grid grid-cols-4 md:grid-cols-6 gap-2">
                 {months
                   .sort((a, b) => b.period.localeCompare(a.period)) // Sort descending (most recent month first)
-                  .map((month) => {
+                  .map((month, idx) => {
                   const monthName = new Date(month.period).toLocaleString("default", { month: "short" });
                   return (
                     <div
-                      key={month.period}
+                      key={`${month.period}-${idx}`}
                       className={`p-4 rounded-md ${getColor(month.totalPnL, month.returnPercent)}`}
                     >
                       <div className="text-sm font-medium">{monthName}</div>
@@ -264,9 +264,9 @@ export const CalendarPnL = memo(function CalendarPnL({ data, periodType, onPerio
     // For quarterly and yearly
     return (
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-        {data.map((item) => (
+        {data.map((item, idx) => (
           <div
-            key={item.period}
+            key={`${item.period}-${idx}`}
             className={`p-4 rounded-md ${getColor(item.totalPnL, item.returnPercent)}`}
           >
             <div className="text-sm font-medium">{item.period}</div>

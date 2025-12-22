@@ -138,8 +138,8 @@ function BreakdownTable({ data, periodType }: BreakdownTableProps) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {displayData.map((row) => (
-            <TableRow key={row.period}>
+          {displayData.map((row, idx) => (
+            <TableRow key={`${row.period}-${row.periodType}-${idx}`}>
               <TableCell className="font-medium">
                 {formatPeriod(row.period, row.periodType)}
               </TableCell>
