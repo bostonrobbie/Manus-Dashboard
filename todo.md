@@ -3423,3 +3423,10 @@
 - [x] Verify total P&L matches ($110,974.00) ✓
 - [x] Verify win rate matches (33.40%) ✓
 - [x] Verify profit factor matches (1.346) ✓
+
+
+## Landing Page Stats & Drawdown Fix
+- [x] Update landing page stats with verified portfolio data ($1.1M total, ~$74K/year avg)
+- [x] Fix max drawdown calculation for portfolio-level analysis
+- [x] Research futures return advertising best practices
+- [x] Implement contract-agnostic return metrics (points, R-multiples, etc.) - documented in docs/FUTURES_RETURN_ADVERTISING_STRATEGY.md

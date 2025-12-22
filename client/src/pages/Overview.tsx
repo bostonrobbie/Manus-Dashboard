@@ -235,7 +235,7 @@ export default function Overview() {
             {/* Max Drawdown */}
             <div className="bg-muted/30 border border-muted rounded-lg p-4 text-center">
               <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">Max Drawdown</div>
-              <div className="text-2xl sm:text-3xl font-bold mb-1 text-amber-500 truncate">-${Math.round((metrics.maxDrawdown / 100) * startingCapital).toLocaleString()}</div>
+              <div className="text-2xl sm:text-3xl font-bold mb-1 text-amber-500 truncate">-${Math.round(metrics.maxDrawdownDollars).toLocaleString()}</div>
               <div className="text-xs text-muted-foreground">
                 {metrics.maxDrawdown.toFixed(2)}% peak to trough
               </div>

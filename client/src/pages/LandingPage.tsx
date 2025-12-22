@@ -260,7 +260,7 @@ export default function LandingPage() {
               <div className="text-slate-400 text-xs sm:text-sm">Active Strategies</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl sm:text-4xl font-bold text-emerald-400 mb-1">$17.6K</div>
+              <div className="text-2xl sm:text-4xl font-bold text-emerald-400 mb-1">$74K</div>
               <div className="text-slate-400 text-xs sm:text-sm">Avg Annual Return</div>
             </div>
             <div className="text-center">
@@ -268,7 +268,7 @@ export default function LandingPage() {
               <div className="text-slate-400 text-xs sm:text-sm">Backtested History</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl sm:text-4xl font-bold text-blue-400 mb-1">$1M+</div>
+              <div className="text-2xl sm:text-4xl font-bold text-blue-400 mb-1">$1.1M</div>
               <div className="text-slate-400 text-xs sm:text-sm">Total Returns</div>
             </div>
           </div>
