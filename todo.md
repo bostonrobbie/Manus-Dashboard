@@ -3621,3 +3621,49 @@
 - [x] Optimize chart rendering (staleTime, gcTime defaults)
 - [x] Add default query caching (2 min staleTime, 10 min gcTime)
 - [x] Disable refetchOnWindowFocus for better performance
+
+
+## Sprint: December 22, 2025 - Homepage Revamp & Marketing
+
+### Homepage Redesign
+- [ ] Revamp homepage with clear value proposition
+- [ ] Add competitive differentiation section (vs discretionary trading, vs building own tech stack)
+- [ ] Add cost savings calculator (brokerage connector savings)
+- [ ] Add unique differentiators section
+- [ ] Show what users get before they buy
+- [ ] Add dashboard screenshots/previews
+
+### Dashboard Screenshots
+- [ ] Capture clean Overview page screenshot (no nav bar)
+- [ ] Capture clean Strategies page screenshot
+- [ ] Capture clean Compare page screenshot
+- [ ] Ensure no ads/notifications blocking view
+
+### Marketing Video
+- [ ] Create 60-second marketing video/ad for dashboard
+
+
+## Sprint: December 22, 2025 - Homepage Revamp & Marketing
+
+### Homepage Revamp ✅ COMPLETE
+- [x] Redesign homepage with clear value proposition
+- [x] Add competitive differentiation (vs discretionary, vs DIY tech stack)
+- [x] Add cost savings calculator (brokerage connector savings - $480/year)
+- [x] Capture clean dashboard screenshots
+- [x] Display dashboard previews on homepage
+- [x] Add "What You Get" section with 6 feature cards
+- [x] Add comparison table (STS vs Discretionary vs DIY Tech Stack)
+- [x] Add pricing section with Free/Pro/Premium tiers
+- [x] Add FAQ section
+- [x] Add trust badges (no credit card, brokerage connector included, 14-day guarantee)
+
+### Marketing Video ✅ COMPLETE
+- [x] Create 60-second marketing video (64 seconds final)
+- [x] Generate video frames for key scenes (5 frames)
+- [x] Scene 1: Frustrated trader (emotional trading problem)
+- [x] Scene 2: STS logo reveal (solution intro)
+- [x] Scene 3: Dashboard showcase (+1,047% return)
+- [x] Scene 4: Features (8 strategies, real-time signals)
+- [x] Scene 5: Call to action (Try It Free)
+- [x] Combine clips into final video
+- [x] Video saved to: client/public/marketing/sts-marketing-video.mp4

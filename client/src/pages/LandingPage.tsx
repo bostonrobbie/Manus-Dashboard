@@ -1,839 +1,933 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { getLoginUrl } from "@/const";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { 
   TrendingUp, 
   Shield, 
   Zap, 
   BarChart3, 
+  ArrowRight,
   LineChart,
   Target,
-  Clock,
   CheckCircle2,
-  ArrowRight,
-  Play,
-  Star,
-  Users,
+  Activity,
   Award,
+  Clock,
+  ChevronDown,
+  ChevronUp,
+  Mail,
+  Users,
+  Star,
+  Check,
+  X,
+  DollarSign,
+  Calculator,
+  Cpu,
+  Webhook,
+  AlertTriangle,
+  Sparkles,
+  Timer,
+  Brain,
+  Database,
   Lock,
-  RefreshCw,
-  Menu,
-  X
+  Play
 } from "lucide-react";
-import { useLocation } from "wouter";
-import { useEffect, useState } from "react";
+import { getLoginUrl } from "@/const";
+import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
+import { useState, useMemo } from "react";
+
+// FAQ data
+const faqs = [
+  {
+    question: "What is STS Systematic Trading Strategies?",
+    answer: "A professional analytics platform for tracking and analyzing algorithmic futures trading strategies. We provide real-time signals, comprehensive performance metrics, and risk management tools based on 14+ years of backtested data across ES, NQ, YM, CL, GC, and BTC futures."
+  },
+  {
+    question: "How do the trading signals work?",
+    answer: "Our strategies generate signals via TradingView alerts that are delivered through secure webhooks. When a strategy identifies a trade opportunity, you receive instant notifications with entry price, direction, and position details. Signals can be auto-executed through our brokerage connector to Tradovate or Interactive Brokers."
+  },
+  {
+    question: "What markets do you cover?",
+    answer: "We focus on futures markets including E-mini S&P 500 (ES), E-mini NASDAQ (NQ), E-mini Dow (YM), Crude Oil (CL), Gold (GC), and Bitcoin (BTC). Each strategy is specifically designed and backtested for its target market."
+  },
+  {
+    question: "How much can I save with your brokerage connector?",
+    answer: "Our built-in TradingView to Tradovate/IBKR connector saves you $30-50/month compared to third-party services like TradersPost or Alpaca. That's $360-600/year in savings while getting better execution and full transparency."
+  },
+  {
+    question: "Is past performance a guarantee of future results?",
+    answer: "No. While our strategies have demonstrated strong historical performance with 130% total return and 1.50 Sharpe ratio over 14+ years, past performance is not indicative of future results. Trading involves substantial risk of loss."
+  },
+  {
+    question: "Can I try before subscribing?",
+    answer: "Yes! We offer a free tier that lets you view public strategy performance, access limited historical data, and explore the platform. No credit card required to get started."
+  },
+  {
+    question: "What makes your strategies different?",
+    answer: "Our strategies are built on rigorous backtesting with 14+ years of data, focus on risk-adjusted returns (not just raw profits), and provide full transparency with detailed performance metrics including Sharpe, Sortino, and Calmar ratios. Plus, we include the brokerage connector at no extra cost."
+  },
+  {
+    question: "Do you offer refunds?",
+    answer: "We offer a 14-day money-back guarantee on all paid plans. If you're not satisfied with the platform, contact us within 14 days of your subscription for a full refund."
+  }
+];
+
+// Pricing tiers
+const pricingTiers = [
+  {
+    name: "Free",
+    price: 0,
+    period: "forever",
+    description: "Perfect for exploring the platform",
+    features: [
+      "View public strategy performance",
+      "1 year historical data",
+      "Basic analytics dashboard",
+      "Community access"
+    ],
+    cta: "Get Started",
+    popular: false
+  },
+  {
+    name: "Pro",
+    price: 49,
+    period: "month",
+    annualPrice: 39,
+    description: "For active traders",
+    features: [
+      "Full historical data (14+ years)",
+      "Real-time TradingView signals",
+      "Subscribe to 3 strategies",
+      "Brokerage connector included",
+      "Email & SMS alerts",
+      "Advanced analytics",
+      "Kelly criterion calculator",
+      "Priority support"
+    ],
+    cta: "Start Pro Trial",
+    popular: true
+  },
+  {
+    name: "Premium",
+    price: 99,
+    period: "month",
+    annualPrice: 79,
+    description: "For professional traders",
+    features: [
+      "Everything in Pro",
+      "Unlimited strategy subscriptions",
+      "Priority signal delivery",
+      "Correlation analysis tools",
+      "Custom portfolio builder",
+      "Export capabilities (CSV/Excel)",
+      "Dedicated support",
+      "Early access to new features"
+    ],
+    cta: "Start Premium Trial",
+    popular: false
+  }
+];
+
+// Comparison data - What you get vs alternatives
+const comparisonFeatures = [
+  { feature: "Backtested strategies (14+ years)", sts: true, discretionary: false, diy: "Months of work" },
+  { feature: "Real-time TradingView signals", sts: true, discretionary: false, diy: "Build yourself" },
+  { feature: "Brokerage auto-execution", sts: true, discretionary: false, diy: "$30-50/mo extra" },
+  { feature: "Risk-adjusted metrics (Sharpe, Sortino)", sts: true, discretionary: false, diy: "Build yourself" },
+  { feature: "Portfolio correlation analysis", sts: true, discretionary: false, diy: "Build yourself" },
+  { feature: "Kelly criterion sizing", sts: true, discretionary: false, diy: "Build yourself" },
+  { feature: "Emotion-free execution", sts: true, discretionary: false, diy: true },
+  { feature: "24/7 market monitoring", sts: true, discretionary: false, diy: true },
+  { feature: "Time investment", sts: "Minutes/day", discretionary: "Hours/day", diy: "Months to build" },
+];
 
 export default function LandingPage() {
-  const { user, loading } = useAuth();
-  const [, setLocation] = useLocation();
-  const [isCheckingOut, setIsCheckingOut] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [billingInterval, setBillingInterval] = useState<'monthly' | 'annual'>('monthly');
+  const { user, isAuthenticated } = useAuth();
+  const { data: stats, isLoading } = trpc.platform.stats.useQuery();
+  const { data: strategies } = trpc.subscription.availableStrategies.useQuery(undefined, { enabled: isAuthenticated });
+  const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [email, setEmail] = useState("");
+  const [emailSubmitted, setEmailSubmitted] = useState(false);
+  const [contractSize, setContractSize] = useState<'micro' | 'mini'>('micro');
 
-  // Stripe checkout mutation
-  const checkoutMutation = trpc.stripe.createCheckoutSession.useMutation({
-    onSuccess: (data) => {
-      if (data.url) {
-        window.location.href = data.url;
-      }
-    },
-    onError: (error) => {
-      console.error('Checkout error:', error);
-      setIsCheckingOut(false);
-    },
-  });
+  // Calculate savings
+  const savingsData = useMemo(() => {
+    const thirdPartyMonthly = 40; // Average cost of TradersPost, Alpaca, etc.
+    const ourCost = 0; // Included in subscription
+    const monthlySavings = thirdPartyMonthly - ourCost;
+    const yearlySavings = monthlySavings * 12;
+    return { monthlySavings, yearlySavings, thirdPartyMonthly };
+  }, []);
 
-  const handleSubscribe = () => {
-    if (!user) {
-      // Redirect to login first
-      window.location.href = getLoginUrl();
-      return;
+  // Calculate potential returns
+  const potentialReturns = useMemo(() => {
+    const annualReturn = stats?.annualizedReturn || 130;
+    const microStarting = 5400; // Minimum for micros
+    const miniStarting = 54000; // Minimum for minis
+    
+    const microAnnual = microStarting * (annualReturn / 100) / 10; // Micros are 1/10th
+    const miniAnnual = miniStarting * (annualReturn / 100);
+    
+    return {
+      microAnnual: Math.round(microAnnual),
+      miniAnnual: Math.round(miniAnnual),
+      microStarting,
+      miniStarting
+    };
+  }, [stats]);
+
+  const handleEmailSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (email) {
+      setEmailSubmitted(true);
+      setEmail("");
     }
-    setIsCheckingOut(true);
-    checkoutMutation.mutate({
-      tier: 'pro',
-      interval: billingInterval === 'annual' ? 'yearly' : 'monthly',
-    });
   };
 
-  // Note: We no longer auto-redirect logged-in users
-  // They can view the landing page and click "Go to Dashboard" if they want
-
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
-      {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-slate-950/80 backdrop-blur-xl border-b border-slate-800/50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
+    <div className="min-h-screen bg-[#0a0a0f]">
+      {/* Navigation Bar */}
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-[#0a0a0f]/80 backdrop-blur-lg border-b border-gray-800/50">
+        <div className="container flex items-center justify-between h-16">
+          <Link href="/">
             <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center">
-                <TrendingUp className="h-5 w-5 text-white" />
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-blue-600 flex items-center justify-center">
+                <TrendingUp className="w-5 h-5 text-white" />
               </div>
-              <span className="text-xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
-                STS Futures
-              </span>
+              <span className="text-xl font-semibold text-white">STS</span>
+              <span className="hidden sm:inline text-xs text-emerald-400 border border-emerald-400/30 px-2 py-0.5 rounded-full">Futures</span>
             </div>
-            
-            {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center gap-4">
-              <Button 
-                variant="ghost" 
-                className="text-slate-300 hover:text-white"
-                onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
-              >
-                Features
-              </Button>
-              <Button 
-                variant="ghost" 
-                className="text-slate-300 hover:text-white"
-                onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
-              >
-                How It Works
-              </Button>
-              <Button 
-                variant="ghost" 
-                className="text-slate-300 hover:text-white"
-                onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })}
-              >
-                Pricing
-              </Button>
-              <Button 
-                variant="ghost" 
-                className="text-slate-300 hover:text-white"
-                onClick={() => document.getElementById('faq')?.scrollIntoView({ behavior: 'smooth' })}
-              >
-                FAQ
-              </Button>
-              {user ? (
-                <Button 
-                  onClick={() => setLocation('/my-dashboard')}
-                  className="bg-gradient-to-r from-emerald-600 to-cyan-500 hover:from-emerald-500 hover:to-cyan-400 text-white"
-                >
-                  Go to Dashboard
-                </Button>
-              ) : (
-                <Button 
-                  onClick={() => window.location.href = getLoginUrl()}
-                  className="bg-gradient-to-r from-emerald-600 to-cyan-500 hover:from-emerald-500 hover:to-cyan-400 text-white"
-                >
-                  Get Started
-                </Button>
-              )}
-            </div>
-            
-            {/* Mobile Hamburger Button */}
-            <button 
-              className="md:hidden p-2 text-slate-300 hover:text-white"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              aria-label="Toggle menu"
-            >
-              {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-            </button>
+          </Link>
+          <div className="hidden md:flex items-center gap-8">
+            <a href="#what-you-get" className="text-sm text-gray-400 hover:text-white transition-colors">What You Get</a>
+            <a href="#compare" className="text-sm text-gray-400 hover:text-white transition-colors">Compare</a>
+            <a href="#savings" className="text-sm text-gray-400 hover:text-white transition-colors">Savings</a>
+            <a href="#pricing" className="text-sm text-gray-400 hover:text-white transition-colors">Pricing</a>
           </div>
-        </div>
-        
-        {/* Mobile Menu Dropdown */}
-        {mobileMenuOpen && (
-          <div className="md:hidden bg-slate-950/95 backdrop-blur-xl border-b border-slate-800/50">
-            <div className="px-4 py-4 space-y-3">
-              <button 
-                className="block w-full text-left px-4 py-3 text-slate-300 hover:text-white hover:bg-slate-800/50 rounded-lg transition-colors"
-                onClick={() => {
-                  document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' });
-                  setMobileMenuOpen(false);
-                }}
-              >
-                Features
-              </button>
-              <button 
-                className="block w-full text-left px-4 py-3 text-slate-300 hover:text-white hover:bg-slate-800/50 rounded-lg transition-colors"
-                onClick={() => {
-                  document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' });
-                  setMobileMenuOpen(false);
-                }}
-              >
-                How It Works
-              </button>
-              <button 
-                className="block w-full text-left px-4 py-3 text-slate-300 hover:text-white hover:bg-slate-800/50 rounded-lg transition-colors"
-                onClick={() => {
-                  document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' });
-                  setMobileMenuOpen(false);
-                }}
-              >
-                Pricing
-              </button>
-              <button 
-                className="block w-full text-left px-4 py-3 text-slate-300 hover:text-white hover:bg-slate-800/50 rounded-lg transition-colors"
-                onClick={() => {
-                  document.getElementById('faq')?.scrollIntoView({ behavior: 'smooth' });
-                  setMobileMenuOpen(false);
-                }}
-              >
-                FAQ
-              </button>
-              <div className="pt-2 border-t border-slate-800">
-                {user ? (
-                  <Button 
-                    onClick={() => {
-                      setLocation('/my-dashboard');
-                      setMobileMenuOpen(false);
-                    }}
-                    className="w-full bg-gradient-to-r from-emerald-600 to-cyan-500 hover:from-emerald-500 hover:to-cyan-400 text-white"
-                  >
-                    Go to Dashboard
+          <div className="flex items-center gap-4">
+            {isAuthenticated ? (
+              <Link href="/overview">
+                <Button size="sm" className="bg-emerald-600 hover:bg-emerald-500">
+                  Dashboard
+                </Button>
+              </Link>
+            ) : (
+              <>
+                <a href={getLoginUrl()}>
+                  <Button variant="ghost" size="sm" className="text-gray-300 hover:text-white">
+                    Sign In
                   </Button>
-                ) : (
-                  <Button 
-                    onClick={() => window.location.href = getLoginUrl()}
-                    className="w-full bg-gradient-to-r from-emerald-600 to-cyan-500 hover:from-emerald-500 hover:to-cyan-400 text-white"
-                  >
+                </a>
+                <a href={getLoginUrl()}>
+                  <Button size="sm" className="bg-emerald-600 hover:bg-emerald-500">
                     Get Started
                   </Button>
-                )}
-              </div>
-            </div>
+                </a>
+              </>
+            )}
           </div>
-        )}
+        </div>
       </nav>
 
       {/* Hero Section */}
-      <section className="pt-24 md:pt-32 pb-12 md:pb-20 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-        {/* Background Effects - hidden on mobile for performance */}
-        <div className="absolute inset-0 overflow-hidden hidden md:block">
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl" />
-          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl" />
-        </div>
+      <section className="relative min-h-[95vh] flex items-center justify-center overflow-hidden pt-16">
+        <div className="absolute inset-0 bg-gradient-to-b from-emerald-950/20 via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(16,185,129,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(16,185,129,0.03)_1px,transparent_1px)] bg-[size:100px_100px]" />
         
-        <div className="max-w-7xl mx-auto relative">
-          <div className="text-center max-w-4xl mx-auto">
-            {/* Badge - smaller on mobile */}
-            <Badge className="mb-4 md:mb-6 bg-blue-500/20 text-blue-400 border-blue-500/30 px-3 md:px-4 py-1 md:py-1.5 text-xs md:text-sm">
-              <Zap className="w-3 h-3 md:w-3.5 md:h-3.5 mr-1 md:mr-1.5" />
-              Futures Trading Strategies
-            </Badge>
+        <div className="container relative z-10 py-12">
+          <div className="max-w-5xl mx-auto text-center">
+            <div className="inline-flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-4 py-2 mb-8">
+              <Sparkles className="w-4 h-4 text-emerald-400" />
+              <span className="text-emerald-400 text-sm font-medium">Systematic Futures Trading Strategies</span>
+            </div>
             
-            {/* Mobile-optimized headline - much smaller on mobile */}
-            <h1 className="text-3xl sm:text-5xl lg:text-7xl font-bold tracking-tight mb-4 md:mb-6">
-              <span className="text-white">STS</span>
-              <br />
-              <span className="bg-gradient-to-r from-blue-400 via-cyan-400 to-emerald-400 bg-clip-text text-transparent">
-                Systematic Trading Strategies
-              </span>
+            <h1 className="text-4xl sm:text-5xl md:text-7xl font-light text-white mb-6 tracking-tight leading-tight">
+              Stop Guessing.<br />
+              <span className="font-bold bg-gradient-to-r from-emerald-400 to-blue-400 bg-clip-text text-transparent">Start Trading Systematically.</span>
             </h1>
             
-            {/* Simplified description on mobile */}
-            <p className="text-base md:text-xl text-slate-400 mb-6 md:mb-10 max-w-2xl mx-auto leading-relaxed px-2 md:px-0">
-              <span className="hidden md:inline">Intraday futures strategies for ES, NQ, YM, CL, GC & BTC. Subscribe to signals, 
-              track performance, and automate your trading with real-time webhook integration.</span>
-              <span className="md:hidden">Intraday futures strategies with real-time signals and automation.</span>
+            <p className="text-lg sm:text-xl text-gray-400 mb-8 max-w-3xl mx-auto font-light leading-relaxed">
+              Get access to <span className="text-white font-medium">8 backtested futures strategies</span> with 14+ years of data, 
+              real-time TradingView signals, and <span className="text-emerald-400 font-medium">built-in brokerage execution</span> — 
+              all for less than what you'd pay for the connector alone.
             </p>
             
-            {/* CTA Buttons - full width on mobile */}
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 md:gap-4 w-full px-4 sm:px-0">
-              <Button 
-                size="lg"
-                onClick={() => window.location.href = getLoginUrl()}
-                className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white px-6 md:px-8 py-4 md:py-6 text-base md:text-lg shadow-lg shadow-blue-500/25"
-              >
-                Login to Dashboard
-                <ArrowRight className="ml-2 h-4 w-4 md:h-5 md:w-5" />
-              </Button>
-              <Button 
-                size="lg"
-                variant="outline"
-                className="w-full sm:w-auto border-slate-700 text-slate-300 hover:bg-slate-800 px-6 md:px-8 py-4 md:py-6 text-base md:text-lg"
-                onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })}
-              >
-                View Pricing
-              </Button>
+            {/* Key Stats */}
+            {!isLoading && stats && (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl mx-auto mb-10">
+                <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-4">
+                  <div className="text-2xl sm:text-3xl font-bold text-emerald-400 mb-1">
+                    +{stats.totalReturn.toFixed(0)}%
+                  </div>
+                  <div className="text-xs text-gray-500 uppercase tracking-wider">Total Return</div>
+                </div>
+                <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-4">
+                  <div className="text-2xl sm:text-3xl font-bold text-white mb-1">
+                    {stats.sharpeRatio.toFixed(2)}
+                  </div>
+                  <div className="text-xs text-gray-500 uppercase tracking-wider">Sharpe Ratio</div>
+                </div>
+                <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-4">
+                  <div className="text-2xl sm:text-3xl font-bold text-white mb-1">
+                    ${contractSize === 'micro' ? potentialReturns.microAnnual.toLocaleString() : potentialReturns.miniAnnual.toLocaleString()}
+                  </div>
+                  <div className="text-xs text-gray-500 uppercase tracking-wider">Avg Annual ({contractSize})</div>
+                </div>
+                <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-4">
+                  <div className="text-2xl sm:text-3xl font-bold text-white mb-1">
+                    14+
+                  </div>
+                  <div className="text-xs text-gray-500 uppercase tracking-wider">Years Data</div>
+                </div>
+              </div>
+            )}
+
+            {/* Contract Size Toggle */}
+            <div className="flex items-center justify-center gap-2 mb-8">
+              <span className="text-sm text-gray-500">Contract Size:</span>
+              <div className="inline-flex bg-gray-900 rounded-lg p-1">
+                <button
+                  onClick={() => setContractSize('micro')}
+                  className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+                    contractSize === 'micro' 
+                      ? 'bg-emerald-600 text-white' 
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  Micro ($5.4K min)
+                </button>
+                <button
+                  onClick={() => setContractSize('mini')}
+                  className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+                    contractSize === 'mini' 
+                      ? 'bg-emerald-600 text-white' 
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  Mini ($54K min)
+                </button>
+              </div>
+            </div>
+            
+            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+              {isAuthenticated ? (
+                <Link href="/overview">
+                  <Button size="lg" className="bg-emerald-600 hover:bg-emerald-500 text-white px-10 py-6 text-lg rounded-full transition-all duration-300 hover:shadow-lg hover:shadow-emerald-500/25">
+                    Go to Dashboard
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </Button>
+                </Link>
+              ) : (
+                <a href={getLoginUrl()}>
+                  <Button size="lg" className="bg-emerald-600 hover:bg-emerald-500 text-white px-10 py-6 text-lg rounded-full transition-all duration-300 hover:shadow-lg hover:shadow-emerald-500/25">
+                    Start Free Trial
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </Button>
+                </a>
+              )}
+              <a href="#what-you-get">
+                <Button size="lg" variant="outline" className="border-gray-700 text-gray-300 hover:bg-gray-800/50 px-10 py-6 text-lg rounded-full">
+                  See What You Get
+                </Button>
+              </a>
+            </div>
+
+            {/* Trust Badges */}
+            <div className="flex flex-wrap justify-center gap-6 text-sm text-gray-500">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                <span>No credit card required</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                <span>Brokerage connector included</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                <span>14-day money-back guarantee</span>
+              </div>
             </div>
           </div>
-          
-          {/* Stats Bar - simplified on mobile */}
-          <div className="mt-10 md:mt-20 grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8 max-w-5xl mx-auto">
-            <div className="text-center">
-              <div className="text-2xl sm:text-4xl font-bold text-white mb-1">8</div>
-              <div className="text-slate-400 text-xs sm:text-sm">Futures Strategies</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl sm:text-4xl font-bold text-emerald-400 mb-1">$74K</div>
-              <div className="text-slate-400 text-xs sm:text-sm">Avg/Year (Mini)</div>
-              <div className="text-slate-500 text-[10px] sm:text-xs">$7.4K (Micro)</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl sm:text-4xl font-bold text-white mb-1">15+ Yrs</div>
-              <div className="text-slate-400 text-xs sm:text-sm">Backtested History</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl sm:text-4xl font-bold text-blue-400 mb-1">$1.1M</div>
-              <div className="text-slate-400 text-xs sm:text-sm">Total (Mini)</div>
-              <div className="text-slate-500 text-[10px] sm:text-xs">$111K (Micro)</div>
-            </div>
+        </div>
+      </section>
+
+      {/* What You Get Section */}
+      <section id="what-you-get" className="py-20 border-t border-gray-800/50">
+        <div className="container">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl sm:text-4xl font-light text-white mb-4">
+              Everything You Need to <span className="font-bold text-emerald-400">Trade Systematically</span>
+            </h2>
+            <p className="text-gray-400 max-w-2xl mx-auto">
+              Stop spending months building infrastructure. Get proven strategies, real-time signals, and auto-execution — all in one platform.
+            </p>
           </div>
           
-          {/* Portfolio Preview Chart - smaller margin on mobile */}
-          <div className="mt-8 md:mt-16 relative">
-            <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent z-10 pointer-events-none" />
-            <div className="rounded-xl overflow-hidden border border-slate-700/50 shadow-2xl shadow-blue-500/10">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
+            {/* Feature Cards */}
+            <Card className="bg-gray-900/50 border-gray-800 hover:border-emerald-500/50 transition-colors">
+              <CardContent className="p-6">
+                <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center mb-4">
+                  <Database className="w-6 h-6 text-emerald-400" />
+                </div>
+                <h3 className="text-lg font-semibold text-white mb-2">8 Backtested Strategies</h3>
+                <p className="text-gray-400 text-sm">
+                  ES, NQ, YM, CL, GC, and BTC futures strategies with 14+ years of historical data. Trend following and opening range breakout systems.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gray-900/50 border-gray-800 hover:border-emerald-500/50 transition-colors">
+              <CardContent className="p-6">
+                <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center mb-4">
+                  <Webhook className="w-6 h-6 text-blue-400" />
+                </div>
+                <h3 className="text-lg font-semibold text-white mb-2">Real-Time TradingView Signals</h3>
+                <p className="text-gray-400 text-sm">
+                  Instant webhook alerts when strategies trigger. Entry, exit, and position sizing delivered in milliseconds.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gray-900/50 border-gray-800 hover:border-emerald-500/50 transition-colors">
+              <CardContent className="p-6">
+                <div className="w-12 h-12 rounded-xl bg-purple-500/10 flex items-center justify-center mb-4">
+                  <Zap className="w-6 h-6 text-purple-400" />
+                </div>
+                <h3 className="text-lg font-semibold text-white mb-2">Brokerage Auto-Execution</h3>
+                <p className="text-gray-400 text-sm">
+                  Built-in connector to Tradovate and Interactive Brokers. Execute trades automatically — no third-party service needed.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gray-900/50 border-gray-800 hover:border-emerald-500/50 transition-colors">
+              <CardContent className="p-6">
+                <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center mb-4">
+                  <BarChart3 className="w-6 h-6 text-amber-400" />
+                </div>
+                <h3 className="text-lg font-semibold text-white mb-2">Professional Analytics</h3>
+                <p className="text-gray-400 text-sm">
+                  Sharpe, Sortino, Calmar ratios. Drawdown analysis, correlation matrices, and rolling performance metrics.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gray-900/50 border-gray-800 hover:border-emerald-500/50 transition-colors">
+              <CardContent className="p-6">
+                <div className="w-12 h-12 rounded-xl bg-rose-500/10 flex items-center justify-center mb-4">
+                  <Calculator className="w-6 h-6 text-rose-400" />
+                </div>
+                <h3 className="text-lg font-semibold text-white mb-2">Kelly Criterion Sizing</h3>
+                <p className="text-gray-400 text-sm">
+                  Optimal position sizing calculator based on your risk tolerance and strategy performance. Maximize growth while managing risk.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gray-900/50 border-gray-800 hover:border-emerald-500/50 transition-colors">
+              <CardContent className="p-6">
+                <div className="w-12 h-12 rounded-xl bg-cyan-500/10 flex items-center justify-center mb-4">
+                  <Target className="w-6 h-6 text-cyan-400" />
+                </div>
+                <h3 className="text-lg font-semibold text-white mb-2">Portfolio Builder</h3>
+                <p className="text-gray-400 text-sm">
+                  Combine strategies for diversification. See combined equity curves, correlations, and risk metrics in real-time.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Dashboard Preview */}
+          <div className="max-w-5xl mx-auto">
+            <div className="text-center mb-8">
+              <h3 className="text-2xl font-light text-white mb-2">See Your Dashboard</h3>
+              <p className="text-gray-400">Full transparency into every trade and metric</p>
+            </div>
+            <div className="relative rounded-2xl overflow-hidden border border-gray-800 shadow-2xl shadow-emerald-500/10">
               <img 
-                src="/portfolio-preview.webp" 
-                alt="Portfolio Performance - 15 years of backtested equity curve showing $1M+ returns"
-                className="w-full h-auto"
+                src="/screenshots/overview-all-time.webp" 
+                alt="STS Dashboard Overview" 
+                className="w-full"
               />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0f] via-transparent to-transparent" />
+              <div className="absolute bottom-6 left-6 right-6 flex justify-center">
+                <a href={getLoginUrl()}>
+                  <Button className="bg-emerald-600 hover:bg-emerald-500">
+                    <Play className="w-4 h-4 mr-2" />
+                    Try It Free
+                  </Button>
+                </a>
+              </div>
             </div>
-            <p className="text-center text-slate-500 text-sm mt-4">
-              Live portfolio performance dashboard with 15+ years of backtested data
-            </p>
           </div>
         </div>
       </section>
 
-      {/* Features Section */}
-      <section id="features" className="py-20 px-4 sm:px-6 lg:px-8 bg-slate-900/50">
-        <div className="max-w-7xl mx-auto">
+      {/* Comparison Section */}
+      <section id="compare" className="py-20 border-t border-gray-800/50 bg-gray-900/20">
+        <div className="container">
           <div className="text-center mb-16">
-            <Badge className="mb-4 bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
-              Features
-            </Badge>
-            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
-              Everything You Need to Trade Professionally
+            <h2 className="text-3xl sm:text-4xl font-light text-white mb-4">
+              Why <span className="font-bold text-emerald-400">STS</span> vs. The Alternatives?
             </h2>
-            <p className="text-slate-400 max-w-2xl mx-auto">
-              Our platform provides comprehensive tools for strategy analysis, 
-              portfolio management, and automated trade execution.
-            </p>
-          </div>
-          
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <FeatureCard 
-              icon={<LineChart className="h-6 w-6" />}
-              title="Strategy Library"
-              description="Access a curated library of backtested intraday strategies across futures, forex, and crypto markets."
-              color="blue"
-            />
-            <FeatureCard 
-              icon={<BarChart3 className="h-6 w-6" />}
-              title="Performance Analytics"
-              description="Deep-dive into strategy metrics including Sharpe ratio, max drawdown, win rate, and Monte Carlo simulations."
-              color="emerald"
-            />
-            <FeatureCard 
-              icon={<Target className="h-6 w-6" />}
-              title="Portfolio Builder"
-              description="Combine multiple strategies to create diversified portfolios with correlation analysis and risk optimization."
-              color="purple"
-            />
-            <FeatureCard 
-              icon={<Zap className="h-6 w-6" />}
-              title="Real-Time Signals"
-              description="Receive instant trade signals via webhooks. Connect to TradingView or your preferred platform."
-              color="yellow"
-            />
-            <FeatureCard 
-              icon={<Shield className="h-6 w-6" />}
-              title="Risk Management"
-              description="Built-in position sizing, Kelly Criterion calculations, and risk of ruin analysis for every strategy."
-              color="red"
-            />
-            <FeatureCard 
-              icon={<Clock className="h-6 w-6" />}
-              title="Broker Integration"
-              description="Connect to Tradovate, Interactive Brokers, and more for automated order execution."
-              color="cyan"
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* Product Screenshots Gallery */}
-      <section className="py-12 md:py-20 px-4 sm:px-6 lg:px-8 bg-slate-950">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-8 md:mb-12">
-            <Badge className="mb-4 bg-purple-500/20 text-purple-400 border-purple-500/30">
-              Platform Preview
-            </Badge>
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-4">
-              See the Platform in Action
-            </h2>
-            <p className="text-slate-400 max-w-2xl mx-auto text-sm md:text-base">
-              Professional-grade tools designed for serious traders
+            <p className="text-gray-400 max-w-2xl mx-auto">
+              Compare systematic trading with STS against discretionary trading or building your own tech stack.
             </p>
           </div>
           
-          {/* Screenshot Grid */}
-          <div className="grid md:grid-cols-2 gap-6 md:gap-8">
-            {/* Strategy Comparison */}
-            <div className="group">
-              <div className="rounded-xl overflow-hidden border border-slate-700/50 shadow-xl transition-transform group-hover:scale-[1.02]">
-                <img 
-                  src="/feature-compare.webp" 
-                  alt="Strategy Comparison - Compare performance and correlation between multiple strategies"
-                  className="w-full h-auto"
-                />
-              </div>
-              <h3 className="text-white font-semibold mt-4 text-center">Strategy Comparison</h3>
-              <p className="text-slate-400 text-sm text-center">Compare equity curves, drawdowns, and correlations</p>
+          <div className="max-w-4xl mx-auto overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-800">
+                  <th className="text-left py-4 px-4 text-gray-400 font-medium">Feature</th>
+                  <th className="text-center py-4 px-4">
+                    <div className="inline-flex flex-col items-center">
+                      <div className="w-10 h-10 rounded-lg bg-emerald-500/20 flex items-center justify-center mb-2">
+                        <TrendingUp className="w-5 h-5 text-emerald-400" />
+                      </div>
+                      <span className="text-emerald-400 font-semibold">STS</span>
+                    </div>
+                  </th>
+                  <th className="text-center py-4 px-4">
+                    <div className="inline-flex flex-col items-center">
+                      <div className="w-10 h-10 rounded-lg bg-gray-800 flex items-center justify-center mb-2">
+                        <Brain className="w-5 h-5 text-gray-400" />
+                      </div>
+                      <span className="text-gray-400 font-medium">Discretionary</span>
+                    </div>
+                  </th>
+                  <th className="text-center py-4 px-4">
+                    <div className="inline-flex flex-col items-center">
+                      <div className="w-10 h-10 rounded-lg bg-gray-800 flex items-center justify-center mb-2">
+                        <Cpu className="w-5 h-5 text-gray-400" />
+                      </div>
+                      <span className="text-gray-400 font-medium">DIY Tech Stack</span>
+                    </div>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {comparisonFeatures.map((row, index) => (
+                  <tr key={index} className="border-b border-gray-800/50">
+                    <td className="py-4 px-4 text-gray-300 text-sm">{row.feature}</td>
+                    <td className="py-4 px-4 text-center">
+                      {row.sts === true ? (
+                        <CheckCircle2 className="w-5 h-5 text-emerald-400 mx-auto" />
+                      ) : typeof row.sts === 'string' ? (
+                        <span className="text-emerald-400 text-sm font-medium">{row.sts}</span>
+                      ) : (
+                        <X className="w-5 h-5 text-gray-600 mx-auto" />
+                      )}
+                    </td>
+                    <td className="py-4 px-4 text-center">
+                      {row.discretionary === true ? (
+                        <CheckCircle2 className="w-5 h-5 text-emerald-400 mx-auto" />
+                      ) : row.discretionary === false ? (
+                        <X className="w-5 h-5 text-red-400 mx-auto" />
+                      ) : (
+                        <span className="text-gray-500 text-sm">{row.discretionary}</span>
+                      )}
+                    </td>
+                    <td className="py-4 px-4 text-center">
+                      {row.diy === true ? (
+                        <CheckCircle2 className="w-5 h-5 text-emerald-400 mx-auto" />
+                      ) : row.diy === false ? (
+                        <X className="w-5 h-5 text-red-400 mx-auto" />
+                      ) : (
+                        <span className="text-amber-400 text-sm">{row.diy}</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Key Differentiators */}
+          <div className="grid md:grid-cols-3 gap-6 mt-16 max-w-4xl mx-auto">
+            <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-6 text-center">
+              <div className="text-4xl font-bold text-emerald-400 mb-2">0</div>
+              <div className="text-gray-400 text-sm">Emotions in execution</div>
             </div>
-            
-            {/* Portfolio Dashboard */}
-            <div className="group">
-              <div className="rounded-xl overflow-hidden border border-slate-700/50 shadow-xl transition-transform group-hover:scale-[1.02]">
-                <img 
-                  src="/feature-dashboard.webp" 
-                  alt="Portfolio Dashboard - Combined equity curves and underwater analysis"
-                  className="w-full h-auto"
-                />
-              </div>
-              <h3 className="text-white font-semibold mt-4 text-center">Portfolio Dashboard</h3>
-              <p className="text-slate-400 text-sm text-center">Track combined portfolio with individual strategy breakdown</p>
+            <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-6 text-center">
+              <div className="text-4xl font-bold text-emerald-400 mb-2">24/7</div>
+              <div className="text-gray-400 text-sm">Market monitoring</div>
             </div>
-            
-            {/* Performance Metrics */}
-            <div className="group">
-              <div className="rounded-xl overflow-hidden border border-slate-700/50 shadow-xl transition-transform group-hover:scale-[1.02]">
-                <img 
-                  src="/feature-metrics.webp" 
-                  alt="Performance Metrics - Monthly returns heatmap and risk analysis"
-                  className="w-full h-auto"
-                />
-              </div>
-              <h3 className="text-white font-semibold mt-4 text-center">Performance Analytics</h3>
-              <p className="text-slate-400 text-sm text-center">Monthly returns, risk metrics, and allocation breakdown</p>
-            </div>
-            
-            {/* Strategy Detail */}
-            <div className="group">
-              <div className="rounded-xl overflow-hidden border border-slate-700/50 shadow-xl transition-transform group-hover:scale-[1.02]">
-                <img 
-                  src="/feature-strategy.webp" 
-                  alt="Strategy Detail - Deep dive into individual strategy performance"
-                  className="w-full h-auto"
-                />
-              </div>
-              <h3 className="text-white font-semibold mt-4 text-center">Strategy Deep Dive</h3>
-              <p className="text-slate-400 text-sm text-center">Detailed metrics, Kelly Criterion, and trade history</p>
+            <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-6 text-center">
+              <div className="text-4xl font-bold text-emerald-400 mb-2">14+</div>
+              <div className="text-gray-400 text-sm">Years of backtested data</div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* How It Works Section */}
-      <section id="how-it-works" className="py-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
+      {/* Cost Savings Section */}
+      <section id="savings" className="py-20 border-t border-gray-800/50">
+        <div className="container">
           <div className="text-center mb-16">
-            <Badge className="mb-4 bg-purple-500/20 text-purple-400 border-purple-500/30">
-              How It Works
-            </Badge>
-            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
-              Get Started in 3 Simple Steps
+            <h2 className="text-3xl sm:text-4xl font-light text-white mb-4">
+              Save <span className="font-bold text-emerald-400">${savingsData.yearlySavings}/Year</span> on Brokerage Connectors
             </h2>
+            <p className="text-gray-400 max-w-2xl mx-auto">
+              Third-party services like TradersPost, Alpaca, or custom solutions charge $30-50/month just for the connector. 
+              We include it free with your subscription.
+            </p>
           </div>
           
-          <div className="grid md:grid-cols-3 gap-8">
-            <StepCard 
-              number="1"
-              title="Browse Strategies"
-              description="Explore our library of quantitative strategies. Filter by market, timeframe, and risk profile to find what suits your trading style."
-            />
-            <StepCard 
-              number="2"
-              title="Subscribe & Configure"
-              description="Subscribe to strategies that match your goals. Set position sizes, risk limits, and notification preferences."
-            />
-            <StepCard 
-              number="3"
-              title="Trade Automatically"
-              description="Connect your broker and let the system execute trades automatically, or receive signals to trade manually."
-            />
+          <div className="max-w-4xl mx-auto">
+            <div className="grid md:grid-cols-2 gap-8">
+              {/* Third Party Cost */}
+              <div className="bg-red-950/20 border border-red-900/30 rounded-2xl p-8">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-12 h-12 rounded-xl bg-red-500/10 flex items-center justify-center">
+                    <AlertTriangle className="w-6 h-6 text-red-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-white">Third-Party Services</h3>
+                    <p className="text-red-400 text-sm">Extra cost on top of signals</p>
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center py-3 border-b border-red-900/30">
+                    <span className="text-gray-400">TradersPost</span>
+                    <span className="text-red-400 font-semibold">$49/mo</span>
+                  </div>
+                  <div className="flex justify-between items-center py-3 border-b border-red-900/30">
+                    <span className="text-gray-400">Alpaca API</span>
+                    <span className="text-red-400 font-semibold">$30/mo</span>
+                  </div>
+                  <div className="flex justify-between items-center py-3 border-b border-red-900/30">
+                    <span className="text-gray-400">Custom Development</span>
+                    <span className="text-red-400 font-semibold">$1000+ once</span>
+                  </div>
+                  <div className="flex justify-between items-center py-3">
+                    <span className="text-white font-medium">Annual Cost</span>
+                    <span className="text-red-400 font-bold text-xl">~$480/year</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* STS Cost */}
+              <div className="bg-emerald-950/20 border border-emerald-500/30 rounded-2xl p-8">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center">
+                    <CheckCircle2 className="w-6 h-6 text-emerald-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-white">STS Platform</h3>
+                    <p className="text-emerald-400 text-sm">Connector included free</p>
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center py-3 border-b border-emerald-900/30">
+                    <span className="text-gray-400">8 Backtested Strategies</span>
+                    <span className="text-emerald-400 font-semibold">Included</span>
+                  </div>
+                  <div className="flex justify-between items-center py-3 border-b border-emerald-900/30">
+                    <span className="text-gray-400">Real-Time Signals</span>
+                    <span className="text-emerald-400 font-semibold">Included</span>
+                  </div>
+                  <div className="flex justify-between items-center py-3 border-b border-emerald-900/30">
+                    <span className="text-gray-400">Brokerage Connector</span>
+                    <span className="text-emerald-400 font-semibold">Included</span>
+                  </div>
+                  <div className="flex justify-between items-center py-3">
+                    <span className="text-white font-medium">Connector Cost</span>
+                    <span className="text-emerald-400 font-bold text-xl">$0/year</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Savings Highlight */}
+            <div className="mt-8 bg-gradient-to-r from-emerald-500/10 to-blue-500/10 border border-emerald-500/20 rounded-2xl p-8 text-center">
+              <div className="text-5xl font-bold text-emerald-400 mb-2">
+                ${savingsData.yearlySavings}+
+              </div>
+              <div className="text-gray-400 mb-4">Annual savings on brokerage connector alone</div>
+              <p className="text-sm text-gray-500 max-w-xl mx-auto">
+                Plus you get 8 backtested strategies, professional analytics, and portfolio tools — 
+                things you'd spend months building yourself.
+              </p>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Social Proof Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-slate-900/50">
-        <div className="max-w-7xl mx-auto">
+      {/* Dashboard Screenshots Section */}
+      <section className="py-20 border-t border-gray-800/50 bg-gray-900/20">
+        <div className="container">
           <div className="text-center mb-16">
-            <Badge className="mb-4 bg-yellow-500/20 text-yellow-400 border-yellow-500/30">
-              <Star className="w-3.5 h-3.5 mr-1.5" />
-              Trusted Platform
-            </Badge>
-            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
-              Built for Serious Traders
+            <h2 className="text-3xl sm:text-4xl font-light text-white mb-4">
+              See <span className="font-bold text-emerald-400">Inside the Platform</span>
             </h2>
+            <p className="text-gray-400 max-w-2xl mx-auto">
+              Full transparency. Every metric, every trade, every correlation — visible before you subscribe.
+            </p>
           </div>
           
-          <div className="grid md:grid-cols-3 gap-8">
-            <Card className="bg-slate-800/50 border-slate-700/50">
-              <CardContent className="p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="h-10 w-10 rounded-full bg-blue-500/20 flex items-center justify-center">
-                    <Users className="h-5 w-5 text-blue-400" />
-                  </div>
-                  <div>
-                    <div className="font-semibold text-white">Active Community</div>
-                    <div className="text-sm text-slate-400">Growing user base</div>
-                  </div>
-                </div>
-                <p className="text-slate-300">
-                  Join a community of traders who are leveraging quantitative strategies to improve their trading results.
-                </p>
-              </CardContent>
-            </Card>
-            
-            <Card className="bg-slate-800/50 border-slate-700/50">
-              <CardContent className="p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="h-10 w-10 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                    <Award className="h-5 w-5 text-emerald-400" />
-                  </div>
-                  <div>
-                    <div className="font-semibold text-white">Verified Results</div>
-                    <div className="text-sm text-slate-400">Transparent performance</div>
-                  </div>
-                </div>
-                <p className="text-slate-300">
-                  All strategy performance is tracked in real-time with verified trade logs and auditable results.
-                </p>
-              </CardContent>
-            </Card>
-            
-            <Card className="bg-slate-800/50 border-slate-700/50">
-              <CardContent className="p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="h-10 w-10 rounded-full bg-purple-500/20 flex items-center justify-center">
-                    <Lock className="h-5 w-5 text-purple-400" />
-                  </div>
-                  <div>
-                    <div className="font-semibold text-white">Secure Platform</div>
-                    <div className="text-sm text-slate-400">Enterprise-grade security</div>
-                  </div>
-                </div>
-                <p className="text-slate-300">
-                  Your data and credentials are protected with industry-standard encryption and secure authentication.
-                </p>
-              </CardContent>
-            </Card>
+          <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+            <div className="rounded-2xl overflow-hidden border border-gray-800">
+              <img 
+                src="/screenshots/strategies-page.webp" 
+                alt="Strategy Performance" 
+                className="w-full"
+              />
+              <div className="bg-gray-900 p-4">
+                <h4 className="text-white font-medium mb-1">Strategy Performance</h4>
+                <p className="text-gray-400 text-sm">Compare all 8 strategies side by side with detailed metrics</p>
+              </div>
+            </div>
+            <div className="rounded-2xl overflow-hidden border border-gray-800">
+              <img 
+                src="/screenshots/compare-page.webp" 
+                alt="Portfolio Comparison" 
+                className="w-full"
+              />
+              <div className="bg-gray-900 p-4">
+                <h4 className="text-white font-medium mb-1">Portfolio Builder</h4>
+                <p className="text-gray-400 text-sm">Combine strategies and see combined equity curves</p>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
       {/* Pricing Section */}
-      <section id="pricing" className="py-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
+      <section id="pricing" className="py-20 border-t border-gray-800/50">
+        <div className="container">
           <div className="text-center mb-16">
-            <Badge className="mb-4 bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
-              Simple Pricing
-            </Badge>
-            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
-              One Plan, Everything Included
+            <h2 className="text-3xl sm:text-4xl font-light text-white mb-4">
+              Simple, <span className="font-bold text-emerald-400">Transparent Pricing</span>
             </h2>
-            <p className="text-slate-400 max-w-2xl mx-auto">
-              Get full access to all strategies, real-time signals, and broker integrations for one simple monthly price.
+            <p className="text-gray-400 max-w-xl mx-auto">
+              Start free, upgrade when you're ready. Brokerage connector included in all paid plans.
             </p>
           </div>
           
-          {/* Billing Toggle */}
-          <div className="flex justify-center mb-8">
-            <div className="bg-slate-800/50 border border-slate-700/50 rounded-full p-1 flex gap-1">
-              <button
-                onClick={() => setBillingInterval('monthly')}
-                className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${
-                  billingInterval === 'monthly'
-                    ? 'bg-emerald-500 text-white'
-                    : 'text-slate-400 hover:text-white'
+          <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+            {pricingTiers.map((tier, index) => (
+              <Card 
+                key={index}
+                className={`relative bg-gray-900/50 border-gray-800 ${
+                  tier.popular ? 'border-emerald-500 ring-1 ring-emerald-500/20' : ''
                 }`}
               >
-                Monthly
-              </button>
-              <button
-                onClick={() => setBillingInterval('annual')}
-                className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${
-                  billingInterval === 'annual'
-                    ? 'bg-emerald-500 text-white'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                Annual <span className="text-emerald-400 ml-1">Save 17%</span>
-              </button>
-            </div>
-          </div>
-
-          <div className="max-w-lg mx-auto">
-            <Card className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 border-emerald-500/30 relative overflow-hidden">
-              <div className="absolute top-0 right-0 bg-emerald-500 text-white text-xs font-bold px-3 py-1 rounded-bl-lg">
-                {billingInterval === 'annual' ? 'BEST VALUE' : 'MOST POPULAR'}
-              </div>
-              <CardContent className="p-8">
-                <div className="text-center mb-8">
-                  <h3 className="text-2xl font-bold text-white mb-2">Pro Trader</h3>
-                  {billingInterval === 'monthly' ? (
-                    <>
-                      <div className="flex items-baseline justify-center gap-1">
-                        <span className="text-5xl font-bold text-white">$50</span>
-                        <span className="text-slate-400">/month</span>
-                      </div>
-                      <p className="text-slate-400 mt-2">Cancel anytime</p>
-                    </>
-                  ) : (
-                    <>
-                      <div className="flex items-baseline justify-center gap-1">
-                        <span className="text-5xl font-bold text-white">$500</span>
-                        <span className="text-slate-400">/year</span>
-                      </div>
-                      <p className="text-emerald-400 mt-2">Save $100 vs monthly ($41.67/mo)</p>
-                    </>
+                {tier.popular && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                    <span className="bg-emerald-500 text-white text-xs font-semibold px-3 py-1 rounded-full">
+                      Most Popular
+                    </span>
+                  </div>
+                )}
+                <CardHeader className="text-center pb-4">
+                  <CardTitle className="text-xl text-white">{tier.name}</CardTitle>
+                  <div className="mt-4">
+                    <span className="text-4xl font-bold text-white">${tier.price}</span>
+                    {tier.price > 0 && (
+                      <span className="text-gray-400">/{tier.period}</span>
+                    )}
+                  </div>
+                  {tier.annualPrice && (
+                    <p className="text-sm text-emerald-400 mt-1">
+                      ${tier.annualPrice}/mo billed annually
+                    </p>
                   )}
-                </div>
-                
-                <ul className="space-y-4 mb-8">
-                  <li className="flex items-center gap-3 text-slate-300">
-                    <CheckCircle2 className="h-5 w-5 text-emerald-400 flex-shrink-0" />
-                    <span>Access to all 8+ trading strategies</span>
-                  </li>
-                  <li className="flex items-center gap-3 text-slate-300">
-                    <CheckCircle2 className="h-5 w-5 text-emerald-400 flex-shrink-0" />
-                    <span>Real-time webhook signals</span>
-                  </li>
-                  <li className="flex items-center gap-3 text-slate-300">
-                    <CheckCircle2 className="h-5 w-5 text-emerald-400 flex-shrink-0" />
-                    <span>Tradovate & IBKR broker integration</span>
-                  </li>
-                  <li className="flex items-center gap-3 text-slate-300">
-                    <CheckCircle2 className="h-5 w-5 text-emerald-400 flex-shrink-0" />
-                    <span>Automated trade execution</span>
-                  </li>
-                  <li className="flex items-center gap-3 text-slate-300">
-                    <CheckCircle2 className="h-5 w-5 text-emerald-400 flex-shrink-0" />
-                    <span>Portfolio analytics & risk management</span>
-                  </li>
-                  <li className="flex items-center gap-3 text-slate-300">
-                    <CheckCircle2 className="h-5 w-5 text-emerald-400 flex-shrink-0" />
-                    <span>Email & push notifications</span>
-                  </li>
-                  <li className="flex items-center gap-3 text-slate-300">
-                    <CheckCircle2 className="h-5 w-5 text-emerald-400 flex-shrink-0" />
-                    <span>Priority support</span>
-                  </li>
-                </ul>
-                
-                <Button 
-                  size="lg"
-                  onClick={handleSubscribe}
-                  disabled={isCheckingOut}
-                  className="w-full bg-gradient-to-r from-emerald-600 to-cyan-500 hover:from-emerald-500 hover:to-cyan-400 text-white py-6 text-lg shadow-lg shadow-emerald-500/25 disabled:opacity-50"
-                >
-                  {isCheckingOut ? 'Redirecting to Checkout...' : (user ? 'Subscribe Now' : 'Login to Subscribe')}
-                  {!isCheckingOut && <ArrowRight className="ml-2 h-5 w-5" />}
-                </Button>
-                
-                <p className="text-center text-sm text-slate-500 mt-4">
-                  Secure checkout powered by Stripe
-                </p>
-              </CardContent>
-            </Card>
+                  <p className="text-sm text-gray-400 mt-2">{tier.description}</p>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-3 mb-6">
+                    {tier.features.map((feature, i) => (
+                      <li key={i} className="flex items-start gap-3">
+                        <Check className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
+                        <span className="text-gray-300 text-sm">{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  {isAuthenticated ? (
+                    <Link href="/my-dashboard">
+                      <Button 
+                        className={`w-full ${
+                          tier.popular 
+                            ? 'bg-emerald-600 hover:bg-emerald-500' 
+                            : 'bg-gray-700 hover:bg-gray-600'
+                        }`}
+                      >
+                        {tier.price === 0 ? 'Current Plan' : tier.cta}
+                      </Button>
+                    </Link>
+                  ) : (
+                    <a href={getLoginUrl()}>
+                      <Button 
+                        className={`w-full ${
+                          tier.popular 
+                            ? 'bg-emerald-600 hover:bg-emerald-500' 
+                            : 'bg-gray-700 hover:bg-gray-600'
+                        }`}
+                      >
+                        {tier.cta}
+                      </Button>
+                    </a>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
           </div>
           
-          {/* Money-back guarantee */}
-          <div className="text-center mt-12">
-            <div className="inline-flex items-center gap-2 bg-slate-800/50 border border-slate-700/50 rounded-full px-6 py-3">
-              <RefreshCw className="h-5 w-5 text-emerald-400" />
-              <span className="text-slate-300">30-day money-back guarantee</span>
-            </div>
-          </div>
-          
-          {/* Risk Notice */}
-          <p className="text-center text-xs text-slate-500 mt-6 max-w-2xl mx-auto">
-            Past performance is not indicative of future results. Trading involves substantial risk of loss.
+          <p className="text-center text-sm text-gray-500 mt-8">
+            All prices in USD. Enterprise plans available for institutions.{' '}
+            <a href="mailto:support@ststrading.com" className="text-emerald-400 hover:underline">
+              Contact us
+            </a>{' '}
+            for custom solutions.
           </p>
         </div>
       </section>
 
       {/* FAQ Section */}
-      <section id="faq" className="py-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-4xl mx-auto">
+      <section id="faq" className="py-20 border-t border-gray-800/50">
+        <div className="container">
           <div className="text-center mb-16">
-            <Badge className="mb-4 bg-cyan-500/20 text-cyan-400 border-cyan-500/30">
-              FAQ
-            </Badge>
-            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
-              Frequently Asked Questions
+            <h2 className="text-3xl font-light text-white mb-4">
+              Frequently Asked <span className="font-semibold">Questions</span>
             </h2>
-            <p className="text-xl text-slate-400">
-              Everything you need to know about our trading strategies
+            <p className="text-gray-400 max-w-xl mx-auto">
+              Everything you need to know about the platform
             </p>
           </div>
           
-          <div className="space-y-4">
-            <FAQItem 
-              question="How do the trading strategies work?"
-              answer="Our strategies are algorithmic trading systems that analyze market data in real-time and generate buy/sell signals based on proven quantitative methods. When a signal is generated, it's sent to your connected broker for automatic execution, or you can receive notifications to execute manually."
-            />
-            <FAQItem 
-              question="What is the historical performance?"
-              answer="Our backtested results show an average annual return of $17,628 on a $100,000 account over 15+ years of historical data. Past performance doesn't guarantee future results, but our strategies have been rigorously tested across multiple market conditions including the 2008 financial crisis and 2020 COVID crash."
-            />
-            <FAQItem 
-              question="Which brokers are supported?"
-              answer="We currently support Tradovate for futures trading and Interactive Brokers (IBKR) for stocks and options. You connect your broker account securely through OAuth - we never see your login credentials. More brokers will be added based on user demand."
-            />
-            <FAQItem 
-              question="What markets do the strategies trade?"
-              answer="Our strategies focus on highly liquid futures markets including ES (S&P 500), NQ (Nasdaq), CL (Crude Oil), GC (Gold), YM (Dow Jones), and BTC (Bitcoin futures). These markets offer excellent liquidity and tight spreads for intraday trading."
-            />
-            <FAQItem 
-              question="What is the minimum account size?"
-              answer="We recommend a minimum of $25,000 for futures trading to properly manage risk and meet margin requirements. However, you can start with a smaller account and scale up as you become comfortable with the strategies."
-            />
-            <FAQItem 
-              question="Can I cancel my subscription anytime?"
-              answer="Yes, you can cancel your subscription at any time from your dashboard. We also offer a 30-day money-back guarantee - if you're not satisfied with the service, contact us for a full refund."
-            />
-            <FAQItem 
-              question="How do I get notified of trades?"
-              answer="You can customize your notification preferences in the dashboard. Options include email alerts, push notifications, and in-app alerts. You can enable/disable notifications for each strategy individually."
-            />
-            <FAQItem 
-              question="Is my broker account secure?"
-              answer="Absolutely. We use OAuth 2.0 authentication which means you log in directly with your broker - we never see or store your password. We only receive permission to place trades on your behalf, and you can revoke access at any time from your broker's settings."
-            />
+          <div className="max-w-3xl mx-auto space-y-4">
+            {faqs.map((faq, index) => (
+              <div 
+                key={index}
+                className="rounded-xl border border-gray-800/50 overflow-hidden"
+              >
+                <button
+                  onClick={() => setOpenFaq(openFaq === index ? null : index)}
+                  className="w-full flex items-center justify-between p-6 text-left bg-gray-900/30 hover:bg-gray-900/50 transition-colors"
+                >
+                  <span className="text-white font-medium pr-4">{faq.question}</span>
+                  {openFaq === index ? (
+                    <ChevronUp className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                  ) : (
+                    <ChevronDown className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                  )}
+                </button>
+                {openFaq === index && (
+                  <div className="p-6 pt-0 bg-gray-900/30">
+                    <p className="text-gray-400 leading-relaxed">{faq.answer}</p>
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-slate-900/50">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
-            Ready to Transform Your Trading?
-          </h2>
-          <p className="text-xl text-slate-400 mb-8">
-            Join traders who are already using quantitative strategies to improve their results.
-          </p>
-          <Button 
-            size="lg"
-            onClick={() => user ? setLocation('/my-dashboard') : window.location.href = getLoginUrl()}
-            className="bg-gradient-to-r from-emerald-600 to-cyan-500 hover:from-emerald-500 hover:to-cyan-400 text-white px-10 py-6 text-lg shadow-lg shadow-emerald-500/25"
-          >
-            {user ? 'Go to Dashboard' : 'Get Started Free'}
-            <ArrowRight className="ml-2 h-5 w-5" />
-          </Button>
+      {/* Final CTA Section */}
+      <section className="py-20 border-t border-gray-800/50">
+        <div className="container">
+          <div className="max-w-3xl mx-auto text-center">
+            <h2 className="text-3xl font-light text-white mb-6">
+              Ready to <span className="font-semibold text-emerald-400">Trade Systematically?</span>
+            </h2>
+            <p className="text-gray-400 mb-10">
+              Join traders who use data-driven strategies instead of gut feelings
+            </p>
+            
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              {isAuthenticated ? (
+                <Link href="/overview">
+                  <Button size="lg" className="bg-emerald-600 hover:bg-emerald-500 text-white px-10 py-6 text-lg rounded-full">
+                    Go to Dashboard
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </Button>
+                </Link>
+              ) : (
+                <a href={getLoginUrl()}>
+                  <Button size="lg" className="bg-emerald-600 hover:bg-emerald-500 text-white px-10 py-6 text-lg rounded-full">
+                    Start Free Trial
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </Button>
+                </a>
+              )}
+            </div>
+            
+            <div className="mt-12 flex flex-wrap justify-center gap-8 text-sm text-gray-500">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                <span>No credit card required</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                <span>Brokerage connector included</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                <span>14-day money-back guarantee</span>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="py-12 px-4 sm:px-6 lg:px-8 border-t border-slate-800">
-        <div className="max-w-7xl mx-auto">
-          {/* Risk Disclaimer */}
-          <div className="mb-8 p-4 bg-slate-800/30 border border-slate-700/50 rounded-lg">
-            <p className="text-xs text-slate-500 leading-relaxed">
-              <strong className="text-slate-400">Risk Disclaimer:</strong> Trading futures and other financial instruments involves substantial risk of loss and is not suitable for all investors. Past performance is not indicative of future results. The performance data shown is based on backtested results and may not reflect actual trading conditions. You should carefully consider whether trading is appropriate for you in light of your financial condition. Never trade with money you cannot afford to lose. STS Futures provides educational and informational content only and does not provide personalized investment advice.
-            </p>
+      <footer className="py-12 border-t border-gray-800/50">
+        <div className="container">
+          <div className="grid md:grid-cols-4 gap-8 mb-8">
+            <div>
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-blue-600 flex items-center justify-center">
+                  <TrendingUp className="w-5 h-5 text-white" />
+                </div>
+                <span className="text-white font-semibold">STS</span>
+              </div>
+              <p className="text-gray-500 text-sm">
+                Systematic Trading Strategies for futures traders. Professional analytics, real-time signals, and auto-execution.
+              </p>
+            </div>
+            <div>
+              <h4 className="text-gray-300 font-medium mb-4">Product</h4>
+              <ul className="space-y-2 text-sm">
+                <li><a href="#what-you-get" className="text-gray-500 hover:text-white transition-colors">What You Get</a></li>
+                <li><a href="#compare" className="text-gray-500 hover:text-white transition-colors">Compare</a></li>
+                <li><a href="#savings" className="text-gray-500 hover:text-white transition-colors">Savings</a></li>
+                <li><a href="#pricing" className="text-gray-500 hover:text-white transition-colors">Pricing</a></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="text-gray-300 font-medium mb-4">Resources</h4>
+              <ul className="space-y-2 text-sm">
+                <li><Link href="/overview"><span className="text-gray-500 hover:text-white transition-colors cursor-pointer">Dashboard</span></Link></li>
+                <li><Link href="/strategies"><span className="text-gray-500 hover:text-white transition-colors cursor-pointer">All Strategies</span></Link></li>
+                <li><Link href="/compare"><span className="text-gray-500 hover:text-white transition-colors cursor-pointer">Compare</span></Link></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="text-gray-300 font-medium mb-4">Legal</h4>
+              <ul className="space-y-2 text-sm">
+                <li><span className="text-gray-500">Terms of Service</span></li>
+                <li><span className="text-gray-500">Privacy Policy</span></li>
+                <li><span className="text-gray-500">Risk Disclosure</span></li>
+              </ul>
+            </div>
           </div>
           
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center">
-                <TrendingUp className="h-5 w-5 text-white" />
-              </div>
-              <span className="text-lg font-bold text-white">STS Futures</span>
+          <div className="pt-8 border-t border-gray-800/50 flex flex-col md:flex-row justify-between items-center gap-6">
+            <div className="text-gray-500 text-sm">
+              © {new Date().getFullYear()} STS Systematic Trading Strategies. All rights reserved.
             </div>
-            <div className="flex flex-col md:flex-row items-center gap-4">
-              <div className="flex gap-4 text-sm text-slate-500">
-                <a href="#" className="hover:text-slate-300 transition-colors">Terms of Service</a>
-                <a href="#" className="hover:text-slate-300 transition-colors">Privacy Policy</a>
-                <a href="#" className="hover:text-slate-300 transition-colors">Risk Disclosure</a>
-              </div>
-              <div className="text-sm text-slate-500">
-                © 2025 STS Futures. All rights reserved.
-              </div>
+            <div className="text-gray-600 text-xs max-w-xl text-center md:text-right">
+              Trading involves substantial risk of loss and is not suitable for all investors. 
+              Past performance is not indicative of future results. 
+              This platform is for informational purposes only and does not constitute financial advice.
             </div>
           </div>
         </div>
       </footer>
-    </div>
-  );
-}
-
-// Feature Card Component
-function FeatureCard({ icon, title, description, color }: { 
-  icon: React.ReactNode; 
-  title: string; 
-  description: string;
-  color: string;
-}) {
-  const colorClasses: Record<string, string> = {
-    blue: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-    emerald: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
-    purple: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
-    yellow: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
-    red: 'bg-red-500/20 text-red-400 border-red-500/30',
-    cyan: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
-  };
-  
-  return (
-    <Card className="bg-slate-800/50 border-slate-700/50 hover:border-slate-600/50 transition-colors">
-      <CardContent className="p-6">
-        <div className={`h-12 w-12 rounded-lg ${colorClasses[color]} flex items-center justify-center mb-4 border`}>
-          {icon}
-        </div>
-        <h3 className="text-lg font-semibold text-white mb-2">{title}</h3>
-        <p className="text-slate-400 text-sm leading-relaxed">{description}</p>
-      </CardContent>
-    </Card>
-  );
-}
-
-// Step Card Component
-function StepCard({ number, title, description }: { 
-  number: string; 
-  title: string; 
-  description: string;
-}) {
-  return (
-    <div className="relative">
-      <div className="flex items-start gap-4">
-        <div className="h-12 w-12 rounded-full bg-gradient-to-br from-blue-600 to-cyan-500 flex items-center justify-center text-white font-bold text-xl flex-shrink-0">
-          {number}
-        </div>
-        <div>
-          <h3 className="text-xl font-semibold text-white mb-2">{title}</h3>
-          <p className="text-slate-400 leading-relaxed">{description}</p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-
-// FAQ Item Component
-function FAQItem({ question, answer }: { question: string; answer: string }) {
-  const [isOpen, setIsOpen] = useState(false);
-  
-  return (
-    <div className="border border-slate-700/50 rounded-lg overflow-hidden">
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full px-6 py-4 flex items-center justify-between text-left bg-slate-800/30 hover:bg-slate-800/50 transition-colors"
-      >
-        <span className="font-medium text-white">{question}</span>
-        <svg
-          className={`h-5 w-5 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`}
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
-      </button>
-      {isOpen && (
-        <div className="px-6 py-4 bg-slate-800/20 border-t border-slate-700/50">
-          <p className="text-slate-400 leading-relaxed">{answer}</p>
-        </div>
-      )}
     </div>
   );
 }
