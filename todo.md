@@ -3792,3 +3792,15 @@
 - [x] Add relevant keywords to content (futures trading, algorithmic trading, TradingView signals, etc.)
 - [x] Add meta robots tag for indexing
 - [x] Add canonical URL
+
+
+## Homepage Hero Stats Fix - Dec 22, 2025
+
+### Average Return Per Year Update
+- [x] Change Avg Return/Year from percentage to dollar amount
+- [x] Calculate correct annual average (Total Return / Years)
+- [x] Update Mini value (+$9.3K/year based on $130K over 14 years)
+- [x] Update Micro value (+$930/year, 1/10th of Mini)
+- [x] Ensure Micro/Mini toggle updates the value correctly
+- [x] Update label to show "AVG RETURN/YEAR (MINI)" or "(MICRO)"
+- [x] Also updated Max Drawdown label to show (MINI) or (MICRO)

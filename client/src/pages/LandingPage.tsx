@@ -107,17 +107,22 @@ export default function LandingPage() {
     return { monthlySavings, yearlySavings, thirdPartyMonthly };
   }, []);
 
-  // Accurate stats based on Overview page data (1Y view)
-  // Mini: $129.9K return, $48.8K max DD, 1.50 Sharpe, 2.61 Sortino, 38.3% WR
-  // Micro: 1/10th of dollar values, same ratios
-  // Annualized return is ~18% based on 14+ years of data
+  // Accurate stats based on Overview page data (All Time view)
+  // Mini: $129.9K total return over 14+ years = ~$9.3K/year average
+  // Micro: 1/10th of dollar values
+  // Max DD: Mini -$48.8K, Micro -$4.9K
   const displayStats = useMemo(() => {
     const isMicro = contractSize === 'micro';
+    // $129.9K total over 14 years = $9.28K/year average
+    const avgReturnPerYearMini = 9.3; // $9.3K per year
+    const avgReturnPerYearMicro = 0.93; // $930 per year (1/10th)
     return {
       totalReturn: isMicro ? '+$13.0K' : '+$129.9K',
       totalReturnPct: '129.9%',
-      avgReturnPerYear: '18.1', // Annualized return based on 14+ years
+      avgReturnPerYear: isMicro ? '+$930' : '+$9.3K',
+      avgReturnPerYearLabel: isMicro ? 'AVG RETURN/YEAR (MICRO)' : 'AVG RETURN/YEAR (MINI)',
       maxDrawdown: isMicro ? '-$4.9K' : '-$48.8K',
+      maxDrawdownLabel: isMicro ? 'MAX DRAWDOWN (MICRO)' : 'MAX DRAWDOWN (MINI)',
       maxDrawdownPct: '43.4%',
       sharpe: '1.50',
       sortino: '2.61',
@@ -217,9 +222,9 @@ export default function LandingPage() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl mx-auto mb-8">
               <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-4">
                 <div className="text-2xl sm:text-3xl font-bold text-emerald-400 mb-1">
-                  +{displayStats.avgReturnPerYear}%
+                  {displayStats.avgReturnPerYear}
                 </div>
-                <div className="text-xs text-gray-500 uppercase tracking-wider">Avg Return/Year</div>
+                <div className="text-xs text-gray-500 uppercase tracking-wider">{displayStats.avgReturnPerYearLabel}</div>
               </div>
               <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-4">
                 <div className="text-2xl sm:text-3xl font-bold text-white mb-1">
@@ -231,7 +236,7 @@ export default function LandingPage() {
                 <div className="text-2xl sm:text-3xl font-bold text-orange-400 mb-1">
                   {displayStats.maxDrawdown}
                 </div>
-                <div className="text-xs text-gray-500 uppercase tracking-wider">Max Drawdown</div>
+                <div className="text-xs text-gray-500 uppercase tracking-wider">{displayStats.maxDrawdownLabel}</div>
               </div>
               <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-4">
                 <div className="text-2xl sm:text-3xl font-bold text-white mb-1">
