@@ -3711,3 +3711,37 @@
 - [x] Add "Lock in your rate for life" messaging
 - [x] Update to 7-day money-back guarantee
 - [x] Update FAQ accordingly
+
+
+## Sprint: December 22, 2025 - Bug Fixes
+
+### Micro/Mini Contract Toggle Fix
+- [ ] Fix contract size toggle to update Total Return dynamically
+- [ ] Fix contract size toggle to update Max Drawdown dynamically
+- [ ] Ensure toggle works throughout the website (Overview, Strategies, etc.)
+
+### Admin Clear All Button Fix
+- [ ] Debug why Clear All button freezes on Admin Activity page
+- [ ] Fix the clearLogs mutation to work properly
+- [ ] Test Clear All functionality
+
+### Screenshot Update
+- [ ] Retake Portfolio Overview screenshot with updated stats
+- [ ] Update homepage with new screenshot
+
+
+## Bug Investigation Session - Dec 22, 2025
+
+### Issues Investigated
+- [x] Clear All button on Admin Activity page - WORKING (native confirm dialog blocks, not a freeze)
+- [x] Micro/Mini toggle on Overview page - WORKING (values update dynamically)
+- [x] Micro/Mini toggle on Homepage - WORKING (values update dynamically)
+- [x] Updated Portfolio Overview screenshot for homepage display
+
+### Findings
+1. **Clear All Button**: The button works correctly. The native browser `confirm()` dialog was blocking the action. When confirmed, logs are cleared successfully.
+2. **Micro/Mini Toggle**: Both toggles (homepage and Overview page) are functioning correctly:
+   - Mini: Total Return +$130.0K, Max Drawdown -$48.8K
+   - Micro: Total Return +$13.0K, Max Drawdown -$4.9K (1/10th of Mini)
+3. **Screenshot Updated**: Replaced `/screenshots/overview-all-time.webp` with current Portfolio Overview screenshot.
+

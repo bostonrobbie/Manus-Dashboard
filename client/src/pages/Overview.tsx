@@ -226,9 +226,9 @@ export default function Overview() {
               <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1 sm:mb-2">Total Return</div>
               <div className={`text-xs sm:text-base md:text-lg lg:text-xl font-bold mb-1 ${
                 metrics.totalReturn >= 0 ? 'text-green-500' : 'text-red-500'
-              }`} title={`${metrics.totalReturn >= 0 ? '+' : ''}$${Math.round((metrics.totalReturn / 100) * startingCapital).toLocaleString()}`}>
+              }`} title={`${metrics.totalReturn >= 0 ? '+' : ''}$${Math.round((metrics.totalReturn / 100) * startingCapital * contractMultiplier).toLocaleString()}`}>
                 {metrics.totalReturn >= 0 ? '+' : ''}${(() => {
-                  const value = Math.round((metrics.totalReturn / 100) * startingCapital);
+                  const value = Math.round((metrics.totalReturn / 100) * startingCapital * contractMultiplier);
                   if (Math.abs(value) >= 1000000) return (value / 1000000).toFixed(1) + 'M';
                   if (Math.abs(value) >= 1000) return (value / 1000).toFixed(1) + 'K';
                   return value.toLocaleString();
@@ -242,9 +242,9 @@ export default function Overview() {
             {/* Max Drawdown */}
             <div className="bg-muted/30 border border-muted rounded-lg p-2 sm:p-3 md:p-4 text-center overflow-hidden">
               <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1 sm:mb-2">Max Drawdown</div>
-              <div className="text-xs sm:text-base md:text-lg lg:text-xl font-bold mb-1 text-amber-500" title={`-$${Math.round(metrics.maxDrawdownDollars).toLocaleString()}`}>
+              <div className="text-xs sm:text-base md:text-lg lg:text-xl font-bold mb-1 text-amber-500" title={`-$${Math.round(metrics.maxDrawdownDollars * contractMultiplier).toLocaleString()}`}>
                 -${(() => {
-                  const value = Math.round(metrics.maxDrawdownDollars);
+                  const value = Math.round(metrics.maxDrawdownDollars * contractMultiplier);
                   if (Math.abs(value) >= 1000000) return (value / 1000000).toFixed(1) + 'M';
                   if (Math.abs(value) >= 1000) return (value / 1000).toFixed(1) + 'K';
                   return value.toLocaleString();
