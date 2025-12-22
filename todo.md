@@ -3667,3 +3667,47 @@
 - [x] Scene 5: Call to action (Try It Free)
 - [x] Combine clips into final video
 - [x] Video saved to: client/public/marketing/sts-marketing-video.mp4
+
+
+## Sprint: December 22, 2025 - Homepage Cleanup & Pricing Update
+
+### Hero Section Cleanup
+- [ ] Remove "Stop Guessing." - keep only "Start Trading Systematically."
+- [ ] Change badge to "Systematic Trading Strategies for Futures"
+- [ ] Move stats above description paragraph
+- [ ] Implement Micro/Mini toggle for stats (no account minimums)
+- [ ] Verify stats accuracy from Overview page data
+- [ ] Clean up layout for less crowded appearance
+
+### Features Section
+- [ ] Replace "Kelly Criterion Sizing" with "Personal Dashboard" feature
+
+### Pricing Section
+- [ ] Remove Free tier
+- [ ] Single Pro plan at $49/month
+- [ ] Add "Lock in your rate for life" messaging
+- [ ] Update to 7-day money-back guarantee
+- [ ] Update FAQ section
+
+### My Dashboard Screenshot
+- [ ] Capture clean My Dashboard screenshot
+- [ ] Add screenshot to homepage
+
+
+## Sprint: December 22, 2025 - Homepage Cleanup & Pricing Simplification
+
+### Homepage Hero Section Cleanup
+- [x] Remove "Stop Guessing" - keep only "Start Trading Systematically."
+- [x] Update badge to "Systematic Trading Strategies for Futures"
+- [x] Move stats above description paragraph
+- [x] Make stats toggle between Micro/Mini values
+- [x] Verify stats are accurate from Overview page (1Y: +$129.9K, Sharpe 1.50, DD -$48.8K)
+- [x] Replace Kelly Criterion with Personal Dashboard feature
+- [x] Capture and add My Dashboard screenshot
+
+### Pricing Simplification
+- [x] Remove Free tier
+- [x] Single Pro plan at $49/month
+- [x] Add "Lock in your rate for life" messaging
+- [x] Update to 7-day money-back guarantee
+- [x] Update FAQ accordingly
