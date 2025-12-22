@@ -108,28 +108,27 @@ export default function LandingPage() {
   }, []);
 
   // Accurate stats based on Overview page data (All Time view)
-  // Mini: $129.9K total return over 14+ years = ~$9.3K/year average
-  // Micro: 1/10th of dollar values
+  // Mini: $1.1M total return over 15 years = ~$73.3K/year average
+  // Micro: 1/10th of dollar values = ~$7.3K/year
   // Max DD: Mini -$48.8K, Micro -$4.9K
   const displayStats = useMemo(() => {
     const isMicro = contractSize === 'micro';
-    // $129.9K total over 14 years = $9.28K/year average
-    const avgReturnPerYearMini = 9.3; // $9.3K per year
-    const avgReturnPerYearMicro = 0.93; // $930 per year (1/10th)
+    // $1.1M total over 15 years = $73.3K/year average (Mini)
+    // $110K total over 15 years = $7.3K/year average (Micro)
     return {
-      totalReturn: isMicro ? '+$13.0K' : '+$129.9K',
-      totalReturnPct: '129.9%',
-      avgReturnPerYear: isMicro ? '+$930' : '+$9.3K',
+      totalReturn: isMicro ? '+$110K' : '+$1.1M',
+      totalReturnPct: '1111.5%',
+      avgReturnPerYear: isMicro ? '+$7.3K' : '+$73.3K',
       avgReturnPerYearLabel: isMicro ? 'AVG RETURN/YEAR (MICRO)' : 'AVG RETURN/YEAR (MINI)',
       maxDrawdown: isMicro ? '-$4.9K' : '-$48.8K',
       maxDrawdownLabel: isMicro ? 'MAX DRAWDOWN (MICRO)' : 'MAX DRAWDOWN (MINI)',
-      maxDrawdownPct: '43.4%',
+      maxDrawdownPct: '18.6%',
       sharpe: '1.50',
-      sortino: '2.61',
-      winRate: '38.3%',
-      trades: '823',
-      calmar: '3.01',
-      yearsData: '14+'
+      sortino: '2.33',
+      winRate: '38.9%',
+      trades: '9,376',
+      calmar: '0.97',
+      yearsData: '15+'
     };
   }, [contractSize]);
 

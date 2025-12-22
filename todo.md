@@ -3798,9 +3798,10 @@
 
 ### Average Return Per Year Update
 - [x] Change Avg Return/Year from percentage to dollar amount
-- [x] Calculate correct annual average (Total Return / Years)
-- [x] Update Mini value (+$9.3K/year based on $130K over 14 years)
-- [x] Update Micro value (+$930/year, 1/10th of Mini)
+- [x] Calculate correct annual average from All Time data ($1.1M / 15 years)
+- [x] Update Mini value (+$73.3K/year based on $1.1M over 15 years)
+- [x] Update Micro value (+$7.3K/year, 1/10th of Mini)
 - [x] Ensure Micro/Mini toggle updates the value correctly
 - [x] Update label to show "AVG RETURN/YEAR (MINI)" or "(MICRO)"
 - [x] Also updated Max Drawdown label to show (MINI) or (MICRO)
+- [x] Updated Years Data to 15+ to match All Time data
