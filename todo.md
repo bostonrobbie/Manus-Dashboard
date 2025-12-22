@@ -3564,3 +3564,14 @@
 
 ### Default Time Range
 - [x] Change default time range to 1Y on Overview page
+
+
+## Sprint: December 21, 2025 - Mobile Responsiveness Fixes
+
+### Strategies Page
+- [x] Fix All Strategies Performance chart height on mobile (too compressed)
+- [x] Ensure chart is readable on small screens
+
+### Admin Page
+- [x] Fix tab icons overflow on mobile
+- [x] Ensure tabs stay within container boundaries

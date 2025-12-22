@@ -108,29 +108,29 @@ export default function Admin() {
 
       {/* Tabbed Interface */}
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-6 lg:w-auto lg:inline-grid">
-          <TabsTrigger value="overview" className="gap-2">
-            <BarChart3 className="h-4 w-4" />
+        <TabsList className="grid w-full grid-cols-6 h-auto p-1 lg:w-auto lg:inline-grid">
+          <TabsTrigger value="overview" className="gap-1 sm:gap-2 px-2 sm:px-3 py-2">
+            <BarChart3 className="h-4 w-4 shrink-0" />
             <span className="hidden sm:inline">Overview</span>
           </TabsTrigger>
-          <TabsTrigger value="activity" className="gap-2">
-            <Activity className="h-4 w-4" />
+          <TabsTrigger value="activity" className="gap-1 sm:gap-2 px-2 sm:px-3 py-2">
+            <Activity className="h-4 w-4 shrink-0" />
             <span className="hidden sm:inline">Activity</span>
           </TabsTrigger>
-          <TabsTrigger value="setup" className="gap-2">
-            <Code className="h-4 w-4" />
+          <TabsTrigger value="setup" className="gap-1 sm:gap-2 px-2 sm:px-3 py-2">
+            <Code className="h-4 w-4 shrink-0" />
             <span className="hidden sm:inline">Setup</span>
           </TabsTrigger>
-          <TabsTrigger value="brokers" className="gap-2">
-            <Server className="h-4 w-4" />
+          <TabsTrigger value="brokers" className="gap-1 sm:gap-2 px-2 sm:px-3 py-2">
+            <Server className="h-4 w-4 shrink-0" />
             <span className="hidden sm:inline">Brokers</span>
           </TabsTrigger>
-          <TabsTrigger value="monitoring" className="gap-2">
-            <Eye className="h-4 w-4" />
+          <TabsTrigger value="monitoring" className="gap-1 sm:gap-2 px-2 sm:px-3 py-2">
+            <Eye className="h-4 w-4 shrink-0" />
             <span className="hidden sm:inline">Monitoring</span>
           </TabsTrigger>
-          <TabsTrigger value="settings" className="gap-2">
-            <Settings className="h-4 w-4" />
+          <TabsTrigger value="settings" className="gap-1 sm:gap-2 px-2 sm:px-3 py-2">
+            <Settings className="h-4 w-4 shrink-0" />
             <span className="hidden sm:inline">Settings</span>
           </TabsTrigger>
         </TabsList>

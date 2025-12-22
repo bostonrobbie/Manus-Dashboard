@@ -221,28 +221,27 @@ export default function Strategies() {
               <p className="text-xs text-muted-foreground">View individual strategy details below</p>
             </div>
           ) : (
-            <div className="h-[280px] sm:h-[350px] md:h-[400px] lg:h-[450px] -mx-2 sm:mx-0">
+            <div className="h-[320px] sm:h-[350px] md:h-[400px] lg:h-[450px] -mx-2 sm:mx-0">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={chartData} margin={{ top: 10, right: 5, left: 0, bottom: 10 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted-foreground))" strokeOpacity={0.2} vertical={false} />
                   <XAxis 
                     dataKey="date" 
-                    tick={{ fontSize: 11, fill: '#ffffff' }}
+                    tick={{ fontSize: 9, fill: '#ffffff' }}
                     tickLine={{ stroke: 'rgba(255,255,255,0.3)' }}
                     axisLine={{ stroke: 'rgba(255,255,255,0.3)' }}
                     interval="preserveStartEnd"
-                    tickCount={8}
-                    padding={{ left: 20, right: 20 }}
-                    label={{ value: 'Date', position: 'insideBottom', offset: -5, fill: '#ffffff', fontSize: 12 }}
+                    tickCount={6}
+                    padding={{ left: 10, right: 10 }}
+                    label={{ value: 'Date', position: 'insideBottom', offset: -5, fill: '#ffffff', fontSize: 10 }}
                   />
                   <YAxis 
                     domain={['dataMin', 'dataMax']}
-                    tick={{ fontSize: 11, fill: '#ffffff' }}
+                    tick={{ fontSize: 9, fill: '#ffffff' }}
                     tickLine={{ stroke: 'rgba(255,255,255,0.3)' }}
                     axisLine={{ stroke: 'rgba(255,255,255,0.3)' }}
                     tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
-                    width={50}
-                    label={{ value: 'Portfolio Value', angle: -90, position: 'insideLeft', fill: '#ffffff', fontSize: 12, dx: -5 }}
+                    width={45}
                   />
                   <Tooltip 
                     contentStyle={{ 
