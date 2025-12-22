@@ -1,7 +1,7 @@
 import { eq, and, gte, lte, inArray, desc, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import mysql from 'mysql2/promise';
-import { InsertUser, users, strategies, trades, benchmarks, webhookLogs, InsertWebhookLog, openPositions, InsertOpenPosition, OpenPosition, notificationPreferences, strategyNotificationSettings, InsertNotificationPreference, InsertStrategyNotificationSetting, NotificationPreference, StrategyNotificationSetting } from "../drizzle/schema";
+import { InsertUser, users, strategies, trades, benchmarks, webhookLogs, InsertWebhookLog, openPositions, InsertOpenPosition, OpenPosition, notificationPreferences, strategyNotificationSettings, InsertNotificationPreference, InsertStrategyNotificationSetting, NotificationPreference, StrategyNotificationSetting, stagingTrades, InsertStagingTrade, StagingTrade } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -993,4 +993,364 @@ export async function getStrategiesWithNotificationSettings(userId: number): Pro
     emailEnabled: settingsMap.get(strategy.id)?.emailEnabled ?? true,
     pushEnabled: settingsMap.get(strategy.id)?.pushEnabled ?? true,
   }));
+}
+
+
+// ============================================================================
+// Staging Trades Functions (Webhook Review Workflow)
+// ============================================================================
+
+/**
+ * Create a new staging trade from a webhook
+ */
+export async function createStagingTrade(trade: {
+  webhookLogId: number;
+  strategyId: number;
+  strategySymbol: string;
+  entryDate: Date;
+  exitDate?: Date;
+  direction: string;
+  entryPrice: number;
+  exitPrice?: number;
+  quantity: number;
+  pnl?: number;
+  pnlPercent?: number;
+  commission?: number;
+  isOpen?: boolean;
+}): Promise<number | null> {
+  const db = await getDb();
+  if (!db) return null;
+
+  try {
+    const result = await db.insert(stagingTrades).values({
+      webhookLogId: trade.webhookLogId,
+      strategyId: trade.strategyId,
+      strategySymbol: trade.strategySymbol,
+      entryDate: trade.entryDate,
+      exitDate: trade.exitDate || null,
+      direction: trade.direction,
+      entryPrice: trade.entryPrice,
+      exitPrice: trade.exitPrice || null,
+      quantity: trade.quantity,
+      pnl: trade.pnl || null,
+      pnlPercent: trade.pnlPercent || null,
+      commission: trade.commission || 0,
+      isOpen: trade.isOpen ?? !trade.exitDate,
+      status: 'pending',
+    });
+    
+    // Get the inserted ID
+    const insertedId = (result as any)[0]?.insertId;
+    return insertedId || null;
+  } catch (error) {
+    console.error("[Database] Failed to create staging trade:", error);
+    return null;
+  }
+}
+
+/**
+ * Get all staging trades with optional filters
+ */
+export async function getStagingTrades(params?: {
+  status?: 'pending' | 'approved' | 'rejected' | 'edited';
+  strategyId?: number;
+  isOpen?: boolean;
+  limit?: number;
+}): Promise<StagingTrade[]> {
+  const db = await getDb();
+  if (!db) return [];
+
+  const { status, strategyId, isOpen, limit = 100 } = params || {};
+  
+  const conditions = [];
+  if (status) {
+    conditions.push(eq(stagingTrades.status, status));
+  }
+  if (strategyId !== undefined) {
+    conditions.push(eq(stagingTrades.strategyId, strategyId));
+  }
+  if (isOpen !== undefined) {
+    conditions.push(eq(stagingTrades.isOpen, isOpen));
+  }
+
+  if (conditions.length > 0) {
+    return await db.select().from(stagingTrades)
+      .where(and(...conditions))
+      .orderBy(desc(stagingTrades.createdAt))
+      .limit(limit);
+  }
+
+  return await db.select().from(stagingTrades)
+    .orderBy(desc(stagingTrades.createdAt))
+    .limit(limit);
+}
+
+/**
+ * Get a single staging trade by ID
+ */
+export async function getStagingTradeById(id: number): Promise<StagingTrade | null> {
+  const db = await getDb();
+  if (!db) return null;
+
+  const result = await db.select().from(stagingTrades)
+    .where(eq(stagingTrades.id, id))
+    .limit(1);
+  
+  return result[0] || null;
+}
+
+/**
+ * Approve a staging trade and move it to production
+ */
+export async function approveStagingTrade(
+  stagingTradeId: number,
+  reviewedBy: number,
+  reviewNotes?: string
+): Promise<{ success: boolean; productionTradeId?: number; error?: string }> {
+  const db = await getDb();
+  if (!db) return { success: false, error: 'Database not available' };
+
+  try {
+    // Get the staging trade
+    const stagingTrade = await getStagingTradeById(stagingTradeId);
+    if (!stagingTrade) {
+      return { success: false, error: 'Staging trade not found' };
+    }
+
+    if (stagingTrade.status !== 'pending' && stagingTrade.status !== 'edited') {
+      return { success: false, error: `Cannot approve trade with status: ${stagingTrade.status}` };
+    }
+
+    // Only approve closed trades (with exit data)
+    if (stagingTrade.isOpen || !stagingTrade.exitDate || !stagingTrade.exitPrice) {
+      return { success: false, error: 'Cannot approve open positions. Wait for exit signal.' };
+    }
+
+    // Insert into production trades table
+    const insertResult = await db.insert(trades).values({
+      strategyId: stagingTrade.strategyId,
+      entryDate: stagingTrade.entryDate,
+      exitDate: stagingTrade.exitDate,
+      direction: stagingTrade.direction,
+      entryPrice: stagingTrade.entryPrice,
+      exitPrice: stagingTrade.exitPrice,
+      quantity: stagingTrade.quantity,
+      pnl: stagingTrade.pnl || 0,
+      pnlPercent: stagingTrade.pnlPercent || 0,
+      commission: stagingTrade.commission,
+    });
+
+    const productionTradeId = (insertResult as any)[0]?.insertId;
+
+    // Update staging trade status
+    await db.update(stagingTrades)
+      .set({
+        status: 'approved',
+        reviewedBy,
+        reviewedAt: new Date(),
+        reviewNotes,
+        productionTradeId,
+      })
+      .where(eq(stagingTrades.id, stagingTradeId));
+
+    console.log(`[Database] Approved staging trade ${stagingTradeId} -> production trade ${productionTradeId}`);
+    return { success: true, productionTradeId };
+  } catch (error) {
+    console.error("[Database] Failed to approve staging trade:", error);
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+  }
+}
+
+/**
+ * Reject a staging trade
+ */
+export async function rejectStagingTrade(
+  stagingTradeId: number,
+  reviewedBy: number,
+  reviewNotes?: string
+): Promise<{ success: boolean; error?: string }> {
+  const db = await getDb();
+  if (!db) return { success: false, error: 'Database not available' };
+
+  try {
+    const stagingTrade = await getStagingTradeById(stagingTradeId);
+    if (!stagingTrade) {
+      return { success: false, error: 'Staging trade not found' };
+    }
+
+    await db.update(stagingTrades)
+      .set({
+        status: 'rejected',
+        reviewedBy,
+        reviewedAt: new Date(),
+        reviewNotes,
+      })
+      .where(eq(stagingTrades.id, stagingTradeId));
+
+    console.log(`[Database] Rejected staging trade ${stagingTradeId}`);
+    return { success: true };
+  } catch (error) {
+    console.error("[Database] Failed to reject staging trade:", error);
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+  }
+}
+
+/**
+ * Edit a staging trade (for corrections before approval)
+ */
+export async function editStagingTrade(
+  stagingTradeId: number,
+  reviewedBy: number,
+  updates: {
+    entryDate?: Date;
+    exitDate?: Date;
+    direction?: string;
+    entryPrice?: number;
+    exitPrice?: number;
+    quantity?: number;
+    pnl?: number;
+    pnlPercent?: number;
+    commission?: number;
+  },
+  reviewNotes?: string
+): Promise<{ success: boolean; error?: string }> {
+  const db = await getDb();
+  if (!db) return { success: false, error: 'Database not available' };
+
+  try {
+    const stagingTrade = await getStagingTradeById(stagingTradeId);
+    if (!stagingTrade) {
+      return { success: false, error: 'Staging trade not found' };
+    }
+
+    // Store original values before edit
+    const originalPayload = JSON.stringify({
+      entryDate: stagingTrade.entryDate,
+      exitDate: stagingTrade.exitDate,
+      direction: stagingTrade.direction,
+      entryPrice: stagingTrade.entryPrice,
+      exitPrice: stagingTrade.exitPrice,
+      quantity: stagingTrade.quantity,
+      pnl: stagingTrade.pnl,
+      pnlPercent: stagingTrade.pnlPercent,
+      commission: stagingTrade.commission,
+    });
+
+    await db.update(stagingTrades)
+      .set({
+        ...updates,
+        status: 'edited',
+        reviewedBy,
+        reviewedAt: new Date(),
+        reviewNotes,
+        originalPayload: stagingTrade.originalPayload || originalPayload,
+        isOpen: updates.exitDate ? false : stagingTrade.isOpen,
+      })
+      .where(eq(stagingTrades.id, stagingTradeId));
+
+    console.log(`[Database] Edited staging trade ${stagingTradeId}`);
+    return { success: true };
+  } catch (error) {
+    console.error("[Database] Failed to edit staging trade:", error);
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+  }
+}
+
+/**
+ * Delete a staging trade permanently
+ */
+export async function deleteStagingTrade(stagingTradeId: number): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+
+  try {
+    await db.delete(stagingTrades).where(eq(stagingTrades.id, stagingTradeId));
+    console.log(`[Database] Deleted staging trade ${stagingTradeId}`);
+    return true;
+  } catch (error) {
+    console.error("[Database] Failed to delete staging trade:", error);
+    return false;
+  }
+}
+
+/**
+ * Get staging trade statistics
+ */
+export async function getStagingTradeStats(): Promise<{
+  pending: number;
+  approved: number;
+  rejected: number;
+  edited: number;
+  openPositions: number;
+}> {
+  const db = await getDb();
+  if (!db) return { pending: 0, approved: 0, rejected: 0, edited: 0, openPositions: 0 };
+
+  try {
+    const allTrades = await db.select().from(stagingTrades);
+    
+    return {
+      pending: allTrades.filter(t => t.status === 'pending').length,
+      approved: allTrades.filter(t => t.status === 'approved').length,
+      rejected: allTrades.filter(t => t.status === 'rejected').length,
+      edited: allTrades.filter(t => t.status === 'edited').length,
+      openPositions: allTrades.filter(t => t.isOpen).length,
+    };
+  } catch (error) {
+    console.error("[Database] Failed to get staging trade stats:", error);
+    return { pending: 0, approved: 0, rejected: 0, edited: 0, openPositions: 0 };
+  }
+}
+
+/**
+ * Update staging trade when exit signal is received
+ */
+export async function updateStagingTradeExit(
+  strategySymbol: string,
+  direction: string,
+  exitData: {
+    exitDate: Date;
+    exitPrice: number;
+    pnl: number;
+    pnlPercent: number;
+  }
+): Promise<{ success: boolean; stagingTradeId?: number; error?: string }> {
+  const db = await getDb();
+  if (!db) return { success: false, error: 'Database not available' };
+
+  try {
+    // Find the open staging trade for this strategy and direction
+    const openTrades = await db.select().from(stagingTrades)
+      .where(and(
+        eq(stagingTrades.strategySymbol, strategySymbol),
+        eq(stagingTrades.direction, direction),
+        eq(stagingTrades.isOpen, true),
+        eq(stagingTrades.status, 'pending')
+      ))
+      .orderBy(desc(stagingTrades.createdAt))
+      .limit(1);
+
+    if (openTrades.length === 0) {
+      return { success: false, error: 'No open staging trade found for this strategy' };
+    }
+
+    const openTrade = openTrades[0];
+
+    // Update with exit data
+    await db.update(stagingTrades)
+      .set({
+        exitDate: exitData.exitDate,
+        exitPrice: exitData.exitPrice,
+        pnl: exitData.pnl,
+        pnlPercent: exitData.pnlPercent,
+        isOpen: false,
+      })
+      .where(eq(stagingTrades.id, openTrade.id));
+
+    console.log(`[Database] Updated staging trade ${openTrade.id} with exit data`);
+    return { success: true, stagingTradeId: openTrade.id };
+  } catch (error) {
+    console.error("[Database] Failed to update staging trade exit:", error);
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+  }
 }

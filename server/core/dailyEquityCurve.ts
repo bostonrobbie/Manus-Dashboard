@@ -176,7 +176,7 @@ export function calculateDailyEquityCurve(
  */
 export function calculateDailySharpeRatio(
   dailyReturns: number[],
-  riskFreeRate: number = 0.05
+  riskFreeRate: number = 0
 ): number {
   if (dailyReturns.length < 2) return 0;
   
@@ -214,7 +214,7 @@ export function calculateDailySharpeRatio(
  */
 export function calculateDailySortinoRatio(
   dailyReturns: number[],
-  riskFreeRate: number = 0.05
+  riskFreeRate: number = 0
 ): number {
   if (dailyReturns.length < 2) return 0;
   

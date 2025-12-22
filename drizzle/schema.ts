@@ -543,3 +543,52 @@ export const strategyNotificationSettings = mysqlTable("strategy_notification_se
 
 export type StrategyNotificationSetting = typeof strategyNotificationSettings.$inferSelect;
 export type InsertStrategyNotificationSetting = typeof strategyNotificationSettings.$inferInsert;
+
+
+/**
+ * Staging trades table
+ * Stores incoming webhook trades for review before approval into the main trades table
+ * This provides a two-stage workflow: webhook -> staging -> production
+ */
+export const stagingTrades = mysqlTable("staging_trades", {
+  id: int("id").autoincrement().primaryKey(),
+  // Link to the original webhook log
+  webhookLogId: int("webhookLogId").notNull(),
+  // Strategy info
+  strategyId: int("strategyId").notNull(),
+  strategySymbol: varchar("strategySymbol", { length: 20 }).notNull(),
+  // Trade details (same as trades table)
+  entryDate: datetime("entryDate").notNull(),
+  exitDate: datetime("exitDate"),
+  direction: varchar("direction", { length: 10 }).notNull(), // "Long" or "Short"
+  entryPrice: int("entryPrice").notNull(), // Entry price in cents
+  exitPrice: int("exitPrice"), // Exit price in cents (null if position still open)
+  quantity: int("quantity").notNull().default(1),
+  pnl: int("pnl"), // P&L in cents (null if position still open)
+  pnlPercent: int("pnlPercent"), // P&L as percentage
+  commission: int("commission").default(0).notNull(),
+  // Position tracking
+  isOpen: boolean("isOpen").default(true).notNull(), // True if this is an open position
+  // Review status
+  status: mysqlEnum("status", ["pending", "approved", "rejected", "edited"]).default("pending").notNull(),
+  // Approval workflow
+  reviewedBy: int("reviewedBy"), // User ID who reviewed
+  reviewedAt: datetime("reviewedAt"),
+  reviewNotes: text("reviewNotes"), // Optional notes from reviewer
+  // If edited, store the original values
+  originalPayload: text("originalPayload"), // JSON of original values before edit
+  // Link to production trade (after approval)
+  productionTradeId: int("productionTradeId"), // ID in trades table after approval
+  // Metadata
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  webhookIdx: index("idx_staging_trades_webhook").on(table.webhookLogId),
+  strategyIdx: index("idx_staging_trades_strategy").on(table.strategyId),
+  statusIdx: index("idx_staging_trades_status").on(table.status),
+  isOpenIdx: index("idx_staging_trades_is_open").on(table.isOpen),
+  createdIdx: index("idx_staging_trades_created").on(table.createdAt),
+}));
+
+export type StagingTrade = typeof stagingTrades.$inferSelect;
+export type InsertStagingTrade = typeof stagingTrades.$inferInsert;

@@ -110,11 +110,13 @@ export default function LandingPage() {
   // Accurate stats based on Overview page data (1Y view)
   // Mini: $129.9K return, $48.8K max DD, 1.50 Sharpe, 2.61 Sortino, 38.3% WR
   // Micro: 1/10th of dollar values, same ratios
+  // Annualized return is ~18% based on 14+ years of data
   const displayStats = useMemo(() => {
     const isMicro = contractSize === 'micro';
     return {
       totalReturn: isMicro ? '+$13.0K' : '+$129.9K',
       totalReturnPct: '129.9%',
+      avgReturnPerYear: '18.1', // Annualized return based on 14+ years
       maxDrawdown: isMicro ? '-$4.9K' : '-$48.8K',
       maxDrawdownPct: '43.4%',
       sharpe: '1.50',
@@ -178,15 +180,10 @@ export default function LandingPage() {
         
         <div className="container relative z-10 py-12">
           <div className="max-w-5xl mx-auto text-center">
-            {/* Badge */}
-            <div className="inline-flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-4 py-2 mb-8">
-              <Sparkles className="w-4 h-4 text-emerald-400" />
-              <span className="text-emerald-400 text-sm font-medium">Systematic Trading Strategies for Futures</span>
-            </div>
-            
-            {/* Main Headline - Simplified */}
-            <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold bg-gradient-to-r from-emerald-400 to-blue-400 bg-clip-text text-transparent mb-10 tracking-tight leading-tight">
-              Start Trading Systematically.
+            {/* Main Headline */}
+            <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold text-white mb-10 tracking-tight leading-tight">
+              <span className="bg-gradient-to-r from-emerald-400 to-blue-400 bg-clip-text text-transparent">Systematic Trading Strategies</span><br />
+              <span className="text-white">for Futures.</span>
             </h1>
             
             {/* Contract Size Toggle - Moved up */}
@@ -220,9 +217,9 @@ export default function LandingPage() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl mx-auto mb-8">
               <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-4">
                 <div className="text-2xl sm:text-3xl font-bold text-emerald-400 mb-1">
-                  {displayStats.totalReturn}
+                  +{displayStats.avgReturnPerYear}%
                 </div>
-                <div className="text-xs text-gray-500 uppercase tracking-wider">Total Return (1Y)</div>
+                <div className="text-xs text-gray-500 uppercase tracking-wider">Avg Return/Year</div>
               </div>
               <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-4">
                 <div className="text-2xl sm:text-3xl font-bold text-white mb-1">
@@ -267,11 +264,7 @@ export default function LandingPage() {
                   </Button>
                 </a>
               )}
-              <a href="#what-you-get">
-                <Button size="lg" variant="outline" className="border-gray-700 text-gray-300 hover:bg-gray-800/50 px-10 py-6 text-lg rounded-full">
-                  See What You Get
-                </Button>
-              </a>
+
             </div>
 
             {/* Trust Badges */}

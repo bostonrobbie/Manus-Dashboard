@@ -1395,6 +1395,144 @@ Please check the Webhooks page in your dashboard for more details.
         const deleted = await db.clearOpenPositionsForStrategy(input.strategySymbol);
         return { success: true, deleted };
       }),
+
+    // ============================================================================
+    // Staging Trades (Webhook Review Workflow)
+    // ============================================================================
+
+    /**
+     * Get staging trades with optional filters
+     */
+    getStagingTrades: adminProcedure
+      .input(z.object({
+        status: z.enum(['pending', 'approved', 'rejected', 'edited']).optional(),
+        strategyId: z.number().optional(),
+        isOpen: z.boolean().optional(),
+        limit: z.number().optional().default(100),
+      }).optional())
+      .query(async ({ input }) => {
+        const trades = await db.getStagingTrades(input);
+        return trades.map(t => ({
+          id: t.id,
+          webhookLogId: t.webhookLogId,
+          strategyId: t.strategyId,
+          strategySymbol: t.strategySymbol,
+          entryDate: t.entryDate,
+          exitDate: t.exitDate,
+          direction: t.direction,
+          entryPrice: t.entryPrice / 100, // Convert from cents
+          exitPrice: t.exitPrice ? t.exitPrice / 100 : null,
+          quantity: t.quantity,
+          pnl: t.pnl ? t.pnl / 100 : null,
+          pnlPercent: t.pnlPercent ? t.pnlPercent / 10000 : null,
+          commission: t.commission / 100,
+          isOpen: t.isOpen,
+          status: t.status,
+          reviewedBy: t.reviewedBy,
+          reviewedAt: t.reviewedAt,
+          reviewNotes: t.reviewNotes,
+          originalPayload: t.originalPayload,
+          productionTradeId: t.productionTradeId,
+          createdAt: t.createdAt,
+          updatedAt: t.updatedAt,
+        }));
+      }),
+
+    /**
+     * Get staging trade statistics
+     */
+    getStagingStats: adminProcedure.query(async () => {
+      return db.getStagingTradeStats();
+    }),
+
+    /**
+     * Approve a staging trade (move to production)
+     */
+    approveStagingTrade: adminProcedure
+      .input(z.object({
+        stagingTradeId: z.number(),
+        reviewNotes: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const result = await db.approveStagingTrade(
+          input.stagingTradeId,
+          ctx.user.id,
+          input.reviewNotes
+        );
+        return result;
+      }),
+
+    /**
+     * Reject a staging trade
+     */
+    rejectStagingTrade: adminProcedure
+      .input(z.object({
+        stagingTradeId: z.number(),
+        reviewNotes: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const result = await db.rejectStagingTrade(
+          input.stagingTradeId,
+          ctx.user.id,
+          input.reviewNotes
+        );
+        return result;
+      }),
+
+    /**
+     * Edit a staging trade before approval
+     */
+    editStagingTrade: adminProcedure
+      .input(z.object({
+        stagingTradeId: z.number(),
+        updates: z.object({
+          entryDate: z.string().optional(),
+          exitDate: z.string().optional(),
+          direction: z.string().optional(),
+          entryPrice: z.number().optional(),
+          exitPrice: z.number().optional(),
+          quantity: z.number().optional(),
+          pnl: z.number().optional(),
+          commission: z.number().optional(),
+        }),
+        reviewNotes: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        // Convert dollars to cents for storage
+        const updates: Record<string, unknown> = {};
+        if (input.updates.entryDate) updates.entryDate = new Date(input.updates.entryDate);
+        if (input.updates.exitDate) updates.exitDate = new Date(input.updates.exitDate);
+        if (input.updates.direction) updates.direction = input.updates.direction;
+        if (input.updates.entryPrice !== undefined) updates.entryPrice = Math.round(input.updates.entryPrice * 100);
+        if (input.updates.exitPrice !== undefined) updates.exitPrice = Math.round(input.updates.exitPrice * 100);
+        if (input.updates.quantity !== undefined) updates.quantity = input.updates.quantity;
+        if (input.updates.pnl !== undefined) {
+          updates.pnl = Math.round(input.updates.pnl * 100);
+          // Recalculate pnlPercent if we have entry price
+          if (input.updates.entryPrice) {
+            updates.pnlPercent = Math.round((input.updates.pnl / input.updates.entryPrice) * 10000);
+          }
+        }
+        if (input.updates.commission !== undefined) updates.commission = Math.round(input.updates.commission * 100);
+
+        const result = await db.editStagingTrade(
+          input.stagingTradeId,
+          ctx.user.id,
+          updates as any,
+          input.reviewNotes
+        );
+        return result;
+      }),
+
+    /**
+     * Delete a staging trade permanently
+     */
+    deleteStagingTrade: adminProcedure
+      .input(z.object({ stagingTradeId: z.number() }))
+      .mutation(async ({ input }) => {
+        const success = await db.deleteStagingTrade(input.stagingTradeId);
+        return { success };
+      }),
   }),
 
   // Broker router for trading integrations (Admin-only)

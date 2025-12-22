@@ -108,7 +108,7 @@ export default function Admin() {
 
       {/* Tabbed Interface */}
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-6 h-auto p-1 lg:w-auto lg:inline-grid">
+        <TabsList className="grid w-full grid-cols-7 h-auto p-1 lg:w-auto lg:inline-grid">
           <TabsTrigger value="overview" className="gap-1 sm:gap-2 px-2 sm:px-3 py-2">
             <BarChart3 className="h-4 w-4 shrink-0" />
             <span className="hidden sm:inline">Overview</span>
@@ -116,6 +116,10 @@ export default function Admin() {
           <TabsTrigger value="activity" className="gap-1 sm:gap-2 px-2 sm:px-3 py-2">
             <Activity className="h-4 w-4 shrink-0" />
             <span className="hidden sm:inline">Activity</span>
+          </TabsTrigger>
+          <TabsTrigger value="staging" className="gap-1 sm:gap-2 px-2 sm:px-3 py-2">
+            <FlaskConical className="h-4 w-4 shrink-0" />
+            <span className="hidden sm:inline">Staging</span>
           </TabsTrigger>
           <TabsTrigger value="setup" className="gap-1 sm:gap-2 px-2 sm:px-3 py-2">
             <Code className="h-4 w-4 shrink-0" />
@@ -141,6 +145,10 @@ export default function Admin() {
 
         <TabsContent value="activity" className="space-y-6">
           <ActivityTab />
+        </TabsContent>
+
+        <TabsContent value="staging" className="space-y-6">
+          <StagingTab />
         </TabsContent>
 
         <TabsContent value="setup" className="space-y-6">
@@ -1848,6 +1856,413 @@ function MonitoringTab() {
           </div>
         </CardContent>
       </Card>
+    </>
+  );
+}
+
+// ============================================================================
+// STAGING TAB (Webhook Review Workflow)
+// ============================================================================
+
+function StagingTab() {
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected' | 'edited'>('pending');
+  const [editingTrade, setEditingTrade] = useState<any | null>(null);
+  const [editForm, setEditForm] = useState<{
+    entryPrice: string;
+    exitPrice: string;
+    quantity: string;
+    pnl: string;
+    direction: string;
+    reviewNotes: string;
+  }>({ entryPrice: '', exitPrice: '', quantity: '', pnl: '', direction: '', reviewNotes: '' });
+
+  const { data: stagingTrades, refetch, isLoading } = trpc.webhook.getStagingTrades.useQuery(
+    statusFilter === 'all' ? undefined : { status: statusFilter }
+  );
+  const { data: stagingStats, refetch: refetchStats } = trpc.webhook.getStagingStats.useQuery();
+
+  const approveMutation = trpc.webhook.approveStagingTrade.useMutation({
+    onSuccess: () => {
+      toast.success('Trade approved and moved to production');
+      refetch();
+      refetchStats();
+    },
+    onError: (error) => {
+      toast.error(`Failed to approve: ${error.message}`);
+    },
+  });
+
+  const rejectMutation = trpc.webhook.rejectStagingTrade.useMutation({
+    onSuccess: () => {
+      toast.success('Trade rejected');
+      refetch();
+      refetchStats();
+    },
+    onError: (error) => {
+      toast.error(`Failed to reject: ${error.message}`);
+    },
+  });
+
+  const editMutation = trpc.webhook.editStagingTrade.useMutation({
+    onSuccess: () => {
+      toast.success('Trade updated');
+      setEditingTrade(null);
+      refetch();
+      refetchStats();
+    },
+    onError: (error) => {
+      toast.error(`Failed to edit: ${error.message}`);
+    },
+  });
+
+  const deleteMutation = trpc.webhook.deleteStagingTrade.useMutation({
+    onSuccess: () => {
+      toast.success('Trade deleted permanently');
+      refetch();
+      refetchStats();
+    },
+    onError: (error) => {
+      toast.error(`Failed to delete: ${error.message}`);
+    },
+  });
+
+  const handleApprove = (trade: any) => {
+    if (trade.isOpen) {
+      toast.error('Cannot approve open positions. Wait for exit signal.');
+      return;
+    }
+    approveMutation.mutate({ stagingTradeId: trade.id });
+  };
+
+  const handleReject = (trade: any) => {
+    const action = window.confirm(
+      'Reject this trade?\n\nClick OK to reject, or Cancel to edit instead.'
+    );
+    if (action) {
+      rejectMutation.mutate({ stagingTradeId: trade.id });
+    } else {
+      // Open edit dialog
+      setEditingTrade(trade);
+      setEditForm({
+        entryPrice: trade.entryPrice?.toString() || '',
+        exitPrice: trade.exitPrice?.toString() || '',
+        quantity: trade.quantity?.toString() || '',
+        pnl: trade.pnl?.toString() || '',
+        direction: trade.direction || '',
+        reviewNotes: '',
+      });
+    }
+  };
+
+  const handleDelete = (trade: any) => {
+    if (window.confirm('Delete this trade permanently? This cannot be undone.')) {
+      deleteMutation.mutate({ stagingTradeId: trade.id });
+    }
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingTrade) return;
+    editMutation.mutate({
+      stagingTradeId: editingTrade.id,
+      updates: {
+        entryPrice: editForm.entryPrice ? parseFloat(editForm.entryPrice) : undefined,
+        exitPrice: editForm.exitPrice ? parseFloat(editForm.exitPrice) : undefined,
+        quantity: editForm.quantity ? parseInt(editForm.quantity) : undefined,
+        pnl: editForm.pnl ? parseFloat(editForm.pnl) : undefined,
+        direction: editForm.direction || undefined,
+      },
+      reviewNotes: editForm.reviewNotes || undefined,
+    });
+  };
+
+  const getStatusBadge = (status: string, isOpen: boolean) => {
+    if (isOpen) {
+      return <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30"><Clock className="w-3 h-3 mr-1" />Open</Badge>;
+    }
+    switch (status) {
+      case 'pending':
+        return <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30"><Clock className="w-3 h-3 mr-1" />Pending</Badge>;
+      case 'approved':
+        return <Badge className="bg-green-500/20 text-green-400 border-green-500/30"><CheckCircle2 className="w-3 h-3 mr-1" />Approved</Badge>;
+      case 'rejected':
+        return <Badge className="bg-red-500/20 text-red-400 border-red-500/30"><XCircle className="w-3 h-3 mr-1" />Rejected</Badge>;
+      case 'edited':
+        return <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30"><AlertTriangle className="w-3 h-3 mr-1" />Edited</Badge>;
+      default:
+        return <Badge className="bg-gray-500/20 text-gray-400">{status}</Badge>;
+    }
+  };
+
+  return (
+    <>
+      {/* Stats Overview */}
+      <div className="grid grid-cols-5 gap-4">
+        <Card className="bg-yellow-500/10 border-yellow-500/30">
+          <CardContent className="pt-4">
+            <div className="text-2xl font-bold text-yellow-400">{stagingStats?.pending || 0}</div>
+            <div className="text-sm text-muted-foreground">Pending Review</div>
+          </CardContent>
+        </Card>
+        <Card className="bg-blue-500/10 border-blue-500/30">
+          <CardContent className="pt-4">
+            <div className="text-2xl font-bold text-blue-400">{stagingStats?.openPositions || 0}</div>
+            <div className="text-sm text-muted-foreground">Open Positions</div>
+          </CardContent>
+        </Card>
+        <Card className="bg-purple-500/10 border-purple-500/30">
+          <CardContent className="pt-4">
+            <div className="text-2xl font-bold text-purple-400">{stagingStats?.edited || 0}</div>
+            <div className="text-sm text-muted-foreground">Edited</div>
+          </CardContent>
+        </Card>
+        <Card className="bg-green-500/10 border-green-500/30">
+          <CardContent className="pt-4">
+            <div className="text-2xl font-bold text-green-400">{stagingStats?.approved || 0}</div>
+            <div className="text-sm text-muted-foreground">Approved</div>
+          </CardContent>
+        </Card>
+        <Card className="bg-red-500/10 border-red-500/30">
+          <CardContent className="pt-4">
+            <div className="text-2xl font-bold text-red-400">{stagingStats?.rejected || 0}</div>
+            <div className="text-sm text-muted-foreground">Rejected</div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Filters */}
+      <Card className="bg-card/50 border-border/50">
+        <CardContent className="pt-4">
+          <div className="flex flex-wrap gap-4 items-center">
+            <div className="flex items-center gap-2">
+              <Filter className="h-4 w-4 text-muted-foreground" />
+              <Select value={statusFilter} onValueChange={(v: any) => setStatusFilter(v)}>
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="edited">Edited</SelectItem>
+                  <SelectItem value="approved">Approved</SelectItem>
+                  <SelectItem value="rejected">Rejected</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex gap-2 ml-auto">
+              <Button variant="outline" size="sm" onClick={() => { refetch(); refetchStats(); }} disabled={isLoading}>
+                <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Staging Trades Table */}
+      <Card className="bg-card/50 border-border/50">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FlaskConical className="h-5 w-5" />
+            Staging Trades
+          </CardTitle>
+          <CardDescription>
+            Review webhook alerts before they update the production database. Approve to move to production, reject to discard, or edit to correct errors.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Status</TableHead>
+                <TableHead>Strategy</TableHead>
+                <TableHead>Direction</TableHead>
+                <TableHead>Entry</TableHead>
+                <TableHead>Exit</TableHead>
+                <TableHead>P&L</TableHead>
+                <TableHead>Qty</TableHead>
+                <TableHead>Received</TableHead>
+                <TableHead className="w-[150px]">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {stagingTrades?.map((trade) => (
+                <TableRow key={trade.id} className={trade.isOpen ? 'bg-blue-500/5' : ''}>
+                  <TableCell>{getStatusBadge(trade.status, trade.isOpen)}</TableCell>
+                  <TableCell className="font-medium">{trade.strategySymbol}</TableCell>
+                  <TableCell>
+                    {trade.direction === 'Long' ? (
+                      <span className="text-green-400 flex items-center gap-1">
+                        <TrendingUp className="h-3 w-3" /> Long
+                      </span>
+                    ) : (
+                      <span className="text-red-400 flex items-center gap-1">
+                        <TrendingDown className="h-3 w-3" /> Short
+                      </span>
+                    )}
+                  </TableCell>
+                  <TableCell className="font-mono">
+                    ${trade.entryPrice?.toFixed(2) || '-'}
+                    <div className="text-xs text-muted-foreground">
+                      {trade.entryDate ? new Date(trade.entryDate).toLocaleDateString() : '-'}
+                    </div>
+                  </TableCell>
+                  <TableCell className="font-mono">
+                    {trade.exitPrice ? `$${trade.exitPrice.toFixed(2)}` : '-'}
+                    <div className="text-xs text-muted-foreground">
+                      {trade.exitDate ? new Date(trade.exitDate).toLocaleDateString() : '-'}
+                    </div>
+                  </TableCell>
+                  <TableCell className="font-mono">
+                    {trade.pnl !== null ? (
+                      <span className={trade.pnl >= 0 ? 'text-green-400' : 'text-red-400'}>
+                        {trade.pnl >= 0 ? '+' : ''}${trade.pnl.toFixed(2)}
+                      </span>
+                    ) : '-'}
+                  </TableCell>
+                  <TableCell>{trade.quantity}</TableCell>
+                  <TableCell className="text-muted-foreground text-sm">
+                    {new Date(trade.createdAt).toLocaleString()}
+                  </TableCell>
+                  <TableCell>
+                    {(trade.status === 'pending' || trade.status === 'edited') && !trade.isOpen && (
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-green-400 hover:text-green-300 hover:bg-green-500/10"
+                          onClick={() => handleApprove(trade)}
+                          disabled={approveMutation.isPending}
+                          title="Approve"
+                        >
+                          <Check className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                          onClick={() => handleReject(trade)}
+                          disabled={rejectMutation.isPending}
+                          title="Reject (or Edit)"
+                        >
+                          <XCircle className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+                    {trade.isOpen && (
+                      <span className="text-xs text-muted-foreground">Awaiting exit</span>
+                    )}
+                    {trade.status === 'rejected' && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                        onClick={() => handleDelete(trade)}
+                        title="Delete permanently"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+              {(!stagingTrades || stagingTrades.length === 0) && (
+                <TableRow>
+                  <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                    No staging trades found
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      {/* Edit Dialog */}
+      {editingTrade && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <CardTitle>Edit Staging Trade</CardTitle>
+              <CardDescription>
+                Correct the trade data before approving. Original values will be preserved.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Entry Price</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={editForm.entryPrice}
+                    onChange={(e) => setEditForm({ ...editForm, entryPrice: e.target.value })}
+                    placeholder={editingTrade.entryPrice?.toString()}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Exit Price</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={editForm.exitPrice}
+                    onChange={(e) => setEditForm({ ...editForm, exitPrice: e.target.value })}
+                    placeholder={editingTrade.exitPrice?.toString()}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Quantity</Label>
+                  <Input
+                    type="number"
+                    value={editForm.quantity}
+                    onChange={(e) => setEditForm({ ...editForm, quantity: e.target.value })}
+                    placeholder={editingTrade.quantity?.toString()}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>P&L</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={editForm.pnl}
+                    onChange={(e) => setEditForm({ ...editForm, pnl: e.target.value })}
+                    placeholder={editingTrade.pnl?.toString()}
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Direction</Label>
+                <Select value={editForm.direction} onValueChange={(v) => setEditForm({ ...editForm, direction: v })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={editingTrade.direction} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Long">Long</SelectItem>
+                    <SelectItem value="Short">Short</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Review Notes (optional)</Label>
+                <Textarea
+                  value={editForm.reviewNotes}
+                  onChange={(e) => setEditForm({ ...editForm, reviewNotes: e.target.value })}
+                  placeholder="Reason for edit..."
+                />
+              </div>
+            </CardContent>
+            <div className="flex justify-end gap-2 p-6 pt-0">
+              <Button variant="outline" onClick={() => setEditingTrade(null)}>
+                Cancel
+              </Button>
+              <Button onClick={handleSaveEdit} disabled={editMutation.isPending}>
+                {editMutation.isPending ? 'Saving...' : 'Save & Mark as Edited'}
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
     </>
   );
 }

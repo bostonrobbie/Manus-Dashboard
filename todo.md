@@ -3745,3 +3745,38 @@
    - Micro: Total Return +$13.0K, Max Drawdown -$4.9K (1/10th of Mini)
 3. **Screenshot Updated**: Replaced `/screenshots/overview-all-time.webp` with current Portfolio Overview screenshot.
 
+
+
+## Sprint: Homepage, Sharpe Fix, Webhook Staging & Performance - Dec 22, 2025
+
+### Homepage Hero Section Updates
+- [x] Replace "Start Trading Systematically" with "Systematic Trading Strategies for Futures"
+- [x] Remove the green badge button above the headline
+- [x] Change Total Return to Average Return Per Year (annualized) for Micro/Mini (+18.1%)
+- [x] Remove "See What You Get" button
+
+### Strategies Page - Sharpe Ratio Fix
+- [x] Investigate current Sharpe calculation on strategy cards
+- [x] Fix Sharpe ratio by changing risk-free rate from 5% to 0%
+- [x] Verify all strategy cards show accurate Sharpe values (ES: 0.82, NQ: 0.81, CL: 0.79, BTC: 1.06, etc.)
+
+### Webhook Staging System
+- [x] Create staging_trades table in database schema
+- [x] Add status field (pending, approved, rejected, edited)
+- [x] Add isOpen field for tracking open positions
+- [x] Build Admin UI for staging review (new Staging tab)
+- [x] Implement Approve button - moves trade to main trades table
+- [x] Implement Reject button with options: Edit or Delete permanently
+- [x] Add edit modal for rejected trades before re-approval
+- [x] Verify webhook JSON templates are complete (all fields present)
+- [x] Write unit tests for staging trades functionality
+
+### Performance & Scalability Optimization
+- [x] Add database indexes for staging_trades (status, strategyId, createdAt)
+- [x] Verify existing indexes on trades table (strategyId, exitDate, composite)
+- [x] Review database connection pooling (10 connections, keep-alive enabled)
+- [x] Verify query result caching (portfolio: 2min, strategies: 5min, webhooks: 30s)
+- [x] Confirm 24/7 availability architecture (connection pooling, auto-reconnect)
+- [ ] Load test critical endpoints (future)
+- [ ] Document performance benchmarks (future)
+
