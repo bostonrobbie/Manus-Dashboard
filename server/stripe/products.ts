@@ -36,7 +36,7 @@ export const SUBSCRIPTION_TIERS: Record<string, SubscriptionTier> = {
     name: 'Pro Trader',
     description: 'Full access to all features',
     priceMonthly: 5000, // $50
-    priceYearly: 50000, // $500 (15% off - ~$42/month)
+    priceYearly: 48000, // $480 (20% off - $40/month)
     features: [
       'Access to all 8+ trading strategies',
       'Real-time webhook signals',
@@ -53,10 +53,11 @@ export const SUBSCRIPTION_TIERS: Record<string, SubscriptionTier> = {
   },
 };
 
-// Stripe Price IDs - created in Stripe Dashboard (test mode)
+// Stripe Price IDs - these will be created in Stripe Dashboard
+// For now, we'll create them dynamically or use test mode
 export const STRIPE_PRICE_IDS = {
-  pro_monthly: 'price_1ShGEXLgSNEpPzB5vpNCobQO',
-  pro_yearly: 'price_1ShFdGLgSNEpPzB5A0MpiAOS',
+  pro_monthly: process.env.STRIPE_PRO_MONTHLY_PRICE_ID || 'price_pro_monthly',
+  pro_yearly: process.env.STRIPE_PRO_YEARLY_PRICE_ID || 'price_pro_yearly',
 };
 
 export function getTierByPriceId(priceId: string): SubscriptionTier | null {

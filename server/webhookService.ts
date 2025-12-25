@@ -279,13 +279,18 @@ export function validatePayload(payload: unknown): NormalizedPayload {
   let action: 'entry' | 'exit' | 'buy' | 'sell';
   let direction: 'Long' | 'Short';
   
-  if (actionLower === 'buy' || actionLower === 'long' || actionLower === 'entry_long') {
+  // Action aliases for common variations
+  const LONG_ACTIONS = ['buy', 'long', 'entry_long', 'entry', 'enter', 'open', 'open_long'];
+  const SHORT_ACTIONS = ['sell', 'short', 'entry_short', 'open_short'];
+  const EXIT_ACTIONS = ['exit', 'close', 'exit_long', 'exit_short', 'flat', 'close_long', 'close_short', 'cover'];
+  
+  if (LONG_ACTIONS.includes(actionLower)) {
     action = 'buy';
     direction = 'Long';
-  } else if (actionLower === 'sell' || actionLower === 'short' || actionLower === 'entry_short') {
+  } else if (SHORT_ACTIONS.includes(actionLower)) {
     action = 'sell';
     direction = 'Short';
-  } else if (actionLower === 'exit' || actionLower === 'close' || actionLower === 'exit_long' || actionLower === 'exit_short' || actionLower === 'flat') {
+  } else if (EXIT_ACTIONS.includes(actionLower)) {
     action = 'exit';
     // For exits, try to get direction from explicit field or infer from action
     if (actionLower === 'exit_long') {
@@ -302,7 +307,12 @@ export function validatePayload(payload: unknown): NormalizedPayload {
       }
     }
   } else {
-    throw new WebhookValidationError(`Unknown action: ${rawAction}. Expected: buy, sell, exit, long, short`);
+    throw new WebhookValidationError(
+      `Unknown action: "${rawAction}". ` +
+      `Use "buy" or "long" for long entries, "sell" or "short" for short entries, ` +
+      `or "exit"/"close"/"flat" to close positions. ` +
+      `Also accepted: entry, enter, open, cover.`
+    );
   }
 
   // Override direction if explicitly provided
@@ -598,7 +608,7 @@ async function handleEntrySignal(
       success: false,
       logId,
       positionId: existingPosition.id,
-      message: `Position already open for ${payload.strategySymbol}. Close existing position first or use scale_in signal.`,
+      message: `Position already open for ${payload.strategySymbol}. Send an exit signal first to close the existing position, or if you want to add to your position, use signalType: "scale_in" in your webhook payload.`,
       error: 'POSITION_EXISTS',
       processingTimeMs,
       signalType: 'entry',
@@ -680,7 +690,7 @@ async function handleExitSignal(
     return {
       success: false,
       logId,
-      message: 'Exit signal received but no matching open position found',
+      message: 'No open position found for this strategy. Send an entry signal (buy/long or sell/short) first before sending an exit signal.',
       error: 'NO_OPEN_POSITION',
       processingTimeMs: Date.now() - startTime,
       signalType: 'exit',
@@ -719,7 +729,7 @@ async function handleExitSignal(
       success: false,
       logId,
       positionId: openPosition.id,
-      message: 'Duplicate trade detected - skipped',
+      message: 'This trade appears to be a duplicate (same entry/exit times and direction). If this is intentional, add a unique timestamp or comment field to differentiate signals.',
       error: 'DUPLICATE',
       processingTimeMs,
       signalType: 'exit',

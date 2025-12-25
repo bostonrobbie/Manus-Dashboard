@@ -295,14 +295,46 @@ export async function insertTrade(trade: {
 
 
 /**
+ * Strategy cache for webhook processing
+ * Reduces database lookups for frequently accessed strategies
+ */
+interface CachedStrategy {
+  strategy: { id: number; symbol: string; name: string };
+  timestamp: number;
+}
+const strategyCache = new Map<string, CachedStrategy>();
+const STRATEGY_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+/**
  * Get strategy by symbol (for webhook processing)
+ * Uses caching to reduce database lookups
  */
 export async function getStrategyBySymbol(symbol: string) {
+  // Check cache first
+  const cached = strategyCache.get(symbol);
+  if (cached && Date.now() - cached.timestamp < STRATEGY_CACHE_TTL) {
+    return cached.strategy;
+  }
+  
   const db = await getDb();
   if (!db) return null;
   
   const result = await db.select().from(strategies).where(eq(strategies.symbol, symbol)).limit(1);
-  return result.length > 0 ? result[0] : null;
+  const strategy = result.length > 0 ? result[0] : null;
+  
+  // Cache the result (even null to avoid repeated lookups for invalid symbols)
+  if (strategy) {
+    strategyCache.set(symbol, { strategy, timestamp: Date.now() });
+  }
+  
+  return strategy;
+}
+
+/**
+ * Clear the strategy cache (call after strategy updates)
+ */
+export function clearStrategyCache() {
+  strategyCache.clear();
 }
 
 /**
