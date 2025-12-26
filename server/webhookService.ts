@@ -492,10 +492,14 @@ export async function processWebhook(
     }
 
     // Step 1: Create initial log entry
+    // Check if this is a test webhook
+    const isTestWebhook = typeof rawPayload === 'object' && rawPayload !== null && (rawPayload as any).isTest === true;
+    
     const logEntry: InsertWebhookLog = {
       payload: JSON.stringify(rawPayload),
       status: 'pending',
       ipAddress: ipAddress || null,
+      isTest: isTestWebhook,
     };
 
     const logResult = await insertWebhookLog(logEntry);
@@ -569,12 +573,27 @@ export async function processWebhook(
       });
     }
 
+    // Try to determine signalType even on error for consistent response structure
+    let signalType: 'entry' | 'exit' | undefined;
+    try {
+      const payload = rawPayload as Record<string, unknown>;
+      const action = typeof payload.data === 'string' ? payload.data.toLowerCase() : '';
+      if (['exit', 'close', 'flat', 'cover'].some(a => action.includes(a))) {
+        signalType = 'exit';
+      } else if (['buy', 'sell', 'long', 'short', 'entry', 'enter', 'open'].some(a => action.includes(a))) {
+        signalType = 'entry';
+      }
+    } catch {
+      // Ignore errors in signal type detection
+    }
+
     return {
       success: false,
       logId: logId || 0,
       message: 'Webhook processing failed',
       error: errorMessage,
       processingTimeMs,
+      signalType,
     };
   }
 }
@@ -625,6 +644,7 @@ async function handleEntrySignal(
     entryTime: payload.timestamp,
     entryWebhookLogId: logId,
     status: 'open',
+    isTest: payload.isTest,
   };
 
   const positionId = await createOpenPosition(newPosition);
@@ -795,6 +815,7 @@ async function handleExitSignal(
     pnl: pnlCents,
     pnlPercent,
     commission: 0,
+    isTest: payload.isTest,
   });
 
   // Invalidate portfolio caches after new trade

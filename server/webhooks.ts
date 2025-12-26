@@ -47,9 +47,11 @@ const router = Router();
 const DB_CIRCUIT = 'webhook-database';
 
 // Rate limit configuration
+// Higher limit in test/dev environment to allow E2E testing
+const isTestEnv = process.env.NODE_ENV === 'test' || process.env.NODE_ENV === 'development';
 const RATE_LIMIT_CONFIG = {
   windowMs: 60 * 1000,  // 1 minute
-  maxRequests: 60,      // 60 requests per minute per IP
+  maxRequests: isTestEnv ? 300 : 60,  // 300 in test/dev, 60 in production
 };
 
 /**
@@ -69,8 +71,9 @@ router.post("/tradingview", async (req, res) => {
   const correlationId = generateCorrelationId();
   const clientIp = extractClientIP(req);
   
-  // Add correlation ID to response headers
+  // Add correlation ID and API version to response headers
   res.setHeader('X-Correlation-ID', correlationId);
+  res.setHeader('X-API-Version', '1.0.0');
   
   try {
     // Log incoming request
@@ -200,6 +203,7 @@ router.post("/tradingview", async (req, res) => {
       message: result.message,
       logId: result.logId,
       tradeId: result.tradeId,
+      signalType: result.signalType,
       processingTimeMs: processingTime,
       correlationId,
     };
@@ -306,7 +310,7 @@ router.get("/health", async (req, res) => {
     res.json({ 
       status,
       service: 'tradingview-webhook',
-      version: '2.0.0', // Enterprise version
+      version: '1.0.0', // Stable API version - see docs/WEBHOOK_API_CONTRACT.md
       timestamp: new Date().toISOString(),
       responseTimeMs: Date.now() - startTime,
       security: {

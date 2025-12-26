@@ -63,9 +63,11 @@ export const trades = mysqlTable("trades", {
   pnl: int("pnl").notNull(), // Profit/Loss in cents
   pnlPercent: int("pnlPercent").notNull(), // P&L as percentage (multiply by 10000, e.g., 1.5% = 15000)
   commission: int("commission").default(0).notNull(), // Commission in cents
+  isTest: boolean("isTest").default(false).notNull(), // Test data flag - excluded from analytics
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 }, (table) => ({
   strategyIdx: index("idx_trades_strategy").on(table.strategyId),
+  isTestIdx: index("idx_trades_is_test").on(table.isTest),
   exitDateIdx: index("idx_trades_exit_date").on(table.exitDate),
   strategyExitIdx: index("idx_trades_strategy_exit").on(table.strategyId, table.exitDate),
 }));
@@ -116,11 +118,13 @@ export const webhookLogs = mysqlTable("webhook_logs", {
   ipAddress: varchar("ipAddress", { length: 45 }), // Source IP for security auditing
   processingTimeMs: int("processingTimeMs"), // How long processing took
   errorMessage: text("errorMessage"), // Error details if failed
+  isTest: boolean("isTest").default(false).notNull(), // Test data flag
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 }, (table) => ({
   strategyIdx: index("idx_webhook_logs_strategy").on(table.strategyId),
   statusIdx: index("idx_webhook_logs_status").on(table.status),
   createdIdx: index("idx_webhook_logs_created").on(table.createdAt),
+  isTestIdx: index("idx_webhook_logs_is_test").on(table.isTest),
 }));
 
 export type WebhookLog = typeof webhookLogs.$inferSelect;
@@ -479,6 +483,7 @@ export const openPositions = mysqlTable("open_positions", {
   exitWebhookLogId: int("exitWebhookLogId"), // Link to exit webhook log
   pnl: int("pnl"), // P&L in cents
   tradeId: int("tradeId"), // Link to created trade record
+  isTest: boolean("isTest").default(false).notNull(), // Test data flag
   // Metadata
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
@@ -486,6 +491,7 @@ export const openPositions = mysqlTable("open_positions", {
   strategyIdx: index("idx_open_positions_strategy").on(table.strategyId),
   statusIdx: index("idx_open_positions_status").on(table.status),
   strategyStatusIdx: index("idx_open_positions_strategy_status").on(table.strategyId, table.status),
+  isTestIdx: index("idx_open_positions_is_test").on(table.isTest),
 }));
 
 export type OpenPosition = typeof openPositions.$inferSelect;

@@ -85,6 +85,13 @@
       "when": 1766409934742,
       "tag": "0011_daily_marauders",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "5",
+      "when": 1766717289324,
+      "tag": "0012_ancient_misty_knight",
+      "breakpoints": true
     }
   ]
 }

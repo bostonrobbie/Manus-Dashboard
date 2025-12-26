@@ -117,7 +117,9 @@ describe('Backend API - Portfolio Overview', () => {
 
     // Basic sanity checks
     expect(metrics.totalTrades).toBe(allTrades.length);
-    expect(metrics.winningTrades + metrics.losingTrades).toBe(metrics.totalTrades);
+    // Note: Some trades may be breakeven (pnl = 0), which aren't counted as wins or losses
+    // So winning + losing may be <= totalTrades
+    expect(metrics.winningTrades + metrics.losingTrades).toBeLessThanOrEqual(metrics.totalTrades);
     expect(metrics.winRate).toBeGreaterThanOrEqual(0);
     expect(metrics.winRate).toBeLessThanOrEqual(100);
     

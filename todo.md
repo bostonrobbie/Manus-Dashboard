@@ -3877,3 +3877,49 @@
 - [x] Create comprehensive webhook analysis report (docs/WEBHOOK_ANALYSIS_REPORT.md)
 - [ ] Implement database transaction batching (future optimization)
 - [ ] Add Redis for distributed rate limiting (future scalability)
+
+
+## Webhook Testing & API Stability (Dec 25, 2024)
+
+### Test Data Isolation
+- [ ] Add isTest flag to webhook payloads for test data marking
+- [ ] Add isTest column to webhook_logs, open_positions, and trades tables
+- [ ] Create test data cleanup utility (delete all isTest=true records)
+- [ ] Ensure test data never appears in production dashboards/analytics
+
+### E2E Webhook Test Suite
+- [ ] Test full entry signal flow (webhook → log → position → database)
+- [ ] Test full exit signal flow (webhook → log → trade → P&L calculation)
+- [ ] Test entry + exit round-trip with P&L verification
+- [ ] Test position state management (open → closed transitions)
+
+### Edge Case Testing
+- [ ] Test duplicate entry signals (should reject with POSITION_EXISTS)
+- [ ] Test exit without entry (should reject with NO_OPEN_POSITION)
+- [ ] Test invalid token (should reject with 401)
+- [ ] Test missing required fields (symbol, price, action)
+- [ ] Test rate limiting (60 req/min threshold)
+- [ ] Test circuit breaker behavior
+- [ ] Test timestamp validation (replay attack prevention)
+- [ ] Test idempotency (same payload returns cached result)
+- [ ] Test malformed JSON handling
+- [ ] Test all action aliases (entry, enter, open, buy, long, etc.)
+
+### API Stability & Documentation
+- [ ] Create WEBHOOK_API_CONTRACT.md with locked endpoint URL
+- [ ] Document all supported payload fields and formats
+- [ ] Document all response codes and error messages
+- [ ] Add API version header for future compatibility
+- [ ] Create TradingView alert template examples
+
+
+## Webhook Testing & API Stability (Dec 26, 2025)
+- [x] Create comprehensive E2E webhook test suite (server/webhook.e2e.test.ts)
+- [x] Add test data isolation with isTest flag in database tables
+- [x] Test security (token validation, rate limiting)
+- [x] Test edge cases (duplicates, invalid data, position conflicts)
+- [x] Document API contract for stability (docs/WEBHOOK_API_CONTRACT.md)
+- [x] Add test data cleanup utilities (clearTestData functions)
+- [x] Add API versioning header (X-API-Version: 1.0.0)
+- [x] Add signalType to all webhook responses for consistency
+- [x] All webhook E2E tests passing (27 tests)

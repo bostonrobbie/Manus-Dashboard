@@ -283,6 +283,7 @@ export async function insertTrade(trade: {
   pnl: number;
   pnlPercent: number;
   commission: number;
+  isTest?: boolean;
 }) {
   const db = await getDb();
   if (!db) {
@@ -1385,4 +1386,137 @@ export async function updateStagingTradeExit(
     console.error("[Database] Failed to update staging trade exit:", error);
     return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
   }
+}
+
+
+// ============================================================================
+// Test Data Cleanup Functions
+// ============================================================================
+
+/**
+ * Delete all test data from webhook_logs table
+ * Only deletes records where isTest = true
+ */
+export async function deleteTestWebhookLogs(): Promise<number> {
+  const db = await getDb();
+  if (!db) return 0;
+
+  try {
+    const countResult = await db.select({ count: sql<number>`count(*)` })
+      .from(webhookLogs)
+      .where(eq(webhookLogs.isTest, true));
+    const count = countResult[0]?.count ?? 0;
+    
+    if (count === 0) return 0;
+    
+    await db.delete(webhookLogs).where(eq(webhookLogs.isTest, true));
+    console.log(`[Database] Deleted ${count} test webhook logs`);
+    return count;
+  } catch (error) {
+    console.error("[Database] Failed to delete test webhook logs:", error);
+    return 0;
+  }
+}
+
+/**
+ * Delete all test data from trades table
+ * Only deletes records where isTest = true
+ */
+export async function deleteTestTrades(): Promise<number> {
+  const db = await getDb();
+  if (!db) return 0;
+
+  try {
+    const countResult = await db.select({ count: sql<number>`count(*)` })
+      .from(trades)
+      .where(eq(trades.isTest, true));
+    const count = countResult[0]?.count ?? 0;
+    
+    if (count === 0) return 0;
+    
+    await db.delete(trades).where(eq(trades.isTest, true));
+    console.log(`[Database] Deleted ${count} test trades`);
+    return count;
+  } catch (error) {
+    console.error("[Database] Failed to delete test trades:", error);
+    return 0;
+  }
+}
+
+/**
+ * Delete all test data from open_positions table
+ * Only deletes records where isTest = true
+ */
+export async function deleteTestOpenPositions(): Promise<number> {
+  const db = await getDb();
+  if (!db) return 0;
+
+  try {
+    const countResult = await db.select({ count: sql<number>`count(*)` })
+      .from(openPositions)
+      .where(eq(openPositions.isTest, true));
+    const count = countResult[0]?.count ?? 0;
+    
+    if (count === 0) return 0;
+    
+    await db.delete(openPositions).where(eq(openPositions.isTest, true));
+    console.log(`[Database] Deleted ${count} test open positions`);
+    return count;
+  } catch (error) {
+    console.error("[Database] Failed to delete test open positions:", error);
+    return 0;
+  }
+}
+
+/**
+ * Delete all test data from all tables
+ * Comprehensive cleanup for test isolation
+ */
+export async function deleteAllTestData(): Promise<{
+  webhookLogs: number;
+  trades: number;
+  openPositions: number;
+  total: number;
+}> {
+  const webhookLogs = await deleteTestWebhookLogs();
+  const trades = await deleteTestTrades();
+  const openPositions = await deleteTestOpenPositions();
+  
+  return {
+    webhookLogs,
+    trades,
+    openPositions,
+    total: webhookLogs + trades + openPositions,
+  };
+}
+
+/**
+ * Get count of test data in all tables
+ * Useful for monitoring test data accumulation
+ */
+export async function getTestDataCounts(): Promise<{
+  webhookLogs: number;
+  trades: number;
+  openPositions: number;
+  total: number;
+}> {
+  const db = await getDb();
+  if (!db) return { webhookLogs: 0, trades: 0, openPositions: 0, total: 0 };
+
+  const [wlCount, tCount, opCount] = await Promise.all([
+    db.select({ count: sql<number>`count(*)` }).from(webhookLogs).where(eq(webhookLogs.isTest, true)),
+    db.select({ count: sql<number>`count(*)` }).from(trades).where(eq(trades.isTest, true)),
+    db.select({ count: sql<number>`count(*)` }).from(openPositions).where(eq(openPositions.isTest, true)),
+  ]);
+
+  const webhookLogsCount = wlCount[0]?.count ?? 0;
+  const tradesCount = tCount[0]?.count ?? 0;
+  const openPositionsCount = opCount[0]?.count ?? 0;
+
+  return {
+    webhookLogs: webhookLogsCount,
+    trades: tradesCount,
+    openPositions: openPositionsCount,
+    total: webhookLogsCount + tradesCount + openPositionsCount,
+  };
 }
