@@ -127,13 +127,8 @@ export async function validateDataIntegrity(): Promise<ValidationResult> {
   });
 
   // Validation 2: Check for trades without corresponding closed positions
-  const allTrades = await db.select({
-    id: trades.id,
-    strategyId: trades.strategyId,
-    direction: trades.direction,
-    pnl: trades.pnl,
-  }).from(trades);
-
+  // NOTE: CSV-imported historical trades don't have corresponding positions - this is expected.
+  // We only track the count for stats but don't generate warnings since most trades are imports.
   const closedPositionsWithTrades = await db.select({
     tradeId: openPositions.tradeId,
   })
@@ -145,20 +140,9 @@ export async function validateDataIntegrity(): Promise<ValidationResult> {
 
   const tradeIdsWithPositions = new Set(closedPositionsWithTrades.map(p => p.tradeId));
   
-  const orphanedTrades = allTrades.filter(t => !tradeIdsWithPositions.has(t.id));
-  
-  orphanedTrades.forEach(trade => {
-    warnings.push({
-      code: 'ORPHANED_TRADE',
-      message: `Trade ${trade.id} has no corresponding closed position (may be from CSV import)`,
-      table: 'trades',
-      recordId: trade.id,
-      details: {
-        direction: trade.direction,
-        pnl: trade.pnl,
-      },
-    });
-  });
+  // Count orphaned trades for stats only (no warnings - CSV imports are expected)
+  const allTradesForCount = await db.select({ id: trades.id }).from(trades);
+  const orphanedTradesCount = allTradesForCount.filter(t => !tradeIdsWithPositions.has(t.id)).length;
 
   // Validation 3: Check for P&L mismatches between positions and trades
   const positionsWithTrades = await db.select({
@@ -267,7 +251,7 @@ export async function validateDataIntegrity(): Promise<ValidationResult> {
       successfulWebhooks: Number(webhookStats?.success) || 0,
       failedWebhooks: Number(webhookStats?.failed) || 0,
       orphanedPositions: orphanedPositions.length,
-      orphanedTrades: orphanedTrades.length,
+      orphanedTrades: orphanedTradesCount,
       pnlMismatches,
     },
   };
