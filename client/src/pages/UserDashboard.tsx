@@ -345,27 +345,27 @@ export default function UserDashboard() {
   }, [subscriptions]);
 
   return (
-    <div className="space-y-6">
-      {/* Header with integrated controls */}
-      <div className="flex flex-col gap-4">
-        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+    <div className="space-y-4 sm:space-y-6">
+      {/* Header with integrated controls - Mobile Optimized */}
+      <div className="flex flex-col gap-3 sm:gap-4 px-1 sm:px-0">
+        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 sm:gap-4">
           <div>
-            <h1 className="text-2xl font-bold">My Dashboard</h1>
-            <p className="text-muted-foreground text-sm">
+            <h1 className="text-xl sm:text-2xl font-bold">My Dashboard</h1>
+            <p className="text-muted-foreground text-xs sm:text-sm">
               Welcome back, {user?.name || 'Trader'}!
             </p>
           </div>
           
-          {/* Controls - Top Right */}
-          <div className="flex flex-wrap items-center gap-3">
+          {/* Controls - Top Right - Mobile Optimized */}
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
             {/* Time Range */}
-            <div className="flex items-center gap-1.5 bg-muted/30 rounded-lg p-1">
+            <div className="flex items-center gap-0.5 sm:gap-1.5 bg-muted/30 rounded-lg p-0.5 sm:p-1 overflow-x-auto">
               {TIME_RANGES.map((range) => (
                 <Button
                   key={range.value}
                   variant={timeRange === range.value ? 'default' : 'ghost'}
                   size="sm"
-                  className="h-7 px-2 text-xs"
+                  className="h-6 sm:h-7 px-1.5 sm:px-2 text-[10px] sm:text-xs min-w-[32px] sm:min-w-[40px]"
                   onClick={() => setTimeRange(range.value)}
                 >
                   {range.label}
@@ -374,48 +374,52 @@ export default function UserDashboard() {
             </div>
             
             {/* Starting Capital */}
-            <div className="flex items-center gap-1.5">
-              <Wallet className="h-4 w-4 text-muted-foreground" />
+            <div className="flex items-center gap-1 sm:gap-1.5">
+              <Wallet className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground" />
               <Input
                 type="number"
                 value={startingCapital}
                 onChange={(e) => setStartingCapital(Number(e.target.value) || 100000)}
-                className="w-24 h-7 text-sm"
+                className="w-20 sm:w-24 h-6 sm:h-7 text-xs sm:text-sm"
               />
             </div>
             
             {/* Refresh */}
-            <Button onClick={() => { refetchSubscriptions(); refetchSignals(); refetchPortfolio(); }} variant="outline" size="sm" className="h-7">
-              <RefreshCw className="h-3.5 w-3.5" />
+            <Button onClick={() => { refetchSubscriptions(); refetchSignals(); refetchPortfolio(); }} variant="outline" size="sm" className="h-6 sm:h-7 w-6 sm:w-auto px-1.5 sm:px-2">
+              <RefreshCw className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
             </Button>
           </div>
         </div>
         
-        {/* Tabs - Below Header */}
+        {/* Tabs - Below Header - Mobile Optimized */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="bg-muted/30 p-1 h-auto">
-            <TabsTrigger value="portfolio" className="text-sm px-4 py-1.5">
-              <LineChart className="h-4 w-4 mr-1.5" />
-              Portfolio
+          <TabsList className="bg-muted/30 p-0.5 sm:p-1 h-auto flex flex-wrap sm:flex-nowrap gap-0.5 sm:gap-1">
+            <TabsTrigger value="portfolio" className="text-[10px] sm:text-sm px-2 sm:px-4 py-1 sm:py-1.5">
+              <LineChart className="h-3 w-3 sm:h-4 sm:w-4 mr-0.5 sm:mr-1.5" />
+              <span className="hidden xs:inline">Portfolio</span>
+              <span className="xs:hidden">Port</span>
             </TabsTrigger>
-            <TabsTrigger value="strategies" className="text-sm px-4 py-1.5">
-              <BarChart3 className="h-4 w-4 mr-1.5" />
-              My Strategies
+            <TabsTrigger value="strategies" className="text-[10px] sm:text-sm px-2 sm:px-4 py-1 sm:py-1.5">
+              <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4 mr-0.5 sm:mr-1.5" />
+              <span className="hidden sm:inline">My Strategies</span>
+              <span className="sm:hidden">Strats</span>
             </TabsTrigger>
-            <TabsTrigger value="signals" className="text-sm px-4 py-1.5">
-              <Zap className="h-4 w-4 mr-1.5" />
+            <TabsTrigger value="signals" className="text-[10px] sm:text-sm px-2 sm:px-4 py-1 sm:py-1.5">
+              <Zap className="h-3 w-3 sm:h-4 sm:w-4 mr-0.5 sm:mr-1.5" />
               Signals
               {((stats as any)?.pendingSignals || 0) > 0 && (
-                <Badge variant="destructive" className="ml-1.5 h-5 px-1.5">{(stats as any)?.pendingSignals}</Badge>
+                <Badge variant="destructive" className="ml-0.5 sm:ml-1.5 h-4 sm:h-5 px-1 sm:px-1.5 text-[9px] sm:text-xs">{(stats as any)?.pendingSignals}</Badge>
               )}
             </TabsTrigger>
-            <TabsTrigger value="discover" className="text-sm px-4 py-1.5">
-              <Plus className="h-4 w-4 mr-1.5" />
-              Discover
+            <TabsTrigger value="discover" className="text-[10px] sm:text-sm px-2 sm:px-4 py-1 sm:py-1.5">
+              <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-0.5 sm:mr-1.5" />
+              <span className="hidden xs:inline">Discover</span>
+              <span className="xs:hidden">New</span>
             </TabsTrigger>
-            <TabsTrigger value="notifications" className="text-sm px-4 py-1.5">
-              <Bell className="h-4 w-4 mr-1.5" />
-              Notifications
+            <TabsTrigger value="notifications" className="text-[10px] sm:text-sm px-2 sm:px-4 py-1 sm:py-1.5">
+              <Bell className="h-3 w-3 sm:h-4 sm:w-4 mr-0.5 sm:mr-1.5" />
+              <span className="hidden sm:inline">Notifications</span>
+              <span className="sm:hidden">Alerts</span>
             </TabsTrigger>
           </TabsList>
         </Tabs>

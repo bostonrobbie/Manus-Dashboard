@@ -188,25 +188,25 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0f]">
-      {/* Navigation Bar */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-[#0a0a0f]/80 backdrop-blur-lg border-b border-gray-800/50">
-        <div className="container flex items-center justify-between h-16">
+      {/* Navigation Bar - Mobile Optimized */}
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-[#0a0a0f]/95 backdrop-blur-lg border-b border-gray-800/50 safe-area-top">
+        <div className="container flex items-center justify-between h-14 sm:h-16 px-3 sm:px-4">
           <Link href="/">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-blue-600 flex items-center justify-center">
-                <TrendingUp className="w-5 h-5 text-white" />
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-blue-600 flex items-center justify-center">
+                <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
               </div>
-              <span className="text-xl font-semibold text-white">STS</span>
+              <span className="text-lg sm:text-xl font-semibold text-white">STS</span>
               <span className="hidden sm:inline text-xs text-emerald-400 border border-emerald-400/30 px-2 py-0.5 rounded-full">Futures</span>
             </div>
           </Link>
-          <div className="hidden md:flex items-center gap-8">
+          <div className="hidden md:flex items-center gap-6 lg:gap-8">
             <a href="#what-you-get" className="text-sm text-gray-400 hover:text-white transition-colors">What You Get</a>
             <a href="#compare" className="text-sm text-gray-400 hover:text-white transition-colors">Compare</a>
             <a href="#savings" className="text-sm text-gray-400 hover:text-white transition-colors">Savings</a>
             <a href="#pricing" className="text-sm text-gray-400 hover:text-white transition-colors">Pricing</a>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4">
             {isAuthenticated ? (
               <Link href="/overview">
                 <Button size="sm" className="bg-emerald-600 hover:bg-emerald-500">
@@ -231,102 +231,102 @@ export default function Home() {
         </div>
       </nav>
 
-      {/* Hero Section */}
-      <section className="relative min-h-[95vh] flex items-center justify-center overflow-hidden pt-16">
+      {/* Hero Section - Mobile Optimized */}
+      <section className="relative min-h-[85vh] sm:min-h-[95vh] flex items-center justify-center overflow-hidden pt-14 sm:pt-16">
         <div className="absolute inset-0 bg-gradient-to-b from-emerald-950/20 via-transparent to-transparent" />
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(16,185,129,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(16,185,129,0.03)_1px,transparent_1px)] bg-[size:100px_100px]" />
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(16,185,129,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(16,185,129,0.03)_1px,transparent_1px)] bg-[size:60px_60px] sm:bg-[size:100px_100px]" />
         
-        <div className="container relative z-10 py-12">
+        <div className="container relative z-10 py-6 sm:py-12 px-4">
           <div className="max-w-5xl mx-auto text-center">
-            <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold text-white mb-6 tracking-tight leading-tight">
+            <h1 className="text-3xl sm:text-5xl md:text-7xl font-bold text-white mb-4 sm:mb-6 tracking-tight leading-tight">
               <span className="bg-gradient-to-r from-emerald-400 to-blue-400 bg-clip-text text-transparent">Systematic Trading Strategies</span><br />
               <span className="text-white">for Futures.</span>
             </h1>
             
-            <p className="text-lg sm:text-xl text-gray-400 mb-8 max-w-3xl mx-auto font-light leading-relaxed">
+            <p className="text-base sm:text-xl text-gray-400 mb-6 sm:mb-8 max-w-3xl mx-auto font-light leading-relaxed px-2">
               Get access to <span className="text-white font-medium">8 backtested futures strategies</span> with 14+ years of data, 
               real-time TradingView signals, and <span className="text-emerald-400 font-medium">built-in brokerage execution</span> — 
               all for less than what you'd pay for the connector alone.
             </p>
             
-            {/* Key Stats */}
+            {/* Key Stats - Mobile Optimized */}
             {!isLoading && stats && (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl mx-auto mb-10">
-                <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-4">
-                  <div className="text-2xl sm:text-3xl font-bold text-emerald-400 mb-1">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 max-w-3xl mx-auto mb-6 sm:mb-10">
+                <div className="bg-gray-900/50 border border-gray-800 rounded-lg sm:rounded-xl p-3 sm:p-4">
+                  <div className="text-xl sm:text-3xl font-bold text-emerald-400 mb-0.5 sm:mb-1">
                     +{stats.annualizedReturn.toFixed(1)}%
                   </div>
-                  <div className="text-xs text-gray-300 uppercase tracking-wider">Avg Return/Year</div>
+                  <div className="text-[10px] sm:text-xs text-gray-300 uppercase tracking-wider">Avg Return/Year</div>
                 </div>
-                <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-4">
-                  <div className="text-2xl sm:text-3xl font-bold text-white mb-1">
+                <div className="bg-gray-900/50 border border-gray-800 rounded-lg sm:rounded-xl p-3 sm:p-4">
+                  <div className="text-xl sm:text-3xl font-bold text-white mb-0.5 sm:mb-1">
                     {stats.sharpeRatio.toFixed(2)}
                   </div>
-                  <div className="text-xs text-gray-300 uppercase tracking-wider">Sharpe Ratio</div>
+                  <div className="text-[10px] sm:text-xs text-gray-300 uppercase tracking-wider">Sharpe Ratio</div>
                 </div>
-                <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-4">
-                  <div className="text-2xl sm:text-3xl font-bold text-white mb-1">
+                <div className="bg-gray-900/50 border border-gray-800 rounded-lg sm:rounded-xl p-3 sm:p-4">
+                  <div className="text-xl sm:text-3xl font-bold text-white mb-0.5 sm:mb-1">
                     ${contractSize === 'micro' ? potentialReturns.microAnnual.toLocaleString() : potentialReturns.miniAnnual.toLocaleString()}
                   </div>
-                  <div className="text-xs text-gray-300 uppercase tracking-wider">Avg Annual ({contractSize})</div>
+                  <div className="text-[10px] sm:text-xs text-gray-300 uppercase tracking-wider">Avg Annual ({contractSize})</div>
                 </div>
-                <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-4">
-                  <div className="text-2xl sm:text-3xl font-bold text-white mb-1">
+                <div className="bg-gray-900/50 border border-gray-800 rounded-lg sm:rounded-xl p-3 sm:p-4">
+                  <div className="text-xl sm:text-3xl font-bold text-white mb-0.5 sm:mb-1">
                     14+
                   </div>
-                  <div className="text-xs text-gray-300 uppercase tracking-wider">Years Data</div>
+                  <div className="text-[10px] sm:text-xs text-gray-300 uppercase tracking-wider">Years Data</div>
                 </div>
               </div>
             )}
 
-            {/* Contract Size Toggle */}
-            <div className="flex items-center justify-center gap-2 mb-8">
-              <span className="text-sm text-gray-300">Contract Size:</span>
+            {/* Contract Size Toggle - Mobile Optimized */}
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-2 mb-6 sm:mb-8">
+              <span className="text-xs sm:text-sm text-gray-300">Contract Size:</span>
               <div className="inline-flex bg-gray-900 rounded-lg p-1">
                 <button
                   onClick={() => setContractSize('micro')}
-                  className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+                  className={`px-3 sm:px-4 py-1.5 rounded-md text-xs sm:text-sm font-medium transition-all min-h-[40px] ${
                     contractSize === 'micro' 
                       ? 'bg-emerald-600 text-white' 
                       : 'text-gray-400 hover:text-white'
                   }`}
                 >
-                  Micro ($5.4K min)
+                  Micro
                 </button>
                 <button
                   onClick={() => setContractSize('mini')}
-                  className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+                  className={`px-3 sm:px-4 py-1.5 rounded-md text-xs sm:text-sm font-medium transition-all min-h-[40px] ${
                     contractSize === 'mini' 
                       ? 'bg-emerald-600 text-white' 
                       : 'text-gray-400 hover:text-white'
                   }`}
                 >
-                  Mini ($54K min)
+                  Mini
                 </button>
               </div>
             </div>
             
-            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center mb-8 sm:mb-12 px-4 sm:px-0">
               {isAuthenticated ? (
                 <Link href="/overview">
-                  <Button size="lg" className="bg-emerald-600 hover:bg-emerald-500 text-white px-10 py-6 text-lg rounded-full transition-all duration-300 hover:shadow-lg hover:shadow-emerald-500/25">
+                  <Button size="lg" className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 sm:px-10 py-5 sm:py-6 text-base sm:text-lg rounded-full transition-all duration-300 hover:shadow-lg hover:shadow-emerald-500/25 w-full sm:w-auto min-h-[52px]">
                     Go to Dashboard
-                    <ArrowRight className="ml-2 h-5 w-5" />
+                    <ArrowRight className="ml-2 h-4 w-4 sm:h-5 sm:w-5" />
                   </Button>
                 </Link>
               ) : (
                 <a href={getLoginUrl()}>
-                  <Button size="lg" className="bg-emerald-600 hover:bg-emerald-500 text-white px-10 py-6 text-lg rounded-full transition-all duration-300 hover:shadow-lg hover:shadow-emerald-500/25">
+                  <Button size="lg" className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 sm:px-10 py-5 sm:py-6 text-base sm:text-lg rounded-full transition-all duration-300 hover:shadow-lg hover:shadow-emerald-500/25 w-full sm:w-auto min-h-[52px]">
                     Start Free Trial
-                    <ArrowRight className="ml-2 h-5 w-5" />
+                    <ArrowRight className="ml-2 h-4 w-4 sm:h-5 sm:w-5" />
                   </Button>
                 </a>
               )}
 
             </div>
 
-            {/* Trust Badges */}
-            <div className="flex flex-wrap justify-center gap-6 text-sm text-gray-300">
+            {/* Trust Badges - Mobile Optimized */}
+            <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-3 sm:gap-6 text-xs sm:text-sm text-gray-300 px-4 sm:px-0">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                 <span>No credit card required</span>
@@ -344,22 +344,22 @@ export default function Home() {
         </div>
       </section>
 
-      {/* What You Get Section */}
-      <section id="what-you-get" className="py-20 border-t border-gray-800/50">
-        <div className="container">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-light text-white mb-4">
+      {/* What You Get Section - Mobile Optimized */}
+      <section id="what-you-get" className="py-12 sm:py-20 border-t border-gray-800/50">
+        <div className="container px-4">
+          <div className="text-center mb-8 sm:mb-16">
+            <h2 className="text-2xl sm:text-4xl font-light text-white mb-3 sm:mb-4">
               Everything You Need to <span className="font-bold text-emerald-400">Trade Systematically</span>
             </h2>
-            <p className="text-gray-400 max-w-2xl mx-auto">
+            <p className="text-gray-400 max-w-2xl mx-auto text-sm sm:text-base px-2">
               Stop spending months building infrastructure. Get proven strategies, real-time signals, and auto-execution — all in one platform.
             </p>
           </div>
           
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-10 sm:mb-16">
             {/* Feature Cards */}
             <Card className="bg-gray-900/50 border-gray-800 hover:border-emerald-500/50 transition-colors">
-              <CardContent className="p-6">
+              <CardContent className="p-4 sm:p-6">
                 <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center mb-4">
                   <Database className="w-6 h-6 text-emerald-400" />
                 </div>
@@ -371,7 +371,7 @@ export default function Home() {
             </Card>
 
             <Card className="bg-gray-900/50 border-gray-800 hover:border-emerald-500/50 transition-colors">
-              <CardContent className="p-6">
+              <CardContent className="p-4 sm:p-6">
                 <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center mb-4">
                   <Webhook className="w-6 h-6 text-blue-400" />
                 </div>
@@ -383,7 +383,7 @@ export default function Home() {
             </Card>
 
             <Card className="bg-gray-900/50 border-gray-800 hover:border-emerald-500/50 transition-colors">
-              <CardContent className="p-6">
+              <CardContent className="p-4 sm:p-6">
                 <div className="w-12 h-12 rounded-xl bg-purple-500/10 flex items-center justify-center mb-4">
                   <Zap className="w-6 h-6 text-purple-400" />
                 </div>
@@ -395,7 +395,7 @@ export default function Home() {
             </Card>
 
             <Card className="bg-gray-900/50 border-gray-800 hover:border-emerald-500/50 transition-colors">
-              <CardContent className="p-6">
+              <CardContent className="p-4 sm:p-6">
                 <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center mb-4">
                   <BarChart3 className="w-6 h-6 text-amber-400" />
                 </div>
@@ -407,7 +407,7 @@ export default function Home() {
             </Card>
 
             <Card className="bg-gray-900/50 border-gray-800 hover:border-emerald-500/50 transition-colors">
-              <CardContent className="p-6">
+              <CardContent className="p-4 sm:p-6">
                 <div className="w-12 h-12 rounded-xl bg-rose-500/10 flex items-center justify-center mb-4">
                   <Calculator className="w-6 h-6 text-rose-400" />
                 </div>
@@ -419,7 +419,7 @@ export default function Home() {
             </Card>
 
             <Card className="bg-gray-900/50 border-gray-800 hover:border-emerald-500/50 transition-colors">
-              <CardContent className="p-6">
+              <CardContent className="p-4 sm:p-6">
                 <div className="w-12 h-12 rounded-xl bg-cyan-500/10 flex items-center justify-center mb-4">
                   <Target className="w-6 h-6 text-cyan-400" />
                 </div>
@@ -457,20 +457,20 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Comparison Section */}
-      <section id="compare" className="py-20 border-t border-gray-800/50 bg-gray-900/20">
-        <div className="container">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-light text-white mb-4">
+      {/* Comparison Section - Mobile Optimized */}
+      <section id="compare" className="py-12 sm:py-20 border-t border-gray-800/50 bg-gray-900/20">
+        <div className="container px-4">
+          <div className="text-center mb-8 sm:mb-16">
+            <h2 className="text-2xl sm:text-4xl font-light text-white mb-3 sm:mb-4">
               Why <span className="font-bold text-emerald-400">STS</span> vs. The Alternatives?
             </h2>
-            <p className="text-gray-400 max-w-2xl mx-auto">
+            <p className="text-gray-400 max-w-2xl mx-auto text-sm sm:text-base px-2">
               Compare systematic trading with STS against discretionary trading or building your own tech stack.
             </p>
           </div>
           
-          <div className="max-w-4xl mx-auto overflow-x-auto">
-            <table className="w-full">
+          <div className="max-w-4xl mx-auto overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+            <table className="w-full min-w-[500px] sm:min-w-0">
               <thead>
                 <tr className="border-b border-gray-800">
                   <th className="text-left py-4 px-4 text-gray-400 font-medium">Feature</th>
