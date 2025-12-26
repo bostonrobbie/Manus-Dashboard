@@ -19,6 +19,7 @@ const LandingPage = lazy(() => import("./pages/LandingPage"));
 const Pricing = lazy(() => import("./pages/Pricing"));
 const Onboarding = lazy(() => import("./pages/Onboarding"));
 const CheckoutSuccess = lazy(() => import("./pages/CheckoutSuccess"));
+const QADashboard = lazy(() => import("./pages/QADashboard"));
 
 // Loading fallback component
 function PageLoader() {
@@ -101,6 +102,14 @@ function Router() {
           <DashboardLayout>
             <Suspense fallback={<PageLoader />}>
               <UserDashboard />
+            </Suspense>
+          </DashboardLayout>
+        )} />
+        
+        <Route path="/qa" component={() => (
+          <DashboardLayout>
+            <Suspense fallback={<PageLoader />}>
+              <QADashboard />
             </Suspense>
           </DashboardLayout>
         )} />

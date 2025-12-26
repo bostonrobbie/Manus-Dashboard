@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/sidebar";
 import { getLoginUrl } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
-import { LayoutDashboard, LogOut, PanelLeft, TrendingUp, GitCompare, Shield, User, Menu, X, Home } from "lucide-react";
+import { LayoutDashboard, LogOut, PanelLeft, TrendingUp, GitCompare, Shield, User, Menu, X, Home, Activity } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
@@ -33,6 +33,7 @@ const baseMenuItems = [
   { icon: GitCompare, label: "Compare", path: "/compare", adminOnly: false },
   { icon: User, label: "My Dashboard", path: "/my-dashboard", adminOnly: false },
   { icon: Shield, label: "Admin", path: "/admin", adminOnly: true },
+  { icon: Activity, label: "Pipeline QA", path: "/qa", adminOnly: true },
   { icon: Home, label: "Homepage", path: "/", adminOnly: false, external: true },
 ];
 

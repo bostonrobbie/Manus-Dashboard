@@ -2465,6 +2465,245 @@ Please check the Webhooks page in your dashboard for more details.
         return { success: true };
       }),
   }),
+
+  // QA and Pipeline Health router for monitoring and diagnostics
+  qa: router({
+    /**
+     * Get pipeline health status
+     */
+    healthCheck: adminProcedure.query(async () => {
+      const { quickHealthCheck } = await import('./services/dataIntegrityService');
+      return quickHealthCheck();
+    }),
+
+    /**
+     * Run full data integrity validation
+     */
+    validateIntegrity: adminProcedure.query(async () => {
+      const { validateDataIntegrity } = await import('./services/dataIntegrityService');
+      return validateDataIntegrity();
+    }),
+
+    /**
+     * Get reconciliation report
+     */
+    reconciliationReport: adminProcedure.query(async () => {
+      const { getReconciliationReport } = await import('./services/dataIntegrityService');
+      return getReconciliationReport();
+    }),
+
+    /**
+     * Get webhook processing metrics
+     */
+    webhookMetrics: adminProcedure
+      .input(z.object({
+        hours: z.number().optional().default(24),
+      }))
+      .query(async ({ input }) => {
+        const startDate = new Date(Date.now() - input.hours * 60 * 60 * 1000);
+        const logs = await db.getWebhookLogs({
+          startDate,
+          endDate: new Date(),
+          limit: 1000,
+        });
+
+        const total = logs.length;
+        const successful = logs.filter((l: any) => l.status === 'success').length;
+        const failed = logs.filter((l: any) => l.status === 'failed').length;
+        const duplicate = logs.filter((l: any) => l.status === 'duplicate').length;
+        const pending = logs.filter((l: any) => l.status === 'pending' || l.status === 'processing').length;
+
+        // Calculate latency stats
+        const latencies = logs
+          .filter((l: any) => l.processingTimeMs != null)
+          .map((l: any) => l.processingTimeMs);
+        
+        const avgLatency = latencies.length > 0 
+          ? latencies.reduce((a: number, b: number) => a + b, 0) / latencies.length 
+          : 0;
+        const maxLatency = latencies.length > 0 ? Math.max(...latencies) : 0;
+        const minLatency = latencies.length > 0 ? Math.min(...latencies) : 0;
+
+        // Group by hour for trend
+        const hourlyTrend: { hour: string; success: number; failed: number }[] = [];
+        const hourMap = new Map<string, { success: number; failed: number }>();
+        
+        logs.forEach((log: any) => {
+          const hour = new Date(log.createdAt).toISOString().slice(0, 13) + ':00';
+          const existing = hourMap.get(hour) || { success: 0, failed: 0 };
+          if (log.status === 'success') existing.success++;
+          else if (log.status === 'failed') existing.failed++;
+          hourMap.set(hour, existing);
+        });
+
+        hourMap.forEach((value, key) => {
+          hourlyTrend.push({ hour: key, ...value });
+        });
+        hourlyTrend.sort((a, b) => a.hour.localeCompare(b.hour));
+
+        // Group by strategy
+        const byStrategy: { symbol: string; total: number; success: number; failed: number }[] = [];
+        const strategyMap = new Map<string, { total: number; success: number; failed: number }>();
+        
+        logs.forEach((log: any) => {
+          const symbol = log.strategySymbol || 'unknown';
+          const existing = strategyMap.get(symbol) || { total: 0, success: 0, failed: 0 };
+          existing.total++;
+          if (log.status === 'success') existing.success++;
+          else if (log.status === 'failed') existing.failed++;
+          strategyMap.set(symbol, existing);
+        });
+
+        strategyMap.forEach((value, key) => {
+          byStrategy.push({ symbol: key, ...value });
+        });
+
+        // Recent failures
+        const recentFailures = logs
+          .filter((l: any) => l.status === 'failed')
+          .slice(0, 10)
+          .map((l: any) => ({
+            id: l.id,
+            strategySymbol: l.strategySymbol,
+            errorMessage: l.errorMessage,
+            createdAt: l.createdAt,
+          }));
+
+        return {
+          period: `Last ${input.hours} hours`,
+          summary: {
+            total,
+            successful,
+            failed,
+            duplicate,
+            pending,
+            successRate: total > 0 ? ((successful / total) * 100).toFixed(1) + '%' : 'N/A',
+          },
+          latency: {
+            avg: Math.round(avgLatency),
+            max: maxLatency,
+            min: minLatency,
+          },
+          hourlyTrend,
+          byStrategy,
+          recentFailures,
+        };
+      }),
+
+    /**
+     * Get open positions status
+     */
+    openPositionsStatus: adminProcedure.query(async () => {
+      const positions = await db.getAllOpenPositions();
+      const openPositions = positions.filter((p: any) => p.status === 'open');
+      
+      return {
+        count: openPositions.length,
+        positions: openPositions.map((p: any) => ({
+          id: p.id,
+          strategySymbol: p.strategySymbol,
+          direction: p.direction,
+          entryPrice: p.entryPrice / 100,
+          quantity: p.quantity,
+          entryTime: p.entryTime,
+          ageMinutes: Math.round((Date.now() - new Date(p.entryTime).getTime()) / 60000),
+        })),
+      };
+    }),
+
+    /**
+     * Run end-to-end pipeline test
+     */
+    runPipelineTest: adminProcedure
+      .input(z.object({
+        strategySymbol: z.string().optional().default('ESTrend'),
+      }))
+      .mutation(async ({ input }) => {
+        const steps: { step: string; status: 'pass' | 'fail'; message: string; durationMs: number }[] = [];
+        const startTime = Date.now();
+
+        // Step 1: Database connectivity
+        let stepStart = Date.now();
+        try {
+          await db.getAllStrategies();
+          steps.push({
+            step: 'Database Connectivity',
+            status: 'pass',
+            message: 'Connected to database',
+            durationMs: Date.now() - stepStart,
+          });
+        } catch (error) {
+          steps.push({
+            step: 'Database Connectivity',
+            status: 'fail',
+            message: error instanceof Error ? error.message : 'Connection failed',
+            durationMs: Date.now() - stepStart,
+          });
+          return { success: false, steps, totalDurationMs: Date.now() - startTime };
+        }
+
+        // Step 2: Strategy lookup
+        stepStart = Date.now();
+        const strategy = await db.getStrategyBySymbol(input.strategySymbol);
+        if (strategy) {
+          steps.push({
+            step: 'Strategy Lookup',
+            status: 'pass',
+            message: `Found strategy: ${strategy.name}`,
+            durationMs: Date.now() - stepStart,
+          });
+        } else {
+          steps.push({
+            step: 'Strategy Lookup',
+            status: 'fail',
+            message: `Strategy not found: ${input.strategySymbol}`,
+            durationMs: Date.now() - stepStart,
+          });
+        }
+
+        // Step 3: Check webhook settings
+        stepStart = Date.now();
+        const settings = await db.getWebhookSettings();
+        steps.push({
+          step: 'Webhook Settings',
+          status: settings?.paused ? 'fail' : 'pass',
+          message: settings?.paused ? 'Webhook processing is PAUSED' : 'Webhook processing is active',
+          durationMs: Date.now() - stepStart,
+        });
+
+        // Step 4: Check open positions
+        stepStart = Date.now();
+        const openPos = await db.getOpenPositionByStrategy(input.strategySymbol);
+        steps.push({
+          step: 'Position Check',
+          status: 'pass',
+          message: openPos ? `Open position exists (ID: ${openPos.id})` : 'No open position',
+          durationMs: Date.now() - stepStart,
+        });
+
+        // Step 5: Data integrity check
+        stepStart = Date.now();
+        const { quickHealthCheck } = await import('./services/dataIntegrityService');
+        const health = await quickHealthCheck();
+        steps.push({
+          step: 'Data Integrity',
+          status: health.healthy ? 'pass' : 'fail',
+          message: health.healthy ? 'All integrity checks passed' : 'Integrity issues detected',
+          durationMs: Date.now() - stepStart,
+        });
+
+        const allPassed = steps.every(s => s.status === 'pass');
+
+        return {
+          success: allPassed,
+          steps,
+          totalDurationMs: Date.now() - startTime,
+          summary: allPassed 
+            ? 'All pipeline tests passed' 
+            : `${steps.filter(s => s.status === 'fail').length} test(s) failed`,
+        };
+      }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;

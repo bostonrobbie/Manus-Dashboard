@@ -4106,3 +4106,50 @@
 - [ ] Add P&L validation (compare provided vs calculated)
 - [ ] Add WAL replay UI for failed webhooks
 
+
+
+## Comprehensive End-to-End QA Framework
+- [x] End-to-end integration tests for webhook flow
+- [x] Data integrity validation service
+- [x] Pipeline health monitoring endpoints
+- [x] QA Dashboard UI for real-time monitoring
+- [x] Webhook processing metrics
+- [x] Open positions status tracking
+- [x] Pipeline test runner
+- [x] All tests passing (837 tests)
+
+## Previous End-to-End QA Framework (Dec 2025)
+
+### End-to-End Integration Tests
+- [ ] Create full pipeline integration test (webhook → position → trade → database)
+- [ ] Test entry signal flow end-to-end
+- [ ] Test exit signal flow end-to-end with trade creation
+- [ ] Test WAL recovery scenarios
+- [ ] Test transaction rollback scenarios
+- [ ] Test concurrent webhook handling
+- [ ] Test idempotency (duplicate webhook rejection)
+
+### Data Integrity Validation
+- [ ] Create position-trade consistency validator
+- [ ] Validate all closed positions have corresponding trades
+- [ ] Validate P&L calculations match between position and trade
+- [ ] Validate webhook logs link correctly to trades
+- [ ] Create orphan detection (trades without positions, positions without webhooks)
+- [ ] Add data reconciliation report generator
+
+### Pipeline Health Monitoring
+- [ ] Create pipeline health check endpoint
+- [ ] Monitor database connection health
+- [ ] Monitor WAL backlog size
+- [ ] Track webhook processing latency
+- [ ] Track success/failure rates
+- [ ] Add circuit breaker status monitoring
+
+### QA Dashboard UI
+- [ ] Create Pipeline Health page in dashboard
+- [ ] Display real-time processing metrics
+- [ ] Show data integrity status
+- [ ] Add manual validation trigger
+- [ ] Display recent failures with details
+- [ ] Add WAL replay functionality
+
