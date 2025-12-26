@@ -4280,3 +4280,19 @@
 - [x] Set up Sentry error tracking integration
 - [x] Test CSP headers are applied correctly
 - [x] Verify Sentry captures errors properly
+
+
+## Marketing Video Creation (Dec 2024)
+- [ ] Capture homepage hero section screenshot
+- [ ] Capture Overview dashboard with equity curve
+- [ ] Capture Strategies page with strategy cards
+- [ ] Capture Strategy detail view
+- [ ] Capture Compare page with multiple strategies
+- [ ] Capture My Dashboard personal portfolio
+- [ ] Capture Admin/Webhook setup page
+- [ ] Capture mobile responsive views
+- [ ] Capture pricing section
+- [x] Generate title cards and text overlays
+- [x] Assemble video with transitions
+- [ ] Add background music
+- [x] Export final video
