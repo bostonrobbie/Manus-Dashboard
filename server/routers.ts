@@ -2703,6 +2703,89 @@ Please check the Webhooks page in your dashboard for more details.
             : `${steps.filter(s => s.status === 'fail').length} test(s) failed`,
         };
       }),
+
+    /**
+     * Validate all data pipelines
+     */
+    validateAllPipelines: adminProcedure.query(async () => {
+      const { validateAllPipelines } = await import('./services/pipelineValidationService');
+      return validateAllPipelines();
+    }),
+
+    /**
+     * Validate CSV import data before importing
+     */
+    validateCSVImport: adminProcedure
+      .input(z.object({
+        strategyId: z.number(),
+        trades: z.array(z.object({
+          entryDate: z.string(),
+          exitDate: z.string(),
+          direction: z.string(),
+          entryPrice: z.number(),
+          exitPrice: z.number(),
+          quantity: z.number().optional().default(1),
+          pnl: z.number(),
+        })),
+      }))
+      .mutation(async ({ input }) => {
+        const { validateCSVImport, checkDuplicatesAgainstDB } = await import('./services/pipelineValidationService');
+        
+        // Convert string dates to Date objects
+        const tradesToValidate = input.trades.map(t => ({
+          entryDate: new Date(t.entryDate),
+          exitDate: new Date(t.exitDate),
+          direction: t.direction,
+          entryPrice: t.entryPrice,
+          exitPrice: t.exitPrice,
+          quantity: t.quantity,
+          pnl: t.pnl,
+        }));
+        
+        // Validate the trades
+        const validation = validateCSVImport(tradesToValidate);
+        
+        // Check for duplicates against existing DB trades
+        const duplicates = await checkDuplicatesAgainstDB(input.strategyId, tradesToValidate);
+        
+        return {
+          ...validation,
+          existingDuplicates: duplicates.duplicateCount,
+          existingDuplicateIndices: duplicates.duplicateIndices,
+        };
+      }),
+
+    /**
+     * Repair orphaned positions (create missing trades)
+     */
+    repairOrphanedPositions: adminProcedure.mutation(async () => {
+      const { repairOrphanedPositions } = await import('./services/pipelineValidationService');
+      return repairOrphanedPositions();
+    }),
+
+    /**
+     * Repair orphaned exit webhooks (link to trades)
+     */
+    repairOrphanedExitWebhooks: adminProcedure.mutation(async () => {
+      const { repairOrphanedExitWebhooks } = await import('./services/pipelineValidationService');
+      return repairOrphanedExitWebhooks();
+    }),
+
+    /**
+     * Get webhook pipeline status
+     */
+    webhookPipelineStatus: adminProcedure.query(async () => {
+      const { getWebhookPipelineStatus } = await import('./services/pipelineValidationService');
+      return getWebhookPipelineStatus();
+    }),
+
+    /**
+     * Get position pipeline status
+     */
+    positionPipelineStatus: adminProcedure.query(async () => {
+      const { getPositionPipelineStatus } = await import('./services/pipelineValidationService');
+      return getPositionPipelineStatus();
+    }),
   }),
 });
 

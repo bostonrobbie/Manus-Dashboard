@@ -530,6 +530,245 @@ function OpenPositionsCard() {
   );
 }
 
+function AllPipelinesValidationCard() {
+  const { data: validation, isLoading, refetch } = trpc.qa.validateAllPipelines.useQuery(undefined, {
+    refetchInterval: 60000, // Refresh every minute
+  });
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'healthy': return 'text-green-500';
+      case 'degraded': return 'text-yellow-500';
+      case 'critical': return 'text-red-500';
+      default: return 'text-muted-foreground';
+    }
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'healthy': return <CheckCircle2 className="h-5 w-5 text-green-500" />;
+      case 'degraded': return <AlertTriangle className="h-5 w-5 text-yellow-500" />;
+      case 'critical': return <AlertCircle className="h-5 w-5 text-red-500" />;
+      default: return <Activity className="h-5 w-5" />;
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <div>
+          <CardTitle className="flex items-center gap-2">
+            <Activity className="h-5 w-5" />
+            All Pipelines Validation
+          </CardTitle>
+          <CardDescription>Comprehensive validation of all data pipelines</CardDescription>
+        </div>
+        <Button variant="outline" size="sm" onClick={() => refetch()}>
+          <RefreshCw className="h-4 w-4 mr-1" />
+          Validate
+        </Button>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="text-center py-8 text-muted-foreground">Running validation...</div>
+        ) : validation ? (
+          <div className="space-y-6">
+            <div className="flex items-center gap-2">
+              {getStatusIcon(validation.overall)}
+              <span className={`text-lg font-semibold ${getStatusColor(validation.overall)}`}>
+                Overall: {validation.overall.charAt(0).toUpperCase() + validation.overall.slice(1)}
+              </span>
+              <span className="text-sm text-muted-foreground ml-auto">
+                Completed in {validation.totalDuration}ms
+              </span>
+            </div>
+
+            <div className="space-y-4">
+              {validation.pipelines.map((pipeline, idx) => (
+                <div key={idx} className="border rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      {getStatusIcon(pipeline.status)}
+                      <span className="font-semibold capitalize">{pipeline.pipeline} Pipeline</span>
+                    </div>
+                    <Badge 
+                      className={pipeline.status === 'healthy' 
+                        ? 'bg-green-500/20 text-green-400' 
+                        : pipeline.status === 'degraded'
+                        ? 'bg-yellow-500/20 text-yellow-400'
+                        : 'bg-red-500/20 text-red-400'
+                      }
+                    >
+                      {pipeline.status}
+                    </Badge>
+                  </div>
+                  <div className="space-y-2">
+                    {pipeline.checks.map((check, checkIdx) => (
+                      <div key={checkIdx} className="flex items-center justify-between p-2 rounded bg-muted/50">
+                        <div className="flex items-center gap-2">
+                          {check.status === 'pass' ? (
+                            <CheckCircle2 className="h-4 w-4 text-green-500" />
+                          ) : check.status === 'warn' ? (
+                            <AlertTriangle className="h-4 w-4 text-yellow-500" />
+                          ) : (
+                            <AlertCircle className="h-4 w-4 text-red-500" />
+                          )}
+                          <span className="text-sm">{check.name}</span>
+                        </div>
+                        <span className="text-sm text-muted-foreground">{check.message}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="text-center py-8 text-muted-foreground">
+            Click "Validate" to run comprehensive pipeline validation
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function AutoRepairCard() {
+  const repairPositions = trpc.qa.repairOrphanedPositions.useMutation({
+    onSuccess: (data) => {
+      if (data.repaired > 0) {
+        toast.success(`Repaired ${data.repaired} orphaned positions`);
+      } else if (data.failed > 0) {
+        toast.error(`Failed to repair ${data.failed} positions`);
+      } else {
+        toast.info('No orphaned positions to repair');
+      }
+    },
+    onError: (error) => {
+      toast.error(`Repair failed: ${error.message}`);
+    },
+  });
+
+  const repairWebhooks = trpc.qa.repairOrphanedExitWebhooks.useMutation({
+    onSuccess: (data) => {
+      if (data.repaired > 0) {
+        toast.success(`Linked ${data.repaired} orphaned exit webhooks`);
+      } else if (data.failed > 0) {
+        toast.error(`Failed to link ${data.failed} webhooks`);
+      } else {
+        toast.info('No orphaned webhooks to repair');
+      }
+    },
+    onError: (error) => {
+      toast.error(`Repair failed: ${error.message}`);
+    },
+  });
+
+  const { data: webhookStatus } = trpc.qa.webhookPipelineStatus.useQuery();
+  const { data: positionStatus } = trpc.qa.positionPipelineStatus.useQuery();
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Zap className="h-5 w-5" />
+          Auto-Repair Tools
+        </CardTitle>
+        <CardDescription>Automatically fix common data integrity issues</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="border rounded-lg p-4">
+            <h4 className="font-semibold mb-2">Orphaned Positions</h4>
+            <p className="text-sm text-muted-foreground mb-3">
+              Create missing trade records for closed positions without trades.
+            </p>
+            <div className="flex items-center justify-between">
+              <span className="text-sm">
+                {positionStatus?.orphanedPositions || 0} orphaned positions
+              </span>
+              <Button 
+                size="sm" 
+                onClick={() => repairPositions.mutate()}
+                disabled={repairPositions.isPending || (positionStatus?.orphanedPositions || 0) === 0}
+              >
+                {repairPositions.isPending ? (
+                  <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
+                ) : (
+                  <Zap className="h-4 w-4 mr-1" />
+                )}
+                Repair
+              </Button>
+            </div>
+            {repairPositions.data && (
+              <div className="mt-2 text-sm">
+                <span className="text-green-500">Repaired: {repairPositions.data.repaired}</span>
+                {repairPositions.data.failed > 0 && (
+                  <span className="text-red-500 ml-2">Failed: {repairPositions.data.failed}</span>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="border rounded-lg p-4">
+            <h4 className="font-semibold mb-2">Orphaned Exit Webhooks</h4>
+            <p className="text-sm text-muted-foreground mb-3">
+              Link successful exit webhooks to their corresponding trades.
+            </p>
+            <div className="flex items-center justify-between">
+              <span className="text-sm">
+                {webhookStatus?.orphanedExits || 0} orphaned webhooks
+              </span>
+              <Button 
+                size="sm" 
+                onClick={() => repairWebhooks.mutate()}
+                disabled={repairWebhooks.isPending || (webhookStatus?.orphanedExits || 0) === 0}
+              >
+                {repairWebhooks.isPending ? (
+                  <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
+                ) : (
+                  <Zap className="h-4 w-4 mr-1" />
+                )}
+                Repair
+              </Button>
+            </div>
+            {repairWebhooks.data && (
+              <div className="mt-2 text-sm">
+                <span className="text-green-500">Linked: {repairWebhooks.data.repaired}</span>
+                {repairWebhooks.data.failed > 0 && (
+                  <span className="text-red-500 ml-2">Failed: {repairWebhooks.data.failed}</span>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="border-t pt-4">
+          <h4 className="font-semibold mb-2">Pipeline Status Summary</h4>
+          <div className="grid gap-2 md:grid-cols-4">
+            <div className="text-center p-3 rounded bg-muted/50">
+              <div className="text-2xl font-bold">{positionStatus?.openPositions || 0}</div>
+              <div className="text-xs text-muted-foreground">Open Positions</div>
+            </div>
+            <div className="text-center p-3 rounded bg-muted/50">
+              <div className="text-2xl font-bold text-yellow-500">{positionStatus?.stalePositions || 0}</div>
+              <div className="text-xs text-muted-foreground">Stale Positions</div>
+            </div>
+            <div className="text-center p-3 rounded bg-muted/50">
+              <div className="text-2xl font-bold">{webhookStatus?.recentFailureRate?.toFixed(1) || 0}%</div>
+              <div className="text-xs text-muted-foreground">Failure Rate</div>
+            </div>
+            <div className="text-center p-3 rounded bg-muted/50">
+              <div className="text-2xl font-bold">{webhookStatus?.avgProcessingTime?.toFixed(0) || 0}ms</div>
+              <div className="text-xs text-muted-foreground">Avg Processing</div>
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function QADashboard() {
   return (
     <div className="container py-6 space-y-6">
@@ -543,6 +782,7 @@ export default function QADashboard() {
       <Tabs defaultValue="health" className="space-y-4">
         <TabsList>
           <TabsTrigger value="health">Health & Integrity</TabsTrigger>
+          <TabsTrigger value="validation">Pipeline Validation</TabsTrigger>
           <TabsTrigger value="metrics">Webhook Metrics</TabsTrigger>
           <TabsTrigger value="test">Pipeline Test</TabsTrigger>
         </TabsList>
@@ -553,6 +793,11 @@ export default function QADashboard() {
             <OpenPositionsCard />
           </div>
           <DataIntegrityCard />
+        </TabsContent>
+
+        <TabsContent value="validation" className="space-y-4">
+          <AllPipelinesValidationCard />
+          <AutoRepairCard />
         </TabsContent>
 
         <TabsContent value="metrics" className="space-y-4">
