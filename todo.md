@@ -4001,3 +4001,70 @@
 - [x] Implement batchProcessor.ts service
 - [x] Add batch window (2 seconds) and max batch size (10)
 - [x] Calculate net position from batched signals
+
+
+## Critical Reliability Fixes (Dec 26, 2024)
+
+### Crash-Safe Webhook Processing (Write-Ahead Log)
+- [ ] Add webhook_wal table for write-ahead logging
+- [ ] Write webhook to WAL before processing
+- [ ] Track status: received → processing → completed/failed
+- [ ] On server startup, reprocess stuck webhooks
+- [ ] Add cleanup job for old WAL entries
+
+### Broker Execution Confirmation Loop
+- [ ] Add broker_orders table to track order lifecycle
+- [ ] Store order ID from broker on submission
+- [ ] Poll broker for order status (pending → filled → rejected)
+- [ ] Update trade with actual fill price and quantity
+- [ ] Alert on order failures or partial fills
+
+### Position Reconciliation System
+- [ ] Create reconciliation service to compare DB vs broker positions
+- [ ] Add scheduled reconciliation job (every 5 minutes)
+- [ ] Log discrepancies to reconciliation_log table
+- [ ] Alert admin when positions don't match
+- [ ] Generate reconciliation report
+
+### Admin Position Management UI
+- [ ] Add "Force Close Position" button in Admin
+- [ ] Add "Sync Positions" button to fetch from broker
+- [ ] Add position override/edit capability
+- [ ] Show reconciliation status and history
+- [ ] Add manual trade import from broker statement
+
+
+## Critical Reliability Fixes (Dec 26, 2024) ✅ COMPLETE
+
+### Crash-Safe Webhook Processing (Write-Ahead Log)
+- [x] Create webhook_wal table for write-ahead logging
+- [x] Implement webhookWal.ts service with WAL pattern
+- [x] Write webhook to DB BEFORE processing (received → processing → completed)
+- [x] Add server startup recovery for stuck "processing" webhooks
+- [x] Test crash recovery scenario
+
+### Broker Execution Confirmation Loop
+- [x] Create broker_orders table for order tracking
+- [x] Implement brokerOrderService.ts with order lifecycle
+- [x] Track order status (pending → submitted → filled/rejected)
+- [x] Poll broker for order status after submission
+- [x] Store actual fill price vs expected price (slippage tracking)
+- [x] Alert on order failures or partial fills
+
+### Position Reconciliation System
+- [x] Create reconciliation_logs table for discrepancy tracking
+- [x] Create position_adjustments table for audit trail
+- [x] Implement reconciliationService.ts
+- [x] Compare DB positions vs broker positions
+- [x] Detect discrepancies (missing in DB, missing in broker, quantity mismatch)
+- [x] Auto-resolve or flag for manual review
+- [x] Daily reconciliation job
+
+### Admin UI for Position Management
+- [x] Create PositionManager.tsx component
+- [x] Add "Positions" tab to Admin page
+- [x] View all open positions with details
+- [x] Force close position button with reason field
+- [x] View and resolve discrepancies
+- [x] View position adjustment history (audit log)
+

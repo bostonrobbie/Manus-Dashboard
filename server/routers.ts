@@ -1396,6 +1396,57 @@ Please check the Webhooks page in your dashboard for more details.
         return { success: true, deleted };
       }),
 
+    /**
+     * Force close a position (for reconciliation)
+     */
+    forceClosePosition: adminProcedure
+      .input(z.object({
+        positionId: z.number(),
+        reason: z.string(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const { forceClosePosition } = await import("./reconciliationService");
+        await forceClosePosition(input.positionId, input.reason, ctx.user.name || ctx.user.openId);
+        return { success: true };
+      }),
+
+    /**
+     * Get unresolved discrepancies
+     */
+    getDiscrepancies: adminProcedure.query(async () => {
+      const { getUnresolvedDiscrepancies } = await import("./reconciliationService");
+      return getUnresolvedDiscrepancies();
+    }),
+
+    /**
+     * Resolve a discrepancy
+     */
+    resolveDiscrepancy: adminProcedure
+      .input(z.object({
+        discrepancyId: z.number(),
+        action: z.enum(["sync_from_broker", "force_close", "ignore", "manual_fix"]),
+        notes: z.string().optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const { resolveDiscrepancy } = await import("./reconciliationService");
+        await resolveDiscrepancy(input.discrepancyId, {
+          action: input.action,
+          resolvedBy: ctx.user.name || ctx.user.openId,
+          notes: input.notes,
+        });
+        return { success: true };
+      }),
+
+    /**
+     * Get position adjustment history
+     */
+    getAdjustmentHistory: adminProcedure
+      .input(z.object({ strategySymbol: z.string().optional() }).optional())
+      .query(async ({ input }) => {
+        const { getAdjustmentHistory } = await import("./reconciliationService");
+        return getAdjustmentHistory(input?.strategySymbol);
+      }),
+
     // ============================================================================
     // Staging Trades (Webhook Review Workflow)
     // ============================================================================

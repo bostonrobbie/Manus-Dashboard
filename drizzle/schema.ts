@@ -701,3 +701,204 @@ export const signalBatches = mysqlTable("signal_batches", {
 
 export type SignalBatch = typeof signalBatches.$inferSelect;
 export type InsertSignalBatch = typeof signalBatches.$inferInsert;
+
+
+/**
+ * Webhook Write-Ahead Log (WAL) table
+ * Ensures crash-safe webhook processing by persisting webhooks before processing
+ */
+export const webhookWal = mysqlTable("webhook_wal", {
+  id: int("id").autoincrement().primaryKey(),
+  // Unique identifier for this webhook
+  walId: varchar("walId", { length: 64 }).notNull().unique(),
+  correlationId: varchar("correlationId", { length: 64 }).notNull(),
+  // Raw payload stored for replay capability
+  rawPayload: text("rawPayload").notNull(),
+  // Parsed fields for quick lookup
+  strategySymbol: varchar("strategySymbol", { length: 50 }),
+  action: varchar("action", { length: 20 }),
+  direction: varchar("direction", { length: 10 }),
+  price: int("price"), // in cents
+  quantity: int("quantity"),
+  // Processing status
+  status: mysqlEnum("status", ["received", "processing", "completed", "failed", "retrying"]).default("received").notNull(),
+  // Processing metadata
+  attempts: int("attempts").default(0).notNull(),
+  lastAttemptAt: datetime("lastAttemptAt"),
+  completedAt: datetime("completedAt"),
+  // Result tracking
+  resultWebhookLogId: int("resultWebhookLogId"),
+  errorMessage: text("errorMessage"),
+  // Source info
+  sourceIp: varchar("sourceIp", { length: 45 }),
+  userAgent: varchar("userAgent", { length: 255 }),
+  // Timestamps
+  receivedAt: datetime("receivedAt").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  walIdIdx: index("idx_webhook_wal_wal_id").on(table.walId),
+  statusIdx: index("idx_webhook_wal_status").on(table.status),
+  correlationIdx: index("idx_webhook_wal_correlation").on(table.correlationId),
+  receivedAtIdx: index("idx_webhook_wal_received_at").on(table.receivedAt),
+}));
+
+export type WebhookWal = typeof webhookWal.$inferSelect;
+export type InsertWebhookWal = typeof webhookWal.$inferInsert;
+
+/**
+ * Broker orders table
+ * Tracks order lifecycle from submission to fill/rejection
+ */
+export const brokerOrders = mysqlTable("broker_orders", {
+  id: int("id").autoincrement().primaryKey(),
+  // Internal references
+  webhookLogId: int("webhookLogId"),
+  openPositionId: int("openPositionId"),
+  tradeId: int("tradeId"),
+  // Order identification
+  internalOrderId: varchar("internalOrderId", { length: 64 }).notNull().unique(),
+  brokerOrderId: varchar("brokerOrderId", { length: 64 }), // ID returned by broker
+  // Order details
+  broker: varchar("broker", { length: 20 }).notNull(), // "ibkr", "tradovate", etc.
+  strategySymbol: varchar("strategySymbol", { length: 50 }).notNull(),
+  symbol: varchar("symbol", { length: 20 }).notNull(), // Actual trading symbol (MES, NQ, etc.)
+  action: mysqlEnum("action", ["buy", "sell"]).notNull(),
+  orderType: mysqlEnum("orderType", ["market", "limit", "stop", "stop_limit"]).default("market").notNull(),
+  quantity: int("quantity").notNull(),
+  // Prices (in cents)
+  requestedPrice: int("requestedPrice"),
+  limitPrice: int("limitPrice"),
+  stopPrice: int("stopPrice"),
+  // Fill information
+  filledQuantity: int("filledQuantity").default(0).notNull(),
+  avgFillPrice: int("avgFillPrice"),
+  commission: int("commission").default(0), // in cents
+  // Status tracking
+  status: mysqlEnum("status", [
+    "pending",      // Created, not yet submitted
+    "submitted",    // Sent to broker
+    "acknowledged", // Broker received
+    "working",      // Order is live in market
+    "partially_filled",
+    "filled",
+    "cancelled",
+    "rejected",
+    "expired",
+    "error"
+  ]).default("pending").notNull(),
+  // Status messages
+  brokerStatus: varchar("brokerStatus", { length: 100 }),
+  rejectReason: text("rejectReason"),
+  // Timing
+  submittedAt: datetime("submittedAt"),
+  acknowledgedAt: datetime("acknowledgedAt"),
+  filledAt: datetime("filledAt"),
+  cancelledAt: datetime("cancelledAt"),
+  // Metadata
+  isTest: boolean("isTest").default(false).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  internalOrderIdx: index("idx_broker_orders_internal").on(table.internalOrderId),
+  brokerOrderIdx: index("idx_broker_orders_broker").on(table.brokerOrderId),
+  statusIdx: index("idx_broker_orders_status").on(table.status),
+  strategyIdx: index("idx_broker_orders_strategy").on(table.strategySymbol),
+}));
+
+export type BrokerOrder = typeof brokerOrders.$inferSelect;
+export type InsertBrokerOrder = typeof brokerOrders.$inferInsert;
+
+/**
+ * Position reconciliation log table
+ * Tracks discrepancies between database positions and broker positions
+ */
+export const reconciliationLogs = mysqlTable("reconciliation_logs", {
+  id: int("id").autoincrement().primaryKey(),
+  // Reconciliation run identifier
+  reconciliationId: varchar("reconciliationId", { length: 64 }).notNull(),
+  runAt: datetime("runAt").notNull(),
+  // Broker info
+  broker: varchar("broker", { length: 20 }).notNull(),
+  accountId: varchar("accountId", { length: 64 }),
+  // Position details
+  strategySymbol: varchar("strategySymbol", { length: 50 }),
+  symbol: varchar("symbol", { length: 20 }).notNull(),
+  // Database state
+  dbPositionId: int("dbPositionId"),
+  dbDirection: varchar("dbDirection", { length: 10 }),
+  dbQuantity: int("dbQuantity"),
+  dbEntryPrice: int("dbEntryPrice"),
+  // Broker state
+  brokerDirection: varchar("brokerDirection", { length: 10 }),
+  brokerQuantity: int("brokerQuantity"),
+  brokerAvgPrice: int("brokerAvgPrice"),
+  // Discrepancy details
+  discrepancyType: mysqlEnum("discrepancyType", [
+    "missing_in_db",      // Position exists in broker but not DB
+    "missing_in_broker",  // Position exists in DB but not broker
+    "quantity_mismatch",  // Different quantities
+    "direction_mismatch", // Different directions (should never happen)
+    "price_mismatch",     // Significant price difference
+    "matched"             // No discrepancy
+  ]).notNull(),
+  discrepancyDetails: text("discrepancyDetails"),
+  // Resolution
+  resolved: boolean("resolved").default(false).notNull(),
+  resolvedAt: datetime("resolvedAt"),
+  resolvedBy: varchar("resolvedBy", { length: 100 }),
+  resolutionAction: varchar("resolutionAction", { length: 50 }),
+  resolutionNotes: text("resolutionNotes"),
+  // Timestamps
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  reconciliationIdx: index("idx_reconciliation_run").on(table.reconciliationId),
+  brokerIdx: index("idx_reconciliation_broker").on(table.broker),
+  discrepancyIdx: index("idx_reconciliation_discrepancy").on(table.discrepancyType),
+  unresolvedIdx: index("idx_reconciliation_unresolved").on(table.resolved),
+}));
+
+export type ReconciliationLog = typeof reconciliationLogs.$inferSelect;
+export type InsertReconciliationLog = typeof reconciliationLogs.$inferInsert;
+
+/**
+ * Position adjustments table
+ * Tracks manual adjustments to positions for audit trail
+ */
+export const positionAdjustments = mysqlTable("position_adjustments", {
+  id: int("id").autoincrement().primaryKey(),
+  // Position reference
+  openPositionId: int("openPositionId"),
+  strategySymbol: varchar("strategySymbol", { length: 50 }).notNull(),
+  // Adjustment type
+  adjustmentType: mysqlEnum("adjustmentType", [
+    "force_close",       // Manually close position
+    "force_open",        // Manually open position
+    "quantity_adjust",   // Adjust quantity
+    "price_adjust",      // Adjust entry price
+    "sync_from_broker",  // Sync from broker state
+    "manual_override"    // General override
+  ]).notNull(),
+  // Before state
+  beforeDirection: varchar("beforeDirection", { length: 10 }),
+  beforeQuantity: int("beforeQuantity"),
+  beforeEntryPrice: int("beforeEntryPrice"),
+  // After state
+  afterDirection: varchar("afterDirection", { length: 10 }),
+  afterQuantity: int("afterQuantity"),
+  afterEntryPrice: int("afterEntryPrice"),
+  // Audit info
+  reason: text("reason").notNull(),
+  adjustedBy: varchar("adjustedBy", { length: 100 }).notNull(),
+  reconciliationLogId: int("reconciliationLogId"),
+  // Timestamps
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => ({
+  positionIdx: index("idx_position_adjustments_position").on(table.openPositionId),
+  strategyIdx: index("idx_position_adjustments_strategy").on(table.strategySymbol),
+  typeIdx: index("idx_position_adjustments_type").on(table.adjustmentType),
+}));
+
+export type PositionAdjustment = typeof positionAdjustments.$inferSelect;
+export type InsertPositionAdjustment = typeof positionAdjustments.$inferInsert;

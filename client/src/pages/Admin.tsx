@@ -21,6 +21,7 @@ import {
 import { toast } from "sonner";
 import { useLocation, useSearch } from "wouter";
 import { WebhookSimulator } from "@/components/WebhookSimulator";
+import { PositionManager } from "@/components/PositionManager";
 
 // ============================================================================
 // MAIN COMPONENT
@@ -138,6 +139,10 @@ export default function Admin() {
             <Settings className="h-4 w-4 shrink-0" />
             <span className="hidden sm:inline">Settings</span>
           </TabsTrigger>
+          <TabsTrigger value="positions" className="gap-1 sm:gap-2 px-2 sm:px-3 py-2">
+            <Target className="h-4 w-4" />
+            <span className="hidden sm:inline">Positions</span>
+          </TabsTrigger>
           <TabsTrigger value="simulator" className="gap-1 sm:gap-2 px-2 sm:px-3 py-2">
             <Webhook className="h-4 w-4 shrink-0" />
             <span className="hidden sm:inline">Simulator</span>
@@ -170,6 +175,10 @@ export default function Admin() {
 
         <TabsContent value="settings" className="space-y-6">
           <SettingsTab />
+        </TabsContent>
+
+        <TabsContent value="positions" className="space-y-6">
+          <PositionManager />
         </TabsContent>
 
         <TabsContent value="simulator" className="space-y-6">
