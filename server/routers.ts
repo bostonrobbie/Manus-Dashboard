@@ -1882,6 +1882,62 @@ Please check the Webhooks page in your dashboard for more details.
         },
       ];
     }),
+
+    /**
+     * Simulate a webhook for testing (isolated test data)
+     */
+    simulateWebhook: adminProcedure
+      .input(z.object({
+        symbol: z.string(),
+        action: z.enum(['entry', 'exit']),
+        direction: z.enum(['long', 'short']),
+        price: z.number(),
+        quantity: z.number().optional().default(1),
+        isTest: z.boolean().optional().default(true),
+      }))
+      .mutation(async ({ input }) => {
+        const { processWebhook } = await import('./webhookService');
+        
+        const correlationId = `sim_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        const startTime = Date.now();
+        
+        const payload = {
+          symbol: input.symbol,
+          action: input.action,
+          direction: input.direction,
+          price: input.price,
+          quantity: input.quantity,
+          timestamp: new Date().toISOString(),
+          isTest: input.isTest,
+        };
+        
+        try {
+          const result = await processWebhook(payload, correlationId);
+          const processingTimeMs = Date.now() - startTime;
+          
+          return {
+            success: result.success,
+            message: result.message || (result.success ? 'Webhook processed successfully' : 'Webhook processing failed'),
+            correlationId,
+            processingTimeMs,
+            signalType: result.signalType,
+            error: result.error,
+            details: {
+              positionId: result.positionId,
+              tradeId: result.tradeId,
+            },
+          };
+        } catch (error) {
+          const processingTimeMs = Date.now() - startTime;
+          return {
+            success: false,
+            message: error instanceof Error ? error.message : 'Unknown error',
+            correlationId,
+            processingTimeMs,
+            error: error instanceof Error ? error.message : 'Unknown error',
+          };
+        }
+      }),
   }),
 
   // User subscription router for strategy subscriptions
@@ -2282,15 +2338,17 @@ Please check the Webhooks page in your dashboard for more details.
       
       return {
         global: prefs || {
-          emailNotificationsEnabled: true,
-          pushNotificationsEnabled: true,
-          notifyOnEntry: true,
-          notifyOnExit: true,
-          notifyOnProfit: true,
-          notifyOnLoss: true,
-          quietHoursStart: null,
-          quietHoursEnd: null,
-          quietHoursTimezone: 'America/New_York',
+          globalMute: false,
+          muteTradeExecuted: false,
+          muteTradeError: false,
+          mutePositionOpened: false,
+          mutePositionClosed: false,
+          muteWebhookFailed: false,
+          muteDailyDigest: false,
+          emailEnabled: true,
+          emailAddress: null,
+          inAppEnabled: true,
+          soundEnabled: true,
         },
         strategies,
       };
@@ -2301,15 +2359,17 @@ Please check the Webhooks page in your dashboard for more details.
      */
     updateGlobalPreferences: protectedProcedure
       .input(z.object({
-        emailNotificationsEnabled: z.boolean().optional(),
-        pushNotificationsEnabled: z.boolean().optional(),
-        notifyOnEntry: z.boolean().optional(),
-        notifyOnExit: z.boolean().optional(),
-        notifyOnProfit: z.boolean().optional(),
-        notifyOnLoss: z.boolean().optional(),
-        quietHoursStart: z.string().nullable().optional(),
-        quietHoursEnd: z.string().nullable().optional(),
-        quietHoursTimezone: z.string().optional(),
+        globalMute: z.boolean().optional(),
+        muteTradeExecuted: z.boolean().optional(),
+        muteTradeError: z.boolean().optional(),
+        mutePositionOpened: z.boolean().optional(),
+        mutePositionClosed: z.boolean().optional(),
+        muteWebhookFailed: z.boolean().optional(),
+        muteDailyDigest: z.boolean().optional(),
+        emailEnabled: z.boolean().optional(),
+        emailAddress: z.string().nullable().optional(),
+        inAppEnabled: z.boolean().optional(),
+        soundEnabled: z.boolean().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         await db.upsertNotificationPreferences(ctx.user.id, input);

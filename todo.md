@@ -3923,3 +3923,81 @@
 - [x] Add API versioning header (X-API-Version: 1.0.0)
 - [x] Add signalType to all webhook responses for consistency
 - [x] All webhook E2E tests passing (27 tests)
+
+
+## Webhook Enhancements (Dec 26, 2025)
+
+### 1. Webhook Retry Queue
+- [ ] Create retry queue table in database schema
+- [ ] Implement exponential backoff logic (1s, 2s, 4s, 8s, 16s max)
+- [ ] Add failed webhook to retry queue on transient errors
+- [ ] Create background job to process retry queue
+- [ ] Add retry count and last attempt tracking
+- [ ] Write tests for retry logic
+
+### 2. Real-Time Dashboard Updates (SSE)
+- [ ] Create SSE endpoint for trade updates
+- [ ] Emit events when webhooks create/close positions
+- [ ] Add SSE client hook in React (useTradeUpdates)
+- [ ] Update dashboard components to show new trades instantly
+- [ ] Add visual indicator for new trades (toast/highlight)
+- [ ] Handle reconnection on connection loss
+
+### 3. Webhook Simulator in Admin UI
+- [ ] Create simulator UI component in Admin page
+- [ ] Add form for entry signal (symbol, direction, price)
+- [ ] Add form for exit signal (symbol, price)
+- [ ] Create tRPC procedure for simulating webhooks
+- [ ] Show real-time response and position state
+- [ ] Add preset templates for common scenarios
+
+### 4. Alert Notifications with Mute Controls
+- [ ] Add notification preferences to user settings
+- [ ] Create notification types (trade_executed, trade_failed, position_opened, position_closed)
+- [ ] Add mute toggle per notification type
+- [ ] Add global mute/unmute toggle
+- [ ] Implement email notifications via built-in notification API
+- [ ] Add in-app notification center
+- [ ] Show notification badge in header
+- [ ] Store notification history in database
+
+### 5. Batch Signal Processing
+- [ ] Create signal buffer for rapid-fire webhooks
+- [ ] Implement batching window (100ms default)
+- [ ] Process batched signals in single transaction
+- [ ] Handle scale-in/scale-out signals
+- [ ] Add batch processing metrics
+- [ ] Write tests for batch scenarios
+
+
+## Webhook Enhancements (Dec 25, 2024) ✅ COMPLETE
+
+### Retry Queue with Exponential Backoff
+- [x] Create webhookRetryQueue table in schema
+- [x] Implement retryQueue.ts service with exponential backoff
+- [x] Add addToRetryQueue, getPendingRetries, processPendingRetries functions
+- [x] Add retry queue statistics endpoint
+
+### Real-Time Dashboard Updates (SSE)
+- [x] Create realtime.ts service with Server-Sent Events
+- [x] Implement broadcastEvent, broadcastTradeExecuted, etc.
+- [x] Create useRealtime hook for frontend
+- [x] Add SSE endpoint /api/realtime/events
+
+### Webhook Simulator in Admin UI
+- [x] Create WebhookSimulator component
+- [x] Add simulateWebhook tRPC procedure
+- [x] Add Simulator tab to Admin page
+- [x] Support test data isolation (isTest flag)
+
+### Alert Notifications with Mute Controls
+- [x] Create notificationPreferences table with per-type mute settings
+- [x] Create notifications table for notification history
+- [x] Update NotificationSettings component with mute toggles
+- [x] Implement shouldSendNotification logic
+
+### Batch Signal Processing
+- [x] Create signalBatches table in schema
+- [x] Implement batchProcessor.ts service
+- [x] Add batch window (2 seconds) and max batch size (10)
+- [x] Calculate net position from batched signals

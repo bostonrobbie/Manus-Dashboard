@@ -504,32 +504,7 @@ export const signalTypeEnum = ["entry", "exit", "scale_in", "scale_out"] as cons
 export type SignalType = typeof signalTypeEnum[number];
 
 
-/**
- * User notification preferences table
- * Stores per-user, per-strategy notification settings
- */
-export const notificationPreferences = mysqlTable("notification_preferences", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull(),
-  // Global settings
-  emailNotificationsEnabled: boolean("emailNotificationsEnabled").default(true).notNull(),
-  pushNotificationsEnabled: boolean("pushNotificationsEnabled").default(true).notNull(),
-  // Notification types
-  notifyOnEntry: boolean("notifyOnEntry").default(true).notNull(),
-  notifyOnExit: boolean("notifyOnExit").default(true).notNull(),
-  notifyOnProfit: boolean("notifyOnProfit").default(true).notNull(),
-  notifyOnLoss: boolean("notifyOnLoss").default(true).notNull(),
-  // Quiet hours (optional)
-  quietHoursStart: varchar("quietHoursStart", { length: 5 }), // HH:MM format
-  quietHoursEnd: varchar("quietHoursEnd", { length: 5 }), // HH:MM format
-  quietHoursTimezone: varchar("quietHoursTimezone", { length: 50 }).default("America/New_York"),
-  // Metadata
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-});
-
-export type NotificationPreference = typeof notificationPreferences.$inferSelect;
-export type InsertNotificationPreference = typeof notificationPreferences.$inferInsert;
+// Note: notificationPreferences table is defined at the end of this file with updated schema
 
 /**
  * Strategy notification settings table
@@ -598,3 +573,131 @@ export const stagingTrades = mysqlTable("staging_trades", {
 
 export type StagingTrade = typeof stagingTrades.$inferSelect;
 export type InsertStagingTrade = typeof stagingTrades.$inferInsert;
+
+
+/**
+ * Webhook retry queue table
+ * Stores failed webhooks for retry with exponential backoff
+ */
+export const webhookRetryQueue = mysqlTable("webhook_retry_queue", {
+  id: int("id").autoincrement().primaryKey(),
+  // Original webhook data
+  originalPayload: text("originalPayload").notNull(), // JSON string of original webhook payload
+  correlationId: varchar("correlationId", { length: 50 }).notNull(),
+  strategySymbol: varchar("strategySymbol", { length: 20 }),
+  // Retry tracking
+  retryCount: int("retryCount").default(0).notNull(),
+  maxRetries: int("maxRetries").default(5).notNull(),
+  nextRetryAt: datetime("nextRetryAt").notNull(),
+  lastError: text("lastError"),
+  // Status
+  status: mysqlEnum("status", ["pending", "processing", "completed", "failed", "cancelled"]).default("pending").notNull(),
+  // Metadata
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  completedAt: datetime("completedAt"),
+}, (table) => ({
+  statusIdx: index("idx_retry_queue_status").on(table.status),
+  nextRetryIdx: index("idx_retry_queue_next_retry").on(table.nextRetryAt),
+  correlationIdx: index("idx_retry_queue_correlation").on(table.correlationId),
+}));
+
+export type WebhookRetryQueueItem = typeof webhookRetryQueue.$inferSelect;
+export type InsertWebhookRetryQueueItem = typeof webhookRetryQueue.$inferInsert;
+
+/**
+ * User notification preferences table
+ * Stores per-user notification settings with mute controls
+ */
+export const notificationPreferences = mysqlTable("notification_preferences", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull().unique(),
+  // Global mute
+  globalMute: boolean("globalMute").default(false).notNull(),
+  // Per-type mute settings
+  muteTradeExecuted: boolean("muteTradeExecuted").default(false).notNull(),
+  muteTradeError: boolean("muteTradeError").default(false).notNull(),
+  mutePositionOpened: boolean("mutePositionOpened").default(false).notNull(),
+  mutePositionClosed: boolean("mutePositionClosed").default(false).notNull(),
+  muteWebhookFailed: boolean("muteWebhookFailed").default(false).notNull(),
+  muteDailyDigest: boolean("muteDailyDigest").default(false).notNull(),
+  // Email preferences
+  emailEnabled: boolean("emailEnabled").default(true).notNull(),
+  emailAddress: varchar("emailAddress", { length: 320 }),
+  // In-app preferences
+  inAppEnabled: boolean("inAppEnabled").default(true).notNull(),
+  soundEnabled: boolean("soundEnabled").default(true).notNull(),
+  // Metadata
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type NotificationPreference = typeof notificationPreferences.$inferSelect;
+export type InsertNotificationPreference = typeof notificationPreferences.$inferInsert;
+
+/**
+ * Notifications table
+ * Stores notification history for users
+ */
+export const notifications = mysqlTable("notifications", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  // Notification content
+  type: mysqlEnum("type", ["trade_executed", "trade_error", "position_opened", "position_closed", "webhook_failed", "daily_digest", "system"]).notNull(),
+  title: varchar("title", { length: 200 }).notNull(),
+  message: text("message").notNull(),
+  // Related entities
+  strategyId: int("strategyId"),
+  tradeId: int("tradeId"),
+  webhookLogId: int("webhookLogId"),
+  // Status
+  read: boolean("read").default(false).notNull(),
+  dismissed: boolean("dismissed").default(false).notNull(),
+  // Delivery status
+  emailSent: boolean("emailSent").default(false).notNull(),
+  emailSentAt: datetime("emailSentAt"),
+  // Metadata
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => ({
+  userIdx: index("idx_notifications_user").on(table.userId),
+  typeIdx: index("idx_notifications_type").on(table.type),
+  readIdx: index("idx_notifications_read").on(table.read),
+  createdIdx: index("idx_notifications_created").on(table.createdAt),
+}));
+
+export type Notification = typeof notifications.$inferSelect;
+export type InsertNotification = typeof notifications.$inferInsert;
+
+/**
+ * Signal batch table
+ * Groups rapid-fire webhook signals for batch processing
+ */
+export const signalBatches = mysqlTable("signal_batches", {
+  id: int("id").autoincrement().primaryKey(),
+  // Batch identification
+  batchId: varchar("batchId", { length: 50 }).notNull().unique(),
+  strategySymbol: varchar("strategySymbol", { length: 20 }).notNull(),
+  // Batch window
+  windowStartAt: datetime("windowStartAt").notNull(),
+  windowEndAt: datetime("windowEndAt"),
+  // Aggregated data
+  signalCount: int("signalCount").default(0).notNull(),
+  netDirection: varchar("netDirection", { length: 10 }), // "long", "short", "flat"
+  netQuantity: int("netQuantity").default(0).notNull(),
+  avgPrice: int("avgPrice"), // Average price in cents
+  // Status
+  status: mysqlEnum("status", ["collecting", "processing", "completed", "failed"]).default("collecting").notNull(),
+  // Processing result
+  resultWebhookLogId: int("resultWebhookLogId"),
+  errorMessage: text("errorMessage"),
+  // Metadata
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  batchIdx: index("idx_signal_batches_batch").on(table.batchId),
+  strategyIdx: index("idx_signal_batches_strategy").on(table.strategySymbol),
+  statusIdx: index("idx_signal_batches_status").on(table.status),
+}));
+
+export type SignalBatch = typeof signalBatches.$inferSelect;
+export type InsertSignalBatch = typeof signalBatches.$inferInsert;

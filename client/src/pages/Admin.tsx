@@ -16,10 +16,11 @@ import {
   Code, BookOpen, Shield, FlaskConical, Send, Eye, Lock, BarChart3,
   Search, Filter, Download, ChevronRight, ExternalLink, Link2,
   TrendingUp, TrendingDown, Server, Database, Wifi, WifiOff,
-  ArrowUpRight, ArrowDownRight, Target, DollarSign
+  ArrowUpRight, ArrowDownRight, Target, DollarSign, Webhook
 } from "lucide-react";
 import { toast } from "sonner";
 import { useLocation, useSearch } from "wouter";
+import { WebhookSimulator } from "@/components/WebhookSimulator";
 
 // ============================================================================
 // MAIN COMPONENT
@@ -108,7 +109,7 @@ export default function Admin() {
 
       {/* Tabbed Interface */}
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-7 h-auto p-1 lg:w-auto lg:inline-grid">
+        <TabsList className="grid w-full grid-cols-8 h-auto p-1 lg:w-auto lg:inline-grid">
           <TabsTrigger value="overview" className="gap-1 sm:gap-2 px-2 sm:px-3 py-2">
             <BarChart3 className="h-4 w-4 shrink-0" />
             <span className="hidden sm:inline">Overview</span>
@@ -136,6 +137,10 @@ export default function Admin() {
           <TabsTrigger value="settings" className="gap-1 sm:gap-2 px-2 sm:px-3 py-2">
             <Settings className="h-4 w-4 shrink-0" />
             <span className="hidden sm:inline">Settings</span>
+          </TabsTrigger>
+          <TabsTrigger value="simulator" className="gap-1 sm:gap-2 px-2 sm:px-3 py-2">
+            <Webhook className="h-4 w-4 shrink-0" />
+            <span className="hidden sm:inline">Simulator</span>
           </TabsTrigger>
         </TabsList>
 
@@ -165,6 +170,10 @@ export default function Admin() {
 
         <TabsContent value="settings" className="space-y-6">
           <SettingsTab />
+        </TabsContent>
+
+        <TabsContent value="simulator" className="space-y-6">
+          <WebhookSimulator />
         </TabsContent>
       </Tabs>
     </div>

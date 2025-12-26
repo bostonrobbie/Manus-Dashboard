@@ -9,12 +9,15 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { 
   Bell, 
+  BellOff,
   Mail, 
-  Smartphone, 
+  Volume2,
+  VolumeX,
   TrendingUp, 
   TrendingDown, 
-  DollarSign,
-  Clock,
+  AlertTriangle,
+  Webhook,
+  Calendar,
   Save,
   Loader2,
   CheckCircle2
@@ -29,14 +32,17 @@ export function NotificationSettings() {
 
   // Local state for form
   const [globalSettings, setGlobalSettings] = useState({
-    emailNotificationsEnabled: true,
-    pushNotificationsEnabled: true,
-    notifyOnEntry: true,
-    notifyOnExit: true,
-    notifyOnProfit: true,
-    notifyOnLoss: true,
-    quietHoursStart: '',
-    quietHoursEnd: '',
+    globalMute: false,
+    muteTradeExecuted: false,
+    muteTradeError: false,
+    mutePositionOpened: false,
+    mutePositionClosed: false,
+    muteWebhookFailed: false,
+    muteDailyDigest: false,
+    emailEnabled: true,
+    emailAddress: '',
+    inAppEnabled: true,
+    soundEnabled: true,
   });
 
   const [strategySettings, setStrategySettings] = useState<Record<number, { emailEnabled: boolean; pushEnabled: boolean }>>({});
@@ -45,14 +51,17 @@ export function NotificationSettings() {
   useEffect(() => {
     if (preferences) {
       setGlobalSettings({
-        emailNotificationsEnabled: preferences.global.emailNotificationsEnabled,
-        pushNotificationsEnabled: preferences.global.pushNotificationsEnabled,
-        notifyOnEntry: preferences.global.notifyOnEntry,
-        notifyOnExit: preferences.global.notifyOnExit,
-        notifyOnProfit: preferences.global.notifyOnProfit,
-        notifyOnLoss: preferences.global.notifyOnLoss,
-        quietHoursStart: preferences.global.quietHoursStart || '',
-        quietHoursEnd: preferences.global.quietHoursEnd || '',
+        globalMute: preferences.global.globalMute,
+        muteTradeExecuted: preferences.global.muteTradeExecuted,
+        muteTradeError: preferences.global.muteTradeError,
+        mutePositionOpened: preferences.global.mutePositionOpened,
+        mutePositionClosed: preferences.global.mutePositionClosed,
+        muteWebhookFailed: preferences.global.muteWebhookFailed,
+        muteDailyDigest: preferences.global.muteDailyDigest,
+        emailEnabled: preferences.global.emailEnabled,
+        emailAddress: preferences.global.emailAddress || '',
+        inAppEnabled: preferences.global.inAppEnabled,
+        soundEnabled: preferences.global.soundEnabled,
       });
       
       const stratSettings: Record<number, { emailEnabled: boolean; pushEnabled: boolean }> = {};
@@ -98,14 +107,17 @@ export function NotificationSettings() {
 
   const handleSaveGlobal = () => {
     updateGlobalMutation.mutate({
-      emailNotificationsEnabled: globalSettings.emailNotificationsEnabled,
-      pushNotificationsEnabled: globalSettings.pushNotificationsEnabled,
-      notifyOnEntry: globalSettings.notifyOnEntry,
-      notifyOnExit: globalSettings.notifyOnExit,
-      notifyOnProfit: globalSettings.notifyOnProfit,
-      notifyOnLoss: globalSettings.notifyOnLoss,
-      quietHoursStart: globalSettings.quietHoursStart || null,
-      quietHoursEnd: globalSettings.quietHoursEnd || null,
+      globalMute: globalSettings.globalMute,
+      muteTradeExecuted: globalSettings.muteTradeExecuted,
+      muteTradeError: globalSettings.muteTradeError,
+      mutePositionOpened: globalSettings.mutePositionOpened,
+      mutePositionClosed: globalSettings.mutePositionClosed,
+      muteWebhookFailed: globalSettings.muteWebhookFailed,
+      muteDailyDigest: globalSettings.muteDailyDigest,
+      emailEnabled: globalSettings.emailEnabled,
+      emailAddress: globalSettings.emailAddress || null,
+      inAppEnabled: globalSettings.inAppEnabled,
+      soundEnabled: globalSettings.soundEnabled,
     });
   };
 
@@ -123,164 +135,240 @@ export function NotificationSettings() {
 
   return (
     <div className="space-y-6">
-      {/* Global Notification Settings */}
-      <Card>
+      {/* Global Mute Toggle */}
+      <Card className={globalSettings.globalMute ? 'border-orange-500/50 bg-orange-500/5' : ''}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Bell className="h-5 w-5" />
-            Global Notification Settings
+            {globalSettings.globalMute ? (
+              <BellOff className="h-5 w-5 text-orange-500" />
+            ) : (
+              <Bell className="h-5 w-5" />
+            )}
+            Global Mute
           </CardTitle>
           <CardDescription>
-            Control how and when you receive notifications across all strategies
+            Quickly silence all notifications with one toggle
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Notification Channels */}
-          <div className="space-y-4">
-            <h4 className="text-sm font-medium text-muted-foreground">Notification Channels</h4>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="flex items-center justify-between p-4 rounded-lg border bg-card">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-full bg-blue-500/10">
-                    <Mail className="h-4 w-4 text-blue-500" />
-                  </div>
-                  <div>
-                    <Label className="font-medium">Email Notifications</Label>
-                    <p className="text-xs text-muted-foreground">Receive alerts via email</p>
-                  </div>
-                </div>
-                <Switch
-                  checked={globalSettings.emailNotificationsEnabled}
-                  onCheckedChange={(checked) => handleGlobalChange('emailNotificationsEnabled', checked)}
-                />
+        <CardContent>
+          <div className="flex items-center justify-between p-4 rounded-lg border bg-card">
+            <div className="flex items-center gap-3">
+              <div className={`p-2 rounded-full ${globalSettings.globalMute ? 'bg-orange-500/10' : 'bg-muted'}`}>
+                {globalSettings.globalMute ? (
+                  <BellOff className="h-4 w-4 text-orange-500" />
+                ) : (
+                  <Bell className="h-4 w-4 text-muted-foreground" />
+                )}
               </div>
-              <div className="flex items-center justify-between p-4 rounded-lg border bg-card">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-full bg-green-500/10">
-                    <Smartphone className="h-4 w-4 text-green-500" />
-                  </div>
-                  <div>
-                    <Label className="font-medium">Push Notifications</Label>
-                    <p className="text-xs text-muted-foreground">Receive in-app alerts</p>
-                  </div>
-                </div>
-                <Switch
-                  checked={globalSettings.pushNotificationsEnabled}
-                  onCheckedChange={(checked) => handleGlobalChange('pushNotificationsEnabled', checked)}
-                />
+              <div>
+                <Label className="font-medium">Mute All Notifications</Label>
+                <p className="text-xs text-muted-foreground">
+                  {globalSettings.globalMute ? 'All notifications are currently muted' : 'Notifications are enabled'}
+                </p>
               </div>
             </div>
-          </div>
-
-          <Separator />
-
-          {/* Notification Types */}
-          <div className="space-y-4">
-            <h4 className="text-sm font-medium text-muted-foreground">Notification Types</h4>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="flex items-center justify-between p-3 rounded-lg border">
-                <div className="flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4 text-green-500" />
-                  <Label>Trade Entries</Label>
-                </div>
-                <Switch
-                  checked={globalSettings.notifyOnEntry}
-                  onCheckedChange={(checked) => handleGlobalChange('notifyOnEntry', checked)}
-                />
-              </div>
-              <div className="flex items-center justify-between p-3 rounded-lg border">
-                <div className="flex items-center gap-2">
-                  <TrendingDown className="h-4 w-4 text-red-500" />
-                  <Label>Trade Exits</Label>
-                </div>
-                <Switch
-                  checked={globalSettings.notifyOnExit}
-                  onCheckedChange={(checked) => handleGlobalChange('notifyOnExit', checked)}
-                />
-              </div>
-              <div className="flex items-center justify-between p-3 rounded-lg border">
-                <div className="flex items-center gap-2">
-                  <DollarSign className="h-4 w-4 text-emerald-500" />
-                  <Label>Profitable Trades</Label>
-                </div>
-                <Switch
-                  checked={globalSettings.notifyOnProfit}
-                  onCheckedChange={(checked) => handleGlobalChange('notifyOnProfit', checked)}
-                />
-              </div>
-              <div className="flex items-center justify-between p-3 rounded-lg border">
-                <div className="flex items-center gap-2">
-                  <DollarSign className="h-4 w-4 text-red-500" />
-                  <Label>Losing Trades</Label>
-                </div>
-                <Switch
-                  checked={globalSettings.notifyOnLoss}
-                  onCheckedChange={(checked) => handleGlobalChange('notifyOnLoss', checked)}
-                />
-              </div>
-            </div>
-          </div>
-
-          <Separator />
-
-          {/* Quiet Hours */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-muted-foreground" />
-              <h4 className="text-sm font-medium text-muted-foreground">Quiet Hours (Optional)</h4>
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label>Start Time</Label>
-                <Input
-                  type="time"
-                  value={globalSettings.quietHoursStart}
-                  onChange={(e) => handleGlobalChange('quietHoursStart', e.target.value)}
-                  placeholder="22:00"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>End Time</Label>
-                <Input
-                  type="time"
-                  value={globalSettings.quietHoursEnd}
-                  onChange={(e) => handleGlobalChange('quietHoursEnd', e.target.value)}
-                  placeholder="07:00"
-                />
-              </div>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Notifications will be silenced during quiet hours (timezone: America/New_York)
-            </p>
-          </div>
-
-          {/* Save Button */}
-          <div className="flex justify-end">
-            <Button 
-              onClick={handleSaveGlobal} 
-              disabled={!hasChanges || updateGlobalMutation.isPending}
-              className="min-w-[140px]"
-            >
-              {updateGlobalMutation.isPending ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Saving...
-                </>
-              ) : saveSuccess ? (
-                <>
-                  <CheckCircle2 className="h-4 w-4 mr-2" />
-                  Saved!
-                </>
-              ) : (
-                <>
-                  <Save className="h-4 w-4 mr-2" />
-                  Save Changes
-                </>
-              )}
-            </Button>
+            <Switch
+              checked={globalSettings.globalMute}
+              onCheckedChange={(checked) => handleGlobalChange('globalMute', checked)}
+            />
           </div>
         </CardContent>
       </Card>
+
+      {/* Notification Channels */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Mail className="h-5 w-5" />
+            Notification Channels
+          </CardTitle>
+          <CardDescription>
+            Choose how you want to receive notifications
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="flex items-center justify-between p-4 rounded-lg border bg-card">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-full bg-blue-500/10">
+                  <Mail className="h-4 w-4 text-blue-500" />
+                </div>
+                <div>
+                  <Label className="font-medium">Email Notifications</Label>
+                  <p className="text-xs text-muted-foreground">Receive alerts via email</p>
+                </div>
+              </div>
+              <Switch
+                checked={globalSettings.emailEnabled}
+                onCheckedChange={(checked) => handleGlobalChange('emailEnabled', checked)}
+                disabled={globalSettings.globalMute}
+              />
+            </div>
+            <div className="flex items-center justify-between p-4 rounded-lg border bg-card">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-full bg-green-500/10">
+                  <Bell className="h-4 w-4 text-green-500" />
+                </div>
+                <div>
+                  <Label className="font-medium">In-App Notifications</Label>
+                  <p className="text-xs text-muted-foreground">Show notifications in dashboard</p>
+                </div>
+              </div>
+              <Switch
+                checked={globalSettings.inAppEnabled}
+                onCheckedChange={(checked) => handleGlobalChange('inAppEnabled', checked)}
+                disabled={globalSettings.globalMute}
+              />
+            </div>
+          </div>
+          
+          <div className="flex items-center justify-between p-4 rounded-lg border bg-card">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-full bg-purple-500/10">
+                {globalSettings.soundEnabled ? (
+                  <Volume2 className="h-4 w-4 text-purple-500" />
+                ) : (
+                  <VolumeX className="h-4 w-4 text-purple-500" />
+                )}
+              </div>
+              <div>
+                <Label className="font-medium">Sound Effects</Label>
+                <p className="text-xs text-muted-foreground">Play sound when notifications arrive</p>
+              </div>
+            </div>
+            <Switch
+              checked={globalSettings.soundEnabled}
+              onCheckedChange={(checked) => handleGlobalChange('soundEnabled', checked)}
+              disabled={globalSettings.globalMute}
+            />
+          </div>
+
+          {globalSettings.emailEnabled && (
+            <div className="space-y-2 pt-2">
+              <Label>Email Address (optional override)</Label>
+              <Input
+                type="email"
+                value={globalSettings.emailAddress}
+                onChange={(e) => handleGlobalChange('emailAddress', e.target.value)}
+                placeholder="Leave blank to use account email"
+                disabled={globalSettings.globalMute}
+              />
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Notification Type Muting */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <BellOff className="h-5 w-5" />
+            Mute by Type
+          </CardTitle>
+          <CardDescription>
+            Selectively mute specific notification types
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="flex items-center justify-between p-3 rounded-lg border">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-green-500" />
+                <Label>Trade Executed</Label>
+              </div>
+              <Switch
+                checked={globalSettings.muteTradeExecuted}
+                onCheckedChange={(checked) => handleGlobalChange('muteTradeExecuted', checked)}
+                disabled={globalSettings.globalMute}
+              />
+            </div>
+            <div className="flex items-center justify-between p-3 rounded-lg border">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-red-500" />
+                <Label>Trade Errors</Label>
+              </div>
+              <Switch
+                checked={globalSettings.muteTradeError}
+                onCheckedChange={(checked) => handleGlobalChange('muteTradeError', checked)}
+                disabled={globalSettings.globalMute}
+              />
+            </div>
+            <div className="flex items-center justify-between p-3 rounded-lg border">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-emerald-500" />
+                <Label>Position Opened</Label>
+              </div>
+              <Switch
+                checked={globalSettings.mutePositionOpened}
+                onCheckedChange={(checked) => handleGlobalChange('mutePositionOpened', checked)}
+                disabled={globalSettings.globalMute}
+              />
+            </div>
+            <div className="flex items-center justify-between p-3 rounded-lg border">
+              <div className="flex items-center gap-2">
+                <TrendingDown className="h-4 w-4 text-orange-500" />
+                <Label>Position Closed</Label>
+              </div>
+              <Switch
+                checked={globalSettings.mutePositionClosed}
+                onCheckedChange={(checked) => handleGlobalChange('mutePositionClosed', checked)}
+                disabled={globalSettings.globalMute}
+              />
+            </div>
+            <div className="flex items-center justify-between p-3 rounded-lg border">
+              <div className="flex items-center gap-2">
+                <Webhook className="h-4 w-4 text-yellow-500" />
+                <Label>Webhook Failed</Label>
+              </div>
+              <Switch
+                checked={globalSettings.muteWebhookFailed}
+                onCheckedChange={(checked) => handleGlobalChange('muteWebhookFailed', checked)}
+                disabled={globalSettings.globalMute}
+              />
+            </div>
+            <div className="flex items-center justify-between p-3 rounded-lg border">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-blue-500" />
+                <Label>Daily Digest</Label>
+              </div>
+              <Switch
+                checked={globalSettings.muteDailyDigest}
+                onCheckedChange={(checked) => handleGlobalChange('muteDailyDigest', checked)}
+                disabled={globalSettings.globalMute}
+              />
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Toggle ON to mute that notification type. When muted, you won't receive those notifications.
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* Save Button */}
+      <div className="flex justify-end">
+        <Button 
+          onClick={handleSaveGlobal} 
+          disabled={!hasChanges || updateGlobalMutation.isPending}
+          className="min-w-[140px]"
+        >
+          {updateGlobalMutation.isPending ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Saving...
+            </>
+          ) : saveSuccess ? (
+            <>
+              <CheckCircle2 className="h-4 w-4 mr-2" />
+              Saved!
+            </>
+          ) : (
+            <>
+              <Save className="h-4 w-4 mr-2" />
+              Save Changes
+            </>
+          )}
+        </Button>
+      </div>
 
       {/* Per-Strategy Settings */}
       <Card>
@@ -295,55 +383,42 @@ export function NotificationSettings() {
         </CardHeader>
         <CardContent>
           {strategies.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <Bell className="h-12 w-12 mx-auto mb-4 opacity-20" />
-              <p>No strategies available</p>
-              <p className="text-sm">Subscribe to strategies to configure their notifications</p>
-            </div>
+            <p className="text-sm text-muted-foreground text-center py-8">
+              No strategies available. Subscribe to strategies to configure their notifications.
+            </p>
           ) : (
             <div className="space-y-3">
-              {strategies.map((strategy) => {
-                const settings = strategySettings[strategy.id] || { emailEnabled: strategy.emailEnabled, pushEnabled: strategy.pushEnabled };
-                return (
-                  <div 
-                    key={strategy.id} 
-                    className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-full bg-primary/10">
-                        <TrendingUp className="h-4 w-4 text-primary" />
-                      </div>
-                      <div>
-                        <p className="font-medium">{strategy.name}</p>
-                        <p className="text-xs text-muted-foreground">{strategy.symbol}</p>
-                      </div>
+              {strategies.map((strategy) => (
+                <div 
+                  key={strategy.id}
+                  className="flex items-center justify-between p-4 rounded-lg border bg-card"
+                >
+                  <div className="flex items-center gap-3">
+                    <Badge variant="outline" className="font-mono">
+                      {strategy.symbol}
+                    </Badge>
+                    <span className="font-medium">{strategy.name}</span>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <Mail className="h-4 w-4 text-muted-foreground" />
+                      <Switch
+                        checked={strategySettings[strategy.id]?.emailEnabled ?? true}
+                        onCheckedChange={(checked) => handleStrategyToggle(strategy.id, 'emailEnabled', checked)}
+                        disabled={globalSettings.globalMute || !globalSettings.emailEnabled}
+                      />
                     </div>
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center gap-2">
-                        <Mail className="h-4 w-4 text-muted-foreground" />
-                        <Switch
-                          checked={settings.emailEnabled}
-                          onCheckedChange={(checked) => handleStrategyToggle(strategy.id, 'emailEnabled', checked)}
-                          disabled={!globalSettings.emailNotificationsEnabled}
-                        />
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Smartphone className="h-4 w-4 text-muted-foreground" />
-                        <Switch
-                          checked={settings.pushEnabled}
-                          onCheckedChange={(checked) => handleStrategyToggle(strategy.id, 'pushEnabled', checked)}
-                          disabled={!globalSettings.pushNotificationsEnabled}
-                        />
-                      </div>
-                      {(settings.emailEnabled || settings.pushEnabled) && (
-                        <Badge variant="secondary" className="ml-2">
-                          Active
-                        </Badge>
-                      )}
+                    <div className="flex items-center gap-2">
+                      <Bell className="h-4 w-4 text-muted-foreground" />
+                      <Switch
+                        checked={strategySettings[strategy.id]?.pushEnabled ?? true}
+                        onCheckedChange={(checked) => handleStrategyToggle(strategy.id, 'pushEnabled', checked)}
+                        disabled={globalSettings.globalMute || !globalSettings.inAppEnabled}
+                      />
                     </div>
                   </div>
-                );
-              })}
+                </div>
+              ))}
             </div>
           )}
         </CardContent>

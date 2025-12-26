@@ -882,15 +882,17 @@ export async function upsertNotificationPreferences(userId: number, prefs: Parti
   } else {
     await db.insert(notificationPreferences).values({
       userId,
-      emailNotificationsEnabled: prefs.emailNotificationsEnabled ?? true,
-      pushNotificationsEnabled: prefs.pushNotificationsEnabled ?? true,
-      notifyOnEntry: prefs.notifyOnEntry ?? true,
-      notifyOnExit: prefs.notifyOnExit ?? true,
-      notifyOnProfit: prefs.notifyOnProfit ?? true,
-      notifyOnLoss: prefs.notifyOnLoss ?? true,
-      quietHoursStart: prefs.quietHoursStart,
-      quietHoursEnd: prefs.quietHoursEnd,
-      quietHoursTimezone: prefs.quietHoursTimezone ?? 'America/New_York',
+      globalMute: prefs.globalMute ?? false,
+      muteTradeExecuted: prefs.muteTradeExecuted ?? false,
+      muteTradeError: prefs.muteTradeError ?? false,
+      mutePositionOpened: prefs.mutePositionOpened ?? false,
+      mutePositionClosed: prefs.mutePositionClosed ?? false,
+      muteWebhookFailed: prefs.muteWebhookFailed ?? false,
+      muteDailyDigest: prefs.muteDailyDigest ?? false,
+      emailEnabled: prefs.emailEnabled ?? true,
+      emailAddress: prefs.emailAddress,
+      inAppEnabled: prefs.inAppEnabled ?? true,
+      soundEnabled: prefs.soundEnabled ?? true,
     });
   }
 }
@@ -954,40 +956,51 @@ export async function upsertStrategyNotificationSetting(
 
 /**
  * Check if notifications are enabled for a user and strategy
- * Returns true if notifications should be sent
+ * Returns true if notifications should be sent based on type and mute settings
  */
 export async function shouldSendNotification(
   userId: number, 
   strategyId: number, 
-  type: 'entry' | 'exit' | 'profit' | 'loss'
-): Promise<{ email: boolean; push: boolean }> {
+  type: 'trade_executed' | 'trade_error' | 'position_opened' | 'position_closed' | 'webhook_failed' | 'daily_digest'
+): Promise<{ email: boolean; inApp: boolean }> {
   const prefs = await getNotificationPreferences(userId);
   const strategySettings = await getStrategyNotificationSetting(userId, strategyId);
   
   // Default to enabled if no preferences set
   if (!prefs) {
-    return { email: true, push: true };
+    return { email: true, inApp: true };
   }
   
-  // Check global toggles
-  const globalEmailEnabled = prefs.emailNotificationsEnabled;
-  const globalPushEnabled = prefs.pushNotificationsEnabled;
+  // Check global mute
+  if (prefs.globalMute) {
+    return { email: false, inApp: false };
+  }
   
-  // Check type-specific toggles
-  let typeEnabled = true;
+  // Check type-specific mute settings
+  let typeMuted = false;
   switch (type) {
-    case 'entry':
-      typeEnabled = prefs.notifyOnEntry;
+    case 'trade_executed':
+      typeMuted = prefs.muteTradeExecuted;
       break;
-    case 'exit':
-      typeEnabled = prefs.notifyOnExit;
+    case 'trade_error':
+      typeMuted = prefs.muteTradeError;
       break;
-    case 'profit':
-      typeEnabled = prefs.notifyOnProfit;
+    case 'position_opened':
+      typeMuted = prefs.mutePositionOpened;
       break;
-    case 'loss':
-      typeEnabled = prefs.notifyOnLoss;
+    case 'position_closed':
+      typeMuted = prefs.mutePositionClosed;
       break;
+    case 'webhook_failed':
+      typeMuted = prefs.muteWebhookFailed;
+      break;
+    case 'daily_digest':
+      typeMuted = prefs.muteDailyDigest;
+      break;
+  }
+  
+  if (typeMuted) {
+    return { email: false, inApp: false };
   }
   
   // Check strategy-specific settings (default to enabled if not set)
@@ -995,8 +1008,8 @@ export async function shouldSendNotification(
   const strategyPushEnabled = strategySettings?.pushEnabled ?? true;
   
   return {
-    email: globalEmailEnabled && typeEnabled && strategyEmailEnabled,
-    push: globalPushEnabled && typeEnabled && strategyPushEnabled,
+    email: prefs.emailEnabled && strategyEmailEnabled,
+    inApp: prefs.inAppEnabled && strategyPushEnabled,
   };
 }
 
