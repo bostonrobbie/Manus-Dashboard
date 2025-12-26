@@ -2787,6 +2787,86 @@ Please check the Webhooks page in your dashboard for more details.
       return getPositionPipelineStatus();
     }),
   }),
+
+  // In-app notifications router for notification bell
+  inAppNotifications: router({
+    /**
+     * Get user's notifications with optional filters
+     */
+    list: protectedProcedure
+      .input(z.object({
+        unreadOnly: z.boolean().optional().default(false),
+        limit: z.number().optional().default(20),
+        offset: z.number().optional().default(0),
+      }))
+      .query(async ({ ctx, input }) => {
+        const { getNotifications, getUnreadCount } = await import('./services/inAppNotificationService');
+        
+        const notifications = await getNotifications({
+          userId: ctx.user.id,
+          unreadOnly: input.unreadOnly,
+          limit: input.limit,
+          offset: input.offset,
+        });
+        
+        const unreadCount = await getUnreadCount(ctx.user.id);
+        
+        return {
+          notifications,
+          unreadCount,
+          hasMore: notifications.length === input.limit,
+        };
+      }),
+
+    /**
+     * Get unread notification count only (for badge)
+     */
+    unreadCount: protectedProcedure.query(async ({ ctx }) => {
+      const { getUnreadCount } = await import('./services/inAppNotificationService');
+      return { count: await getUnreadCount(ctx.user.id) };
+    }),
+
+    /**
+     * Mark a single notification as read
+     */
+    markAsRead: protectedProcedure
+      .input(z.object({ notificationId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const { markAsRead } = await import('./services/inAppNotificationService');
+        const success = await markAsRead(input.notificationId, ctx.user.id);
+        return { success };
+      }),
+
+    /**
+     * Mark all notifications as read
+     */
+    markAllAsRead: protectedProcedure.mutation(async ({ ctx }) => {
+      const { markAllAsRead } = await import('./services/inAppNotificationService');
+      const count = await markAllAsRead(ctx.user.id);
+      return { success: true, count };
+    }),
+
+    /**
+     * Delete a notification
+     */
+    delete: protectedProcedure
+      .input(z.object({ notificationId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const { deleteNotification } = await import('./services/inAppNotificationService');
+        const success = await deleteNotification(input.notificationId, ctx.user.id);
+        return { success };
+      }),
+
+    /**
+     * Clear all read notifications
+     */
+    clearRead: protectedProcedure.mutation(async ({ ctx }) => {
+      const { deleteOldNotifications } = await import('./services/inAppNotificationService');
+      // Delete read notifications older than 0 days (all read notifications)
+      const count = await deleteOldNotifications(0);
+      return { success: true, count };
+    }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;
