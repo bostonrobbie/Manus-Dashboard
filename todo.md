@@ -4165,6 +4165,7 @@
 
 
 ## Data Pipeline Comprehensive Audit (Dec 2024)
+- [x] Fix SQL query errors in QA dashboard (createdAt column name issue)
 - [x] Audit all data flows and identify pipeline gaps
 - [x] Create DATA_PIPELINE_GAPS_AUDIT.md documentation
 - [x] Pipeline validation service with CSV import validation

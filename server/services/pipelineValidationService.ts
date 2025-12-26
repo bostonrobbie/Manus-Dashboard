@@ -234,13 +234,14 @@ export async function getWebhookPipelineStatus(): Promise<WebhookPipelineStatus>
   const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
   
   // Get recent webhook stats
+  // Use sql template for date comparison to ensure proper column name handling
   const [webhookStats] = await db.select({
     total: sql<number>`COUNT(*)`,
     failed: sql<number>`SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END)`,
     avgTime: sql<number>`AVG(processing_time_ms)`,
   })
   .from(webhookLogs)
-  .where(gte(webhookLogs.createdAt, oneHourAgo));
+  .where(sql`${webhookLogs.createdAt} > ${oneHourAgo}`);
 
   const total = Number(webhookStats?.total) || 0;
   const failed = Number(webhookStats?.failed) || 0;
@@ -408,7 +409,7 @@ export async function getPositionPipelineStatus(): Promise<PositionPipelineStatu
   .from(openPositions)
   .where(and(
     eq(openPositions.status, 'open'),
-    lte(openPositions.entryTime, oneDayAgo)
+    sql`${openPositions.entryTime} < ${oneDayAgo}`
   ));
 
   // Count closed positions without trade IDs
