@@ -4068,3 +4068,41 @@
 - [x] View and resolve discrepancies
 - [x] View position adjustment history (audit log)
 
+
+
+## Data Pipeline Reliability Improvements (Dec 2025)
+
+### Audit & Documentation
+- [x] Conduct comprehensive audit of webhook-to-trade data pipeline
+- [x] Document all potential failure points in WEBHOOK_PIPELINE_AUDIT.md
+- [x] Identify critical issues (non-atomic operations, race conditions, WAL not integrated)
+
+### Critical Fixes Implemented
+- [x] Create database transaction utility module (server/lib/dbTransaction.ts)
+- [x] Implement withTransaction wrapper for atomic operations
+- [x] Implement withRetry wrapper with exponential backoff
+- [x] Add database health check function
+- [x] Create robust webhook processor V2 (server/webhookProcessorV2.ts)
+- [x] Add transaction support for entry signal processing
+- [x] Add transaction support for exit signal processing (atomic trade creation)
+- [x] Integrate WAL with main processing flow
+- [x] Fix trade ID retrieval (use insertId instead of query)
+- [x] Add getPool function to db.ts for transaction support
+- [x] Fix TypeScript errors in PositionManager.tsx
+
+### Testing
+- [x] Create comprehensive test suite for webhook processor V2
+- [x] Test transaction commit/rollback scenarios
+- [x] Test retry logic for transient failures
+- [x] Test WAL integration
+- [x] Test health check functionality
+- [x] All 818 tests passing
+
+### Remaining Improvements (Future)
+- [ ] Migrate main webhook endpoint to use processWebhookRobust
+- [ ] Add monitoring dashboard for webhook processing metrics
+- [ ] Add alerting for high failure rates
+- [ ] Persist idempotency keys to database (currently in-memory)
+- [ ] Add P&L validation (compare provided vs calculated)
+- [ ] Add WAL replay UI for failed webhooks
+

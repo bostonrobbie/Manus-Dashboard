@@ -31,6 +31,11 @@ export async function getDb() {
   return _db;
 }
 
+// Get the connection pool for transaction support
+export function getPool(): mysql.Pool | null {
+  return _pool;
+}
+
 // Reset the database connection (useful for recovery from connection errors)
 export async function resetDbConnection() {
   if (_pool) {

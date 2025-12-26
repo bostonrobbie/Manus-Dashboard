@@ -31,31 +31,31 @@ export function PositionManager() {
   
   // Queries
   const { data: positions, isLoading: positionsLoading, refetch: refetchPositions } = 
-    trpc.admin.getOpenPositions.useQuery();
+    trpc.webhook.getOpenPositions.useQuery();
   const { data: discrepancies, isLoading: discrepanciesLoading, refetch: refetchDiscrepancies } = 
-    trpc.admin.getDiscrepancies.useQuery();
+    trpc.webhook.getDiscrepancies.useQuery();
   const { data: adjustmentHistory, isLoading: historyLoading } = 
-    trpc.admin.getAdjustmentHistory.useQuery();
+    trpc.webhook.getAdjustmentHistory.useQuery();
   
   // Mutations
-  const forceCloseMutation = trpc.admin.forceClosePosition.useMutation({
+  const forceCloseMutation = trpc.webhook.forceClosePosition.useMutation({
     onSuccess: () => {
       toast.success("Position force closed successfully");
       setIsForceCloseOpen(false);
       setForceCloseReason("");
       refetchPositions();
     },
-    onError: (error) => {
+    onError: (error: { message: string }) => {
       toast.error(`Failed to force close: ${error.message}`);
     },
   });
   
-  const resolveDiscrepancyMutation = trpc.admin.resolveDiscrepancy.useMutation({
+  const resolveDiscrepancyMutation = trpc.webhook.resolveDiscrepancy.useMutation({
     onSuccess: () => {
       toast.success("Discrepancy resolved");
       refetchDiscrepancies();
     },
-    onError: (error) => {
+    onError: (error: { message: string }) => {
       toast.error(`Failed to resolve: ${error.message}`);
     },
   });
@@ -146,7 +146,7 @@ export function PositionManager() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {positions.map((pos) => (
+                    {positions.map((pos: { id: number; strategySymbol: string; direction: string; quantity: number; entryPrice: number; entryTime: string | Date; status: string }) => (
                       <TableRow key={pos.id}>
                         <TableCell className="font-medium">{pos.strategySymbol}</TableCell>
                         <TableCell>
@@ -259,7 +259,7 @@ export function PositionManager() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {discrepancies.map((disc) => (
+                    {discrepancies.map((disc: { id: number; symbol: string; discrepancyType: string; dbDirection?: string; dbQuantity?: number; brokerDirection?: string; brokerQuantity?: number; discrepancyDetails?: string }) => (
                       <TableRow key={disc.id}>
                         <TableCell className="font-medium">{disc.symbol}</TableCell>
                         <TableCell>
@@ -343,7 +343,7 @@ export function PositionManager() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {adjustmentHistory.map((adj) => (
+                    {adjustmentHistory.map((adj: { id: number; createdAt: string | Date; strategySymbol: string; adjustmentType: string; beforeDirection?: string; beforeQuantity?: number; afterDirection?: string; afterQuantity?: number; reason: string; adjustedBy: string }) => (
                       <TableRow key={adj.id}>
                         <TableCell>{formatDate(adj.createdAt)}</TableCell>
                         <TableCell className="font-medium">{adj.strategySymbol}</TableCell>
