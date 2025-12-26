@@ -518,8 +518,8 @@ async function processExitSignalWithTransaction(
     // Insert trade record (skip for test webhooks)
     if (!isTestWebhook) {
       const [tradeResult] = await connection.execute(
-        `INSERT INTO trades (strategyId, entryDate, exitDate, direction, entryPrice, exitPrice, quantity, pnl, pnlPercent, commission, isTest, createdAt)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, NOW())`,
+        `INSERT INTO trades (strategyId, entryDate, exitDate, direction, entryPrice, exitPrice, quantity, pnl, pnlPercent, commission, isTest, source, createdAt)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, 'webhook', NOW())`,
         [
           strategy.id,
           openPosition.entryTime,

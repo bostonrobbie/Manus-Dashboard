@@ -813,6 +813,7 @@ async function handleExitSignal(
     pnlPercent,
     commission: 0,
     isTest: payload.isTest,
+    source: 'webhook',
   });
 
   // Invalidate portfolio caches after new trade

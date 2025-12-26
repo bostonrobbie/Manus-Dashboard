@@ -289,6 +289,7 @@ export async function insertTrade(trade: {
   pnlPercent: number;
   commission: number;
   isTest?: boolean;
+  source?: 'csv_import' | 'webhook' | 'manual';
 }) {
   const db = await getDb();
   if (!db) {

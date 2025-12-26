@@ -25,7 +25,8 @@
  * - Risk management and position tracking
  */
 
-import { ENV } from "./_core/env";
+// ENV import available if needed for configuration
+// import { ENV } from "./_core/env";
 
 // ============================================================================
 // CONFIGURATION
@@ -153,7 +154,7 @@ export class TradovateClient {
   private accessToken: string | null = null;
   private mdAccessToken: string | null = null;
   private tokenExpiration: Date | null = null;
-  private _userId: number | null = null;
+  private userId: number | null = null;
   private isDemo: boolean = true;
   
   constructor(isDemo: boolean = true) {
@@ -163,7 +164,10 @@ export class TradovateClient {
   /**
    * Get the base API URL based on environment
    */
-  private get baseUrl(): string {
+  /**
+   * Get the base API URL based on environment
+   */
+  getBaseUrl(): string {
     return this.isDemo 
       ? TRADOVATE_CONFIG.DEMO_API_URL 
       : TRADOVATE_CONFIG.LIVE_API_URL;
@@ -185,7 +189,7 @@ export class TradovateClient {
       console.log(`[Tradovate] Authenticating user: ${credentials.username}`);
       
       // Build auth request body
-      const body = {
+      const authBody = {
         name: credentials.username,
         password: credentials.password,
         appId: credentials.appId || "Manus-Intraday-Dashboard",
@@ -195,20 +199,27 @@ export class TradovateClient {
         deviceId: this.generateDeviceId(),
       };
       
+      // Log the auth request (without sensitive data)
+      console.log(`[Tradovate] Auth request to: ${this.getBaseUrl()}/auth/accesstokenrequest`);
+      console.log(`[Tradovate] Auth body keys: ${Object.keys(authBody).join(', ')}`);
+      
       // TODO: Make actual API call
-      // const response = await fetch(`${this.baseUrl}/auth/accesstokenrequest`, {
+      // const response = await fetch(`${this.getBaseUrl()}/auth/accesstokenrequest`, {
       //   method: "POST",
       //   headers: { "Content-Type": "application/json" },
-      //   body: JSON.stringify(body),
+      //   body: JSON.stringify(authBody),
       // });
       // const data: TradovateAuthResponse = await response.json();
       
       // For now, simulate successful auth (framework only)
       console.log("[Tradovate] Authentication simulated (framework mode)");
       
+      // Store simulated user ID
+      this.userId = 12345;
+      
       return {
         success: true,
-        userId: 12345,
+        userId: this.userId,
         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
       };
     } catch (error) {
@@ -281,8 +292,8 @@ export class TradovateClient {
     
     try {
       // TODO: Implement actual API call
-      // GET /position/list
-      console.log("[Tradovate] Get positions simulated");
+      // GET /position/list?accountId={accountId}
+      console.log(`[Tradovate] Get positions for account ${accountId} simulated`);
       return [];
     } catch (error) {
       console.error("[Tradovate] Failed to get positions:", error);
@@ -403,8 +414,22 @@ export class TradovateClient {
     this.accessToken = null;
     this.mdAccessToken = null;
     this.tokenExpiration = null;
-    this._userId = null;
+    this.userId = null;
     console.log("[Tradovate] Disconnected");
+  }
+  
+  /**
+   * Get the current user ID (if authenticated)
+   */
+  getUserId(): number | null {
+    return this.userId;
+  }
+  
+  /**
+   * Get the market data access token
+   */
+  getMdAccessToken(): string | null {
+    return this.mdAccessToken;
   }
   
   /**

@@ -4314,3 +4314,18 @@
 - [ ] Add source field to trades table to track data origin (webhook vs CSV)
 - [ ] Create integration tests for validation with mixed data sources
 - [ ] Add pre-commit hooks for TypeScript type checking
+
+
+## Trade Source Tracking (Dec 26, 2025)
+- [x] Add source field to trades table schema (csv_import, webhook, manual)
+- [x] Update CSV import to set source='csv_import' (default value)
+- [x] Update webhook handler to set source='webhook'
+- [x] Update webhookProcessorV2 to set source='webhook'
+
+## Tradovate Broker Integration (Dec 26, 2025)
+- [x] Research Tradovate API documentation
+- [x] Fix unused parameters in tradovateService.ts
+- [x] Fix unused parameters in tradovateApi.ts
+- [ ] Implement OAuth flow for Tradovate (framework ready)
+- [ ] Implement order placement functionality (framework ready)
+- [ ] Test Tradovate connection (requires user credentials)

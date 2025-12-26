@@ -282,6 +282,13 @@ export class TradovateApiClient {
   }
   
   /**
+   * Get the authenticated user's ID
+   */
+  getUserId(): number | null {
+    return this.userId;
+  }
+  
+  /**
    * Refresh access token if needed
    */
   async refreshTokenIfNeeded(): Promise<boolean> {

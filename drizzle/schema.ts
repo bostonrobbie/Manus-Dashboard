@@ -64,6 +64,7 @@ export const trades = mysqlTable("trades", {
   pnlPercent: int("pnlPercent").notNull(), // P&L as percentage (multiply by 10000, e.g., 1.5% = 15000)
   commission: int("commission").default(0).notNull(), // Commission in cents
   isTest: boolean("isTest").default(false).notNull(), // Test data flag - excluded from analytics
+  source: mysqlEnum("source", ["csv_import", "webhook", "manual"]).default("csv_import").notNull(), // Trade source for validation
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 }, (table) => ({
   strategyIdx: index("idx_trades_strategy").on(table.strategyId),
