@@ -1,97 +1,45 @@
-import { TRPCError, initTRPC } from "@trpc/server";
+import { NOT_ADMIN_ERR_MSG, UNAUTHED_ERR_MSG } from '@shared/const';
+import { initTRPC, TRPCError } from "@trpc/server";
+import superjson from "superjson";
+import type { TrpcContext } from "./context";
 
-import { captureException } from "../monitoring/monitor";
-import { createLogger } from "../utils/logger";
-import type { Context } from "./context";
-
-const logger = createLogger("trpc");
-
-export const trpcErrorFormatter = ({ shape, error }: { shape: any; error: TRPCError }) => {
-  const isAuthError = error.code === "UNAUTHORIZED" || error.code === "FORBIDDEN";
-  const isClientError = isAuthError || error.code === "BAD_REQUEST";
-  const reason = (error.cause as any)?.reason ?? (error.cause instanceof Error ? error.cause.message : undefined);
-
-  return {
-    ...shape,
-    message: isClientError ? error.message : "Internal server error",
-    data: {
-      ...shape.data,
-      code: error.code,
-      auth: isAuthError,
-      reason,
-    },
-  };
-};
-
-const t = initTRPC.context<Context>().create({
-  errorFormatter: trpcErrorFormatter,
-});
-
-const errorHandlingMiddleware = t.middleware(async ({ ctx, next, path }) => {
-  try {
-    return await next();
-  } catch (err) {
-    const error = err as Error;
-    const meta = {
-      endpoint: path,
-      userId: ctx.user?.id,
-      message: error.message,
-      stack: error.stack,
-      timestamp: new Date().toISOString(),
-    };
-
-    logger.error("tRPC endpoint failed", meta);
-    captureException(error, { endpoint: path, userId: ctx.user?.id });
-
-    if (error instanceof TRPCError) {
-      throw new TRPCError({
-        code: error.code,
-        message: error.message,
-        cause: error.cause ?? error,
-      });
-    }
-
-    throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Internal server error", cause: error });
-  }
+const t = initTRPC.context<TrpcContext>().create({
+  transformer: superjson,
 });
 
 export const router = t.router;
-const baseProcedure = t.procedure.use(errorHandlingMiddleware);
-export const publicProcedure = baseProcedure;
+export const publicProcedure = t.procedure;
 
-const enforceUser = t.middleware(({ ctx, next }) => {
+const requireUser = t.middleware(async opts => {
+  const { ctx, next } = opts;
+
   if (!ctx.user) {
-    throw new TRPCError({ code: "UNAUTHORIZED", message: "Authentication required" });
+    throw new TRPCError({ code: "UNAUTHORIZED", message: UNAUTHED_ERR_MSG });
   }
-  return next({ ctx: { ...ctx, user: ctx.user } });
+
+  return next({
+    ctx: {
+      ...ctx,
+      user: ctx.user,
+    },
+  });
 });
 
-export const protectedProcedure = baseProcedure.use(enforceUser);
+export const protectedProcedure = t.procedure.use(requireUser);
 
-export function requireUser(ctx: Context) {
-  if (!ctx.user) {
-    logger.warn("Unauthenticated access blocked", {
-      endpoint: ctx.req?.url,
-      mode: ctx.auth.mode,
-      timestamp: new Date().toISOString(),
-    });
-    throw new TRPCError({ code: "UNAUTHORIZED", message: "Authentication required" });
-  }
-  return ctx.user;
-}
+export const adminProcedure = t.procedure.use(
+  t.middleware(async opts => {
+    const { ctx, next } = opts;
 
-export function requireAdmin(ctx: Context) {
-  const user = requireUser(ctx);
-  const role = user.role;
-  const isAdminRole = role === "admin" || user.roles?.some(r => r?.toLowerCase().includes("admin"));
-  if (!isAdminRole) {
-    logger.warn("Forbidden admin access attempt", {
-      endpoint: ctx.req?.url,
-      userId: user.id,
-      userRole: role,
-      timestamp: new Date().toISOString(),
+    if (!ctx.user || ctx.user.role !== 'admin') {
+      throw new TRPCError({ code: "FORBIDDEN", message: NOT_ADMIN_ERR_MSG });
+    }
+
+    return next({
+      ctx: {
+        ...ctx,
+        user: ctx.user,
+      },
     });
-    throw new TRPCError({ code: "FORBIDDEN", message: "Admin privileges required" });
-  }
-  return user;
-}
+  }),
+);

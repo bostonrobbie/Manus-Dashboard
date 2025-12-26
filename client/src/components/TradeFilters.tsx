@@ -1,140 +1,191 @@
-import { useMemo } from "react";
+import { useState } from 'react';
+import { Card } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Download, Filter, X } from 'lucide-react';
 
-import type { StrategySummary } from "@shared/types/portfolio";
-
-import { Button } from "./ui/button";
-
-export interface TradeFiltersValue {
+export interface TradeFilterState {
   startDate?: string;
   endDate?: string;
-  symbols?: string[];
-  strategyIds?: number[];
-  side?: "all" | "long" | "short";
-  outcome?: "all" | "win" | "loss";
+  direction?: 'long' | 'short' | 'all';
+  minPnl?: number;
+  maxPnl?: number;
+  strategyId?: number;
 }
 
 interface TradeFiltersProps {
-  strategies?: StrategySummary[];
-  value: TradeFiltersValue;
-  onChange: (value: TradeFiltersValue) => void;
-  onReset?: () => void;
+  filters: TradeFilterState;
+  onFiltersChange: (filters: TradeFilterState) => void;
+  onExportCSV: () => void;
+  strategies?: Array<{ id: number; name: string }>;
+  totalTrades: number;
+  filteredTrades: number;
 }
 
-function parseSymbolInput(input?: string): string[] | undefined {
-  if (!input) return undefined;
-  const parts = input
-    .split(",")
-    .map(token => token.trim().toUpperCase())
-    .filter(Boolean);
-  return parts.length ? Array.from(new Set(parts)) : undefined;
-}
+export function TradeFilters({
+  filters,
+  onFiltersChange,
+  onExportCSV,
+  strategies,
+  totalTrades,
+  filteredTrades,
+}: TradeFiltersProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
 
-export function TradeFilters({ strategies = [], value, onChange, onReset }: TradeFiltersProps) {
-  const symbolInput = useMemo(() => (value.symbols ?? []).join(","), [value.symbols]);
+  const handleReset = () => {
+    onFiltersChange({});
+  };
+
+  const hasActiveFilters = Object.keys(filters).length > 0;
 
   return (
-    <div className="grid grid-cols-1 gap-3 md:grid-cols-5">
-      <div className="flex flex-col gap-1 text-sm">
-        <label className="text-xs uppercase tracking-wide text-slate-500">Symbols</label>
-        <input
-          className="rounded-md border border-slate-200 px-3 py-2 text-sm"
-          placeholder="e.g. ES, NQ"
-          value={symbolInput}
-          onChange={event =>
-            onChange({
-              ...value,
-              symbols: parseSymbolInput(event.target.value),
-            })
-          }
-        />
-      </div>
-      <div className="flex flex-col gap-1 text-sm">
-        <label className="text-xs uppercase tracking-wide text-slate-500">Strategies</label>
-        <select
-          multiple
-          className="rounded-md border border-slate-200 px-3 py-2 text-sm"
-          value={(value.strategyIds ?? []).map(String)}
-          onChange={event => {
-            const selected = Array.from(event.target.selectedOptions).map(option => Number(option.value));
-            onChange({ ...value, strategyIds: selected.length ? selected : undefined });
-          }}
-        >
-          {strategies.map(strategy => (
-            <option key={strategy.id} value={strategy.id}>
-              {strategy.name}
-            </option>
-          ))}
-        </select>
-        <p className="text-[11px] text-slate-500">Hold Ctrl/Cmd to select multiple.</p>
-      </div>
-      <div className="flex flex-col gap-1 text-sm">
-        <label className="text-xs uppercase tracking-wide text-slate-500">Side</label>
-        <select
-          className="rounded-md border border-slate-200 px-3 py-2 text-sm"
-          value={value.side ?? "all"}
-          onChange={event =>
-            onChange({
-              ...value,
-              side: event.target.value as TradeFiltersValue["side"],
-            })
-          }
-        >
-          <option value="all">All</option>
-          <option value="long">Long</option>
-          <option value="short">Short</option>
-        </select>
-      </div>
-      <div className="flex flex-col gap-1 text-sm">
-        <label className="text-xs uppercase tracking-wide text-slate-500">Outcome</label>
-        <select
-          className="rounded-md border border-slate-200 px-3 py-2 text-sm"
-          value={value.outcome ?? "all"}
-          onChange={event =>
-            onChange({
-              ...value,
-              outcome: event.target.value as TradeFiltersValue["outcome"],
-            })
-          }
-        >
-          <option value="all">All</option>
-          <option value="win">Winning</option>
-          <option value="loss">Losing</option>
-        </select>
-      </div>
-      <div className="grid grid-cols-2 gap-2 text-sm md:grid-cols-1">
-        <div className="flex flex-col gap-1">
-          <label className="text-xs uppercase tracking-wide text-slate-500">Start date</label>
-          <input
-            type="date"
-            className="rounded-md border border-slate-200 px-3 py-2 text-sm"
-            value={value.startDate ?? ""}
-            onChange={event => onChange({ ...value, startDate: event.target.value || undefined })}
-          />
-        </div>
-        <div className="flex flex-col gap-1">
-          <label className="text-xs uppercase tracking-wide text-slate-500">End date</label>
-          <input
-            type="date"
-            className="rounded-md border border-slate-200 px-3 py-2 text-sm"
-            value={value.endDate ?? ""}
-            onChange={event => onChange({ ...value, endDate: event.target.value || undefined })}
-          />
-        </div>
-        <div className="flex items-end justify-end gap-2 md:col-span-1 md:flex-col md:items-start">
+    <Card className="p-4 space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
           <Button
             variant="outline"
             size="sm"
-            onClick={() => {
-              onChange({});
-              onReset?.();
-            }}
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="gap-2"
           >
-            Reset
+            <Filter className="h-4 w-4" />
+            {isExpanded ? 'Hide Filters' : 'Show Filters'}
           </Button>
+          
+          {hasActiveFilters && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleReset}
+              className="gap-2"
+            >
+              <X className="h-4 w-4" />
+              Clear Filters
+            </Button>
+          )}
+          
+          <span className="text-sm text-muted-foreground">
+            Showing {filteredTrades.toLocaleString()} of {totalTrades.toLocaleString()} trades
+          </span>
         </div>
+
+        <Button
+          variant="default"
+          size="sm"
+          onClick={onExportCSV}
+          className="gap-2"
+        >
+          <Download className="h-4 w-4" />
+          Export CSV
+        </Button>
       </div>
-    </div>
+
+      {isExpanded && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-4 border-t">
+          <div className="space-y-2">
+            <Label htmlFor="start-date">Start Date</Label>
+            <Input
+              id="start-date"
+              type="date"
+              value={filters.startDate || ''}
+              onChange={(e) => onFiltersChange({ ...filters, startDate: e.target.value || undefined })}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="end-date">End Date</Label>
+            <Input
+              id="end-date"
+              type="date"
+              value={filters.endDate || ''}
+              onChange={(e) => onFiltersChange({ ...filters, endDate: e.target.value || undefined })}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="direction">Direction</Label>
+            <Select
+              value={filters.direction || 'all'}
+              onValueChange={(value) => 
+                onFiltersChange({ 
+                  ...filters, 
+                  direction: value === 'all' ? undefined : value as 'long' | 'short' 
+                })
+              }
+            >
+              <SelectTrigger id="direction">
+                <SelectValue placeholder="All" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="long">Long</SelectItem>
+                <SelectItem value="short">Short</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="min-pnl">Min P&L ($)</Label>
+            <Input
+              id="min-pnl"
+              type="number"
+              placeholder="e.g., -1000"
+              value={filters.minPnl ?? ''}
+              onChange={(e) => 
+                onFiltersChange({ 
+                  ...filters, 
+                  minPnl: e.target.value ? parseFloat(e.target.value) : undefined 
+                })
+              }
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="max-pnl">Max P&L ($)</Label>
+            <Input
+              id="max-pnl"
+              type="number"
+              placeholder="e.g., 5000"
+              value={filters.maxPnl ?? ''}
+              onChange={(e) => 
+                onFiltersChange({ 
+                  ...filters, 
+                  maxPnl: e.target.value ? parseFloat(e.target.value) : undefined 
+                })
+              }
+            />
+          </div>
+
+          {strategies && strategies.length > 0 && (
+            <div className="space-y-2">
+              <Label htmlFor="strategy">Strategy</Label>
+              <Select
+                value={filters.strategyId?.toString() || 'all'}
+                onValueChange={(value) => 
+                  onFiltersChange({ 
+                    ...filters, 
+                    strategyId: value === 'all' ? undefined : parseInt(value) 
+                  })
+                }
+              >
+                <SelectTrigger id="strategy">
+                  <SelectValue placeholder="All Strategies" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Strategies</SelectItem>
+                  {strategies.map((strategy) => (
+                    <SelectItem key={strategy.id} value={strategy.id.toString()}>
+                      {strategy.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+        </div>
+      )}
+    </Card>
   );
 }
-
-export default TradeFilters;

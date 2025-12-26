@@ -1,526 +1,415 @@
-import { useEffect, useMemo, useState } from "react";
-import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { useState, useMemo } from "react";
+import { trpc } from "@/lib/trpc";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { Loader2, TrendingUp, ArrowRight, Zap, Fuel, Bitcoin, Coins, Landmark, Activity } from "lucide-react";
+import { Link } from "wouter";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
-import { trpc } from "../lib/trpc";
-import { useDashboardState } from "../providers/DashboardProvider";
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
-import { Badge } from "../components/ui/badge";
-import MetricCard from "../components/MetricCard";
+type TimeRange = 'YTD' | '1Y' | '3Y' | '5Y' | '10Y' | 'ALL';
 
-type SortKey =
-  | "name"
-  | "totalReturn"
-  | "totalReturnPct"
-  | "maxDrawdown"
-  | "maxDrawdownPct"
-  | "sharpeRatio"
-  | "profitFactor"
-  | "expectancy"
-  | "totalTrades";
-
-type SortOrder = "asc" | "desc";
-
-// Enhanced strategy colors for better visibility
-const STRATEGY_COLORS = [
-  "#3b82f6", "#22c55e", "#f59e0b", "#ef4444", "#8b5cf6",
-  "#06b6d4", "#ec4899", "#84cc16", "#f97316", "#14b8a6"
-];
-
-// Custom tooltip for charts
-const CustomTooltip = ({ active, payload, label, currency }: any) => {
-  if (!active || !payload || !payload.length) return null;
-  
-  return (
-    <div className="bg-[#1e1e1e] border border-[#3a3a3a] rounded-lg p-3 shadow-xl">
-      <p className="text-white font-semibold text-sm mb-1">{label}</p>
-      <p className="text-emerald-400 font-medium">
-        {currency.format(payload[0].value)}
-      </p>
-    </div>
-  );
+// Format large numbers with K/M suffix
+const formatCurrency = (value: number): string => {
+  const absValue = Math.abs(value);
+  if (absValue >= 1000000) {
+    return `$${(value / 1000000).toFixed(1)}M`;
+  } else if (absValue >= 1000) {
+    return `$${(value / 1000).toFixed(0)}K`;
+  } else {
+    return `$${value.toFixed(0)}`;
+  }
 };
 
-function StrategiesPage() {
-  const { timeRange } = useDashboardState();
-  const [sortBy, setSortBy] = useState<SortKey>("totalReturn");
-  const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
-  const [selectedStrategyId, setSelectedStrategyId] = useState<number | null>(null);
+const STRATEGY_COLORS = [
+  '#3b82f6', // blue
+  '#10b981', // green
+  '#f59e0b', // amber
+  '#ef4444', // red
+  '#8b5cf6', // violet
+  '#ec4899', // pink
+  '#14b8a6', // teal
+  '#f97316', // orange
+];
 
-  const strategiesQuery = trpc.portfolio.strategyComparison.useQuery(
+export default function Strategies() {
+  const [timeRange, setTimeRange] = useState<TimeRange>('1Y');
+  const [hiddenStrategies, setHiddenStrategies] = useState<Set<string>>(new Set());
+  const { data: strategies, isLoading, error } = trpc.portfolio.listStrategies.useQuery();
+  
+  // Get all strategies comparison data for the chart
+  const { data: comparisonData, isLoading: isLoadingComparison, error: comparisonError } = trpc.portfolio.compareStrategies.useQuery(
     {
-      page: 1,
-      pageSize: 25,
-      sortBy,
-      sortOrder,
-      filterType: "all",
-      timeRange,
+      strategyIds: strategies?.map(s => s.id) || [],
+      timeRange: timeRange,
+      startingCapital: 100000,
     },
-    { retry: 1 },
-  );
-  const tradesQuery = trpc.portfolio.trades.useQuery({ timeRange, page: 1, pageSize: 200 }, { retry: 1 });
-  const strategyEquityQuery = trpc.portfolio.strategyEquity.useQuery(
-    { strategyId: selectedStrategyId ?? 0, timeRange, maxPoints: 120 },
-    { enabled: selectedStrategyId != null },
-  );
-  const summaryQuery = trpc.analytics.summary.useQuery({ timeRange }, { retry: 1 });
-
-  const selectedTrades = useMemo(
-    () => tradesQuery.data?.rows?.filter(trade => trade.strategyId === selectedStrategyId) ?? [],
-    [selectedStrategyId, tradesQuery.data],
-  );
-
-  const handleSort = (key: SortKey) => {
-    if (sortBy === key) {
-      setSortOrder(prev => (prev === "asc" ? "desc" : "asc"));
-    } else {
-      setSortBy(key);
-      setSortOrder("desc");
+    {
+      enabled: !!strategies && strategies.length > 0,
+      retry: false, // Don't retry on timeout
+      staleTime: 5 * 60 * 1000, // Cache for 5 minutes
     }
+  );
+  
+  // Build a map of strategy first/last trade dates from listStrategies data
+  const strategyDateRanges: Record<string, { firstTradeDate: Date | null; lastTradeDate: Date | null }> = {};
+  strategies?.forEach((strat) => {
+    const stratKey = strat.symbol || `strategy${strat.id}`;
+    const firstDate = strat.firstTradeDate ? new Date(strat.firstTradeDate) : null;
+    const lastDate = strat.lastTradeDate ? new Date(strat.lastTradeDate) : null;
+    strategyDateRanges[stratKey] = {
+      firstTradeDate: firstDate,
+      lastTradeDate: lastDate,
+    };
+  });
+  
+  // Build chart data by collecting all unique dates from all strategies
+  // and mapping each strategy's equity at each date
+  const chartData = (() => {
+    if (!comparisonData?.strategies?.length) return [];
+    
+    // Collect all unique dates from all strategies
+    const allDatesSet = new Set<number>();
+    comparisonData.strategies.forEach(strat => {
+      strat.equityCurve?.forEach(point => {
+        allDatesSet.add(new Date(point.date).getTime());
+      });
+    });
+    
+    // Sort dates
+    const allDates = Array.from(allDatesSet).sort((a, b) => a - b);
+    
+    // Sample if too many points
+    const sampleEvery = allDates.length > 500 ? Math.ceil(allDates.length / 500) : 1;
+    const sampledDates = allDates.filter((_, i) => i % sampleEvery === 0);
+    
+    // Build equity lookup maps for each strategy (date timestamp -> equity)
+    const equityMaps: Record<string, Map<number, number>> = {};
+    comparisonData.strategies.forEach((strat, stratIndex) => {
+      const stratKey = strat.symbol || `strategy${stratIndex}`;
+      const map = new Map<number, number>();
+      strat.equityCurve?.forEach(point => {
+        map.set(new Date(point.date).getTime(), point.equity);
+      });
+      equityMaps[stratKey] = map;
+    });
+    
+    // Track last known equity for forward-filling within valid range
+    const lastKnownEquity: Record<string, number> = {};
+    
+    return sampledDates.map(dateTs => {
+      const pointDate = new Date(dateTs);
+      const point: any = {
+        date: pointDate.toLocaleDateString(undefined, { month: 'short', year: '2-digit' }),
+        _dateTs: dateTs, // Keep for sorting/debugging
+      };
+      
+      comparisonData.strategies.forEach((strat, stratIndex) => {
+        const stratKey = strat.symbol || `strategy${stratIndex}`;
+        const dateRange = strategyDateRanges[stratKey];
+        
+        // Don't plot before the strategy's first trade date or after the last trade date
+        if (dateRange) {
+          if (dateRange.firstTradeDate && pointDate < dateRange.firstTradeDate) {
+            point[stratKey] = undefined;
+            return;
+          }
+          if (dateRange.lastTradeDate && pointDate > dateRange.lastTradeDate) {
+            point[stratKey] = undefined;
+            return;
+          }
+        }
+        
+        const equityMap = equityMaps[stratKey];
+        const equity = equityMap?.get(dateTs);
+        
+        if (equity !== undefined) {
+          // Use actual equity value and update last known
+          lastKnownEquity[stratKey] = equity;
+          point[stratKey] = equity;
+        } else if (lastKnownEquity[stratKey] !== undefined) {
+          // Use last known equity value (only within valid range)
+          point[stratKey] = lastKnownEquity[stratKey];
+        } else {
+          // No data yet, use undefined to not plot
+          point[stratKey] = undefined;
+        }
+      });
+      
+      return point;
+    });
+  })();
+
+  const toggleStrategy = (symbol: string) => {
+    setHiddenStrategies(prev => {
+      const next = new Set(prev);
+      if (next.has(symbol)) {
+        next.delete(symbol);
+      } else {
+        next.add(symbol);
+      }
+      return next;
+    });
   };
 
-  const currency = useMemo(
-    () =>
-      new Intl.NumberFormat(undefined, {
-        style: "currency",
-        currency: "USD",
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }),
-    [],
-  );
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
-  const percent = useMemo(
-    () =>
-      new Intl.NumberFormat(undefined, {
-        style: "percent",
-        minimumFractionDigits: 1,
-        maximumFractionDigits: 2,
-      }),
-    [],
-  );
-
-  const selectedStrategy = strategiesQuery.data?.rows.find(row => row.strategyId === selectedStrategyId);
-  
-  const aggregatedStrategyMetrics = useMemo(() => {
-    const rows = strategiesQuery.data?.rows ?? [];
-    if (!rows.length) return null;
-    const totalTrades = rows.reduce((sum, row) => sum + row.totalTrades, 0);
-    const weightFor = (row: (typeof rows)[number]) => {
-      if (totalTrades === 0) return 1 / rows.length;
-      return row.totalTrades / totalTrades;
-    };
-
-    return {
-      name: "All Strategies",
-      totalReturnPct: rows.reduce((sum, row) => sum + row.totalReturnPct * weightFor(row), 0),
-      maxDrawdownPct: rows.reduce((sum, row) => sum + row.maxDrawdownPct * weightFor(row), 0),
-      sharpeRatio: rows.reduce((sum, row) => sum + row.sharpeRatio * weightFor(row), 0),
-      profitFactor: rows.reduce((sum, row) => sum + row.profitFactor * weightFor(row), 0),
-      expectancy: rows.reduce((sum, row) => sum + (row.expectancy ?? 0) * weightFor(row), 0),
-      winRatePct: rows.reduce((sum, row) => sum + row.winRatePct * weightFor(row), 0),
-      totalTrades,
-    };
-  }, [strategiesQuery.data]);
-
-  const focusMetrics = selectedStrategy ?? aggregatedStrategyMetrics;
-  const focusTitle = selectedStrategy?.name ?? aggregatedStrategyMetrics?.name ?? "Strategy Performance";
-  const strategyEquityPoints = strategyEquityQuery.data?.points ?? [];
-  
-  // Get color for selected strategy
-  const selectedStrategyIndex = strategiesQuery.data?.rows.findIndex(r => r.strategyId === selectedStrategyId) ?? 0;
-  const selectedColor = STRATEGY_COLORS[selectedStrategyIndex % STRATEGY_COLORS.length];
-  
-  const equityChart = (
-    <div className="h-64 sm:h-72">
-      {strategyEquityQuery.isFetching ? (
-        <div className="h-full skeleton-shimmer rounded-lg" />
-      ) : strategyEquityPoints.length ? (
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={strategyEquityPoints} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#2a2a2a" />
-            <XAxis 
-              dataKey="date" 
-              tick={{ fontSize: 10, fill: "#9ca3af", fontWeight: 500 }} 
-              tickLine={false} 
-              axisLine={{ stroke: "#2a2a2a" }}
-              tickFormatter={(value) => {
-                const date = new Date(value);
-                return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
-              }}
-              interval="preserveStartEnd"
-              minTickGap={40}
-            />
-            <YAxis 
-              tickFormatter={val => {
-                const num = Number(val);
-                if (num >= 1000000) return `$${(num / 1000000).toFixed(1)}M`;
-                if (num >= 1000) return `$${(num / 1000).toFixed(0)}k`;
-                return currency.format(num);
-              }} 
-              tick={{ fontSize: 10, fill: "#9ca3af", fontWeight: 500 }} 
-              tickLine={false} 
-              axisLine={{ stroke: "#2a2a2a" }}
-              width={55}
-            />
-            <Tooltip content={<CustomTooltip currency={currency} />} />
-            <Line 
-              type="monotone" 
-              dataKey="combined" 
-              stroke={selectedColor} 
-              strokeWidth={2} 
-              dot={false}
-              activeDot={{ r: 4, fill: selectedColor, stroke: "#1e1e1e", strokeWidth: 2 }}
-            />
-          </LineChart>
-        </ResponsiveContainer>
-      ) : (
-        <div className="flex h-full items-center justify-center rounded-lg border border-dashed border-[#3a3a3a] bg-[#1a1a1a] text-sm text-gray-400">
-          <div className="text-center">
-            <svg className="mx-auto h-10 w-10 text-gray-600 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-            </svg>
-            Select a strategy to view its equity curve.
-          </div>
-        </div>
-      )}
-    </div>
-  );
-
-  useEffect(() => {
-    if (!selectedStrategyId && strategiesQuery.data?.rows?.length) {
-      setSelectedStrategyId(strategiesQuery.data.rows[0].strategyId);
-    }
-  }, [selectedStrategyId, strategiesQuery.data]);
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle className="text-destructive">Error Loading Strategies</CardTitle>
+            <CardDescription>{error.message}</CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h2 className="text-lg font-semibold text-white">Trading Strategies</h2>
-          <p className="text-sm text-gray-400">View detailed performance for each intraday strategy</p>
-        </div>
-        {strategiesQuery.isError && (
-          <div className="rounded-lg bg-red-900/20 px-3 py-2 text-xs text-red-400 border border-red-800/50">
-            Failed to load strategies.
-          </div>
-        )}
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Trading Strategies</h1>
+        <p className="text-muted-foreground">
+          View detailed performance for each intraday strategy
+        </p>
       </div>
-
-      {/* Performance overview card */}
-      <Card className="bg-[#1e1e1e] border-[#2a2a2a]">
-        <CardHeader className="pb-2">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-sm text-white">{focusTitle}</CardTitle>
-            {selectedStrategy && (
-              <div 
-                className="w-3 h-3 rounded-full" 
-                style={{ backgroundColor: selectedColor }}
-              />
-            )}
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Metrics grid - responsive */}
-          <div className="grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-4">
-            <MetricCard
-              label="Total Return"
-              value={
-                focusMetrics
-                  ? percent.format(("totalReturnPct" in focusMetrics ? focusMetrics.totalReturnPct : 0))
-                  : summaryQuery.data
-                    ? percent.format(summaryQuery.data.totalReturnPct)
-                    : undefined
-              }
-              helper={selectedStrategy ? currency.format(selectedStrategy.totalReturn) : undefined}
-              isLoading={strategiesQuery.isLoading || summaryQuery.isLoading}
-            />
-            <MetricCard
-              label="Max Drawdown"
-              value={focusMetrics ? percent.format(focusMetrics.maxDrawdownPct) : undefined}
-              helper={selectedStrategy ? currency.format(selectedStrategy.maxDrawdown) : undefined}
-              isLoading={strategiesQuery.isLoading}
-            />
-            <MetricCard
-              label="Sharpe Ratio"
-              value={focusMetrics ? focusMetrics.sharpeRatio.toFixed(2) : undefined}
-              helper={selectedStrategy?.sortinoRatio ? `Sortino ${selectedStrategy.sortinoRatio.toFixed(2)}` : undefined}
-              isLoading={strategiesQuery.isLoading}
-            />
-            <MetricCard
-              label="Profit Factor"
-              value={focusMetrics ? focusMetrics.profitFactor.toFixed(2) : undefined}
-              helper={selectedStrategy?.payoffRatio ? `Payoff ${selectedStrategy.payoffRatio.toFixed(2)}` : undefined}
-              isLoading={strategiesQuery.isLoading}
-            />
-          </div>
-          
-          <div className="grid grid-cols-3 gap-2 sm:gap-3">
-            <MetricCard
-              label="Expectancy"
-              value={
-                focusMetrics
-                  ? currency.format("expectancy" in focusMetrics && focusMetrics.expectancy != null ? focusMetrics.expectancy : 0)
-                  : undefined
-              }
-              isLoading={strategiesQuery.isLoading}
-            />
-            <MetricCard
-              label="Win Rate"
-              value={focusMetrics ? percent.format((focusMetrics.winRatePct ?? 0) / 100) : undefined}
-              helper={focusMetrics ? `${focusMetrics.totalTrades.toLocaleString()} trades` : undefined}
-              isLoading={strategiesQuery.isLoading}
-            />
-            <MetricCard
-              label="Trade Count"
-              value={focusMetrics ? focusMetrics.totalTrades.toLocaleString() : undefined}
-              isLoading={strategiesQuery.isLoading}
-            />
-          </div>
-          
-          {/* Equity chart */}
-          <div className="rounded-lg border border-[#2a2a2a] bg-[#1a1a1a] p-3">
-            {equityChart}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* All Strategies Performance Card */}
-      <Card className="bg-[#1e1e1e] border-[#2a2a2a]">
+      
+      {/* All Strategies Equity Chart */}
+      <Card>
         <CardHeader>
-          <CardTitle className="text-sm text-white">All Strategies Performance</CardTitle>
-          <p className="text-xs text-gray-400">Compare all strategy equity curves</p>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div>
+              <CardTitle>All Strategies Performance</CardTitle>
+              <CardDescription>Compare all strategy equity curves</CardDescription>
+            </div>
+            <div className="w-full sm:w-[180px]">
+              <Label htmlFor="chart-time-range" className="sr-only">Time Range</Label>
+              <Select value={timeRange} onValueChange={(v) => setTimeRange(v as TimeRange)}>
+                <SelectTrigger id="chart-time-range">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="YTD">Year to Date</SelectItem>
+                  <SelectItem value="1Y">1 Year</SelectItem>
+                  <SelectItem value="3Y">3 Years</SelectItem>
+                  <SelectItem value="5Y">5 Years</SelectItem>
+                  <SelectItem value="10Y">10 Years</SelectItem>
+                  <SelectItem value="ALL">All Time</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
-          <div className="h-64 sm:h-80">
-            {strategiesQuery.isLoading ? (
-              <div className="h-full skeleton-shimmer rounded-lg" />
-            ) : strategiesQuery.data?.rows?.length ? (
+          {isLoadingComparison ? (
+            <div className="flex items-center justify-center h-[400px]">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              <p className="ml-3 text-sm text-muted-foreground">Loading comparison data...</p>
+            </div>
+          ) : comparisonError ? (
+            <div className="flex flex-col items-center justify-center h-[400px] gap-3">
+              <p className="text-sm text-muted-foreground">Unable to load comparison chart</p>
+              <p className="text-xs text-muted-foreground">View individual strategy details below</p>
+            </div>
+          ) : (
+            <div className="h-[320px] sm:h-[350px] md:h-[400px] lg:h-[450px] -mx-2 sm:mx-0">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#2a2a2a" />
+                <LineChart data={chartData} margin={{ top: 10, right: 5, left: 0, bottom: 10 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted-foreground))" strokeOpacity={0.2} vertical={false} />
                   <XAxis 
-                    dataKey="date"
-                    type="category"
-                    allowDuplicatedCategory={false}
-                    tick={{ fontSize: 10, fill: "#9ca3af", fontWeight: 500 }}
-                    tickLine={false}
-                    axisLine={{ stroke: "#2a2a2a" }}
+                    dataKey="date" 
+                    tick={{ fontSize: 9, fill: '#ffffff' }}
+                    tickLine={{ stroke: 'rgba(255,255,255,0.3)' }}
+                    axisLine={{ stroke: 'rgba(255,255,255,0.3)' }}
                     interval="preserveStartEnd"
+                    tickCount={6}
+                    padding={{ left: 10, right: 10 }}
+                    label={{ value: 'Date', position: 'insideBottom', offset: -5, fill: '#ffffff', fontSize: 10 }}
                   />
-                  <YAxis
-                    tickFormatter={val => `$${(Number(val) / 1000).toFixed(0)}k`}
-                    tick={{ fontSize: 10, fill: "#9ca3af", fontWeight: 500 }}
-                    tickLine={false}
-                    axisLine={{ stroke: "#2a2a2a" }}
-                    width={50}
+                  <YAxis 
+                    domain={['dataMin', 'dataMax']}
+                    tick={{ fontSize: 9, fill: '#ffffff' }}
+                    tickLine={{ stroke: 'rgba(255,255,255,0.3)' }}
+                    axisLine={{ stroke: 'rgba(255,255,255,0.3)' }}
+                    tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
+                    width={45}
                   />
                   <Tooltip 
                     contentStyle={{ 
-                      backgroundColor: "#1e1e1e", 
-                      border: "1px solid #3a3a3a",
-                      borderRadius: "8px",
-                      fontSize: "12px"
+                      backgroundColor: 'hsl(var(--background))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px'
                     }}
-                    labelStyle={{ color: "#fff", fontWeight: 600 }}
-                    formatter={(value: number, name: string) => [currency.format(value), name]}
+                    formatter={(value: number) => `$${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                   />
-                  {strategiesQuery.data.rows.map((row, index) => (
-                    <Line
-                      key={row.strategyId}
-                      data={row.sparkline?.map((point, i) => ({ 
-                        date: `Day ${i + 1}`, 
-                        value: point.value 
-                      })) ?? []}
-                      dataKey="value"
-                      name={row.name}
-                      stroke={STRATEGY_COLORS[index % STRATEGY_COLORS.length]}
-                      strokeWidth={selectedStrategyId === row.strategyId ? 3 : 1.5}
-                      dot={false}
-                      opacity={selectedStrategyId === row.strategyId ? 1 : 0.6}
+                    <Legend 
+                      wrapperStyle={{ paddingTop: '20px' }} 
+                      content={(props) => {
+                        const { payload } = props;
+                        return (
+                          <div className="flex flex-wrap justify-center gap-2 sm:gap-4 pt-4 px-2">
+                            {payload?.map((entry: any, index: number) => {
+                              const isHidden = hiddenStrategies.has(entry.dataKey);
+                              return (
+                                <div
+                                  key={`legend-${index}`}
+                                  className="flex items-center gap-2 cursor-pointer hover:opacity-70 transition-opacity"
+                                  onClick={() => toggleStrategy(entry.dataKey)}
+                                  style={{ opacity: isHidden ? 0.4 : 1 }}
+                                >
+                                  <div
+                                    className="w-4 h-0.5"
+                                    style={{ backgroundColor: entry.color }}
+                                  />
+                                  <span className="text-sm" style={{ textDecoration: isHidden ? 'line-through' : 'none' }}>
+                                    {entry.value}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        );
+                      }}
                     />
-                  ))}
+                    {comparisonData?.strategies.map((strat, index) => (
+                      <Line
+                        key={strat.id}
+                        type="monotone"
+                        dataKey={strat.symbol || `strategy${index}`}
+                        stroke={STRATEGY_COLORS[index % STRATEGY_COLORS.length]}
+                        strokeWidth={2}
+                        dot={false}
+                        name={strat.name || strat.symbol || `Strategy ${index + 1}`}
+                        hide={hiddenStrategies.has(strat.symbol || `strategy${index}`)}
+                        connectNulls={false}
+                      />
+                    ))}
                 </LineChart>
               </ResponsiveContainer>
-            ) : (
-              <div className="flex h-full items-center justify-center text-gray-400">
-                No strategy data available
-              </div>
-            )}
-          </div>
-          
-          {/* Legend */}
-          <div className="mt-4 flex flex-wrap gap-3 justify-center">
-            {strategiesQuery.data?.rows.slice(0, 8).map((row, index) => (
-              <button
-                key={row.strategyId}
-                onClick={() => setSelectedStrategyId(row.strategyId)}
-                className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-xs transition-all ${
-                  selectedStrategyId === row.strategyId 
-                    ? "bg-[#2a2a2a] ring-1 ring-blue-500" 
-                    : "hover:bg-[#2a2a2a]"
-                }`}
-              >
-                <div 
-                  className="w-2.5 h-2.5 rounded-full" 
-                  style={{ backgroundColor: STRATEGY_COLORS[index % STRATEGY_COLORS.length] }}
-                />
-                <span className="text-gray-300 truncate max-w-[100px]">{row.name}</span>
-                <span className={`font-medium ${row.totalReturnPct > 0 ? "text-emerald-400" : "text-red-400"}`}>
-                  {currency.format(row.totalReturn)}
-                </span>
-              </button>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Strategy table */}
-      <Card className="bg-[#1e1e1e] border-[#2a2a2a]">
-        <CardHeader>
-          <CardTitle className="text-sm text-white">Strategy Table</CardTitle>
-        </CardHeader>
-        <CardContent className="overflow-x-auto scrollbar-thin scrollbar-dark">
-          {strategiesQuery.isLoading ? (
-            <div className="h-24 skeleton-shimmer rounded-lg" />
-          ) : strategiesQuery.data?.rows?.length ? (
-            <table className="min-w-full divide-y divide-[#2a2a2a] text-sm">
-              <thead className="bg-[#1a1a1a]">
-                <tr>
-                  <th 
-                    className="cursor-pointer px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-400 hover:text-white transition-colors" 
-                    onClick={() => handleSort("name")}
-                  >
-                    Name {sortBy === "name" && (sortOrder === "asc" ? "↑" : "↓")}
-                  </th>
-                  <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Type</th>
-                  <th 
-                    className="cursor-pointer px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-400 hover:text-white transition-colors"
-                    onClick={() => handleSort("totalTrades")}
-                  >
-                    Trades {sortBy === "totalTrades" && (sortOrder === "asc" ? "↑" : "↓")}
-                  </th>
-                  <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Curve</th>
-                  <th 
-                    className="cursor-pointer px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-400 hover:text-white transition-colors"
-                    onClick={() => handleSort("totalReturnPct")}
-                  >
-                    Return {sortBy === "totalReturnPct" && (sortOrder === "asc" ? "↑" : "↓")}
-                  </th>
-                  <th 
-                    className="cursor-pointer px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-400 hover:text-white transition-colors"
-                    onClick={() => handleSort("sharpeRatio")}
-                  >
-                    Sharpe {sortBy === "sharpeRatio" && (sortOrder === "asc" ? "↑" : "↓")}
-                  </th>
-                  <th 
-                    className="cursor-pointer px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-400 hover:text-white transition-colors"
-                    onClick={() => handleSort("profitFactor")}
-                  >
-                    PF {sortBy === "profitFactor" && (sortOrder === "asc" ? "↑" : "↓")}
-                  </th>
-                  <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Win Rate</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#2a2a2a]">
-                {strategiesQuery.data.rows.map((row, index) => {
-                  const sparkline = row.sparkline ?? [];
-                  const color = STRATEGY_COLORS[index % STRATEGY_COLORS.length];
-                  return (
-                    <tr
-                      key={row.strategyId}
-                      className={`cursor-pointer transition-colors ${
-                        selectedStrategyId === row.strategyId 
-                          ? "bg-blue-900/20" 
-                          : "hover:bg-[#252525]"
-                      }`}
-                      onClick={() => setSelectedStrategyId(row.strategyId)}
-                    >
-                      <td className="px-3 py-2">
-                        <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
-                          <span className="font-semibold text-white">{row.name}</span>
-                        </div>
-                      </td>
-                      <td className="px-3 py-2 text-gray-400">{row.type}</td>
-                      <td className="px-3 py-2 text-gray-400">{row.totalTrades}</td>
-                      <td className="px-3 py-2">
-                        {sparkline.length ? (
-                          <div className="h-10 w-24">
-                            <ResponsiveContainer width="100%" height="100%">
-                              <LineChart data={sparkline} margin={{ top: 2, right: 2, left: 0, bottom: 2 }}>
-                                <Line 
-                                  type="monotone" 
-                                  dataKey="value" 
-                                  stroke={color} 
-                                  dot={false} 
-                                  strokeWidth={1.5} 
-                                />
-                              </LineChart>
-                            </ResponsiveContainer>
-                          </div>
-                        ) : (
-                          <span className="text-xs text-gray-500">—</span>
-                        )}
-                      </td>
-                      <td className={`px-3 py-2 font-medium ${row.totalReturnPct > 0 ? "text-emerald-400" : "text-red-400"}`}>
-                        {percent.format(row.totalReturnPct)}
-                      </td>
-                      <td className="px-3 py-2 text-gray-300">{row.sharpeRatio.toFixed(2)}</td>
-                      <td className="px-3 py-2 text-gray-300">{row.profitFactor.toFixed(2)}</td>
-                      <td className="px-3 py-2 text-gray-300">{percent.format(row.winRatePct / 100)}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          ) : (
-            <div className="rounded-lg border border-dashed border-[#3a3a3a] bg-[#1a1a1a] p-4 text-sm text-gray-400 text-center">
-              No strategies found for this workspace/time range.
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Recent trades for selected strategy */}
-      {selectedStrategy && (
-        <Card className="bg-[#1e1e1e] border-[#2a2a2a]">
-          <CardHeader>
-            <CardTitle className="text-sm text-white">Recent Trades for {selectedStrategy.name}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="rounded-lg border border-[#2a2a2a] bg-[#1a1a1a] p-3">
-              {selectedTrades.length ? (
-                <ul className="divide-y divide-[#2a2a2a]">
-                  {selectedTrades.slice(0, 10).map(trade => (
-                    <li key={trade.id} className="flex items-center justify-between py-2">
-                      <div>
-                        <div className="font-medium text-white">{trade.symbol}</div>
-                        <p className="text-xs text-gray-500">{trade.entryTime} → {trade.exitTime}</p>
+      {/* Strategy Cards */}
+      <div>
+        <h2 className="text-2xl font-bold mb-6">Individual Strategies</h2>
+      </div>
+      <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+        {strategies?.map((strategy) => {
+          // Get market-specific icon
+          const getMarketIcon = (market: string) => {
+            const m = market.toLowerCase();
+            if (m.includes('es') || m.includes('s&p')) return Activity;
+            if (m.includes('nq') || m.includes('nasdaq')) return Zap;
+            if (m.includes('cl') || m.includes('crude')) return Fuel;
+            if (m.includes('btc') || m.includes('bitcoin')) return Bitcoin;
+            if (m.includes('gc') || m.includes('gold')) return Coins;
+            if (m.includes('ym') || m.includes('dow')) return Landmark;
+            return TrendingUp;
+          };
+          
+          const MarketIcon = getMarketIcon(strategy.market || 'Unknown');
+          
+          return (
+            <Card key={strategy.id} className="relative overflow-hidden hover:shadow-2xl transition-all duration-300 border hover:border-primary/40 group bg-card/40 backdrop-blur-sm h-full flex flex-col">
+              <CardHeader className="pb-4 relative z-10">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="relative">
+                        <div className="absolute inset-0 bg-primary/20 rounded-xl blur-md group-hover:blur-lg transition-all"></div>
+                        <div className="relative p-2.5 bg-primary/15 rounded-xl group-hover:bg-primary/25 transition-all border border-primary/20">
+                          <MarketIcon className="h-6 w-6 text-primary" />
+                        </div>
                       </div>
-                      <Badge 
-                        variant={trade.side === "long" ? "success" : "secondary"}
-                        className={trade.side === "long" 
-                          ? "bg-emerald-900/30 text-emerald-400 border-emerald-800" 
-                          : "bg-red-900/30 text-red-400 border-red-800"
-                        }
-                      >
-                        {trade.side}
-                      </Badge>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-sm text-gray-400 text-center py-4">
-                  No trades mapped to this strategy in the current range.
-                </p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+                      <div>
+                        <CardTitle className="text-xl leading-tight font-bold group-hover:text-primary transition-colors">
+                          {strategy.name}
+                        </CardTitle>
+                        <div className="flex items-center gap-2 mt-1.5">
+                          <span className="text-xs font-bold text-primary bg-primary/15 px-2.5 py-1 rounded-full border border-primary/30">
+                            {strategy.symbol}
+                          </span>
+                          <span className="text-xs text-muted-foreground font-medium">
+                            {strategy.strategyType}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <CardDescription className="text-sm mt-2">
+                      {strategy.description || `${strategy.market} ${strategy.strategyType?.toLowerCase() || 'trading'} strategy`}
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4 relative z-10 flex-1 flex flex-col">
+                {/* Performance Metrics Grid */}
+                <div className="grid grid-cols-3 gap-1.5 sm:gap-2.5">
+                  <div className="bg-blue-500/5 rounded-lg p-2.5 border border-border/40">
+                    <div className="text-[9px] text-muted-foreground mb-0.5 uppercase tracking-wide font-semibold">Return</div>
+                    <div className="text-sm font-bold text-blue-600 truncate">
+                      {strategy.totalReturn !== undefined 
+                        ? formatCurrency(strategy.totalReturn)
+                        : 'N/A'
+                      }
+                    </div>
+                  </div>
+                  <div className="bg-blue-500/5 rounded-lg p-2.5 border border-border/40">
+                    <div className="text-[9px] text-muted-foreground mb-0.5 uppercase tracking-wide font-semibold">Max DD</div>
+                    <div className="text-sm font-bold text-blue-600 truncate">
+                      {strategy.maxDrawdown !== undefined
+                        ? formatCurrency(Math.abs(strategy.maxDrawdown))
+                        : 'N/A'
+                      }
+                    </div>
+                  </div>
+                  <div className="bg-blue-500/5 rounded-lg p-2.5 border border-border/40">
+                    <div className="text-[9px] text-muted-foreground mb-0.5 uppercase tracking-wide font-semibold">Sharpe</div>
+                    <div className="text-sm font-bold text-blue-600 truncate">
+                      {strategy.sharpeRatio !== undefined
+                        ? strategy.sharpeRatio.toFixed(2)
+                        : 'N/A'
+                      }
+                    </div>
+                  </div>
+                </div>
+
+                {/* Market & Type Info */}
+                <div className="grid grid-cols-2 gap-1.5 sm:gap-2.5">
+                  <div className="bg-muted/10 rounded-lg p-2.5 border border-border/40">
+                    <div className="text-[9px] text-muted-foreground mb-0.5 uppercase tracking-wide font-semibold">Market</div>
+                    <div className="text-sm font-bold">{strategy.market}</div>
+                  </div>
+                  <div className="bg-muted/10 rounded-lg p-2.5 border border-border/40">
+                    <div className="text-[9px] text-muted-foreground mb-0.5 uppercase tracking-wide font-semibold">Type</div>
+                    <div className="text-sm font-bold">{strategy.strategyType}</div>
+                  </div>
+                </div>
+                
+                <Link href={`/strategy/${strategy.id}`} className="mt-auto">
+                  <Button className="w-full group-hover:bg-primary group-hover:text-primary-foreground transition-all shadow-sm group-hover:shadow-md" variant="outline">
+                    <span className="font-semibold">View Details</span>
+                    <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                  </Button>
+                </Link>
+                
+                {/* Decorative gradient overlay */}
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/0 via-primary/0 to-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
     </div>
   );
 }
-
-export default StrategiesPage;

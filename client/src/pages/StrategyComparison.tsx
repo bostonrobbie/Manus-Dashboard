@@ -1,266 +1,570 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
+import { trpc } from "@/lib/trpc";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { Loader2 } from "lucide-react";
+import MonteCarloSimulation from "@/components/MonteCarloSimulation";
 
-import CorrelationHeatmap from "../components/CorrelationHeatmap";
-import DrawdownChart from "../components/DrawdownChart";
-import EquityChart from "../components/EquityChart";
-import MetricsGrid from "../components/MetricsGrid";
-import StartingCapitalInput from "../components/StartingCapitalInput";
-import StrategyMultiSelect from "../components/StrategyMultiSelect";
-import TimeRangeSelector, { TimeRangeSelectorPreset } from "../components/TimeRangeSelector";
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
-import { trpc } from "../lib/trpc";
-import type { StrategySummary, TimeRange } from "@shared/types/portfolio";
+type TimeRange = 'YTD' | '1Y' | '3Y' | '5Y' | 'ALL';
 
-const percent = (value: number) => `${value.toFixed(2)}%`;
-
-// Enhanced color palette for better visibility on dark backgrounds
-const STRATEGY_COLORS = [
-  "#3b82f6", // Blue
-  "#22c55e", // Green
-  "#f59e0b", // Amber
-  "#ef4444", // Red
-  "#8b5cf6", // Purple
-  "#06b6d4", // Cyan
-  "#ec4899", // Pink
-  "#84cc16", // Lime
+const COLORS = [
+  'hsl(var(--chart-1))',
+  'hsl(var(--chart-2))',
+  'hsl(var(--chart-3))',
+  'hsl(var(--chart-4))',
 ];
 
-const PRESETS: TimeRangeSelectorPreset[] = ["YTD", "1Y", "3Y", "5Y", "ALL"];
-const LIST_TIME_RANGE: TimeRange = { preset: "ALL" };
+export default function StrategyComparison() {
+  const [timeRange, setTimeRange] = useState<TimeRange>('1Y');
+  const [startingCapital, setStartingCapital] = useState(100000);
+  const [selectedStrategyIds, setSelectedStrategyIds] = useState<number[]>([]);
+  const [showBenchmark, setShowBenchmark] = useState(false);
+  const [hiddenStrategies, setHiddenStrategies] = useState<Set<string>>(new Set());
 
-type ContractRange = "YTD" | "1Y" | "3Y" | "5Y" | "ALL";
+  // Get list of all strategies
+  const { data: strategies } = trpc.portfolio.listStrategies.useQuery();
 
-function StrategyComparisonPage() {
-  const [selectedIds, setSelectedIds] = useState<number[]>([]);
-  const [timeRange, setTimeRange] = useState<ContractRange>("1Y");
-  const [startingCapital, setStartingCapital] = useState<number>(100000);
-
-  const strategiesQuery = trpc.portfolio.strategyComparison.useQuery(
-    { page: 1, pageSize: 50, sortBy: "name", sortOrder: "asc", filterType: "all", timeRange: LIST_TIME_RANGE },
-    { retry: 1 },
+  // Get comparison data
+  const { data, isLoading, error } = trpc.portfolio.compareStrategies.useQuery(
+    {
+      strategyIds: selectedStrategyIds,
+      timeRange,
+      startingCapital,
+    },
+    {
+      enabled: selectedStrategyIds.length >= 2,
+    }
   );
 
-  const compareQuery = trpc.portfolio.compareStrategies.useQuery(
-    { strategyIds: selectedIds, timeRange, startingCapital },
-    { enabled: selectedIds.length >= 2 && selectedIds.length <= 4, retry: 1 },
-  );
-
-  const strategyOptions: StrategySummary[] = useMemo(
-    () => strategiesQuery.data?.rows?.map(row => ({ id: row.strategyId, name: row.name, type: row.type })) ?? [],
-    [strategiesQuery.data?.rows],
-  );
-
-  const comparison = compareQuery.data;
-
-  const combinedDrawdowns = useMemo(() => {
-    if (!comparison?.combinedCurve?.length) return [] as { date: string; drawdown: number }[];
-    let peak = comparison.combinedCurve[0].equity;
-    return comparison.combinedCurve.map(point => {
-      peak = Math.max(peak, point.equity);
-      const drawdown = peak > 0 ? ((point.equity - peak) / peak) * 100 : 0;
-      return { date: point.date, drawdown };
+  const toggleStrategy = (strategyId: number) => {
+    setSelectedStrategyIds(prev => {
+      if (prev.includes(strategyId)) {
+        return prev.filter(id => id !== strategyId);
+      } else if (prev.length < 4) {
+        return [...prev, strategyId];
+      }
+      return prev;
     });
-  }, [comparison]);
+  };
 
-  const equityData = useMemo(() => {
-    if (!comparison) return [] as Array<Record<string, string | number>>;
-    const dates = new Set<string>();
-    comparison.combinedCurve.forEach(point => dates.add(point.date));
-    Object.values(comparison.individualCurves).forEach(curve => curve.forEach(point => dates.add(point.date)));
-    return Array.from(dates)
-      .sort()
-      .map(date => {
-        const row: Record<string, string | number> = { date };
-        row.combined = comparison.combinedCurve.find(point => point.date === date)?.equity ?? null;
-        for (const [id, curve] of Object.entries(comparison.individualCurves)) {
-          row[`strategy-${id}`] = curve.find(point => point.date === date)?.equity ?? null;
-        }
-        return row;
-      });
-  }, [comparison]);
+  // Get benchmark data if needed
+  const { data: benchmarkData } = trpc.portfolio.overview.useQuery(
+    {
+      timeRange,
+      startingCapital,
+    },
+    {
+      enabled: showBenchmark && selectedStrategyIds.length >= 2,
+    }
+  );
 
-  const metricsRows = useMemo(() => {
-    if (!comparison) return [];
-    const combined = comparison.combinedMetrics;
-    const rows = [
-      { label: "Total return", portfolio: combined.totalReturn, formatter: percent },
-      { label: "Annualized return", portfolio: combined.annualizedReturn, formatter: percent },
-      { label: "Volatility", portfolio: combined.volatility, formatter: percent },
-      { label: "Sharpe", portfolio: combined.sharpe, formatter: (v: number) => v.toFixed(2) },
-      { label: "Sortino", portfolio: combined.sortino, formatter: (v: number) => v.toFixed(2) },
-      { label: "Calmar", portfolio: combined.calmar, formatter: (v: number) => v.toFixed(2) },
-      { label: "Max drawdown", portfolio: combined.maxDrawdown, formatter: percent },
-      { label: "Win rate", portfolio: combined.winRate, formatter: percent },
-      { label: "Profit factor", portfolio: combined.profitFactor, formatter: (v: number) => v.toFixed(2) },
-    ];
-    return rows;
-  }, [comparison]);
-
-  const comparisonTable = useMemo(() => {
-    if (!comparison) return [] as { id: string; name: string; color: string; metrics?: (typeof comparison.individualMetrics)[string] }[];
-    return Object.entries(comparison.individualMetrics).map(([id, metrics], index) => {
-      const name = strategyOptions.find(option => option.id === Number(id))?.name ?? `Strategy ${id}`;
-      return { id, name, color: STRATEGY_COLORS[index % STRATEGY_COLORS.length], metrics };
+  // Prepare chart data
+  const chartData = data?.strategies[0]?.equityCurve.map((_, index) => {
+    const point: any = {
+      date: new Date(data.strategies[0]!.equityCurve[index]!.date).toLocaleDateString(),
+    };
+    
+    // Add equity curves
+    data.strategies.forEach((strat, stratIndex) => {
+      point[`strategy${stratIndex}`] = strat.equityCurve[index]?.equity || 0;
     });
-  }, [comparison, strategyOptions]);
+    
+    point.combined = data.combinedEquity[index]?.equity || 0;
+    
+    if (showBenchmark && benchmarkData?.benchmarkEquity[index]) {
+      point.benchmark = benchmarkData.benchmarkEquity[index].equity;
+    }
+    
+    // Calculate drawdowns (as percentages)
+    data.strategies.forEach((strat, stratIndex) => {
+      const equity = strat.equityCurve[index]?.equity || 0;
+      const peak = Math.max(...strat.equityCurve.slice(0, index + 1).map(p => p.equity));
+      const dd = peak > 0 ? ((equity - peak) / peak) * 100 : 0;
+      point[`dd${stratIndex}`] = dd;
+    });
+    
+    // Combined drawdown
+    const combinedEquity = data.combinedEquity[index]?.equity || 0;
+    const combinedPeak = Math.max(...data.combinedEquity.slice(0, index + 1).map(p => p.equity));
+    const combinedDD = combinedPeak > 0 ? ((combinedEquity - combinedPeak) / combinedPeak) * 100 : 0;
+    point.combinedDD = combinedDD;
+    
+    // Benchmark drawdown (S&P 500)
+    if (showBenchmark && benchmarkData?.benchmarkEquity[index]) {
+      const benchmarkEquity = benchmarkData.benchmarkEquity[index].equity;
+      const benchmarkPeak = Math.max(...benchmarkData.benchmarkEquity.slice(0, index + 1).map(p => p.equity));
+      const benchmarkDD = benchmarkPeak > 0 ? ((benchmarkEquity - benchmarkPeak) / benchmarkPeak) * 100 : 0;
+      point.benchmarkDD = benchmarkDD;
+    }
+    
+    return point;
+  }) || [];
 
-  const individualSeries = selectedIds.map((id, index) => ({
-    key: `strategy-${id}`,
-    name: strategyOptions.find(option => option.id === id)?.name ?? `Strategy ${id}`,
-    color: STRATEGY_COLORS[index % STRATEGY_COLORS.length],
-  }));
-
-  const breakdownMessage = selectedIds.length < 2 || selectedIds.length > 4 ? "Select 2-4 strategies to compare" : null;
+  const toggleStrategyVisibility = (strategyKey: string) => {
+    setHiddenStrategies(prev => {
+      const next = new Set(prev);
+      if (next.has(strategyKey)) {
+        next.delete(strategyKey);
+      } else {
+        next.add(strategyKey);
+      }
+      return next;
+    });
+  };
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-lg font-semibold text-white">Strategy Comparison</h1>
-          <p className="text-sm text-gray-400">Compare equity, drawdowns, correlation, and metrics for multiple strategies.</p>
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Strategy Comparison</h1>
+        <p className="text-muted-foreground">
+          Compare performance and correlation between strategies
+        </p>
+      </div>
+
+      {/* Controls */}
+      <div className="flex flex-col gap-4 md:flex-row md:items-end">
+        <div className="space-y-2 flex-1">
+          <Label htmlFor="starting-capital">Starting Capital</Label>
+          <Input
+            id="starting-capital"
+            type="number"
+            value={startingCapital}
+            onChange={(e) => setStartingCapital(Number(e.target.value))}
+            className="w-full md:w-[200px]"
+          />
         </div>
-        <div className="flex flex-wrap gap-3">
-          <TimeRangeSelector value={timeRange} onChange={preset => setTimeRange(preset as ContractRange)} presets={PRESETS} />
-          <StartingCapitalInput value={startingCapital} onChange={setStartingCapital} />
+        
+        <div className="space-y-2 flex-1">
+          <Label htmlFor="time-range">Time Range</Label>
+          <Select value={timeRange} onValueChange={(v) => setTimeRange(v as TimeRange)}>
+            <SelectTrigger id="time-range" className="w-full md:w-[200px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="YTD">Year to Date</SelectItem>
+              <SelectItem value="1Y">1 Year</SelectItem>
+              <SelectItem value="3Y">3 Years</SelectItem>
+              <SelectItem value="5Y">5 Years</SelectItem>
+              <SelectItem value="ALL">All Time</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
-      {/* Strategy selector */}
-      <Card className="bg-[#1e1e1e] border-[#2a2a2a]">
-        <CardContent className="p-4">
-          <StrategyMultiSelect
-            options={strategyOptions}
-            selected={selectedIds}
-            onChange={setSelectedIds}
-            disabled={strategiesQuery.isLoading}
-          />
+      {/* Strategy Selection */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Select Strategies (2-4)</CardTitle>
+          <CardDescription>Choose strategies to compare</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            {strategies?.map((strategy) => (
+              <div key={strategy.id} className="flex items-center space-x-2">
+                <Checkbox
+                  id={`strategy-${strategy.id}`}
+                  checked={selectedStrategyIds.includes(strategy.id)}
+                  onCheckedChange={() => toggleStrategy(strategy.id)}
+                  disabled={
+                    !selectedStrategyIds.includes(strategy.id) &&
+                    selectedStrategyIds.length >= 4
+                  }
+                />
+                <label
+                  htmlFor={`strategy-${strategy.id}`}
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                >
+                  {strategy.name}
+                </label>
+              </div>
+            ))}
+          </div>
         </CardContent>
       </Card>
 
-      {strategiesQuery.isError && (
-        <div className="rounded-lg border border-red-800/50 bg-red-900/20 px-4 py-3 text-sm text-red-400">
-          Failed to load strategies. Please try again.
+      {/* Comparison Results */}
+      {selectedStrategyIds.length < 2 && (
+        <Card>
+          <CardContent className="flex items-center justify-center py-12">
+            <p className="text-muted-foreground">
+              Please select at least 2 strategies to compare
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {isLoading && (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </div>
       )}
 
-      {breakdownMessage && (
-        <div className="rounded-lg border border-dashed border-[#3a3a3a] bg-[#1a1a1a] px-4 py-3 text-sm text-gray-400 text-center">
-          {breakdownMessage}
-        </div>
+      {error && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-destructive">Error Loading Data</CardTitle>
+            <CardDescription>{error.message}</CardDescription>
+          </CardHeader>
+        </Card>
       )}
 
-      {/* Equity curves chart */}
-      <Card className="bg-[#1e1e1e] border-[#2a2a2a]">
-        <CardHeader>
-          <CardTitle className="text-sm text-white">Equity Curves</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <EquityChart
-            data={equityData}
-            series={[
-              { key: "combined", name: "Combined", color: "#ffffff" },
-              ...individualSeries
-            ]}
-            isLoading={compareQuery.isLoading}
-            emptyMessage="Select 2-4 strategies to view equity curves."
-            dataTestId="combined-equity-chart"
-            height={360}
-          />
-        </CardContent>
-      </Card>
+      {data && selectedStrategyIds.length >= 2 && (
+        <>
+          {/* Equity Curves */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Equity Curves</CardTitle>
+                  <CardDescription>Individual and combined portfolio performance</CardDescription>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="show-benchmark"
+                    checked={showBenchmark}
+                    onCheckedChange={(checked) => setShowBenchmark(checked as boolean)}
+                  />
+                  <label
+                    htmlFor="show-benchmark"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                  >
+                    Show S&P 500
+                  </label>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="h-[300px] sm:h-[350px] md:h-[400px] lg:h-[450px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted-foreground))" strokeOpacity={0.15} vertical={false} />
+                    <XAxis 
+                      dataKey="date" 
+                      tick={{ fontSize: 11, fill: '#ffffff' }}
+                      tickLine={{ stroke: 'rgba(255,255,255,0.3)' }}
+                      axisLine={{ stroke: 'rgba(255,255,255,0.3)' }}
+                      angle={-45}
+                      textAnchor="end"
+                      height={60}
+                      interval="preserveStartEnd"
+                      padding={{ left: 20, right: 20 }}
+                      label={{ value: 'Date', position: 'insideBottom', offset: -5, fill: '#ffffff', fontSize: 12 }}
+                    />
+                    <YAxis 
+                      tick={{ fontSize: 11, fill: '#ffffff' }}
+                      tickLine={{ stroke: 'rgba(255,255,255,0.3)' }}
+                      axisLine={{ stroke: 'rgba(255,255,255,0.3)' }}
+                      tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
+                      width={65}
+                      label={{ value: 'Portfolio Value', angle: -90, position: 'insideLeft', fill: '#ffffff', fontSize: 12, dx: -5 }}
+                    />
+                    <Tooltip 
+                      formatter={(value: number) => `$${value.toFixed(2)}`}
+                      labelStyle={{ color: 'black' }}
+                    />
+                    <Legend 
+                      wrapperStyle={{ paddingTop: '20px', cursor: 'pointer' }}
+                      onClick={(e: any) => {
+                        if (e.dataKey) {
+                          toggleStrategyVisibility(e.dataKey);
+                        }
+                      }}
+                    />
+                    {data.strategies.map((strat, index) => (
+                      <Line
+                        key={strat.id}
+                        type="monotone"
+                        dataKey={`strategy${index}`}
+                        stroke={COLORS[index]}
+                        strokeWidth={2}
+                        dot={false}
+                        name={strat.name || ''}
+                        hide={hiddenStrategies.has(`strategy${index}`)}
+                        opacity={0.7}
+                      />
+                    ))}
+                    <Line
+                      type="monotone"
+                      dataKey="combined"
+                      stroke="#3b82f6"
+                      strokeWidth={3}
+                      dot={false}
+                      name="Combined Portfolio"
+                      hide={hiddenStrategies.has('combined')}
+                    />
+                    {showBenchmark && (
+                      <Line
+                        type="monotone"
+                        dataKey="benchmark"
+                        stroke="#fbbf24"
+                        strokeWidth={2}
+                        dot={false}
+                        name="S&P 500"
+                        hide={hiddenStrategies.has('benchmark')}
+                        strokeDasharray="3 3"
+                      />
+                    )}
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
 
-      {/* Correlation and Drawdown grid */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-2 bg-[#1e1e1e] border-[#2a2a2a]">
-          <CardHeader>
-            <CardTitle className="text-sm text-white">Correlation Matrix</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <CorrelationHeatmap
-              strategyIds={comparison?.correlationMatrix.strategyIds ?? selectedIds}
-              matrix={comparison?.correlationMatrix.matrix ?? []}
-            />
-          </CardContent>
-        </Card>
+          {/* Drawdown Chart */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Drawdown Comparison</CardTitle>
+              <CardDescription>Individual and combined portfolio drawdowns</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="h-[300px] sm:h-[350px] md:h-[400px] lg:h-[450px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted-foreground))" strokeOpacity={0.15} vertical={false} />
+                    <XAxis 
+                      dataKey="date" 
+                      tick={{ fontSize: 11, fill: '#ffffff' }}
+                      tickLine={{ stroke: 'rgba(255,255,255,0.3)' }}
+                      axisLine={{ stroke: 'rgba(255,255,255,0.3)' }}
+                      angle={-45}
+                      textAnchor="end"
+                      height={60}
+                      interval="preserveStartEnd"
+                      padding={{ left: 20, right: 20 }}
+                      label={{ value: 'Date', position: 'insideBottom', offset: -5, fill: '#ffffff', fontSize: 12 }}
+                    />
+                    <YAxis 
+                      tick={{ fontSize: 11, fill: '#ffffff' }}
+                      tickLine={{ stroke: 'rgba(255,255,255,0.3)' }}
+                      axisLine={{ stroke: 'rgba(255,255,255,0.3)' }}
+                      tickFormatter={(value) => `${value.toFixed(1)}%`}
+                      width={55}
+                      label={{ value: 'Drawdown %', angle: -90, position: 'insideLeft', fill: '#ffffff', fontSize: 12, dx: -5 }}
+                      domain={[
+                        (dataMin: number) => {
+                          // Auto-scale: add 15% padding below the actual minimum drawdown
+                          const paddedMin = dataMin * 1.15;
+                          // Round down to nearest 5% for cleaner axis labels
+                          return Math.floor(paddedMin / 5) * 5;
+                        },
+                        0 // Drawdown is always 0 or negative
+                      ]}
+                    />
+                    <Tooltip 
+                      formatter={(value: number) => `${value.toFixed(2)}%`}
+                      labelStyle={{ color: 'black' }}
+                    />
+                    <Legend 
+                      wrapperStyle={{ paddingTop: '20px', cursor: 'pointer' }}
+                      onClick={(e: any) => {
+                        if (e.dataKey) {
+                          toggleStrategyVisibility(e.dataKey);
+                        }
+                      }}
+                    />
+                    {data.strategies.map((strat, index) => (
+                      <Line
+                        key={strat.id}
+                        type="monotone"
+                        dataKey={`dd${index}`}
+                        stroke={COLORS[index]}
+                        strokeWidth={2}
+                        dot={false}
+                        name={`${strat.name} DD`}
+                        hide={hiddenStrategies.has(`strategy${index}`)}
+                        opacity={0.7}
+                      />
+                    ))}
+                    <Line
+                      type="monotone"
+                      dataKey="combinedDD"
+                      stroke="#3b82f6"
+                      strokeWidth={3}
+                      dot={false}
+                    />
+                    {showBenchmark && (
+                      <Line
+                        type="monotone"
+                        dataKey="benchmarkDD"
+                        stroke="#FF8C00"
+                        strokeWidth={2}
+                        strokeDasharray="5 5"
+                        dot={false}
+                        name="S&P 500 DD"
+                      />
+                    )}
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
 
-        <Card className="bg-[#1e1e1e] border-[#2a2a2a]">
-          <CardHeader>
-            <CardTitle className="text-sm text-white">Combined Drawdown</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <DrawdownChart
-              data={combinedDrawdowns}
-              series={[{ key: "drawdown", name: "Combined", color: "#f97316" }]}
-              isLoading={compareQuery.isLoading}
-              valueFormatter={value => `${value.toFixed(2)}%`}
-              emptyMessage="Select strategies to view drawdowns."
-            />
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Combined metrics */}
-      <MetricsGrid rows={metricsRows} isLoading={compareQuery.isLoading} title="Combined Metrics" />
-
-      {/* Individual metrics table */}
-      <Card className="bg-[#1e1e1e] border-[#2a2a2a]">
-        <CardHeader>
-          <CardTitle className="text-sm text-white">Individual Strategy Metrics</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {compareQuery.isLoading ? (
-            <div className="h-24 skeleton-shimmer rounded-lg" />
-          ) : comparisonTable.length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-4">Select strategies to view their metrics side by side.</p>
-          ) : (
-            <div className="overflow-x-auto scrollbar-thin scrollbar-dark">
-              <table className="w-full text-sm min-w-[500px]">
-                <thead className="bg-[#1a1a1a] text-left text-gray-400">
-                  <tr>
-                    <th className="px-4 py-3 font-semibold rounded-tl-lg">Strategy</th>
-                    <th className="px-4 py-3 text-right font-semibold">Return</th>
-                    <th className="px-4 py-3 text-right font-semibold">Sharpe</th>
-                    <th className="px-4 py-3 text-right font-semibold">Max DD</th>
-                    <th className="px-4 py-3 text-right font-semibold rounded-tr-lg">Win Rate</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#2a2a2a]">
-                  {comparisonTable.map(row => (
-                    <tr key={row.id} className="hover:bg-[#252525] transition-colors">
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <div 
-                            className="w-3 h-3 rounded-full flex-shrink-0" 
-                            style={{ backgroundColor: row.color }}
-                          />
-                          <span className="font-medium text-white">{row.name}</span>
-                        </div>
-                      </td>
-                      <td className={`px-4 py-3 text-right font-medium ${
-                        row.metrics && row.metrics.totalReturn > 0 ? "text-emerald-400" : "text-red-400"
-                      }`}>
-                        {row.metrics ? percent(row.metrics.totalReturn) : "—"}
-                      </td>
-                      <td className="px-4 py-3 text-right text-gray-300">
-                        {row.metrics ? row.metrics.sharpe.toFixed(2) : "—"}
-                      </td>
-                      <td className="px-4 py-3 text-right text-red-400">
-                        {row.metrics ? percent(row.metrics.maxDrawdown) : "—"}
-                      </td>
-                      <td className="px-4 py-3 text-right text-gray-300">
-                        {row.metrics ? percent(row.metrics.winRate) : "—"}
-                      </td>
+          {/* Correlation Matrix */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Correlation Matrix</CardTitle>
+              <CardDescription>Correlation between strategy returns</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr>
+                      <th className="border p-2 bg-muted"></th>
+                      {data.strategies.map((strat) => (
+                        <th key={strat.id} className="border p-2 bg-muted text-sm">
+                          {strat.symbol}
+                        </th>
+                      ))}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                  </thead>
+                  <tbody>
+                    {data.strategies.map((strat1, i) => (
+                      <tr key={strat1.id}>
+                        <td className="border p-2 bg-muted font-medium text-sm">
+                          {strat1.symbol}
+                        </td>
+                        {data.strategies.map((strat2, j) => {
+                          const corr = data.correlationMatrix[i]?.[j] || 0;
+                          const bgColor = 
+                            i === j ? 'bg-primary/20 text-foreground' :
+                            corr > 0.7 ? 'bg-red-500/80 text-white' :
+                            corr > 0.3 ? 'bg-yellow-500/80 text-black' :
+                            corr < -0.3 ? 'bg-blue-500/80 text-white' :
+                            'bg-green-500/80 text-white';
+                          
+                          return (
+                            <td 
+                              key={strat2.id} 
+                              className={`border p-2 text-center text-sm font-semibold ${bgColor}`}
+                            >
+                              {corr.toFixed(2)}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="mt-4 text-sm text-muted-foreground">
+                <p>Correlation ranges from -1 to 1:</p>
+                <ul className="list-disc list-inside space-y-1 mt-2">
+                  <li><span className="text-blue-600">Blue</span>: Negative correlation (&lt; -0.3)</li>
+                  <li><span className="text-green-600">Green</span>: Low correlation (-0.3 to 0.3)</li>
+                  <li><span className="text-yellow-600">Yellow</span>: Moderate correlation (0.3 to 0.7)</li>
+                  <li><span className="text-red-600">Red</span>: High correlation (&gt; 0.7)</li>
+                </ul>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Performance Comparison Table */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Performance Comparison</CardTitle>
+              <CardDescription>Side-by-side metrics</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr>
+                      <th className="border p-2 bg-muted text-left">Metric</th>
+                      <th className="border p-2 bg-primary/10 text-right font-bold">Combined</th>
+                      {data.strategies.map((strat) => (
+                        <th key={strat.id} className="border p-2 bg-muted text-right">
+                          {strat.symbol}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td className="border p-2 font-medium">Total Return</td>
+                      <td className="border p-2 bg-primary/5 text-right font-semibold">
+                        {data.combinedMetrics?.totalReturn.toFixed(2)}%
+                      </td>
+                      {data.strategies.map((strat) => (
+                        <td key={strat.id} className="border p-2 text-right">
+                          {strat.metrics?.totalReturn.toFixed(2)}%
+                        </td>
+                      ))}
+                    </tr>
+                    <tr>
+                      <td className="border p-2 font-medium">Annualized Return</td>
+                      <td className="border p-2 bg-primary/5 text-right font-semibold">
+                        {data.combinedMetrics?.annualizedReturn.toFixed(2)}%
+                      </td>
+                      {data.strategies.map((strat) => (
+                        <td key={strat.id} className="border p-2 text-right">
+                          {strat.metrics?.annualizedReturn.toFixed(2)}%
+                        </td>
+                      ))}
+                    </tr>
+                    <tr>
+                      <td className="border p-2 font-medium">Sharpe Ratio</td>
+                      <td className="border p-2 bg-primary/5 text-right font-semibold">
+                        {data.combinedMetrics?.sharpeRatio.toFixed(2)}
+                      </td>
+                      {data.strategies.map((strat) => (
+                        <td key={strat.id} className="border p-2 text-right">
+                          {strat.metrics?.sharpeRatio.toFixed(2)}
+                        </td>
+                      ))}
+                    </tr>
+                    <tr>
+                      <td className="border p-2 font-medium">Max Drawdown</td>
+                      <td className="border p-2 bg-primary/5 text-right font-semibold text-destructive">
+                        -${((data.combinedMetrics?.maxDrawdown || 0) * startingCapital / 100).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                      </td>
+                      {data.strategies.map((strat) => (
+                        <td key={strat.id} className="border p-2 text-right text-destructive">
+                          -${((strat.metrics?.maxDrawdown || 0) * startingCapital / 100).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                        </td>
+                      ))}
+                    </tr>
+                    <tr>
+                      <td className="border p-2 font-medium">Win Rate</td>
+                      <td className="border p-2 bg-primary/5 text-right font-semibold">
+                        {data.combinedMetrics?.winRate.toFixed(1)}%
+                      </td>
+                      {data.strategies.map((strat) => (
+                        <td key={strat.id} className="border p-2 text-right">
+                          {strat.metrics?.winRate.toFixed(1)}%
+                        </td>
+                      ))}
+                    </tr>
+                    <tr>
+                      <td className="border p-2 font-medium">Total Trades</td>
+                      <td className="border p-2 bg-primary/5 text-right font-semibold">
+                        {data.combinedMetrics?.totalTrades}
+                      </td>
+                      {data.strategies.map((strat) => (
+                        <td key={strat.id} className="border p-2 text-right">
+                          {strat.metrics?.totalTrades}
+                        </td>
+                      ))}
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+          
+          {/* Monte Carlo Simulation */}
+          <MonteCarloSimulation 
+            trades={data.combinedTrades || []} 
+            startingCapital={startingCapital}
+          />
+        </>
+      )}
     </div>
   );
 }
-
-export default StrategyComparisonPage;

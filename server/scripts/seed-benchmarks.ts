@@ -1,45 +1,47 @@
-#!/usr/bin/env tsx
-import { db } from "../db";
-import { benchmarks } from "../../drizzle/schema";
-import * as fs from "fs";
-import * as path from "path";
 import { parse } from "csv-parse/sync";
+import { readFileSync } from "fs";
+import { join } from "path";
+import { getDb } from "../db";
+import { benchmarks } from "../../drizzle/schema";
 
-const SEED_USER_ID = 1;
-const BATCH_SIZE = 1000;
-
-interface BenchmarkRow { date: string; symbol: string; open: string; high: string; low: string; close: string; volume: string; }
-
-async function main() {
-  console.log("🌱 Seeding benchmark data...");
-  const csvPath = path.join(process.cwd(), "data", "seed", "spy_benchmark.csv");
-  if (!fs.existsSync(csvPath)) {
-    console.error(`❌ File not found: ${csvPath}`);
+async function seedBenchmarks() {
+  const db = await getDb();
+  if (!db) {
+    console.error("Database not available");
     process.exit(1);
   }
 
-  const records = parse(fs.readFileSync(csvPath, "utf-8"), { columns: true, skip_empty_lines: true }) as BenchmarkRow[];
-  console.log(`📊 Found ${records.length} benchmark rows to seed`);
+  const csvPath = join(process.cwd(), "data/seed/spy_benchmark.csv");
+  const csvContent = readFileSync(csvPath, "utf-8");
+  
+  const records = parse(csvContent, {
+    columns: true,
+    skip_empty_lines: true,
+  });
 
-  for (let i = 0; i < records.length; i += BATCH_SIZE) {
-    const batch = records.slice(i, i + BATCH_SIZE);
-    const values = batch.map(record => ({
-      userId: SEED_USER_ID,
-      symbol: record.symbol,
-      date: record.date,
-      open: record.open,
-      high: record.high,
-      low: record.low,
-      close: record.close,
-      volume: record.volume,
+  console.log(`Seeding ${records.length} benchmark records...`);
+
+  let inserted = 0;
+  const batchSize = 500;
+  
+  for (let i = 0; i < records.length; i += batchSize) {
+    const batch = records.slice(i, i + batchSize);
+    const values = batch.map((record: any) => ({
+      date: new Date(record.date),
+      open: Math.round(parseFloat(record.open) * 100),
+      high: Math.round(parseFloat(record.high) * 100),
+      low: Math.round(parseFloat(record.low) * 100),
+      close: Math.round(parseFloat(record.close) * 100),
+      volume: record.volume ? parseInt(record.volume) : null,
     }));
 
-    await db.insert(benchmarks).values(values).onDuplicateKeyUpdate({ set: { id: db.raw(`id`) } });
-    console.log(`✅ Inserted batch ${i / BATCH_SIZE + 1} of ${Math.ceil(records.length / BATCH_SIZE)}`);
+    await db.insert(benchmarks).values(values);
+    
+    inserted += values.length;
+    console.log(`Inserted ${inserted}/${records.length} benchmark records...`);
   }
 
-  console.log("\n✨ Seeding complete!");
-  process.exit(0);
+  console.log("✅ Benchmarks seeded successfully");
 }
 
-main().catch(console.error);
+seedBenchmarks().catch(console.error);

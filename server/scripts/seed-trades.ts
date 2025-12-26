@@ -1,51 +1,65 @@
-#!/usr/bin/env tsx
-import { db } from "../db";
-import { trades } from "../../drizzle/schema";
-import * as fs from "fs";
-import * as path from "path";
 import { parse } from "csv-parse/sync";
+import { readFileSync } from "fs";
+import { join } from "path";
+import { getDb } from "../db";
+import { trades, strategies } from "../../drizzle/schema";
+import { eq } from "drizzle-orm";
 
-const SEED_USER_ID = 1;
-const BATCH_SIZE = 500;
-
-interface TradeRow { strategyId: string; symbol: string; side: string; quantity: string; entryPrice: string; exitPrice: string; entryTime: string; exitTime: string; }
-
-function generateNaturalKey(trade: TradeRow): string {
-  return `${trade.strategyId}_${trade.symbol}_${trade.entryTime}_${trade.exitTime}`;
-}
-
-async function main() {
-  console.log("🌱 Seeding trades...");
-  const csvPath = path.join(process.cwd(), "data", "seed", "trades.csv");
-  if (!fs.existsSync(csvPath)) {
-    console.error(`❌ File not found: ${csvPath}`);
+async function seedTrades() {
+  const db = await getDb();
+  if (!db) {
+    console.error("Database not available");
     process.exit(1);
   }
 
-  const records = parse(fs.readFileSync(csvPath, "utf-8"), { columns: true, skip_empty_lines: true }) as TradeRow[];
-  console.log(`📊 Found ${records.length} trades to seed`);
+  // Load strategy mapping (symbol -> id)
+  const strategyRecords = await db.select().from(strategies);
+  const strategyMap = new Map(strategyRecords.map(s => [s.symbol, s.id]));
 
-  for (let i = 0; i < records.length; i += BATCH_SIZE) {
-    const batch = records.slice(i, i + BATCH_SIZE);
-    const values = batch.map(record => ({
-      userId: SEED_USER_ID,
-      strategyId: parseInt(record.strategyId),
-      symbol: record.symbol,
-      side: record.side,
-      quantity: record.quantity,
-      entryPrice: record.entryPrice,
-      exitPrice: record.exitPrice,
-      entryTime: new Date(record.entryTime),
-      exitTime: new Date(record.exitTime),
-      naturalKey: generateNaturalKey(record),
-    }));
+  const csvPath = join(process.cwd(), "data/seed/trades.csv");
+  const csvContent = readFileSync(csvPath, "utf-8");
+  
+  const records = parse(csvContent, {
+    columns: true,
+    skip_empty_lines: true,
+  });
 
-    await db.insert(trades).values(values).onDuplicateKeyUpdate({ set: { id: db.raw(`id`) } });
-    console.log(`✅ Inserted batch ${i / BATCH_SIZE + 1} of ${Math.ceil(records.length / BATCH_SIZE)}`);
+  console.log(`Seeding ${records.length} trades...`);
+
+  let inserted = 0;
+  const batchSize = 500;
+  
+  for (let i = 0; i < records.length; i += batchSize) {
+    const batch = records.slice(i, i + batchSize);
+    const values = batch.map((record: any) => {
+      const strategyId = strategyMap.get(record.strategyName);
+      if (!strategyId) {
+        console.warn(`Strategy not found: ${record.strategyName}`);
+        return null;
+      }
+
+      return {
+        strategyId,
+        entryDate: new Date(record.entryTime),
+        exitDate: new Date(record.exitTime),
+        direction: record.side === 'long' ? 'Long' : 'Short',
+        entryPrice: Math.round(parseFloat(record.entryPrice) * 100),
+        exitPrice: Math.round(parseFloat(record.exitPrice) * 100),
+        quantity: parseInt(record.quantity) || 1,
+        pnl: Math.round(parseFloat(record.pnl) * 100),
+        pnlPercent: Math.round(parseFloat(record.pnlPercent) * 10000),
+        commission: 0,
+      };
+    }).filter(Boolean);
+
+    if (values.length > 0) {
+      await db.insert(trades).values(values as any);
+      inserted += values.length;
+      console.log(`Inserted ${inserted}/${records.length} trades...`);
+    }
   }
 
-  console.log("\n✨ Seeding complete!");
-  process.exit(0);
+  console.log("✅ Trades seeded successfully");
 }
 
-main().catch(console.error);
+seedTrades().catch(console.error);

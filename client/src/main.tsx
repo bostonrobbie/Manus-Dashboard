@@ -1,51 +1,77 @@
+import { trpc } from "@/lib/trpc";
+import { UNAUTHED_ERR_MSG } from '@shared/const';
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import React from "react";
-import ReactDOM from "react-dom/client";
-import { httpBatchLink } from "@trpc/client";
-import SuperJSON from "superjson";
+import { httpBatchLink, TRPCClientError } from "@trpc/client";
+import { createRoot } from "react-dom/client";
+import superjson from "superjson";
 import App from "./App";
+import { getLoginUrl } from "./const";
 import "./index.css";
-import { trpc } from "./lib/trpc";
-import { getWorkspaceHeaderValue } from "./lib/workspaceHeaders";
-import { AppErrorBoundary } from "./components/AppErrorBoundary";
+import { ContractSizeProvider } from "@/contexts/ContractSizeContext";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // Default stale time of 2 minutes - data won't refetch unless stale
+      staleTime: 2 * 60 * 1000,
+      // Keep unused data in cache for 10 minutes
+      gcTime: 10 * 60 * 1000,
+      // Don't refetch on window focus for better performance
+      refetchOnWindowFocus: false,
+      // Retry failed queries once
+      retry: 1,
+    },
+  },
+});
 
-const getBaseUrl = () => {
-  if (typeof window === "undefined") return "";
-  const apiUrl = import.meta.env.VITE_API_URL?.trim();
-  if (apiUrl && apiUrl.length > 0) return apiUrl.replace(/\/$/, "");
-  return window.location.origin.replace(/\/$/, "");
+const redirectToLoginIfUnauthorized = (error: unknown) => {
+  if (!(error instanceof TRPCClientError)) return;
+  if (typeof window === "undefined") return;
+
+  const isUnauthorized = error.message === UNAUTHED_ERR_MSG;
+
+  if (!isUnauthorized) return;
+
+  window.location.href = getLoginUrl();
 };
+
+queryClient.getQueryCache().subscribe(event => {
+  if (event.type === "updated" && event.action.type === "error") {
+    const error = event.query.state.error;
+    redirectToLoginIfUnauthorized(error);
+    console.error("[API Query Error]", error);
+  }
+});
+
+queryClient.getMutationCache().subscribe(event => {
+  if (event.type === "updated" && event.action.type === "error") {
+    const error = event.mutation.state.error;
+    redirectToLoginIfUnauthorized(error);
+    console.error("[API Mutation Error]", error);
+  }
+});
 
 const trpcClient = trpc.createClient({
   links: [
     httpBatchLink({
-      url: `${getBaseUrl()}/trpc`,
-      transformer: SuperJSON,
-      headers() {
-        const headers: Record<string, string> = {};
-        const manusHeader = import.meta.env.VITE_MANUS_AUTH_HEADER?.trim();
-        const manusToken = import.meta.env.VITE_MANUS_AUTH_TOKEN?.trim();
-        const workspaceHeader = import.meta.env.VITE_MANUS_WORKSPACE_HEADER?.trim();
-        const workspaceId = getWorkspaceHeaderValue() ?? import.meta.env.VITE_MANUS_WORKSPACE_ID?.trim();
-
-        if (manusHeader && manusToken) headers[manusHeader] = manusToken;
-        if (workspaceHeader && workspaceId) headers[workspaceHeader] = workspaceId;
-        return headers;
+      url: "/api/trpc",
+      transformer: superjson,
+      fetch(input, init) {
+        return globalThis.fetch(input, {
+          ...(init ?? {}),
+          credentials: "include",
+        });
       },
     }),
   ],
 });
 
-ReactDOM.createRoot(document.getElementById("root")!).render(
-  <React.StrictMode>
-    <trpc.Provider client={trpcClient} queryClient={queryClient}>
-      <QueryClientProvider client={queryClient}>
-        <AppErrorBoundary>
-          <App />
-        </AppErrorBoundary>
-      </QueryClientProvider>
-    </trpc.Provider>
-  </React.StrictMode>,
+createRoot(document.getElementById("root")!).render(
+  <trpc.Provider client={trpcClient} queryClient={queryClient}>
+    <QueryClientProvider client={queryClient}>
+      <ContractSizeProvider>
+        <App />
+      </ContractSizeProvider>
+    </QueryClientProvider>
+  </trpc.Provider>
 );
