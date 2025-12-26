@@ -4296,3 +4296,14 @@
 - [x] Assemble video with transitions
 - [ ] Add background music
 - [x] Export final video
+
+
+## Marketing Video v2 (Professional Quality)
+- [x] Dismiss preview banner before capturing screenshots
+- [x] Recapture all dashboard screenshots without yellow banner
+- [x] Generate animated text overlays with motion effects
+- [x] Create lower third graphics for feature callouts
+- [x] Add Ken Burns zoom/pan effects to each scene
+- [x] Implement smooth transitions between scenes
+- [x] Add dynamic pacing with faster cuts
+- [x] Export final professional marketing video
