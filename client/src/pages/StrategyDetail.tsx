@@ -1,18 +1,20 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useRoute, Link } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { Loader2, ArrowLeft } from "lucide-react";
 import { TradeFilters, TradeFilterState } from "@/components/TradeFilters";
 import { exportTradesToCSV } from "@/lib/csvExport";
 import { Button } from "@/components/ui/button";
 import { DataQualityBadge } from "@/components/DataQualityBadge";
-import { MetricTooltip, METRIC_TOOLTIPS } from "@/components/MetricTooltip";
+import { MetricTooltip } from "@/components/MetricTooltip";
+// Unused imports cleaned up
 
 type TimeRange = '6M' | 'YTD' | '1Y' | '5Y' | '10Y' | 'ALL';
 

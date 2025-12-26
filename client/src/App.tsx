@@ -19,7 +19,8 @@ const LandingPage = lazy(() => import("./pages/LandingPage"));
 const Pricing = lazy(() => import("./pages/Pricing"));
 const Onboarding = lazy(() => import("./pages/Onboarding"));
 const CheckoutSuccess = lazy(() => import("./pages/CheckoutSuccess"));
-const QADashboard = lazy(() => import("./pages/QADashboard"));
+// QADashboard available for future use
+// const QADashboard = lazy(() => import("./pages/QADashboard"));
 
 // Loading fallback component
 function PageLoader() {

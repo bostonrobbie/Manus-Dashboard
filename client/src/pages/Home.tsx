@@ -1,36 +1,24 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+
 import { 
   TrendingUp, 
-  Shield, 
   Zap, 
   BarChart3, 
   ArrowRight,
-  LineChart,
   Target,
   CheckCircle2,
-  Activity,
-  Award,
-  Clock,
   ChevronDown,
   ChevronUp,
-  Mail,
-  Users,
-  Star,
   Check,
   X,
-  DollarSign,
   Calculator,
   Cpu,
   Webhook,
   AlertTriangle,
-  Sparkles,
-  Timer,
   Brain,
   Database,
-  Lock,
   Play
 } from "lucide-react";
 import { getLoginUrl } from "@/const";
@@ -144,12 +132,11 @@ const comparisonFeatures = [
 ];
 
 export default function Home() {
-  const { user, isAuthenticated } = useAuth();
-  const { data: stats, isLoading } = trpc.platform.stats.useQuery();
-  const { data: strategies } = trpc.subscription.availableStrategies.useQuery(undefined, { enabled: isAuthenticated });
+  const { isAuthenticated } = useAuth();
+  const { data: stats } = trpc.platform.stats.useQuery();
+  // Strategies query available for future use
+  trpc.subscription.availableStrategies.useQuery(undefined, { enabled: isAuthenticated });
   const [openFaq, setOpenFaq] = useState<number | null>(null);
-  const [email, setEmail] = useState("");
-  const [emailSubmitted, setEmailSubmitted] = useState(false);
   const [contractSize, setContractSize] = useState<'micro' | 'mini'>('micro');
 
   // Calculate savings
@@ -177,14 +164,6 @@ export default function Home() {
       miniStarting
     };
   }, [stats]);
-
-  const handleEmailSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (email) {
-      setEmailSubmitted(true);
-      setEmail("");
-    }
-  };
 
   return (
     <div className="min-h-screen bg-[#0a0a0f]">

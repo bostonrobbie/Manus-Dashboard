@@ -10,12 +10,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { 
   ChevronRight, 
-  ChevronLeft, 
-  Check, 
-  TrendingUp, 
   Bell, 
   Shield, 
-  Zap,
   Target,
   BarChart3,
   Sparkles

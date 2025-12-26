@@ -1,7 +1,7 @@
 import { eq, and, gte, lte, inArray, desc, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import mysql from 'mysql2/promise';
-import { InsertUser, users, strategies, trades, benchmarks, webhookLogs, InsertWebhookLog, openPositions, InsertOpenPosition, OpenPosition, notificationPreferences, strategyNotificationSettings, InsertNotificationPreference, InsertStrategyNotificationSetting, NotificationPreference, StrategyNotificationSetting, stagingTrades, InsertStagingTrade, StagingTrade } from "../drizzle/schema";
+import { InsertUser, users, strategies, trades, benchmarks, webhookLogs, InsertWebhookLog, openPositions, InsertOpenPosition, OpenPosition, notificationPreferences, strategyNotificationSettings, InsertNotificationPreference, NotificationPreference, StrategyNotificationSetting, stagingTrades, StagingTrade } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -493,7 +493,7 @@ export async function deleteAllWebhookLogs(): Promise<number> {
     }
     
     // Delete all logs
-    const result = await db.delete(webhookLogs);
+    await db.delete(webhookLogs);
     console.log(`[Database] Deleted ${count} webhook logs`);
     return count;
   } catch (error) {

@@ -14,7 +14,6 @@ import { stripeRouter } from "./stripe/stripeRouter";
 import { cache, cacheKeys, cacheTTL } from "./cache";
 
 // Time range enum for filtering  
-type TimeRangeType = '6M' | 'YTD' | '1Y' | '3Y' | '5Y' | '10Y' | 'ALL';
 const TimeRange = z.enum(['6M', 'YTD', '1Y', '3Y', '5Y', '10Y', 'ALL']);
 
 export const appRouter = router({
@@ -179,7 +178,8 @@ export const appRouter = router({
           totalRatio += strategy.microToMiniRatio * stratTrades.length;
           totalTrades += stratTrades.length;
         }
-        const avgRatio = totalTrades > 0 ? totalRatio / totalTrades : 10;
+        // Average ratio available for future use
+        // const avgRatio = totalTrades > 0 ? totalRatio / totalTrades : 10;
 
         // Calculate portfolio metrics (mini contracts)
         const metrics = analytics.calculatePerformanceMetrics(
@@ -474,7 +474,7 @@ export const appRouter = router({
         const underwaterCurve = analytics.calculateUnderwaterCurve(equityCurve);
         
         // Convert benchmark to equity curve format for underwater calculation
-        const benchmarkEquityCurve = benchmarkData.map((b, idx) => ({
+        const benchmarkEquityCurve = benchmarkData.map((b) => ({
           date: b.date,
           equity: b.close,
           drawdown: 0, // Will be calculated by underwater curve
@@ -629,7 +629,7 @@ export const appRouter = router({
 
         // Forward-fill each strategy's equity curve from its first trade to its last trade
         // This creates smooth daily curves like the individual strategy pages
-        const forwardFilledCurves = equityCurvesPerStrategy.map((curve, i) => {
+        const forwardFilledCurves = equityCurvesPerStrategy.map((curve) => {
           if (curve.length === 0) return [];
           
           // Get this strategy's date range (first trade to last trade)
@@ -1091,7 +1091,7 @@ export const appRouter = router({
         pnl: z.number().optional(),
         includeToken: z.boolean().optional().default(true),
       }))
-      .mutation(async ({ input, ctx }) => {
+      .mutation(async ({ input }) => {
         const { validatePayload, mapSymbolToStrategy } = await import('./webhookService');
         
         // Build the test payload

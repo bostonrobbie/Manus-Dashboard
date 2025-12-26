@@ -112,7 +112,7 @@ function buildCSPHeader(isDevelopment: boolean): string {
  * - Referrer-Policy: Controls referrer information
  * - Permissions-Policy: Restricts browser features
  */
-export function securityHeadersMiddleware(req: Request, res: Response, next: NextFunction) {
+export function securityHeadersMiddleware(_req: Request, res: Response, next: NextFunction) {
   const isDevelopment = process.env.NODE_ENV === 'development';
   
   // Content Security Policy

@@ -4307,3 +4307,10 @@
 - [x] Implement smooth transitions between scenes
 - [x] Add dynamic pacing with faster cuts
 - [x] Export final professional marketing video
+
+
+## Preventive Measures (Data Integrity)
+- [x] Add stricter TypeScript configuration (noUnusedLocals, noUnusedParameters)
+- [ ] Add source field to trades table to track data origin (webhook vs CSV)
+- [ ] Create integration tests for validation with mixed data sources
+- [ ] Add pre-commit hooks for TypeScript type checking

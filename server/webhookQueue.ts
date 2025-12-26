@@ -12,8 +12,8 @@
 
 import { getDb } from './db';
 import { webhookQueue, deadLetterQueue, auditLogs } from '../drizzle/schema';
-import { eq, and, lte, sql } from 'drizzle-orm';
-import { processWebhook, validatePayload, WebhookValidationError } from './webhookService';
+import { eq, and, sql } from 'drizzle-orm';
+import { processWebhook } from './webhookService';
 
 // Queue configuration
 const QUEUE_CONFIG = {

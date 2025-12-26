@@ -1,26 +1,27 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
+
 import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceArea } from "recharts";
-import { Loader2, TrendingUp, TrendingDown, Activity, Target, Gauge, Info, Settings, Clock } from "lucide-react";
+import { Loader2, Settings, Clock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { CalendarPnL } from "@/components/CalendarPnL";
-import { UnderwaterCurveChart } from "@/components/UnderwaterCurveChart";
+
 import { DayOfWeekHeatmap } from "@/components/DayOfWeekHeatmap";
 import { WeekOfMonthHeatmap } from "@/components/WeekOfMonthHeatmap";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StrategyCorrelationHeatmap } from "@/components/StrategyCorrelationHeatmap";
 import { RollingMetricsChart } from "@/components/RollingMetricsChart";
 import { TradeAndRiskStats } from "@/components/TradeAndRiskStats";
-import { PortfolioSummary } from "@/components/PortfolioSummary";
+
+
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { DistributionSnapshot } from "@/components/DistributionSnapshot";
-import { MetricTooltip, METRIC_TOOLTIPS } from "@/components/MetricTooltip";
+import { MetricTooltip } from "@/components/MetricTooltip";
 
 type TimeRange = '6M' | 'YTD' | '1Y' | '3Y' | '5Y' | '10Y' | 'ALL';
 
@@ -31,36 +32,6 @@ export default function Overview() {
   const [calendarPeriodType, setCalendarPeriodType] = useState<'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly'>('yearly');
   // S&P 500 benchmark comparison removed per user request
   
-
-  // Helper to format date range
-  const getDateRangeText = (range: TimeRange) => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = now.toLocaleString('default', { month: 'short' });
-    
-    switch (range) {
-      case '6M': {
-        const sixMonthsAgo = new Date(now);
-        sixMonthsAgo.setMonth(now.getMonth() - 6);
-        const prevMonth = sixMonthsAgo.toLocaleString('default', { month: 'short' });
-        return `${prevMonth} ${sixMonthsAgo.getFullYear()} - ${month} ${year}`;
-      }
-      case 'YTD':
-        return `Jan ${year} - ${month} ${year}`;
-      case '1Y':
-        return `${month} ${year - 1} - ${month} ${year}`;
-      case '3Y':
-        return `${year - 3} - ${year}`;
-      case '5Y':
-        return `${year - 5} - ${year}`;
-      case '10Y':
-        return `${year - 10} - ${year}`;
-      case 'ALL':
-        return '2010 - 2025';
-      default:
-        return '';
-    }
-  };
 
   const { data, isLoading, error } = trpc.portfolio.overview.useQuery({
     timeRange,
@@ -77,7 +48,7 @@ export default function Overview() {
     staleTime: 10 * 60 * 1000, // Cache for 10 minutes (less frequent updates)
   });
 
-  const { data: breakdownData, isLoading: breakdownLoading } = trpc.portfolio.performanceBreakdown.useQuery({
+  const { data: breakdownData } = trpc.portfolio.performanceBreakdown.useQuery({
     timeRange,
     startingCapital,
   }, {
@@ -145,10 +116,6 @@ export default function Overview() {
         return null;
       })()
     : null;
-
-  // Calculate domain boundaries for X-axis to ensure chart extends full width
-  const minTimestamp = chartData.length > 0 ? chartData[0]!.timestamp : 0;
-  const maxTimestamp = chartData.length > 0 ? chartData[chartData.length - 1]!.timestamp : 0;
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -369,7 +336,7 @@ export default function Overview() {
                   labelStyle={{ color: 'black' }}
                 />
                 <Legend 
-                  content={(props: any) => {
+                  content={() => {
                     return (
                       <div className="flex justify-center gap-6 mt-2 flex-wrap">
                         <div className="flex items-center gap-2">

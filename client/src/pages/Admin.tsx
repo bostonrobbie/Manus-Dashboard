@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,10 +13,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { 
   Copy, Check, RefreshCw, AlertCircle, CheckCircle2, Clock, XCircle, 
   AlertTriangle, Pause, Play, Trash2, Activity, Zap, Settings,
-  Code, BookOpen, Shield, FlaskConical, Send, Eye, Lock, BarChart3,
-  Search, Filter, Download, ChevronRight, ExternalLink, Link2,
-  TrendingUp, TrendingDown, Server, Database, Wifi, WifiOff,
-  ArrowUpRight, ArrowDownRight, Target, DollarSign, Webhook
+  Code, BookOpen, Shield, FlaskConical, Eye, Lock, BarChart3,
+  Search, Filter, ChevronRight, ExternalLink, Link2,
+  TrendingUp, TrendingDown, Server, Database, Wifi,
+  ArrowUpRight, ArrowDownRight, Target, Webhook
 } from "lucide-react";
 import { toast } from "sonner";
 import { useLocation, useSearch } from "wouter";
@@ -246,37 +246,8 @@ function OverviewTab() {
     },
   });
 
-  // Calculate chart data from logs
-  const chartData = useMemo(() => {
-    if (!logs) return [];
-    
-    // Group by hour for last 24 hours
-    const now = new Date();
-    const hours: { hour: string; success: number; failed: number }[] = [];
-    
-    for (let i = 23; i >= 0; i--) {
-      const hourDate = new Date(now.getTime() - i * 60 * 60 * 1000);
-      const hourStr = hourDate.toLocaleTimeString('en-US', { hour: '2-digit', hour12: true });
-      hours.push({ hour: hourStr, success: 0, failed: 0 });
-    }
-    
-    logs.forEach(log => {
-      const logDate = new Date(log.createdAt);
-      const hoursAgo = Math.floor((now.getTime() - logDate.getTime()) / (60 * 60 * 1000));
-      if (hoursAgo < 24) {
-        const index = 23 - hoursAgo;
-        if (index >= 0 && index < 24) {
-          if (log.status === 'success') {
-            hours[index].success++;
-          } else if (log.status === 'failed') {
-            hours[index].failed++;
-          }
-        }
-      }
-    });
-    
-    return hours;
-  }, [logs]);
+  // Chart data calculation available for future use
+  // const chartData = useMemo(() => { ... }, [logs]);
 
   return (
     <>
@@ -486,15 +457,8 @@ function OpenPositionsPanel() {
     },
   });
   
-  const clearStrategyPositionsMutation = trpc.webhook.clearPositionsForStrategy.useMutation({
-    onSuccess: (data) => {
-      toast.success(`Cleared ${data.deleted} positions`);
-      refetch();
-    },
-    onError: (error) => {
-      toast.error(`Failed to clear positions: ${error.message}`);
-    },
-  });
+  // Clear strategy positions mutation available for future use
+  // const clearStrategyPositionsMutation = trpc.webhook.clearPositionsForStrategy.useMutation({ ... });
 
   const getStrategyName = (symbol: string) => {
     const strategy = strategies?.find(s => s.symbol === symbol);
@@ -632,7 +596,8 @@ function ActivityTab() {
     search: searchQuery || undefined,
   });
   
-  const { data: strategies } = trpc.portfolio.listStrategies.useQuery();
+  // Strategies query available for future filtering
+  trpc.portfolio.listStrategies.useQuery();
   
   const clearLogsMutation = trpc.webhook.clearLogs.useMutation({
     onSuccess: (data) => {

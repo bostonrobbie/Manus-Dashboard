@@ -12,8 +12,8 @@ import { Link, useLocation } from "wouter";
 import { toast } from "sonner";
 
 export default function Pricing() {
-  const { user, loading: authLoading } = useAuth();
-  const [, setLocation] = useLocation();
+  const { user } = useAuth();
+  useLocation(); // Keep for navigation context
   const [isYearly, setIsYearly] = useState(false);
   const [loadingTier, setLoadingTier] = useState<string | null>(null);
 

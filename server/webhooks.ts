@@ -20,7 +20,6 @@ import {
   resumeWebhookProcessing,
   isWebhookProcessingPaused,
   getAllStrategyTemplates,
-  getWebhookUrl
 } from "./webhookService";
 import {
   checkRateLimit,
@@ -254,7 +253,7 @@ router.post("/tradingview", async (req, res) => {
  * GET /api/webhook/health
  * Health check endpoint with detailed diagnostics
  */
-router.get("/health", async (req, res) => {
+router.get("/health", async (_req, res) => {
   const startTime = Date.now();
   
   try {
@@ -359,7 +358,7 @@ router.get("/health", async (req, res) => {
  * GET /api/webhook/templates
  * Get all strategy alert message templates
  */
-router.get("/templates", (req, res) => {
+router.get("/templates", (_req, res) => {
   const token = process.env.TRADINGVIEW_WEBHOOK_TOKEN;
   const templates = getAllStrategyTemplates(token);
   res.json({ templates });
@@ -384,7 +383,7 @@ async function requireAdmin(req: any, res: any, next: any) {
  * POST /api/webhook/admin/pause
  * Pause webhook processing
  */
-router.post("/admin/pause", requireAdmin, async (req, res) => {
+router.post("/admin/pause", requireAdmin, async (_req, res) => {
   try {
     await pauseWebhookProcessing();
     console.log('[Webhook Admin] Processing paused');
@@ -398,7 +397,7 @@ router.post("/admin/pause", requireAdmin, async (req, res) => {
  * POST /api/webhook/admin/resume
  * Resume webhook processing
  */
-router.post("/admin/resume", requireAdmin, async (req, res) => {
+router.post("/admin/resume", requireAdmin, async (_req, res) => {
   try {
     await resumeWebhookProcessing();
     console.log('[Webhook Admin] Processing resumed');
@@ -412,7 +411,7 @@ router.post("/admin/resume", requireAdmin, async (req, res) => {
  * DELETE /api/webhook/admin/logs
  * Clear all webhook logs
  */
-router.delete("/admin/logs", requireAdmin, async (req, res) => {
+router.delete("/admin/logs", requireAdmin, async (_req, res) => {
   try {
     const result = await clearWebhookLogs();
     console.log(`[Webhook Admin] Cleared ${result.deleted} logs`);
@@ -426,11 +425,12 @@ router.delete("/admin/logs", requireAdmin, async (req, res) => {
  * DELETE /api/webhook/admin/logs/:id
  * Delete a specific webhook log
  */
-router.delete("/admin/logs/:id", requireAdmin, async (req, res) => {
+router.delete("/admin/logs/:id", requireAdmin, async (req, res): Promise<void> => {
   try {
     const logId = parseInt(req.params.id, 10);
     if (isNaN(logId)) {
-      return res.status(400).json({ success: false, error: 'Invalid log ID' });
+      res.status(400).json({ success: false, error: 'Invalid log ID' });
+      return;
     }
     
     const success = await removeWebhookLog(logId);
@@ -449,11 +449,12 @@ router.delete("/admin/logs/:id", requireAdmin, async (req, res) => {
  * DELETE /api/webhook/admin/trades/:id
  * Delete a specific trade (for removing test trades)
  */
-router.delete("/admin/trades/:id", requireAdmin, async (req, res) => {
+router.delete("/admin/trades/:id", requireAdmin, async (req, res): Promise<void> => {
   try {
     const tradeId = parseInt(req.params.id, 10);
     if (isNaN(tradeId)) {
-      return res.status(400).json({ success: false, error: 'Invalid trade ID' });
+      res.status(400).json({ success: false, error: 'Invalid trade ID' });
+      return;
     }
     
     const success = await db.deleteTrade(tradeId);
@@ -472,7 +473,7 @@ router.delete("/admin/trades/:id", requireAdmin, async (req, res) => {
  * GET /api/webhook/status
  * Get webhook processing status and statistics
  */
-router.get("/status", async (req, res) => {
+router.get("/status", async (_req, res) => {
   try {
     const isPaused = await isWebhookProcessingPaused();
     const logs = await db.getWebhookLogs(100);

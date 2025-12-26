@@ -16,14 +16,12 @@ import {
   Clock, 
   CheckCircle2, 
   XCircle, 
-  AlertCircle,
   Settings,
   Zap,
   BarChart3,
   Plus,
   Minus,
   RefreshCw,
-  PieChart,
   LineChart,
   Wallet,
   Target,
@@ -42,7 +40,6 @@ import { RiskDisclaimerModal } from '@/components/RiskDisclaimerModal';
 import { NotificationSettings } from '@/components/NotificationSettings';
 import OnboardingChecklist from '@/components/OnboardingChecklist';
 import {
-  LineChart as RechartsLine,
   Line,
   XAxis,
   YAxis,
@@ -51,7 +48,6 @@ import {
   Legend,
   ResponsiveContainer,
   Area,
-  AreaChart,
   ComposedChart,
   PieChart as RechartsPie,
   Pie,
@@ -112,7 +108,7 @@ export default function UserDashboard() {
     trpc.subscription.pendingSignals.useQuery();
 
   // Fetch subscription stats
-  const { data: stats, isLoading: loadingStats } = 
+  const { data: stats } = 
     trpc.subscription.stats.useQuery();
 
   // Fetch portfolio analytics for user's subscribed strategies
@@ -123,7 +119,7 @@ export default function UserDashboard() {
     });
 
   // Fetch individual strategy equity curves
-  const { data: strategyCurves, isLoading: loadingCurves } = 
+  const { data: strategyCurves } = 
     trpc.subscription.strategyEquityCurves.useQuery({
       timeRange: timeRange === 'ALL' ? undefined : timeRange,
       startingCapital,
@@ -261,7 +257,7 @@ export default function UserDashboard() {
     
     // Build chart data from portfolio equity curve (the source of truth for combined portfolio)
     // This is calculated on the backend from ONLY the subscribed strategies' trades
-    const chartData = portfolioData.equityCurve.map((point: any, index: number) => {
+    const chartData = portfolioData.equityCurve.map((point: any) => {
       const dataPoint: any = {
         date: point.date,
         combined: point.equity, // Combined portfolio from backend (strategies only, NO S&P 500)
@@ -667,11 +663,9 @@ export default function UserDashboard() {
                         
                         // Create date-based lookup for benchmark with forward-fill
                         const benchmarkMap = new Map<string, number>();
-                        let lastBenchmarkDrawdown = 0;
                         if (portfolioData.benchmarkUnderwaterCurve) {
                           portfolioData.benchmarkUnderwaterCurve.forEach((p: any) => {
                             benchmarkMap.set(p.date, p.drawdown);
-                            lastBenchmarkDrawdown = p.drawdown;
                           });
                         }
                         

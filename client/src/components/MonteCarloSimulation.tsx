@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Area, AreaChart } from "recharts";
+import { Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Area, AreaChart } from "recharts";
 import { Loader2, CheckCircle2, AlertTriangle, XCircle, TrendingUp, Shield, Target, DollarSign } from "lucide-react";
 
 interface Trade {
@@ -52,8 +52,8 @@ function runMonteCarloSimulation(
   const returns = trades.map(t => t.pnl / 100); // Convert cents to dollars
   const numTrades = trades.length;
   
-  // Calculate average trade return and win rate
-  const avgReturn = returns.reduce((sum, r) => sum + r, 0) / returns.length;
+  // Calculate win rate and average win/loss
+  // const avgReturn = returns.reduce((sum, r) => sum + r, 0) / returns.length; // Available for future use
   const winRate = returns.filter(r => r > 0).length / returns.length;
   const avgWin = returns.filter(r => r > 0).reduce((sum, r) => sum + r, 0) / returns.filter(r => r > 0).length || 0;
   const avgLoss = Math.abs(returns.filter(r => r < 0).reduce((sum, r) => sum + r, 0) / returns.filter(r => r < 0).length) || 0;

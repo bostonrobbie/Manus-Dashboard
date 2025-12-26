@@ -1,4 +1,4 @@
-import { useMemo, memo } from "react";
+
 import { Card } from "@/components/ui/card";
 
 type PeriodType = "daily" | "weekly" | "monthly" | "quarterly" | "yearly";

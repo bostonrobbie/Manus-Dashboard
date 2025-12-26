@@ -8,9 +8,6 @@ interface CorrelationMatrixProps {
 export function StrategyCorrelationHeatmap({ labels, matrix }: CorrelationMatrixProps) {
   // Get color for correlation value
   const getColor = (value: number) => {
-    // Normalize to 0-1 range (from -1 to 1)
-    const normalized = (value + 1) / 2;
-    
     if (value >= 0.7) return 'oklch(0.7 0.15 145)'; // Strong positive - green
     if (value >= 0.4) return 'oklch(0.75 0.1 200)'; // Moderate positive - blue
     if (value >= 0.2) return 'oklch(0.8 0.08 250)'; // Weak positive - light blue

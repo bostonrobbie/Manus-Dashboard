@@ -12,7 +12,7 @@
  */
 
 import mysql from 'mysql2/promise';
-import { getPool, getDb } from './db';
+import { getPool } from './db';
 import { 
   writeToWal, 
   markProcessing, 
@@ -23,7 +23,6 @@ import {
 import {
   validatePayload,
   mapSymbolToStrategy,
-  WebhookValidationError,
   NormalizedPayload,
   WebhookResult,
   calculatePnL,

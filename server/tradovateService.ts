@@ -153,7 +153,7 @@ export class TradovateClient {
   private accessToken: string | null = null;
   private mdAccessToken: string | null = null;
   private tokenExpiration: Date | null = null;
-  private userId: number | null = null;
+  private _userId: number | null = null;
   private isDemo: boolean = true;
   
   constructor(isDemo: boolean = true) {
@@ -403,7 +403,7 @@ export class TradovateClient {
     this.accessToken = null;
     this.mdAccessToken = null;
     this.tokenExpiration = null;
-    this.userId = null;
+    this._userId = null;
     console.log("[Tradovate] Disconnected");
   }
   

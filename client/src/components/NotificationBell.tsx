@@ -1,10 +1,9 @@
-import { useState, useEffect } from "react";
-import { Bell, Check, CheckCheck, Trash2, X } from "lucide-react";
+import { useState } from "react";
+import { Bell, Check, CheckCheck, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -42,7 +41,7 @@ export function NotificationBell() {
   const utils = trpc.useUtils();
 
   // Fetch notifications
-  const { data, isLoading, refetch } = trpc.inAppNotifications.list.useQuery(
+  const { data, isLoading } = trpc.inAppNotifications.list.useQuery(
     { unreadOnly: false, limit: 20 },
     { 
       refetchInterval: 30000, // Refetch every 30 seconds

@@ -3,33 +3,20 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
   TrendingUp, 
-  Shield, 
   Zap, 
   BarChart3, 
   ArrowRight,
-  LineChart,
   Target,
   CheckCircle2,
-  Activity,
-  Award,
-  Clock,
   ChevronDown,
   ChevronUp,
-  Mail,
-  Users,
-  Star,
   Check,
   X,
-  DollarSign,
-  Calculator,
   Cpu,
   Webhook,
   AlertTriangle,
-  Sparkles,
-  Timer,
   Brain,
   Database,
-  Lock,
   Play,
   LayoutDashboard
 } from "lucide-react";
@@ -92,9 +79,11 @@ const comparisonFeatures = [
 ];
 
 export default function LandingPage() {
-  const { user, isAuthenticated } = useAuth();
-  const { data: stats, isLoading } = trpc.platform.stats.useQuery();
-  const { data: strategies } = trpc.subscription.availableStrategies.useQuery(undefined, { enabled: isAuthenticated });
+  const { isAuthenticated } = useAuth();
+  // Platform stats query available for future use
+  trpc.platform.stats.useQuery();
+  // Strategies query available for future use
+  trpc.subscription.availableStrategies.useQuery(undefined, { enabled: isAuthenticated });
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [contractSize, setContractSize] = useState<'micro' | 'mini'>('mini');
 

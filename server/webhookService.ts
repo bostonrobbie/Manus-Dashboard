@@ -27,7 +27,6 @@ import {
   insertTrade,
   checkDuplicateTrade,
   getLastInsertedTradeId,
-  getWebhookLogs,
   deleteWebhookLog,
   deleteAllWebhookLogs,
   getWebhookSettings,
@@ -39,8 +38,6 @@ import {
   getAllOpenPositions,
   getRecentPositions,
   getPositionStats,
-  // Notification preferences
-  shouldSendNotification,
 } from './db';
 import { InsertWebhookLog, InsertOpenPosition } from '../drizzle/schema';
 import { notifyOwnerAsync } from './_core/notification';
