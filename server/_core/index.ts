@@ -9,6 +9,8 @@ import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import webhookRouter from "../webhooks";
 import stripeWebhookRouter from "../stripe/stripeWebhook";
+import { securityHeadersMiddleware } from "./securityMiddleware";
+import { initSentry, sentryRequestHandler, sentryErrorHandler, flushSentry } from "./sentry";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -30,8 +32,18 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 }
 
 async function startServer() {
+  // Initialize Sentry before anything else
+  initSentry();
+  
   const app = express();
   const server = createServer(app);
+  
+  // Sentry request handler must be first
+  app.use(sentryRequestHandler());
+  
+  // Apply security headers to all responses
+  app.use(securityHeadersMiddleware);
+  
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
@@ -63,8 +75,18 @@ async function startServer() {
     console.log(`Port ${preferredPort} is busy, using port ${port} instead`);
   }
 
+  // Sentry error handler must be after all routes
+  app.use(sentryErrorHandler());
+  
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);
+  });
+  
+  // Graceful shutdown
+  process.on('SIGTERM', async () => {
+    console.log('SIGTERM received, flushing Sentry...');
+    await flushSentry();
+    process.exit(0);
   });
 }
 
