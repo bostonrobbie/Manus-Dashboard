@@ -151,14 +151,14 @@ export default function Overview() {
   const maxTimestamp = chartData.length > 0 ? chartData[chartData.length - 1]!.timestamp : 0;
 
   return (
-    <div className="space-y-6">
-      {/* Overview Header Section - Bundled */}
+    <div className="space-y-4 sm:space-y-6">
+      {/* Overview Header Section - Bundled - Mobile Optimized */}
       <Card className="bg-gradient-to-br from-card to-card/50 border-2">
-        <CardContent className="pt-6 space-y-6">
+        <CardContent className="pt-4 sm:pt-6 space-y-4 sm:space-y-6 px-3 sm:px-6">
           {/* Header - Centered Title */}
           <div className="text-center relative">
-            <h1 className="text-4xl font-bold tracking-tight mb-2">Portfolio Overview</h1>
-            <p className="text-sm text-muted-foreground">
+            <h1 className="text-2xl sm:text-4xl font-bold tracking-tight mb-1 sm:mb-2">Portfolio Overview</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground">
               Combined performance of all intraday strategies
             </p>
             
@@ -219,8 +219,8 @@ export default function Overview() {
             </div>
           </div>
 
-          {/* Key Metrics Cards - All in one row with auto-sizing */}
-          <div className="grid gap-2 sm:gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
+          {/* Key Metrics Cards - Mobile Optimized Grid */}
+          <div className="grid gap-1.5 sm:gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
             {/* Total Return */}
             <div className="bg-muted/30 border border-muted rounded-lg p-2 sm:p-3 md:p-4 text-center overflow-hidden">
               <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1 sm:mb-2">Total Return</div>
@@ -304,30 +304,30 @@ export default function Overview() {
         </CardContent>
       </Card>
 
-      {/* Equity Curve Chart */}
+      {/* Equity Curve Chart - Mobile Optimized */}
       <Card>
-        <CardHeader>
-          <div className="flex flex-col sm:flex-row justify-between items-start gap-3">
+        <CardHeader className="px-3 sm:px-6 py-3 sm:py-4">
+          <div className="flex flex-col sm:flex-row justify-between items-start gap-2 sm:gap-3">
             <div>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
                 Equity Curve
-                <Badge variant="outline" className="text-xs font-normal text-green-400 border-green-400/30">
-                  <Clock className="w-3 h-3 mr-1" />
+                <Badge variant="outline" className="text-[10px] sm:text-xs font-normal text-green-400 border-green-400/30">
+                  <Clock className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-0.5 sm:mr-1" />
                   Live
                 </Badge>
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-xs sm:text-sm">
                 Portfolio performance over time
               </CardDescription>
             </div>
-            {/* Time Range Selector */}
-            <div className="flex gap-1 flex-wrap">
+            {/* Time Range Selector - Mobile Optimized */}
+            <div className="flex gap-1 flex-wrap w-full sm:w-auto">
               {(['6M', 'YTD', '1Y', '5Y', '10Y', 'ALL'] as const).map((range) => (
                 <Button
                   key={range}
                   variant={timeRange === range ? 'default' : 'outline'}
                   size="sm"
-                  className="h-7 px-2 text-xs"
+                  className="h-8 sm:h-7 px-2.5 sm:px-2 text-xs flex-1 sm:flex-none min-w-[40px]"
                   onClick={() => setTimeRange(range)}
                 >
                   {range}
@@ -336,8 +336,8 @@ export default function Overview() {
             </div>
           </div>
         </CardHeader>
-        <CardContent>
-          <div className="h-[280px] sm:h-[350px] md:h-[400px] lg:h-[450px] -mx-2 sm:mx-0">
+        <CardContent className="px-2 sm:px-6">
+          <div className="h-[240px] sm:h-[350px] md:h-[400px] lg:h-[450px] -mx-1 sm:mx-0">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData} margin={{ top: 10, right: 5, left: 0, bottom: 10 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted-foreground))" strokeOpacity={0.2} vertical={false} />

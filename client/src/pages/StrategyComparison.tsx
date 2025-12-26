@@ -118,32 +118,32 @@ export default function StrategyComparison() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Strategy Comparison</h1>
-        <p className="text-muted-foreground">
+    <div className="space-y-4 sm:space-y-6">
+      {/* Header - Mobile Optimized */}
+      <div className="px-1 sm:px-0">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Strategy Comparison</h1>
+        <p className="text-xs sm:text-sm text-muted-foreground">
           Compare performance and correlation between strategies
         </p>
       </div>
 
-      {/* Controls */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-end">
-        <div className="space-y-2 flex-1">
-          <Label htmlFor="starting-capital">Starting Capital</Label>
+      {/* Controls - Mobile Optimized */}
+      <div className="flex flex-col gap-3 sm:gap-4 md:flex-row md:items-end">
+        <div className="space-y-1.5 sm:space-y-2 flex-1">
+          <Label htmlFor="starting-capital" className="text-xs sm:text-sm">Starting Capital</Label>
           <Input
             id="starting-capital"
             type="number"
             value={startingCapital}
             onChange={(e) => setStartingCapital(Number(e.target.value))}
-            className="w-full md:w-[200px]"
+            className="w-full md:w-[200px] h-9 sm:h-10"
           />
         </div>
         
-        <div className="space-y-2 flex-1">
-          <Label htmlFor="time-range">Time Range</Label>
+        <div className="space-y-1.5 sm:space-y-2 flex-1">
+          <Label htmlFor="time-range" className="text-xs sm:text-sm">Time Range</Label>
           <Select value={timeRange} onValueChange={(v) => setTimeRange(v as TimeRange)}>
-            <SelectTrigger id="time-range" className="w-full md:w-[200px]">
+            <SelectTrigger id="time-range" className="w-full md:w-[200px] h-9 sm:h-10">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -157,14 +157,14 @@ export default function StrategyComparison() {
         </div>
       </div>
 
-      {/* Strategy Selection */}
+      {/* Strategy Selection - Mobile Optimized */}
       <Card>
-        <CardHeader>
-          <CardTitle>Select Strategies (2-4)</CardTitle>
-          <CardDescription>Choose strategies to compare</CardDescription>
+        <CardHeader className="px-3 sm:px-6 py-3 sm:py-4">
+          <CardTitle className="text-base sm:text-lg">Select Strategies (2-4)</CardTitle>
+          <CardDescription className="text-xs sm:text-sm">Choose strategies to compare</CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <CardContent className="px-3 sm:px-6">
+          <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
             {strategies?.map((strategy) => (
               <div key={strategy.id} className="flex items-center space-x-2">
                 <Checkbox
@@ -240,7 +240,7 @@ export default function StrategyComparison() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="h-[300px] sm:h-[350px] md:h-[400px] lg:h-[450px]">
+              <div className="h-[240px] sm:h-[350px] md:h-[400px] lg:h-[450px] -mx-2 sm:mx-0">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted-foreground))" strokeOpacity={0.15} vertical={false} />
@@ -323,7 +323,7 @@ export default function StrategyComparison() {
               <CardDescription>Individual and combined portfolio drawdowns</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="h-[300px] sm:h-[350px] md:h-[400px] lg:h-[450px]">
+              <div className="h-[240px] sm:h-[350px] md:h-[400px] lg:h-[450px] -mx-2 sm:mx-0">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted-foreground))" strokeOpacity={0.15} vertical={false} />

@@ -175,26 +175,26 @@ export default function Strategies() {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Trading Strategies</h1>
-        <p className="text-muted-foreground">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="px-1 sm:px-0">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Trading Strategies</h1>
+        <p className="text-xs sm:text-sm text-muted-foreground">
           View detailed performance for each intraday strategy
         </p>
       </div>
       
-      {/* All Strategies Equity Chart */}
+      {/* All Strategies Equity Chart - Mobile Optimized */}
       <Card>
-        <CardHeader>
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <CardHeader className="px-3 sm:px-6 py-3 sm:py-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-3">
             <div>
-              <CardTitle>All Strategies Performance</CardTitle>
-              <CardDescription>Compare all strategy equity curves</CardDescription>
+              <CardTitle className="text-base sm:text-lg">All Strategies Performance</CardTitle>
+              <CardDescription className="text-xs sm:text-sm">Compare all strategy equity curves</CardDescription>
             </div>
             <div className="w-full sm:w-[180px]">
               <Label htmlFor="chart-time-range" className="sr-only">Time Range</Label>
               <Select value={timeRange} onValueChange={(v) => setTimeRange(v as TimeRange)}>
-                <SelectTrigger id="chart-time-range">
+                <SelectTrigger id="chart-time-range" className="h-9 sm:h-10">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -221,7 +221,7 @@ export default function Strategies() {
               <p className="text-xs text-muted-foreground">View individual strategy details below</p>
             </div>
           ) : (
-            <div className="h-[320px] sm:h-[350px] md:h-[400px] lg:h-[450px] -mx-2 sm:mx-0">
+            <div className="h-[260px] sm:h-[350px] md:h-[400px] lg:h-[450px] -mx-1 sm:mx-0">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={chartData} margin={{ top: 10, right: 5, left: 0, bottom: 10 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted-foreground))" strokeOpacity={0.2} vertical={false} />
@@ -300,11 +300,11 @@ export default function Strategies() {
         </CardContent>
       </Card>
 
-      {/* Strategy Cards */}
-      <div>
-        <h2 className="text-2xl font-bold mb-6">Individual Strategies</h2>
+      {/* Strategy Cards - Mobile Optimized */}
+      <div className="px-1 sm:px-0">
+        <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">Individual Strategies</h2>
       </div>
-      <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-3 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
         {strategies?.map((strategy) => {
           // Get market-specific icon
           const getMarketIcon = (market: string) => {
@@ -322,18 +322,18 @@ export default function Strategies() {
           
           return (
             <Card key={strategy.id} className="relative overflow-hidden hover:shadow-2xl transition-all duration-300 border hover:border-primary/40 group bg-card/40 backdrop-blur-sm h-full flex flex-col">
-              <CardHeader className="pb-4 relative z-10">
+              <CardHeader className="pb-3 sm:pb-4 px-3 sm:px-6 pt-3 sm:pt-6 relative z-10">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
                       <div className="relative">
                         <div className="absolute inset-0 bg-primary/20 rounded-xl blur-md group-hover:blur-lg transition-all"></div>
-                        <div className="relative p-2.5 bg-primary/15 rounded-xl group-hover:bg-primary/25 transition-all border border-primary/20">
-                          <MarketIcon className="h-6 w-6 text-primary" />
+                        <div className="relative p-2 sm:p-2.5 bg-primary/15 rounded-xl group-hover:bg-primary/25 transition-all border border-primary/20">
+                          <MarketIcon className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
                         </div>
                       </div>
                       <div>
-                        <CardTitle className="text-xl leading-tight font-bold group-hover:text-primary transition-colors">
+                        <CardTitle className="text-lg sm:text-xl leading-tight font-bold group-hover:text-primary transition-colors">
                           {strategy.name}
                         </CardTitle>
                         <div className="flex items-center gap-2 mt-1.5">
@@ -352,7 +352,7 @@ export default function Strategies() {
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-4 relative z-10 flex-1 flex flex-col">
+              <CardContent className="space-y-3 sm:space-y-4 px-3 sm:px-6 pb-3 sm:pb-6 relative z-10 flex-1 flex flex-col">
                 {/* Performance Metrics Grid */}
                 <div className="grid grid-cols-3 gap-1.5 sm:gap-2.5">
                   <div className="bg-blue-500/5 rounded-lg p-2.5 border border-border/40">

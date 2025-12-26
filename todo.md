@@ -4189,3 +4189,75 @@
 - [x] Set up GitHub backup to bostonrobbie/Manus-Dashboard (pushed successfully)
 - [x] Configure Stripe for live API (deferred - user to complete account verification when ready)
 - [x] All 873 tests passing
+
+
+## Mobile Optimization (Dec 2024)
+- [ ] Audit current mobile experience across all pages
+- [ ] Optimize global styles (index.css) for mobile breakpoints
+- [ ] Optimize DashboardLayout sidebar for mobile (collapsible/drawer)
+- [ ] Optimize Homepage hero section for mobile
+- [ ] Optimize Homepage stats cards for mobile stacking
+- [ ] Optimize Overview page charts for mobile viewport
+- [ ] Optimize Strategies page table for mobile
+- [ ] Optimize Compare page multi-select for mobile
+- [ ] Optimize My Dashboard tabs for mobile
+- [ ] Optimize Admin page tabs and forms for mobile
+- [ ] Add touch-friendly button sizes (min 44px tap targets)
+- [ ] Optimize chart components for mobile (smaller fonts, touch zoom)
+- [ ] Implement lazy loading for images and heavy components
+- [ ] Add mobile-specific navigation (bottom nav or hamburger menu)
+- [ ] Test all pages on mobile viewport sizes (375px, 414px)
+- [ ] Ensure fast loading on mobile networks
+
+
+## Walkthrough Demo Video (Dec 2024)
+- [ ] Create demo video script (1-2 minutes)
+- [ ] Script: Homepage hero and value proposition
+- [ ] Script: Dashboard overview with equity curves
+- [ ] Script: Strategy comparison features
+- [ ] Script: My Dashboard portfolio builder
+- [ ] Script: Real-time webhook signals
+- [ ] Script: Brokerage connector benefits
+- [ ] Script: Pricing and call-to-action
+- [ ] Style: Clean, upbeat, Manus-update style
+- [ ] Style: Smooth click-through navigation
+- [ ] Style: No voiceover, visual storytelling with text overlays
+- [ ] Include key selling points and benefits
+
+
+## In-App Notifications & QA Framework (Dec 2024)
+- [ ] Test and verify in-app notification system end-to-end
+- [ ] Wire notification triggers for webhook failures
+- [ ] Wire notification triggers for position issues
+- [ ] Set up scheduled daily integrity checks
+- [ ] Auto-notify on integrity check failures
+- [ ] Build comprehensive QA framework with error tracking
+- [ ] Add change detection for updates
+- [ ] Add detailed debugging tools
+- [ ] Track what broke, when, why, and how to fix
+
+
+## Mobile Optimization (Dec 2024) - COMPLETE
+- [x] Audit current mobile experience across all pages
+- [x] Optimize global styles and layout components for mobile
+- [x] Optimize Homepage and landing page for mobile
+- [x] Optimize Dashboard pages (Overview, Strategies, Compare, My Dashboard)
+- [x] Optimize Admin page and forms for mobile
+- [x] Implement performance optimizations for mobile loading
+- [x] Test all pages on mobile viewport
+
+## Walkthrough Demo Video (Dec 2024) - COMPLETE
+- [x] Create walkthrough demo video script (WALKTHROUGH_DEMO_SCRIPT.md)
+- [x] Define scenes and transitions
+- [x] Document key features and selling points
+- [x] Include timing and visual cues
+
+## In-App Notifications & QA Framework (Dec 2024) - COMPLETE
+- [x] Test and verify in-app notification system
+- [x] Create notification trigger service for failures and issues
+- [x] Set up scheduled integrity checks with auto-notifications
+- [x] Build comprehensive QA framework with error tracking
+- [x] Create qaFrameworkService.ts with error logging and diagnostics
+- [x] Create scheduledIntegrityService.ts for periodic checks
+- [x] Create notificationTriggerService.ts for event-based notifications
+- [x] All 901 tests passing

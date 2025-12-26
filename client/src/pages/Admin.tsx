@@ -88,19 +88,19 @@ export default function Admin() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header with Admin Badge */}
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 sm:space-y-6">
+      {/* Header with Admin Badge - Mobile Optimized */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 px-1 sm:px-0">
         <div className="flex items-center gap-3">
           <div>
-            <h1 className="text-3xl font-bold flex items-center gap-3">
-              Admin Control Center
-              <Badge className="bg-primary/20 text-primary border-primary/30">
-                <Shield className="w-3 h-3 mr-1" />
+            <h1 className="text-xl sm:text-3xl font-bold flex items-center gap-2 sm:gap-3 flex-wrap">
+              <span>Admin Control Center</span>
+              <Badge className="bg-primary/20 text-primary border-primary/30 text-[10px] sm:text-xs">
+                <Shield className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-0.5 sm:mr-1" />
                 Owner
               </Badge>
             </h1>
-            <p className="text-muted-foreground mt-1">
+            <p className="text-muted-foreground text-xs sm:text-sm mt-1">
               Manage webhooks, broker connections, and system monitoring
             </p>
           </div>
@@ -108,50 +108,52 @@ export default function Admin() {
         <WebhookStatusIndicator />
       </div>
 
-      {/* Tabbed Interface */}
-      <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-10 h-auto p-1 lg:w-auto lg:inline-grid">
-          <TabsTrigger value="overview" className="gap-1 sm:gap-2 px-2 sm:px-3 py-2">
-            <BarChart3 className="h-4 w-4 shrink-0" />
-            <span className="hidden sm:inline">Overview</span>
-          </TabsTrigger>
-          <TabsTrigger value="activity" className="gap-1 sm:gap-2 px-2 sm:px-3 py-2">
-            <Activity className="h-4 w-4 shrink-0" />
-            <span className="hidden sm:inline">Activity</span>
-          </TabsTrigger>
-          <TabsTrigger value="staging" className="gap-1 sm:gap-2 px-2 sm:px-3 py-2">
-            <FlaskConical className="h-4 w-4 shrink-0" />
-            <span className="hidden sm:inline">Staging</span>
-          </TabsTrigger>
-          <TabsTrigger value="setup" className="gap-1 sm:gap-2 px-2 sm:px-3 py-2">
-            <Code className="h-4 w-4 shrink-0" />
-            <span className="hidden sm:inline">Setup</span>
-          </TabsTrigger>
-          <TabsTrigger value="brokers" className="gap-1 sm:gap-2 px-2 sm:px-3 py-2">
-            <Server className="h-4 w-4 shrink-0" />
-            <span className="hidden sm:inline">Brokers</span>
-          </TabsTrigger>
-          <TabsTrigger value="monitoring" className="gap-1 sm:gap-2 px-2 sm:px-3 py-2">
-            <Eye className="h-4 w-4 shrink-0" />
-            <span className="hidden sm:inline">Monitoring</span>
-          </TabsTrigger>
-          <TabsTrigger value="settings" className="gap-1 sm:gap-2 px-2 sm:px-3 py-2">
-            <Settings className="h-4 w-4 shrink-0" />
-            <span className="hidden sm:inline">Settings</span>
-          </TabsTrigger>
-          <TabsTrigger value="positions" className="gap-1 sm:gap-2 px-2 sm:px-3 py-2">
-            <Target className="h-4 w-4" />
-            <span className="hidden sm:inline">Positions</span>
-          </TabsTrigger>
-          <TabsTrigger value="simulator" className="gap-1 sm:gap-2 px-2 sm:px-3 py-2">
-            <Webhook className="h-4 w-4 shrink-0" />
-            <span className="hidden sm:inline">Simulator</span>
-          </TabsTrigger>
-          <TabsTrigger value="qa" className="gap-1 sm:gap-2 px-2 sm:px-3 py-2">
-            <Zap className="h-4 w-4 shrink-0" />
-            <span className="hidden sm:inline">Pipeline QA</span>
-          </TabsTrigger>
-        </TabsList>
+      {/* Tabbed Interface - Mobile Optimized */}
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4 sm:space-y-6">
+        <div className="overflow-x-auto -mx-1 sm:mx-0 px-1 sm:px-0">
+          <TabsList className="grid w-max sm:w-full grid-cols-10 h-auto p-0.5 sm:p-1 lg:w-auto lg:inline-grid min-w-max">
+            <TabsTrigger value="overview" className="gap-0.5 sm:gap-2 px-1.5 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-sm">
+              <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4 shrink-0" />
+              <span className="hidden sm:inline">Overview</span>
+            </TabsTrigger>
+            <TabsTrigger value="activity" className="gap-0.5 sm:gap-2 px-1.5 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-sm">
+              <Activity className="h-3 w-3 sm:h-4 sm:w-4 shrink-0" />
+              <span className="hidden sm:inline">Activity</span>
+            </TabsTrigger>
+            <TabsTrigger value="staging" className="gap-0.5 sm:gap-2 px-1.5 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-sm">
+              <FlaskConical className="h-3 w-3 sm:h-4 sm:w-4 shrink-0" />
+              <span className="hidden sm:inline">Staging</span>
+            </TabsTrigger>
+            <TabsTrigger value="setup" className="gap-0.5 sm:gap-2 px-1.5 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-sm">
+              <Code className="h-3 w-3 sm:h-4 sm:w-4 shrink-0" />
+              <span className="hidden sm:inline">Setup</span>
+            </TabsTrigger>
+            <TabsTrigger value="brokers" className="gap-0.5 sm:gap-2 px-1.5 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-sm">
+              <Server className="h-3 w-3 sm:h-4 sm:w-4 shrink-0" />
+              <span className="hidden sm:inline">Brokers</span>
+            </TabsTrigger>
+            <TabsTrigger value="monitoring" className="gap-0.5 sm:gap-2 px-1.5 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-sm">
+              <Eye className="h-3 w-3 sm:h-4 sm:w-4 shrink-0" />
+              <span className="hidden sm:inline">Monitoring</span>
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="gap-0.5 sm:gap-2 px-1.5 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-sm">
+              <Settings className="h-3 w-3 sm:h-4 sm:w-4 shrink-0" />
+              <span className="hidden sm:inline">Settings</span>
+            </TabsTrigger>
+            <TabsTrigger value="positions" className="gap-0.5 sm:gap-2 px-1.5 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-sm">
+              <Target className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">Positions</span>
+            </TabsTrigger>
+            <TabsTrigger value="simulator" className="gap-0.5 sm:gap-2 px-1.5 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-sm">
+              <Webhook className="h-3 w-3 sm:h-4 sm:w-4 shrink-0" />
+              <span className="hidden sm:inline">Simulator</span>
+            </TabsTrigger>
+            <TabsTrigger value="qa" className="gap-0.5 sm:gap-2 px-1.5 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-sm">
+              <Zap className="h-3 w-3 sm:h-4 sm:w-4 shrink-0" />
+              <span className="hidden sm:inline">Pipeline QA</span>
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="overview" className="space-y-6">
           <OverviewTab />
