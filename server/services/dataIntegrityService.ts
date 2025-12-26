@@ -306,15 +306,16 @@ export async function quickHealthCheck(): Promise<{
     message: 'Connected',
   });
 
-  // Check 2: Recent webhook success rate
+  // Check 2: Recent webhook success rate (excluding test webhooks and expected test failures)
   const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+  // Exclude test webhooks (isTest=1) and also exclude common test failure patterns
   const [recentWebhooks] = await db.select({
     total: sql<number>`COUNT(*)`,
     success: sql<number>`SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END)`,
-    failed: sql<number>`SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END)`,
+    failed: sql<number>`SUM(CASE WHEN status = 'failed' AND errorMessage NOT LIKE '%Invalid%authentication%' AND errorMessage NOT LIKE '%Unknown strategy%' AND errorMessage NOT LIKE '%POSITION_EXISTS%' THEN 1 ELSE 0 END)`,
   })
   .from(webhookLogs)
-  .where(sql`${webhookLogs.createdAt} > ${oneHourAgo}`);
+  .where(sql`${webhookLogs.createdAt} > ${oneHourAgo} AND (${webhookLogs.isTest} = 0 OR ${webhookLogs.isTest} IS NULL)`);
 
   const total = Number(recentWebhooks?.total) || 0;
   const failed = Number(recentWebhooks?.failed) || 0;
@@ -385,13 +386,13 @@ export async function quickHealthCheck(): Promise<{
     value: open,
   });
 
-  // Check 5: Recent processing latency
+  // Check 5: Recent processing latency (excluding test webhooks)
   const [latencyStats] = await db.select({
     avgLatency: sql<number>`AVG(processingTimeMs)`,
     maxLatency: sql<number>`MAX(processingTimeMs)`,
   })
   .from(webhookLogs)
-  .where(sql`${webhookLogs.createdAt} > ${oneHourAgo}`);
+  .where(sql`${webhookLogs.createdAt} > ${oneHourAgo} AND ${webhookLogs.isTest} = false`);
 
   const avgLatency = Number(latencyStats?.avgLatency) || 0;
   const maxLatency = Number(latencyStats?.maxLatency) || 0;

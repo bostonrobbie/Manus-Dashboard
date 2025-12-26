@@ -106,13 +106,11 @@ function Router() {
           </DashboardLayout>
         )} />
         
-        <Route path="/qa" component={() => (
-          <DashboardLayout>
-            <Suspense fallback={<PageLoader />}>
-              <QADashboard />
-            </Suspense>
-          </DashboardLayout>
-        )} />
+        <Route path="/qa" component={() => {
+          // Redirect to Admin page with QA tab
+          window.location.href = '/admin?tab=qa';
+          return <PageLoader />;
+        }} />
         
         <Route path="/404" component={() => (
           <Suspense fallback={<PageLoader />}>

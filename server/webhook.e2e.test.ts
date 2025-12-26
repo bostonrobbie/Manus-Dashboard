@@ -73,7 +73,7 @@ describe('Webhook E2E Tests', () => {
   describe('Full E2E Flow', () => {
     beforeEach(async () => {
       await clearTestPositions('ESTrend');
-    });
+    }, 30000); // Increase timeout for database operations
 
     it('should process entry signal and create open position', async () => {
       if (!webhookToken) return;

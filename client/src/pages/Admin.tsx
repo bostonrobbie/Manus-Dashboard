@@ -110,7 +110,7 @@ export default function Admin() {
 
       {/* Tabbed Interface */}
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-8 h-auto p-1 lg:w-auto lg:inline-grid">
+        <TabsList className="grid w-full grid-cols-10 h-auto p-1 lg:w-auto lg:inline-grid">
           <TabsTrigger value="overview" className="gap-1 sm:gap-2 px-2 sm:px-3 py-2">
             <BarChart3 className="h-4 w-4 shrink-0" />
             <span className="hidden sm:inline">Overview</span>
@@ -146,6 +146,10 @@ export default function Admin() {
           <TabsTrigger value="simulator" className="gap-1 sm:gap-2 px-2 sm:px-3 py-2">
             <Webhook className="h-4 w-4 shrink-0" />
             <span className="hidden sm:inline">Simulator</span>
+          </TabsTrigger>
+          <TabsTrigger value="qa" className="gap-1 sm:gap-2 px-2 sm:px-3 py-2">
+            <Zap className="h-4 w-4 shrink-0" />
+            <span className="hidden sm:inline">Pipeline QA</span>
           </TabsTrigger>
         </TabsList>
 
@@ -183,6 +187,10 @@ export default function Admin() {
 
         <TabsContent value="simulator" className="space-y-6">
           <WebhookSimulator />
+        </TabsContent>
+
+        <TabsContent value="qa" className="space-y-6">
+          <PipelineQATab />
         </TabsContent>
       </Tabs>
     </div>
@@ -2748,5 +2756,573 @@ function TradeUploadSection() {
         )}
       </CardContent>
     </Card>
+  );
+}
+
+
+// ============================================================================
+// PIPELINE QA TAB COMPONENT
+// ============================================================================
+
+function QAStatusBadge({ status }: { status: 'pass' | 'fail' | 'warn' }) {
+  if (status === 'pass') {
+    return <Badge className="bg-green-500/20 text-green-400 border-green-500/30">Pass</Badge>;
+  } else if (status === 'fail') {
+    return <Badge className="bg-red-500/20 text-red-400 border-red-500/30">Fail</Badge>;
+  } else {
+    return <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">Warning</Badge>;
+  }
+}
+
+function PipelineQATab() {
+  const [activeQATab, setActiveQATab] = useState('health');
+  
+  // Health check query
+  const { data: health, isLoading: healthLoading, refetch: refetchHealth } = trpc.qa.healthCheck.useQuery(undefined, {
+    refetchInterval: 30000,
+  });
+  
+  // Webhook metrics query
+  const { data: metrics, isLoading: metricsLoading, refetch: refetchMetrics } = trpc.qa.webhookMetrics.useQuery({ hours: 24 });
+  
+  // Open positions query
+  const { data: positions, isLoading: positionsLoading } = trpc.qa.openPositionsStatus.useQuery();
+  
+  // Pipeline test mutation
+  const runTestMutation = trpc.qa.runPipelineTest.useMutation({
+    onSuccess: (result) => {
+      if (result.success) {
+        toast.success('All pipeline tests passed!');
+      } else {
+        toast.error(`${result.steps.filter(s => s.status === 'fail').length} test(s) failed`);
+      }
+    },
+    onError: (error) => {
+      toast.error(`Test failed: ${error.message}`);
+    },
+  });
+  
+  // Validation query
+  const { data: validation, isLoading: validationLoading, refetch: refetchValidation } = trpc.qa.validateIntegrity.useQuery(undefined, {
+    enabled: false, // Only run when manually triggered
+  });
+  
+  // Pipeline validation query
+  const { data: pipelineValidation, isLoading: pipelineValidationLoading, refetch: refetchPipelineValidation } = trpc.qa.validateAllPipelines.useQuery(undefined, {
+    enabled: false,
+  });
+  
+  // Repair mutations
+  const repairPositionsMutation = trpc.qa.repairOrphanedPositions.useMutation({
+    onSuccess: (result) => {
+      toast.success(`Repaired ${result.repaired} orphaned positions`);
+      refetchHealth();
+    },
+    onError: (error) => {
+      toast.error(`Repair failed: ${error.message}`);
+    },
+  });
+  
+  const repairWebhooksMutation = trpc.qa.repairOrphanedExitWebhooks.useMutation({
+    onSuccess: (result) => {
+      toast.success(`Linked ${result.repaired} orphaned exit webhooks`);
+      refetchHealth();
+    },
+    onError: (error) => {
+      toast.error(`Repair failed: ${error.message}`);
+    },
+  });
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold flex items-center gap-2">
+            <Zap className="h-6 w-6 text-primary" />
+            Pipeline QA Dashboard
+          </h2>
+          <p className="text-muted-foreground">Monitor and validate the webhook-to-trade data pipeline</p>
+        </div>
+      </div>
+      
+      <Tabs value={activeQATab} onValueChange={setActiveQATab}>
+        <TabsList>
+          <TabsTrigger value="health">Health & Integrity</TabsTrigger>
+          <TabsTrigger value="validation">Pipeline Validation</TabsTrigger>
+          <TabsTrigger value="metrics">Webhook Metrics</TabsTrigger>
+          <TabsTrigger value="test">Pipeline Test</TabsTrigger>
+        </TabsList>
+        
+        {/* Health & Integrity Tab */}
+        <TabsContent value="health" className="space-y-6">
+          <div className="grid gap-6 md:grid-cols-2">
+            {/* Pipeline Health Card */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Shield className="h-5 w-5" />
+                    Pipeline Health
+                  </CardTitle>
+                  <CardDescription>Real-time health status of the data pipeline</CardDescription>
+                </div>
+                <Button variant="outline" size="sm" onClick={() => refetchHealth()}>
+                  <RefreshCw className="h-4 w-4 mr-1" />
+                  Refresh
+                </Button>
+              </CardHeader>
+              <CardContent>
+                {healthLoading ? (
+                  <div className="text-center py-8 text-muted-foreground">Loading health status...</div>
+                ) : health ? (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      {health.healthy ? (
+                        <>
+                          <CheckCircle2 className="h-6 w-6 text-green-500" />
+                          <span className="text-lg font-semibold text-green-500">All Systems Healthy</span>
+                        </>
+                      ) : (
+                        <>
+                          <AlertCircle className="h-6 w-6 text-red-500" />
+                          <span className="text-lg font-semibold text-red-500">Issues Detected</span>
+                        </>
+                      )}
+                    </div>
+                    
+                    <div className="grid gap-3">
+                      {health.checks.map((check, idx) => (
+                        <div key={idx} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                          <div className="flex items-center gap-3">
+                            {check.status === 'pass' ? (
+                              <CheckCircle2 className="h-5 w-5 text-green-500" />
+                            ) : check.status === 'fail' ? (
+                              <AlertCircle className="h-5 w-5 text-red-500" />
+                            ) : (
+                              <AlertTriangle className="h-5 w-5 text-yellow-500" />
+                            )}
+                            <span className="font-medium">{check.name}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-muted-foreground">{check.message}</span>
+                            <QAStatusBadge status={check.status} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">No health data available</div>
+                )}
+              </CardContent>
+            </Card>
+            
+            {/* Open Positions Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Activity className="h-5 w-5" />
+                  Open Positions
+                </CardTitle>
+                <CardDescription>Currently tracked open positions</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {positionsLoading ? (
+                  <div className="text-center py-8 text-muted-foreground">Loading positions...</div>
+                ) : positions && positions.positions.length > 0 ? (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Strategy</TableHead>
+                        <TableHead>Direction</TableHead>
+                        <TableHead>Entry Price</TableHead>
+                        <TableHead>Qty</TableHead>
+                        <TableHead>Age</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {positions.positions.map((pos) => (
+                        <TableRow key={pos.id}>
+                          <TableCell className="font-medium">{pos.strategySymbol}</TableCell>
+                          <TableCell>
+                            <Badge className={pos.direction === 'long' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}>
+                              {pos.direction === 'long' ? 'Long' : 'Short'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>${pos.entryPrice.toFixed(2)}</TableCell>
+                          <TableCell>{pos.quantity}</TableCell>
+                          <TableCell>{pos.ageMinutes < 60 ? `${pos.ageMinutes}m` : `${Math.floor(pos.ageMinutes / 60)}h ${pos.ageMinutes % 60}m`}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">No open positions</div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+          
+          {/* Data Integrity Validation */}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Database className="h-5 w-5" />
+                  Data Integrity Validation
+                </CardTitle>
+                <CardDescription>Comprehensive validation of all data relationships</CardDescription>
+              </div>
+              <Button variant="outline" onClick={() => refetchValidation()}>
+                <Play className="h-4 w-4 mr-1" />
+                Run Validation
+              </Button>
+            </CardHeader>
+            <CardContent>
+              {validationLoading ? (
+                <div className="text-center py-8 text-muted-foreground">Running validation...</div>
+              ) : validation ? (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    {validation.isValid ? (
+                      <>
+                        <CheckCircle2 className="h-6 w-6 text-green-500" />
+                        <span className="text-lg font-semibold text-green-500">All Validations Passed</span>
+                      </>
+                    ) : (
+                      <>
+                        <AlertCircle className="h-6 w-6 text-red-500" />
+                        <span className="text-lg font-semibold text-red-500">
+                          {validation.errors.length} Error(s), {validation.warnings.length} Warning(s)
+                        </span>
+                      </>
+                    )}
+                  </div>
+                  
+                  {validation.errors.length > 0 && (
+                    <div className="space-y-2">
+                      <h4 className="font-medium text-red-400">Errors:</h4>
+                      {validation.errors.slice(0, 5).map((error, idx) => (
+                        <div key={idx} className="p-2 rounded bg-red-500/10 text-sm">
+                          <span className="font-mono text-red-400">[{error.code}]</span> {error.message}
+                        </div>
+                      ))}
+                      {validation.errors.length > 5 && (
+                        <p className="text-sm text-muted-foreground">...and {validation.errors.length - 5} more errors</p>
+                      )}
+                    </div>
+                  )}
+                  
+                  {validation.warnings.length > 0 && (
+                    <div className="space-y-2">
+                      <h4 className="font-medium text-yellow-400">Warnings:</h4>
+                      {validation.warnings.slice(0, 5).map((warning, idx) => (
+                        <div key={idx} className="p-2 rounded bg-yellow-500/10 text-sm">
+                          <span className="font-mono text-yellow-400">[{warning.code}]</span> {warning.message}
+                        </div>
+                      ))}
+                      {validation.warnings.length > 5 && (
+                        <p className="text-sm text-muted-foreground">...and {validation.warnings.length - 5} more warnings</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Database className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>Click "Run Validation" to check data integrity</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        {/* Pipeline Validation Tab */}
+        <TabsContent value="validation" className="space-y-6">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Shield className="h-5 w-5" />
+                  Full Pipeline Validation
+                </CardTitle>
+                <CardDescription>Validate all data pipelines and auto-repair issues</CardDescription>
+              </div>
+              <Button variant="outline" onClick={() => refetchPipelineValidation()}>
+                <Play className="h-4 w-4 mr-1" />
+                Run Full Validation
+              </Button>
+            </CardHeader>
+            <CardContent>
+              {pipelineValidationLoading ? (
+                <div className="text-center py-8 text-muted-foreground">Running pipeline validation...</div>
+              ) : pipelineValidation ? (
+                <div className="space-y-6">
+                  {/* Overall Status */}
+                  <div className="flex items-center gap-2">
+                    {pipelineValidation.overall === 'healthy' ? (
+                      <>
+                        <CheckCircle2 className="h-6 w-6 text-green-500" />
+                        <span className="text-lg font-semibold text-green-500">All Pipelines Healthy</span>
+                      </>
+                    ) : pipelineValidation.overall === 'degraded' ? (
+                      <>
+                        <AlertTriangle className="h-6 w-6 text-yellow-500" />
+                        <span className="text-lg font-semibold text-yellow-500">Some Issues Detected</span>
+                      </>
+                    ) : (
+                      <>
+                        <AlertCircle className="h-6 w-6 text-red-500" />
+                        <span className="text-lg font-semibold text-red-500">Critical Issues Found</span>
+                      </>
+                    )}
+                    <span className="text-sm text-muted-foreground ml-auto">
+                      Duration: {pipelineValidation.totalDuration}ms
+                    </span>
+                  </div>
+                  
+                  {/* Pipeline Results */}
+                  {pipelineValidation.pipelines.map((pipeline, idx) => (
+                    <div key={idx} className="p-4 rounded-lg bg-muted/50">
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="font-medium">{pipeline.pipeline}</h4>
+                        <Badge className={
+                          pipeline.status === 'healthy' ? 'bg-green-500/20 text-green-400' :
+                          pipeline.status === 'degraded' ? 'bg-yellow-500/20 text-yellow-400' :
+                          'bg-red-500/20 text-red-400'
+                        }>
+                          {pipeline.status}
+                        </Badge>
+                      </div>
+                      <div className="space-y-2">
+                        {pipeline.checks.map((check, checkIdx) => (
+                          <div key={checkIdx} className="flex items-center justify-between text-sm">
+                            <div className="flex items-center gap-2">
+                              {check.status === 'pass' ? (
+                                <CheckCircle2 className="h-4 w-4 text-green-500" />
+                              ) : check.status === 'warn' ? (
+                                <AlertTriangle className="h-4 w-4 text-yellow-500" />
+                              ) : (
+                                <AlertCircle className="h-4 w-4 text-red-500" />
+                              )}
+                              <span>{check.name}</span>
+                            </div>
+                            <span className="text-muted-foreground">{check.message}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                  
+                  {/* Auto-Repair Actions */}
+                  <div className="flex gap-4">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => repairPositionsMutation.mutate()}
+                      disabled={repairPositionsMutation.isPending}
+                    >
+                      {repairPositionsMutation.isPending ? (
+                        <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <CheckCircle2 className="h-4 w-4 mr-2" />
+                      )}
+                      Repair Orphaned Positions
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => repairWebhooksMutation.mutate()}
+                      disabled={repairWebhooksMutation.isPending}
+                    >
+                      {repairWebhooksMutation.isPending ? (
+                        <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <CheckCircle2 className="h-4 w-4 mr-2" />
+                      )}
+                      Link Orphaned Exit Webhooks
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Shield className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>Click "Run Full Validation" to validate all pipelines</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        {/* Webhook Metrics Tab */}
+        <TabsContent value="metrics" className="space-y-6">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5" />
+                  Webhook Processing Metrics
+                </CardTitle>
+                <CardDescription>Last 24 hours of webhook processing statistics</CardDescription>
+              </div>
+              <Button variant="outline" size="sm" onClick={() => refetchMetrics()}>
+                <RefreshCw className="h-4 w-4 mr-1" />
+                Refresh
+              </Button>
+            </CardHeader>
+            <CardContent>
+              {metricsLoading ? (
+                <div className="text-center py-8 text-muted-foreground">Loading metrics...</div>
+              ) : metrics ? (
+                <div className="space-y-6">
+                  {/* Summary Stats */}
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                    <div className="p-4 rounded-lg bg-muted/50 text-center">
+                      <div className="text-2xl font-bold">{metrics.summary.total}</div>
+                      <div className="text-sm text-muted-foreground">Total</div>
+                    </div>
+                    <div className="p-4 rounded-lg bg-green-500/10 text-center">
+                      <div className="text-2xl font-bold text-green-400">{metrics.summary.successful}</div>
+                      <div className="text-sm text-muted-foreground">Successful</div>
+                    </div>
+                    <div className="p-4 rounded-lg bg-red-500/10 text-center">
+                      <div className="text-2xl font-bold text-red-400">{metrics.summary.failed}</div>
+                      <div className="text-sm text-muted-foreground">Failed</div>
+                    </div>
+                    <div className="p-4 rounded-lg bg-yellow-500/10 text-center">
+                      <div className="text-2xl font-bold text-yellow-400">{metrics.summary.duplicate}</div>
+                      <div className="text-sm text-muted-foreground">Duplicate</div>
+                    </div>
+                    <div className="p-4 rounded-lg bg-primary/10 text-center">
+                      <div className="text-2xl font-bold text-primary">{metrics.summary.successRate}</div>
+                      <div className="text-sm text-muted-foreground">Success Rate</div>
+                    </div>
+                  </div>
+                  
+                  {/* Latency Stats */}
+                  <div className="p-4 rounded-lg bg-muted/50">
+                    <h4 className="font-medium mb-2">Processing Latency</h4>
+                    <div className="grid grid-cols-3 gap-4 text-sm">
+                      <div>Avg: {metrics.latency.avg}ms</div>
+                      <div>Min: {metrics.latency.min}ms</div>
+                      <div>Max: {metrics.latency.max}ms</div>
+                    </div>
+                  </div>
+                  
+                  {/* Recent Failures */}
+                  {metrics.recentFailures.length > 0 && (
+                    <div>
+                      <h4 className="font-medium mb-2">Recent Failures</h4>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Strategy</TableHead>
+                            <TableHead>Error</TableHead>
+                            <TableHead>Time</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {metrics.recentFailures.map((failure) => (
+                            <TableRow key={failure.id}>
+                              <TableCell>{failure.strategySymbol || 'Unknown'}</TableCell>
+                              <TableCell className="text-red-400 text-sm">{failure.errorMessage}</TableCell>
+                              <TableCell className="text-muted-foreground text-sm">
+                                {new Date(failure.createdAt).toLocaleString()}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">No metrics available</div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        {/* Pipeline Test Tab */}
+        <TabsContent value="test" className="space-y-6">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Zap className="h-5 w-5" />
+                  End-to-End Pipeline Test
+                </CardTitle>
+                <CardDescription>Run a comprehensive test of the entire pipeline</CardDescription>
+              </div>
+              <Button 
+                onClick={() => runTestMutation.mutate({ strategySymbol: 'ESTrend' })}
+                disabled={runTestMutation.isPending}
+              >
+                {runTestMutation.isPending ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    Running...
+                  </>
+                ) : (
+                  <>
+                    <Play className="h-4 w-4 mr-2" />
+                    Run Test
+                  </>
+                )}
+              </Button>
+            </CardHeader>
+            <CardContent>
+              {runTestMutation.data ? (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      {runTestMutation.data.success ? (
+                        <>
+                          <CheckCircle2 className="h-6 w-6 text-green-500" />
+                          <span className="text-lg font-semibold text-green-500">All tests passed</span>
+                        </>
+                      ) : (
+                        <>
+                          <AlertCircle className="h-6 w-6 text-red-500" />
+                          <span className="text-lg font-semibold text-red-500">
+                            {runTestMutation.data.steps.filter(s => s.status === 'fail').length} test(s) failed
+                          </span>
+                        </>
+                      )}
+                    </div>
+                    <span className="text-sm text-muted-foreground">
+                      Total: {runTestMutation.data.totalDurationMs}ms
+                    </span>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    {runTestMutation.data.steps.map((step, idx) => (
+                      <div key={idx} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                        <div className="flex items-center gap-3">
+                          {step.status === 'pass' ? (
+                            <CheckCircle2 className="h-5 w-5 text-green-500" />
+                          ) : (
+                            <AlertCircle className="h-5 w-5 text-red-500" />
+                          )}
+                          <span className="font-medium">{step.step}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-muted-foreground">{step.message}</span>
+                          <span className="text-xs text-muted-foreground">{step.durationMs}ms</span>
+                          <QAStatusBadge status={step.status} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Zap className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>Click "Run Test" to execute the pipeline test</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 }

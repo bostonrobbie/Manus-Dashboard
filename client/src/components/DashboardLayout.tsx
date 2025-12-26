@@ -33,7 +33,6 @@ const baseMenuItems = [
   { icon: GitCompare, label: "Compare", path: "/compare", adminOnly: false },
   { icon: User, label: "My Dashboard", path: "/my-dashboard", adminOnly: false },
   { icon: Shield, label: "Admin", path: "/admin", adminOnly: true },
-  { icon: Activity, label: "Pipeline QA", path: "/qa", adminOnly: true },
   { icon: Home, label: "Homepage", path: "/", adminOnly: false, external: true },
 ];
 
