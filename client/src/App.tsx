@@ -19,8 +19,7 @@ const LandingPage = lazy(() => import("./pages/LandingPage"));
 const Pricing = lazy(() => import("./pages/Pricing"));
 const Onboarding = lazy(() => import("./pages/Onboarding"));
 const CheckoutSuccess = lazy(() => import("./pages/CheckoutSuccess"));
-const PaperTrading = lazy(() => import("./pages/PaperTrading"));
-const BrokerOnboarding = lazy(() => import("./pages/BrokerOnboarding"));
+const BrokerSetup = lazy(() => import("./pages/BrokerSetup"));
 // QADashboard available for future use
 // const QADashboard = lazy(() => import("./pages/QADashboard"));
 
@@ -140,21 +139,21 @@ function Router() {
         />
 
         <Route
-          path="/paper-trading"
+          path="/broker-setup"
           component={() => (
             <Suspense fallback={<PageLoader />}>
-              <PaperTrading />
+              <BrokerSetup />
             </Suspense>
           )}
         />
 
+        {/* Redirect old paper-trading route to broker-setup */}
         <Route
-          path="/broker-setup"
-          component={() => (
-            <Suspense fallback={<PageLoader />}>
-              <BrokerOnboarding />
-            </Suspense>
-          )}
+          path="/paper-trading"
+          component={() => {
+            window.location.href = "/broker-setup";
+            return <PageLoader />;
+          }}
         />
 
         <Route

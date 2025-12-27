@@ -31,7 +31,6 @@ import {
   Shield,
   User,
   Home,
-  PlayCircle,
   Link2,
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
@@ -57,12 +56,6 @@ const baseMenuItems = [
     icon: User,
     label: "My Dashboard",
     path: "/my-dashboard",
-    adminOnly: false,
-  },
-  {
-    icon: PlayCircle,
-    label: "Paper Trading",
-    path: "/paper-trading",
     adminOnly: false,
   },
   {

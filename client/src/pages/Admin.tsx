@@ -1,22 +1,70 @@
 import { useState, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { 
-  Copy, Check, RefreshCw, AlertCircle, CheckCircle2, Clock, XCircle, 
-  AlertTriangle, Pause, Play, Trash2, Activity, Zap, Settings,
-  Code, BookOpen, Shield, FlaskConical, Eye, Lock, BarChart3,
-  Search, Filter, ChevronRight, ExternalLink, Link2,
-  TrendingUp, TrendingDown, Server, Database, Wifi,
-  ArrowUpRight, ArrowDownRight, Target, Webhook
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Copy,
+  Check,
+  RefreshCw,
+  AlertCircle,
+  CheckCircle2,
+  Clock,
+  XCircle,
+  AlertTriangle,
+  Pause,
+  Play,
+  Trash2,
+  Activity,
+  Zap,
+  Settings,
+  Code,
+  BookOpen,
+  Shield,
+  FlaskConical,
+  Eye,
+  Lock,
+  BarChart3,
+  Search,
+  Filter,
+  ChevronRight,
+  ExternalLink,
+  Link2,
+  TrendingUp,
+  TrendingDown,
+  Server,
+  Database,
+  Wifi,
+  ArrowUpRight,
+  ArrowDownRight,
+  Target,
+  Webhook,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useLocation, useSearch } from "wouter";
@@ -33,10 +81,11 @@ export default function Admin() {
   const urlParams = new URLSearchParams(search);
   const initialTab = urlParams.get("tab") || "overview";
   const [activeTab, setActiveTab] = useState(initialTab);
-  
+
   // Check admin access
-  const { data: accessCheck, isLoading: accessLoading } = trpc.webhook.checkAccess.useQuery();
-  
+  const { data: accessCheck, isLoading: accessLoading } =
+    trpc.webhook.checkAccess.useQuery();
+
   // Redirect non-admins
   useEffect(() => {
     if (!accessLoading && accessCheck && !accessCheck.hasAccess) {
@@ -44,13 +93,13 @@ export default function Admin() {
       setLocation("/overview");
     }
   }, [accessCheck, accessLoading, setLocation]);
-  
+
   // Update URL when tab changes
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
     setLocation(`/admin?tab=${tab}`, { replace: true });
   };
-  
+
   // Show loading while checking access
   if (accessLoading) {
     return (
@@ -62,7 +111,7 @@ export default function Admin() {
       </div>
     );
   }
-  
+
   // Show access denied if not admin
   if (!accessCheck?.hasAccess) {
     return (
@@ -74,7 +123,8 @@ export default function Admin() {
             </div>
             <CardTitle>Access Denied</CardTitle>
             <CardDescription>
-              This page requires administrator privileges. Please contact the system administrator if you need access.
+              This page requires administrator privileges. Please contact the
+              system administrator if you need access.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex justify-center">
@@ -108,49 +158,55 @@ export default function Admin() {
         <WebhookStatusIndicator />
       </div>
 
-      {/* Tabbed Interface - Mobile Optimized */}
-      <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4 sm:space-y-6">
+      {/* Tabbed Interface - Simplified for Clarity */}
+      <Tabs
+        value={activeTab}
+        onValueChange={handleTabChange}
+        className="space-y-4 sm:space-y-6"
+      >
         <div className="overflow-x-auto -mx-1 sm:mx-0 px-1 sm:px-0">
-          <TabsList className="grid w-max sm:w-full grid-cols-10 h-auto p-0.5 sm:p-1 lg:w-auto lg:inline-grid min-w-max">
-            <TabsTrigger value="overview" className="gap-0.5 sm:gap-2 px-1.5 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-sm">
-              <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4 shrink-0" />
-              <span className="hidden sm:inline">Overview</span>
+          <TabsList className="grid w-max sm:w-full grid-cols-6 h-auto p-0.5 sm:p-1 lg:w-auto lg:inline-grid min-w-max">
+            <TabsTrigger
+              value="overview"
+              className="gap-1 sm:gap-2 px-2 sm:px-4 py-2 text-xs sm:text-sm"
+            >
+              <BarChart3 className="h-4 w-4 shrink-0" />
+              <span>Dashboard</span>
             </TabsTrigger>
-            <TabsTrigger value="activity" className="gap-0.5 sm:gap-2 px-1.5 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-sm">
-              <Activity className="h-3 w-3 sm:h-4 sm:w-4 shrink-0" />
-              <span className="hidden sm:inline">Activity</span>
+            <TabsTrigger
+              value="setup"
+              className="gap-1 sm:gap-2 px-2 sm:px-4 py-2 text-xs sm:text-sm"
+            >
+              <Code className="h-4 w-4 shrink-0" />
+              <span>Webhook Setup</span>
             </TabsTrigger>
-            <TabsTrigger value="staging" className="gap-0.5 sm:gap-2 px-1.5 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-sm">
-              <FlaskConical className="h-3 w-3 sm:h-4 sm:w-4 shrink-0" />
-              <span className="hidden sm:inline">Staging</span>
+            <TabsTrigger
+              value="simulator"
+              className="gap-1 sm:gap-2 px-2 sm:px-4 py-2 text-xs sm:text-sm"
+            >
+              <Webhook className="h-4 w-4 shrink-0" />
+              <span>Test Signals</span>
             </TabsTrigger>
-            <TabsTrigger value="setup" className="gap-0.5 sm:gap-2 px-1.5 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-sm">
-              <Code className="h-3 w-3 sm:h-4 sm:w-4 shrink-0" />
-              <span className="hidden sm:inline">Setup</span>
+            <TabsTrigger
+              value="positions"
+              className="gap-1 sm:gap-2 px-2 sm:px-4 py-2 text-xs sm:text-sm"
+            >
+              <Target className="h-4 w-4" />
+              <span>Positions</span>
             </TabsTrigger>
-            <TabsTrigger value="brokers" className="gap-0.5 sm:gap-2 px-1.5 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-sm">
-              <Server className="h-3 w-3 sm:h-4 sm:w-4 shrink-0" />
-              <span className="hidden sm:inline">Brokers</span>
+            <TabsTrigger
+              value="activity"
+              className="gap-1 sm:gap-2 px-2 sm:px-4 py-2 text-xs sm:text-sm"
+            >
+              <Activity className="h-4 w-4 shrink-0" />
+              <span>Signal Log</span>
             </TabsTrigger>
-            <TabsTrigger value="monitoring" className="gap-0.5 sm:gap-2 px-1.5 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-sm">
-              <Eye className="h-3 w-3 sm:h-4 sm:w-4 shrink-0" />
-              <span className="hidden sm:inline">Monitoring</span>
-            </TabsTrigger>
-            <TabsTrigger value="settings" className="gap-0.5 sm:gap-2 px-1.5 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-sm">
-              <Settings className="h-3 w-3 sm:h-4 sm:w-4 shrink-0" />
-              <span className="hidden sm:inline">Settings</span>
-            </TabsTrigger>
-            <TabsTrigger value="positions" className="gap-0.5 sm:gap-2 px-1.5 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-sm">
-              <Target className="h-3 w-3 sm:h-4 sm:w-4" />
-              <span className="hidden sm:inline">Positions</span>
-            </TabsTrigger>
-            <TabsTrigger value="simulator" className="gap-0.5 sm:gap-2 px-1.5 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-sm">
-              <Webhook className="h-3 w-3 sm:h-4 sm:w-4 shrink-0" />
-              <span className="hidden sm:inline">Simulator</span>
-            </TabsTrigger>
-            <TabsTrigger value="qa" className="gap-0.5 sm:gap-2 px-1.5 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-sm">
-              <Zap className="h-3 w-3 sm:h-4 sm:w-4 shrink-0" />
-              <span className="hidden sm:inline">Pipeline QA</span>
+            <TabsTrigger
+              value="advanced"
+              className="gap-1 sm:gap-2 px-2 sm:px-4 py-2 text-xs sm:text-sm"
+            >
+              <Settings className="h-4 w-4 shrink-0" />
+              <span>Advanced</span>
             </TabsTrigger>
           </TabsList>
         </div>
@@ -159,40 +215,24 @@ export default function Admin() {
           <OverviewTab />
         </TabsContent>
 
-        <TabsContent value="activity" className="space-y-6">
-          <ActivityTab />
-        </TabsContent>
-
-        <TabsContent value="staging" className="space-y-6">
-          <StagingTab />
-        </TabsContent>
-
         <TabsContent value="setup" className="space-y-6">
           <SetupTab />
-        </TabsContent>
-
-        <TabsContent value="brokers" className="space-y-6">
-          <BrokersTab />
-        </TabsContent>
-
-        <TabsContent value="monitoring" className="space-y-6">
-          <MonitoringTab />
-        </TabsContent>
-
-        <TabsContent value="settings" className="space-y-6">
-          <SettingsTab />
-        </TabsContent>
-
-        <TabsContent value="positions" className="space-y-6">
-          <PositionManager />
         </TabsContent>
 
         <TabsContent value="simulator" className="space-y-6">
           <WebhookSimulator />
         </TabsContent>
 
-        <TabsContent value="qa" className="space-y-6">
-          <PipelineQATab />
+        <TabsContent value="positions" className="space-y-6">
+          <PositionManager />
+        </TabsContent>
+
+        <TabsContent value="activity" className="space-y-6">
+          <ActivityTab />
+        </TabsContent>
+
+        <TabsContent value="advanced" className="space-y-6">
+          <AdvancedTab />
         </TabsContent>
       </Tabs>
     </div>
@@ -205,7 +245,7 @@ export default function Admin() {
 
 function WebhookStatusIndicator() {
   const { data: status } = trpc.webhook.getStatus.useQuery();
-  
+
   return (
     <div className="flex items-center gap-4">
       {status?.isPaused ? (
@@ -228,17 +268,18 @@ function WebhookStatusIndicator() {
 // ============================================================================
 
 function OverviewTab() {
-  const { data: status, refetch: refetchStatus } = trpc.webhook.getStatus.useQuery();
+  const { data: status, refetch: refetchStatus } =
+    trpc.webhook.getStatus.useQuery();
   const { data: healthReport } = trpc.webhook.getHealthReport.useQuery();
   const { data: logs } = trpc.webhook.getLogs.useQuery({ limit: 10 });
-  
+
   const pauseMutation = trpc.webhook.pause.useMutation({
     onSuccess: () => {
       toast.success("Webhook processing paused");
       refetchStatus();
     },
   });
-  
+
   const resumeMutation = trpc.webhook.resume.useMutation({
     onSuccess: () => {
       toast.success("Webhook processing resumed");
@@ -255,31 +296,41 @@ function OverviewTab() {
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <Card className="bg-card/50 border-border/50">
           <CardContent className="pt-4">
-            <div className="text-2xl font-bold">{status?.stats?.total || 0}</div>
+            <div className="text-2xl font-bold">
+              {status?.stats?.total || 0}
+            </div>
             <div className="text-xs text-muted-foreground">Total Webhooks</div>
           </CardContent>
         </Card>
         <Card className="bg-card/50 border-border/50">
           <CardContent className="pt-4">
-            <div className="text-2xl font-bold text-green-400">{status?.stats?.success || 0}</div>
+            <div className="text-2xl font-bold text-green-400">
+              {status?.stats?.success || 0}
+            </div>
             <div className="text-xs text-muted-foreground">Successful</div>
           </CardContent>
         </Card>
         <Card className="bg-card/50 border-border/50">
           <CardContent className="pt-4">
-            <div className="text-2xl font-bold text-red-400">{status?.stats?.failed || 0}</div>
+            <div className="text-2xl font-bold text-red-400">
+              {status?.stats?.failed || 0}
+            </div>
             <div className="text-xs text-muted-foreground">Failed</div>
           </CardContent>
         </Card>
         <Card className="bg-card/50 border-border/50">
           <CardContent className="pt-4">
-            <div className="text-2xl font-bold text-yellow-400">{status?.stats?.duplicate || 0}</div>
+            <div className="text-2xl font-bold text-yellow-400">
+              {status?.stats?.duplicate || 0}
+            </div>
             <div className="text-xs text-muted-foreground">Duplicates</div>
           </CardContent>
         </Card>
         <Card className="bg-card/50 border-border/50">
           <CardContent className="pt-4">
-            <div className="text-2xl font-bold">{status?.avgProcessingTimeMs || 0}ms</div>
+            <div className="text-2xl font-bold">
+              {status?.avgProcessingTimeMs || 0}ms
+            </div>
             <div className="text-xs text-muted-foreground">Avg Processing</div>
           </CardContent>
         </Card>
@@ -301,35 +352,56 @@ function OverviewTab() {
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">Status</span>
-              <Badge className={healthReport?.status === 'healthy' 
-                ? "bg-green-500/20 text-green-400" 
-                : "bg-yellow-500/20 text-yellow-400"}>
-                {healthReport?.status || 'Unknown'}
+              <Badge
+                className={
+                  healthReport?.status === "healthy"
+                    ? "bg-green-500/20 text-green-400"
+                    : "bg-yellow-500/20 text-yellow-400"
+                }
+              >
+                {healthReport?.status || "Unknown"}
               </Badge>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Circuit Breaker</span>
-              <Badge className={healthReport?.circuitBreaker?.open 
-                ? "bg-red-500/20 text-red-400" 
-                : "bg-green-500/20 text-green-400"}>
-                {healthReport?.circuitBreaker?.open ? 'Open' : 'Closed'}
+              <span className="text-sm text-muted-foreground">
+                Circuit Breaker
+              </span>
+              <Badge
+                className={
+                  healthReport?.circuitBreaker?.open
+                    ? "bg-red-500/20 text-red-400"
+                    : "bg-green-500/20 text-green-400"
+                }
+              >
+                {healthReport?.circuitBreaker?.open ? "Open" : "Closed"}
               </Badge>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Last Hour Success Rate</span>
-              <span className="font-mono">{healthReport?.metrics?.lastHour?.successRate || '100%'}</span>
+              <span className="text-sm text-muted-foreground">
+                Last Hour Success Rate
+              </span>
+              <span className="font-mono">
+                {healthReport?.metrics?.lastHour?.successRate || "100%"}
+              </span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">P95 Latency</span>
-              <span className="font-mono">{healthReport?.metrics?.lastHour?.p95ProcessingMs || 0}ms</span>
+              <span className="font-mono">
+                {healthReport?.metrics?.lastHour?.p95ProcessingMs || 0}ms
+              </span>
             </div>
-            
+
             {healthReport?.issues && healthReport.issues.length > 0 && (
               <div className="pt-2 border-t border-border/50">
-                <p className="text-sm font-medium text-yellow-400 mb-2">Issues Detected:</p>
+                <p className="text-sm font-medium text-yellow-400 mb-2">
+                  Issues Detected:
+                </p>
                 <ul className="space-y-1">
                   {healthReport.issues.map((issue, i) => (
-                    <li key={i} className="text-sm text-muted-foreground flex items-start gap-2">
+                    <li
+                      key={i}
+                      className="text-sm text-muted-foreground flex items-start gap-2"
+                    >
                       <AlertTriangle className="h-4 w-4 text-yellow-400 shrink-0 mt-0.5" />
                       {issue}
                     </li>
@@ -350,7 +422,7 @@ function OverviewTab() {
           </CardHeader>
           <CardContent className="space-y-3">
             {status?.isPaused ? (
-              <Button 
+              <Button
                 className="w-full justify-start"
                 variant="outline"
                 onClick={() => resumeMutation.mutate()}
@@ -360,7 +432,7 @@ function OverviewTab() {
                 Resume Webhook Processing
               </Button>
             ) : (
-              <Button 
+              <Button
                 className="w-full justify-start"
                 variant="outline"
                 onClick={() => pauseMutation.mutate()}
@@ -403,20 +475,25 @@ function OverviewTab() {
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            {logs?.slice(0, 5).map((log) => (
-              <div key={log.id} className="flex items-center justify-between py-2 border-b border-border/30 last:border-0">
+            {logs?.slice(0, 5).map(log => (
+              <div
+                key={log.id}
+                className="flex items-center justify-between py-2 border-b border-border/30 last:border-0"
+              >
                 <div className="flex items-center gap-3">
-                  {log.status === 'success' ? (
+                  {log.status === "success" ? (
                     <CheckCircle2 className="h-4 w-4 text-green-400" />
-                  ) : log.status === 'failed' ? (
+                  ) : log.status === "failed" ? (
                     <XCircle className="h-4 w-4 text-red-400" />
                   ) : (
                     <AlertTriangle className="h-4 w-4 text-yellow-400" />
                   )}
                   <div>
-                    <span className="font-medium">{log.strategySymbol || 'Unknown'}</span>
+                    <span className="font-medium">
+                      {log.strategySymbol || "Unknown"}
+                    </span>
                     <span className="text-muted-foreground text-sm ml-2">
-                      {log.direction || 'N/A'}
+                      {log.direction || "N/A"}
                     </span>
                   </div>
                 </div>
@@ -443,20 +520,24 @@ function OverviewTab() {
 // ============================================================================
 
 function OpenPositionsPanel() {
-  const { data: positions, refetch, isLoading } = trpc.webhook.getOpenPositions.useQuery();
+  const {
+    data: positions,
+    refetch,
+    isLoading,
+  } = trpc.webhook.getOpenPositions.useQuery();
   const { data: stats } = trpc.webhook.getPositionStats.useQuery();
   const { data: strategies } = trpc.portfolio.listStrategies.useQuery();
-  
+
   const deletePositionMutation = trpc.webhook.deletePosition.useMutation({
     onSuccess: () => {
       toast.success("Position closed");
       refetch();
     },
-    onError: (error) => {
+    onError: error => {
       toast.error(`Failed to close position: ${error.message}`);
     },
   });
-  
+
   // Clear strategy positions mutation available for future use
   // const clearStrategyPositionsMutation = trpc.webhook.clearPositionsForStrategy.useMutation({ ... });
 
@@ -483,7 +564,10 @@ function OpenPositionsPanel() {
             <Target className="h-5 w-5 text-blue-400" />
             Open Positions
             {positions && positions.length > 0 && (
-              <Badge variant="outline" className="text-blue-400 border-blue-400/50 ml-2">
+              <Badge
+                variant="outline"
+                className="text-blue-400 border-blue-400/50 ml-2"
+              >
                 {positions.length} active
               </Badge>
             )}
@@ -503,52 +587,72 @@ function OpenPositionsPanel() {
             {stats && (
               <div className="grid grid-cols-3 gap-4 p-3 rounded-lg bg-background/50 border border-border/30">
                 <div className="text-center">
-                  <div className="text-lg font-bold text-blue-400">{stats.openPositions}</div>
+                  <div className="text-lg font-bold text-blue-400">
+                    {stats.openPositions}
+                  </div>
                   <div className="text-xs text-muted-foreground">Open</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-lg font-bold text-green-400">{stats.closedToday}</div>
-                  <div className="text-xs text-muted-foreground">Closed Today</div>
+                  <div className="text-lg font-bold text-green-400">
+                    {stats.closedToday}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    Closed Today
+                  </div>
                 </div>
                 <div className="text-center">
-                  <div className={`text-lg font-bold ${stats.totalPnlToday >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                    {stats.totalPnlToday >= 0 ? '+' : ''}${stats.totalPnlToday.toFixed(2)}
+                  <div
+                    className={`text-lg font-bold ${stats.totalPnlToday >= 0 ? "text-green-400" : "text-red-400"}`}
+                  >
+                    {stats.totalPnlToday >= 0 ? "+" : ""}$
+                    {stats.totalPnlToday.toFixed(2)}
                   </div>
-                  <div className="text-xs text-muted-foreground">Today's P&L</div>
+                  <div className="text-xs text-muted-foreground">
+                    Today's P&L
+                  </div>
                 </div>
               </div>
             )}
 
             {/* Positions List */}
             <div className="space-y-2">
-              {positions.map((position) => (
-                <div 
-                  key={position.id} 
+              {positions.map(position => (
+                <div
+                  key={position.id}
                   className="flex items-center justify-between p-3 rounded-lg border border-border/30 bg-background/50 hover:bg-background/70 transition-colors"
                 >
                   <div className="flex items-center gap-3">
-                    <div className={`h-8 w-8 rounded-full flex items-center justify-center ${
-                      position.direction === 'Long' 
-                        ? 'bg-green-500/20 text-green-400' 
-                        : 'bg-red-500/20 text-red-400'
-                    }`}>
-                      {position.direction === 'Long' ? (
+                    <div
+                      className={`h-8 w-8 rounded-full flex items-center justify-center ${
+                        position.direction === "Long"
+                          ? "bg-green-500/20 text-green-400"
+                          : "bg-red-500/20 text-red-400"
+                      }`}
+                    >
+                      {position.direction === "Long" ? (
                         <ArrowUpRight className="h-4 w-4" />
                       ) : (
                         <ArrowDownRight className="h-4 w-4" />
                       )}
                     </div>
                     <div>
-                      <div className="font-medium">{getStrategyName(position.strategySymbol)}</div>
+                      <div className="font-medium">
+                        {getStrategyName(position.strategySymbol)}
+                      </div>
                       <div className="text-xs text-muted-foreground">
-                        {position.direction} @ ${position.entryPrice.toFixed(2)} • {position.quantity} contract{position.quantity !== 1 ? 's' : ''}
+                        {position.direction} @ ${position.entryPrice.toFixed(2)}{" "}
+                        • {position.quantity} contract
+                        {position.quantity !== 1 ? "s" : ""}
                       </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="text-right text-sm">
                       <div className="text-muted-foreground">
-                        {new Date(position.entryTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        {new Date(position.entryTime).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
                       </div>
                       <div className="text-xs text-muted-foreground">
                         {new Date(position.entryTime).toLocaleDateString()}
@@ -558,7 +662,11 @@ function OpenPositionsPanel() {
                       variant="ghost"
                       size="sm"
                       className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
-                      onClick={() => deletePositionMutation.mutate({ positionId: position.id })}
+                      onClick={() =>
+                        deletePositionMutation.mutate({
+                          positionId: position.id,
+                        })
+                      }
                       disabled={deletePositionMutation.isPending}
                     >
                       <XCircle className="h-4 w-4" />
@@ -587,28 +695,34 @@ function OpenPositionsPanel() {
 // ============================================================================
 
 function ActivityTab() {
-  const [statusFilter, setStatusFilter] = useState<'all' | 'success' | 'failed' | 'duplicate'>('all');
-  const [searchQuery, setSearchQuery] = useState('');
-  
-  const { data: logs, refetch, isLoading } = trpc.webhook.getLogs.useQuery({
+  const [statusFilter, setStatusFilter] = useState<
+    "all" | "success" | "failed" | "duplicate"
+  >("all");
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const {
+    data: logs,
+    refetch,
+    isLoading,
+  } = trpc.webhook.getLogs.useQuery({
     limit: 100,
     status: statusFilter,
     search: searchQuery || undefined,
   });
-  
+
   // Strategies query available for future filtering
   trpc.portfolio.listStrategies.useQuery();
-  
+
   const clearLogsMutation = trpc.webhook.clearLogs.useMutation({
-    onSuccess: (data) => {
+    onSuccess: data => {
       toast.success(`Cleared ${data.deleted} webhook logs`);
       refetch();
     },
-    onError: (error) => {
+    onError: error => {
       toast.error(`Failed to clear logs: ${error.message}`);
     },
   });
-  
+
   const deleteLogMutation = trpc.webhook.deleteLog.useMutation({
     onSuccess: () => {
       toast.success("Log deleted");
@@ -619,13 +733,33 @@ function ActivityTab() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "success":
-        return <Badge className="bg-green-500/20 text-green-400 border-green-500/30"><CheckCircle2 className="w-3 h-3 mr-1" />Success</Badge>;
+        return (
+          <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
+            <CheckCircle2 className="w-3 h-3 mr-1" />
+            Success
+          </Badge>
+        );
       case "failed":
-        return <Badge className="bg-red-500/20 text-red-400 border-red-500/30"><XCircle className="w-3 h-3 mr-1" />Failed</Badge>;
+        return (
+          <Badge className="bg-red-500/20 text-red-400 border-red-500/30">
+            <XCircle className="w-3 h-3 mr-1" />
+            Failed
+          </Badge>
+        );
       case "duplicate":
-        return <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30"><AlertTriangle className="w-3 h-3 mr-1" />Duplicate</Badge>;
+        return (
+          <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">
+            <AlertTriangle className="w-3 h-3 mr-1" />
+            Duplicate
+          </Badge>
+        );
       default:
-        return <Badge className="bg-gray-500/20 text-gray-400"><Clock className="w-3 h-3 mr-1" />{status}</Badge>;
+        return (
+          <Badge className="bg-gray-500/20 text-gray-400">
+            <Clock className="w-3 h-3 mr-1" />
+            {status}
+          </Badge>
+        );
     }
   };
 
@@ -637,7 +771,10 @@ function ActivityTab() {
           <div className="flex flex-wrap gap-4 items-center">
             <div className="flex items-center gap-2">
               <Filter className="h-4 w-4 text-muted-foreground" />
-              <Select value={statusFilter} onValueChange={(v: any) => setStatusFilter(v)}>
+              <Select
+                value={statusFilter}
+                onValueChange={(v: any) => setStatusFilter(v)}
+              >
                 <SelectTrigger className="w-[140px]">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
@@ -649,30 +786,39 @@ function ActivityTab() {
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div className="flex-1 min-w-[200px]">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Search by symbol, error, or payload..."
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={e => setSearchQuery(e.target.value)}
                   className="pl-9"
                 />
               </div>
             </div>
-            
+
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isLoading}>
-                <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => refetch()}
+                disabled={isLoading}
+              >
+                <RefreshCw
+                  className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`}
+                />
                 Refresh
               </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <Button
+                variant="outline"
+                size="sm"
                 className="text-red-400 border-red-500/30 hover:bg-red-500/10"
                 onClick={() => {
-                  if (confirm("Clear all webhook logs? This cannot be undone.")) {
+                  if (
+                    confirm("Clear all webhook logs? This cannot be undone.")
+                  ) {
                     clearLogsMutation.mutate();
                   }
                 }}
@@ -702,30 +848,42 @@ function ActivityTab() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {logs?.map((log) => (
+              {logs?.map(log => (
                 <TableRow key={log.id}>
                   <TableCell>{getStatusBadge(log.status)}</TableCell>
-                  <TableCell className="font-medium">{log.strategySymbol || '-'}</TableCell>
+                  <TableCell className="font-medium">
+                    {log.strategySymbol || "-"}
+                  </TableCell>
                   <TableCell>
-                    {log.direction === 'Long' ? (
+                    {log.direction === "Long" ? (
                       <span className="text-green-400 flex items-center gap-1">
                         <TrendingUp className="h-3 w-3" /> Long
                       </span>
-                    ) : log.direction === 'Short' ? (
+                    ) : log.direction === "Short" ? (
                       <span className="text-red-400 flex items-center gap-1">
                         <TrendingDown className="h-3 w-3" /> Short
                       </span>
-                    ) : '-'}
+                    ) : (
+                      "-"
+                    )}
                   </TableCell>
                   <TableCell className="font-mono">
-                    {log.entryPrice ? `$${(log.entryPrice / 100).toFixed(2)}` : '-'}
+                    {log.entryPrice
+                      ? `$${(log.entryPrice / 100).toFixed(2)}`
+                      : "-"}
                   </TableCell>
                   <TableCell className="font-mono">
                     {log.pnl !== null ? (
-                      <span className={log.pnl >= 0 ? 'text-green-400' : 'text-red-400'}>
-                        {log.pnl >= 0 ? '+' : ''}${(log.pnl / 100).toFixed(2)}
+                      <span
+                        className={
+                          log.pnl >= 0 ? "text-green-400" : "text-red-400"
+                        }
+                      >
+                        {log.pnl >= 0 ? "+" : ""}${(log.pnl / 100).toFixed(2)}
                       </span>
-                    ) : '-'}
+                    ) : (
+                      "-"
+                    )}
                   </TableCell>
                   <TableCell className="text-muted-foreground">
                     {new Date(log.createdAt).toLocaleString()}
@@ -738,7 +896,9 @@ function ActivityTab() {
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8 text-muted-foreground hover:text-red-400"
-                      onClick={() => deleteLogMutation.mutate({ logId: log.id })}
+                      onClick={() =>
+                        deleteLogMutation.mutate({ logId: log.id })
+                      }
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -747,7 +907,10 @@ function ActivityTab() {
               ))}
               {(!logs || logs.length === 0) && (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                  <TableCell
+                    colSpan={8}
+                    className="text-center py-8 text-muted-foreground"
+                  >
                     No webhook logs found
                   </TableCell>
                 </TableRow>
@@ -771,14 +934,14 @@ function SetupTab() {
   const [fixedQuantity, setFixedQuantity] = useState<number>(1);
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [copiedTemplate, setCopiedTemplate] = useState(false);
-  const [testPayload, setTestPayload] = useState('');
+  const [testPayload, setTestPayload] = useState("");
   const [validationResult, setValidationResult] = useState<any>(null);
-  
+
   const { data: webhookConfig } = trpc.webhook.getConfig.useQuery();
   const { data: strategies } = trpc.portfolio.listStrategies.useQuery();
-  
+
   const validateMutation = trpc.webhook.validatePayload.useMutation({
-    onSuccess: (data) => {
+    onSuccess: data => {
       setValidationResult(data);
       if (data.valid) {
         toast.success("Payload is valid!");
@@ -788,9 +951,9 @@ function SetupTab() {
     },
   });
 
-  const copyToClipboard = async (text: string, type: 'url' | 'template') => {
+  const copyToClipboard = async (text: string, type: "url" | "template") => {
     await navigator.clipboard.writeText(text);
-    if (type === 'url') {
+    if (type === "url") {
       setCopiedUrl(true);
       setTimeout(() => setCopiedUrl(false), 2000);
     } else {
@@ -801,8 +964,10 @@ function SetupTab() {
   };
 
   // Template types for different signal scenarios
-  const [templateType, setTemplateType] = useState<'unified' | 'entry' | 'exit'>('unified');
-  
+  const [templateType, setTemplateType] = useState<
+    "unified" | "entry" | "exit"
+  >("unified");
+
   // Unified template that handles both entry and exit signals
   // TradingView will populate the action based on strategy.order.action
   // Token is auto-populated from the configured webhook token
@@ -826,7 +991,7 @@ function SetupTab() {
       price: "{{close}}",
       entryPrice: "{{strategy.position_avg_price}}",
       pnl: "{{strategy.order.profit}}",
-      token: webhookConfig?.webhookToken || "your_secret_token"
+      token: webhookConfig?.webhookToken || "your_secret_token",
     };
 
     if (!useFixedQuantity && quantityMultiplier !== 1) {
@@ -853,7 +1018,7 @@ function SetupTab() {
       position: "{{strategy.market_position}}",
       quantity: quantityValue,
       price: "{{close}}",
-      token: webhookConfig?.webhookToken || "your_secret_token"
+      token: webhookConfig?.webhookToken || "your_secret_token",
     };
 
     if (!useFixedQuantity && quantityMultiplier !== 1) {
@@ -882,7 +1047,7 @@ function SetupTab() {
       price: "{{close}}",
       entryPrice: "{{strategy.position_avg_price}}",
       pnl: "{{strategy.order.profit}}",
-      token: webhookConfig?.webhookToken || "your_secret_token"
+      token: webhookConfig?.webhookToken || "your_secret_token",
     };
 
     return JSON.stringify(template, null, 2);
@@ -890,9 +1055,12 @@ function SetupTab() {
 
   const getCurrentTemplate = () => {
     switch (templateType) {
-      case 'entry': return getEntryTemplate();
-      case 'exit': return getExitTemplate();
-      default: return getUnifiedTemplate();
+      case "entry":
+        return getEntryTemplate();
+      case "exit":
+        return getExitTemplate();
+      default:
+        return getUnifiedTemplate();
     }
   };
 
@@ -902,25 +1070,36 @@ function SetupTab() {
       <Card className="bg-card/50 border-border/50">
         <CardHeader>
           <div className="flex items-center gap-3">
-            <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">1</div>
+            <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">
+              1
+            </div>
             <div>
               <CardTitle>Webhook URL</CardTitle>
-              <CardDescription>Copy this URL and paste it into your TradingView alert webhook settings</CardDescription>
+              <CardDescription>
+                Copy this URL and paste it into your TradingView alert webhook
+                settings
+              </CardDescription>
             </div>
           </div>
         </CardHeader>
         <CardContent>
           <div className="flex gap-2">
-            <Input 
-              value={webhookConfig?.webhookUrl || ''} 
-              readOnly 
+            <Input
+              value={webhookConfig?.webhookUrl || ""}
+              readOnly
               className="font-mono text-sm"
             />
-            <Button 
-              variant="outline" 
-              onClick={() => copyToClipboard(webhookConfig?.webhookUrl || '', 'url')}
+            <Button
+              variant="outline"
+              onClick={() =>
+                copyToClipboard(webhookConfig?.webhookUrl || "", "url")
+              }
             >
-              {copiedUrl ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+              {copiedUrl ? (
+                <Check className="h-4 w-4" />
+              ) : (
+                <Copy className="h-4 w-4" />
+              )}
             </Button>
           </div>
         </CardContent>
@@ -930,10 +1109,14 @@ function SetupTab() {
       <Card className="bg-card/50 border-border/50">
         <CardHeader>
           <div className="flex items-center gap-3">
-            <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">2</div>
+            <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">
+              2
+            </div>
             <div>
               <CardTitle>Select Strategy</CardTitle>
-              <CardDescription>Choose a strategy to generate the correct JSON templates</CardDescription>
+              <CardDescription>
+                Choose a strategy to generate the correct JSON templates
+              </CardDescription>
             </div>
           </div>
         </CardHeader>
@@ -943,8 +1126,10 @@ function SetupTab() {
               <SelectValue placeholder="Select a strategy..." />
             </SelectTrigger>
             <SelectContent>
-              {strategies?.map((s) => (
-                <SelectItem key={s.id} value={s.symbol}>{s.name} ({s.symbol})</SelectItem>
+              {strategies?.map(s => (
+                <SelectItem key={s.id} value={s.symbol}>
+                  {s.name} ({s.symbol})
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -955,10 +1140,14 @@ function SetupTab() {
       <Card className="bg-card/50 border-border/50">
         <CardHeader>
           <div className="flex items-center gap-3">
-            <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">3</div>
+            <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">
+              3
+            </div>
             <div>
               <CardTitle>Quantity Configuration</CardTitle>
-              <CardDescription>Configure how many contracts to trade per signal</CardDescription>
+              <CardDescription>
+                Configure how many contracts to trade per signal
+              </CardDescription>
             </div>
           </div>
         </CardHeader>
@@ -1003,12 +1192,16 @@ function SetupTab() {
                   min={1}
                   max={100}
                   value={quantityMultiplier}
-                  onChange={(e) => setQuantityMultiplier(Math.max(1, parseInt(e.target.value) || 1))}
+                  onChange={e =>
+                    setQuantityMultiplier(
+                      Math.max(1, parseInt(e.target.value) || 1)
+                    )
+                  }
                   className="w-24"
                 />
                 <span className="text-sm text-muted-foreground">
-                  {quantityMultiplier === 1 
-                    ? "Uses strategy's signal quantity" 
+                  {quantityMultiplier === 1
+                    ? "Uses strategy's signal quantity"
                     : `Multiplies signal quantity by ${quantityMultiplier}x`}
                 </span>
               </div>
@@ -1023,11 +1216,14 @@ function SetupTab() {
                   min={1}
                   max={100}
                   value={fixedQuantity}
-                  onChange={(e) => setFixedQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                  onChange={e =>
+                    setFixedQuantity(Math.max(1, parseInt(e.target.value) || 1))
+                  }
                   className="w-24"
                 />
                 <span className="text-sm text-muted-foreground">
-                  Always trades {fixedQuantity} contract{fixedQuantity !== 1 ? 's' : ''} regardless of signal
+                  Always trades {fixedQuantity} contract
+                  {fixedQuantity !== 1 ? "s" : ""} regardless of signal
                 </span>
               </div>
             )}
@@ -1039,10 +1235,15 @@ function SetupTab() {
       <Card className="bg-card/50 border-border/50">
         <CardHeader>
           <div className="flex items-center gap-3">
-            <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">4</div>
+            <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">
+              4
+            </div>
             <div>
               <CardTitle>Message Templates</CardTitle>
-              <CardDescription>Copy this ready-to-use JSON into your TradingView alert message field</CardDescription>
+              <CardDescription>
+                Copy this ready-to-use JSON into your TradingView alert message
+                field
+              </CardDescription>
             </div>
           </div>
         </CardHeader>
@@ -1050,27 +1251,27 @@ function SetupTab() {
           {/* Template Type Selector */}
           <div className="flex gap-2 p-1 bg-muted/50 rounded-lg w-fit">
             <Button
-              variant={templateType === 'unified' ? 'default' : 'ghost'}
+              variant={templateType === "unified" ? "default" : "ghost"}
               size="sm"
-              onClick={() => setTemplateType('unified')}
+              onClick={() => setTemplateType("unified")}
               className="gap-2"
             >
               <Zap className="h-4 w-4" />
               Unified
             </Button>
             <Button
-              variant={templateType === 'entry' ? 'default' : 'ghost'}
+              variant={templateType === "entry" ? "default" : "ghost"}
               size="sm"
-              onClick={() => setTemplateType('entry')}
+              onClick={() => setTemplateType("entry")}
               className="gap-2"
             >
               <ArrowUpRight className="h-4 w-4 text-green-400" />
               Entry Only
             </Button>
             <Button
-              variant={templateType === 'exit' ? 'default' : 'ghost'}
+              variant={templateType === "exit" ? "default" : "ghost"}
               size="sm"
-              onClick={() => setTemplateType('exit')}
+              onClick={() => setTemplateType("exit")}
               className="gap-2"
             >
               <ArrowDownRight className="h-4 w-4 text-red-400" />
@@ -1082,35 +1283,68 @@ function SetupTab() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <Label className="flex items-center gap-2">
-                {templateType === 'unified' && <><Zap className="h-4 w-4 text-yellow-400" /> Unified Signal Template</>}
-                {templateType === 'entry' && <><ArrowUpRight className="h-4 w-4 text-green-400" /> Entry Signal Template</>}
-                {templateType === 'exit' && <><ArrowDownRight className="h-4 w-4 text-red-400" /> Exit Signal Template</>}
+                {templateType === "unified" && (
+                  <>
+                    <Zap className="h-4 w-4 text-yellow-400" /> Unified Signal
+                    Template
+                  </>
+                )}
+                {templateType === "entry" && (
+                  <>
+                    <ArrowUpRight className="h-4 w-4 text-green-400" /> Entry
+                    Signal Template
+                  </>
+                )}
+                {templateType === "exit" && (
+                  <>
+                    <ArrowDownRight className="h-4 w-4 text-red-400" /> Exit
+                    Signal Template
+                  </>
+                )}
               </Label>
-              <Button 
-                variant="ghost" 
+              <Button
+                variant="ghost"
                 size="sm"
-                onClick={() => copyToClipboard(getCurrentTemplate(), 'template')}
+                onClick={() =>
+                  copyToClipboard(getCurrentTemplate(), "template")
+                }
               >
-                {copiedTemplate ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                {copiedTemplate ? (
+                  <Check className="h-4 w-4" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
               </Button>
             </div>
             <div className="space-y-2">
-              {templateType === 'unified' && (
+              {templateType === "unified" && (
                 <p className="text-sm text-muted-foreground">
-                  <strong>Recommended:</strong> Auto-detects entry/exit based on <code className="text-xs bg-muted px-1 rounded">position</code> field. 
-                  When position changes to "flat", it's treated as an exit signal.
+                  <strong>Recommended:</strong> Auto-detects entry/exit based on{" "}
+                  <code className="text-xs bg-muted px-1 rounded">
+                    position
+                  </code>{" "}
+                  field. When position changes to "flat", it's treated as an
+                  exit signal.
                 </p>
               )}
-              {templateType === 'entry' && (
+              {templateType === "entry" && (
                 <p className="text-sm text-muted-foreground">
-                  Use this template for <strong>entry-only alerts</strong>. The <code className="text-xs bg-muted px-1 rounded">signalType: "entry"</code> field 
-                  explicitly marks this as an entry signal, creating an open position.
+                  Use this template for <strong>entry-only alerts</strong>. The{" "}
+                  <code className="text-xs bg-muted px-1 rounded">
+                    signalType: "entry"
+                  </code>{" "}
+                  field explicitly marks this as an entry signal, creating an
+                  open position.
                 </p>
               )}
-              {templateType === 'exit' && (
+              {templateType === "exit" && (
                 <p className="text-sm text-muted-foreground">
-                  Use this template for <strong>exit-only alerts</strong>. The <code className="text-xs bg-muted px-1 rounded">signalType: "exit"</code> field 
-                  explicitly marks this as an exit, closing the open position and calculating P&L.
+                  Use this template for <strong>exit-only alerts</strong>. The{" "}
+                  <code className="text-xs bg-muted px-1 rounded">
+                    signalType: "exit"
+                  </code>{" "}
+                  field explicitly marks this as an exit, closing the open
+                  position and calculating P&L.
                 </p>
               )}
               {webhookConfig?.hasToken ? (
@@ -1121,13 +1355,15 @@ function SetupTab() {
               ) : (
                 <div className="flex items-center gap-2 text-sm text-yellow-400">
                   <AlertTriangle className="h-4 w-4" />
-                  <span>No webhook token configured - add one in Settings → Secrets</span>
+                  <span>
+                    No webhook token configured - add one in Settings → Secrets
+                  </span>
                 </div>
               )}
             </div>
-            <Textarea 
-              value={getCurrentTemplate()} 
-              readOnly 
+            <Textarea
+              value={getCurrentTemplate()}
+              readOnly
               className="font-mono text-xs h-64"
             />
           </div>
@@ -1141,33 +1377,49 @@ function SetupTab() {
             <div className="grid md:grid-cols-2 gap-4 text-sm">
               <div className="space-y-2">
                 <div className="flex justify-between">
-                  <code className="text-xs bg-muted px-2 py-1 rounded">{'{{timenow}}'}</code>
-                  <span className="text-muted-foreground">Current timestamp</span>
+                  <code className="text-xs bg-muted px-2 py-1 rounded">
+                    {"{{timenow}}"}
+                  </code>
+                  <span className="text-muted-foreground">
+                    Current timestamp
+                  </span>
                 </div>
                 <div className="flex justify-between">
-                  <code className="text-xs bg-muted px-2 py-1 rounded">{'{{close}}'}</code>
+                  <code className="text-xs bg-muted px-2 py-1 rounded">
+                    {"{{close}}"}
+                  </code>
                   <span className="text-muted-foreground">Current price</span>
                 </div>
                 <div className="flex justify-between">
-                  <code className="text-xs bg-muted px-2 py-1 rounded">{'{{strategy.order.action}}'}</code>
+                  <code className="text-xs bg-muted px-2 py-1 rounded">
+                    {"{{strategy.order.action}}"}
+                  </code>
                   <span className="text-muted-foreground">buy/sell/exit</span>
                 </div>
                 <div className="flex justify-between">
-                  <code className="text-xs bg-muted px-2 py-1 rounded">{'{{strategy.order.contracts}}'}</code>
+                  <code className="text-xs bg-muted px-2 py-1 rounded">
+                    {"{{strategy.order.contracts}}"}
+                  </code>
                   <span className="text-muted-foreground">Quantity</span>
                 </div>
               </div>
               <div className="space-y-2">
                 <div className="flex justify-between">
-                  <code className="text-xs bg-muted px-2 py-1 rounded">{'{{strategy.market_position}}'}</code>
+                  <code className="text-xs bg-muted px-2 py-1 rounded">
+                    {"{{strategy.market_position}}"}
+                  </code>
                   <span className="text-muted-foreground">long/short/flat</span>
                 </div>
                 <div className="flex justify-between">
-                  <code className="text-xs bg-muted px-2 py-1 rounded">{'{{strategy.position_avg_price}}'}</code>
+                  <code className="text-xs bg-muted px-2 py-1 rounded">
+                    {"{{strategy.position_avg_price}}"}
+                  </code>
                   <span className="text-muted-foreground">Entry price</span>
                 </div>
                 <div className="flex justify-between">
-                  <code className="text-xs bg-muted px-2 py-1 rounded">{'{{strategy.order.profit}}'}</code>
+                  <code className="text-xs bg-muted px-2 py-1 rounded">
+                    {"{{strategy.order.profit}}"}
+                  </code>
                   <span className="text-muted-foreground">P&L in dollars</span>
                 </div>
               </div>
@@ -1183,17 +1435,19 @@ function SetupTab() {
             <FlaskConical className="h-5 w-5" />
             Payload Validator
           </CardTitle>
-          <CardDescription>Test your webhook payload before using it in TradingView</CardDescription>
+          <CardDescription>
+            Test your webhook payload before using it in TradingView
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <Textarea
             placeholder="Paste your JSON payload here..."
             value={testPayload}
-            onChange={(e) => setTestPayload(e.target.value)}
+            onChange={e => setTestPayload(e.target.value)}
             className="font-mono text-xs h-32"
           />
           <div className="flex gap-2">
-            <Button 
+            <Button
               onClick={() => validateMutation.mutate({ payload: testPayload })}
               disabled={!testPayload || validateMutation.isPending}
             >
@@ -1201,9 +1455,11 @@ function SetupTab() {
               Validate Payload
             </Button>
           </div>
-          
+
           {validationResult && (
-            <div className={`p-4 rounded-lg ${validationResult.valid ? 'bg-green-500/10 border border-green-500/30' : 'bg-red-500/10 border border-red-500/30'}`}>
+            <div
+              className={`p-4 rounded-lg ${validationResult.valid ? "bg-green-500/10 border border-green-500/30" : "bg-red-500/10 border border-red-500/30"}`}
+            >
               {validationResult.valid ? (
                 <div className="space-y-2">
                   <p className="text-green-400 font-medium flex items-center gap-2">
@@ -1211,7 +1467,9 @@ function SetupTab() {
                     Payload is valid!
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    Strategy: {validationResult.strategyName || validationResult.mappedSymbol}
+                    Strategy:{" "}
+                    {validationResult.strategyName ||
+                      validationResult.mappedSymbol}
                   </p>
                 </div>
               ) : (
@@ -1234,66 +1492,86 @@ function SetupTab() {
 
 function BrokersTab() {
   const [showIBKRDialog, setShowIBKRDialog] = useState(false);
-  const [ibkrCredentials, setIBKRCredentials] = useState({ username: '', accountId: '', isPaper: true });
+  const [ibkrCredentials, setIBKRCredentials] = useState({
+    username: "",
+    accountId: "",
+    isPaper: true,
+  });
   const [connecting, setConnecting] = useState(false);
-  const [tradovateMode, setTradovateMode] = useState<'demo' | 'live'>('demo');
-  const [ibkrGatewayUrl, setIBKRGatewayUrl] = useState('http://localhost:5000');
+  const [tradovateMode, setTradovateMode] = useState<"demo" | "live">("demo");
+  const [ibkrGatewayUrl, setIBKRGatewayUrl] = useState("http://localhost:5000");
   const [testingConnection, setTestingConnection] = useState(false);
   const [placingTestOrder, setPlacingTestOrder] = useState(false);
-  const [connectionTestResult, setConnectionTestResult] = useState<{ success: boolean; message: string; accounts?: { id: string; accountId: string }[] } | null>(null);
-  
+  const [connectionTestResult, setConnectionTestResult] = useState<{
+    success: boolean;
+    message: string;
+    accounts?: { id: string; accountId: string }[];
+  } | null>(null);
+
   // Get existing broker connections
-  const { data: connections, refetch: refetchConnections } = trpc.broker.getConnections.useQuery();
-  
+  const { data: connections, refetch: refetchConnections } =
+    trpc.broker.getConnections.useQuery();
+
   // Get OAuth URL for Tradovate
-  const { data: tradovateOAuthUrl } = trpc.broker.getTradovateOAuthUrl.useQuery({ 
-    isLive: tradovateMode === 'live' 
-  });
-  
+  const { data: tradovateOAuthUrl } = trpc.broker.getTradovateOAuthUrl.useQuery(
+    {
+      isLive: tradovateMode === "live",
+    }
+  );
+
   const connectBroker = trpc.broker.connect.useMutation({
     onSuccess: () => {
-      toast.success('Broker connected successfully!');
+      toast.success("Broker connected successfully!");
       refetchConnections();
       setShowIBKRDialog(false);
     },
     onError: (error: { message?: string }) => {
-      toast.error(error.message || 'Failed to connect broker');
+      toast.error(error.message || "Failed to connect broker");
     },
   });
   const disconnectBroker = trpc.broker.disconnect.useMutation({
     onSuccess: () => {
-      toast.success('Broker disconnected');
+      toast.success("Broker disconnected");
       refetchConnections();
     },
   });
 
   // Test IBKR connection mutation
   const testIBKRConnection = trpc.broker.testIBKRConnection.useMutation({
-    onSuccess: (result) => {
-      setConnectionTestResult(result as { success: boolean; message: string; accounts?: { id: string; accountId: string }[] });
+    onSuccess: result => {
+      setConnectionTestResult(
+        result as {
+          success: boolean;
+          message: string;
+          accounts?: { id: string; accountId: string }[];
+        }
+      );
       if (result.success) {
-        toast.success(result.message || 'Connection test successful!');
+        toast.success(result.message || "Connection test successful!");
       } else {
-        toast.error(result.error || 'Connection test failed');
+        toast.error(result.error || "Connection test failed");
       }
     },
-    onError: (error) => {
-      toast.error(error.message || 'Connection test failed');
-      setConnectionTestResult({ success: false, message: error.message || 'Connection test failed' });
+    onError: error => {
+      toast.error(error.message || "Connection test failed");
+      setConnectionTestResult({
+        success: false,
+        message: error.message || "Connection test failed",
+      });
     },
   });
 
   // Place test order mutation
   const placeTestOrder = trpc.broker.placeIBKRTestOrder.useMutation({
-    onSuccess: (result) => {
+    onSuccess: result => {
       if (result.success) {
-        toast.success(result.message || 'Test order placed!');
+        toast.success(result.message || "Test order placed!");
       } else {
-        toast.error(result.error || 'Failed to place test order');
+        toast.error(result.error || "Failed to place test order");
       }
     },
-    onError: (error) => {
-      toast.error(error.message || 'Failed to place test order');
+    onError: error => {
+      toast.error(error.message || "Failed to place test order");
     },
   });
 
@@ -1309,7 +1587,7 @@ function BrokersTab() {
 
   const handlePlaceTestOrder = async () => {
     if (!connectionTestResult?.accounts?.[0]?.id) {
-      toast.error('Please test connection first to get account ID');
+      toast.error("Please test connection first to get account ID");
       return;
     }
     setPlacingTestOrder(true);
@@ -1317,33 +1595,33 @@ function BrokersTab() {
       await placeTestOrder.mutateAsync({
         gatewayUrl: ibkrGatewayUrl,
         accountId: connectionTestResult.accounts[0].id,
-        symbol: 'MES',
+        symbol: "MES",
         quantity: 1,
-        side: 'BUY',
+        side: "BUY",
       });
     } finally {
       setPlacingTestOrder(false);
     }
   };
-  
-  const tradovateConnection = connections?.find(c => c.broker === 'tradovate');
-  const ibkrConnection = connections?.find(c => c.broker === 'ibkr');
-  
+
+  const tradovateConnection = connections?.find(c => c.broker === "tradovate");
+  const ibkrConnection = connections?.find(c => c.broker === "ibkr");
+
   // Handle Tradovate OAuth redirect - opens Tradovate login in same window
   const handleTradovateConnect = () => {
     if (tradovateOAuthUrl?.url) {
       // Redirect to Tradovate OAuth login page
       window.location.href = tradovateOAuthUrl.url;
     } else {
-      toast.error('Tradovate OAuth not configured. Please contact support.');
+      toast.error("Tradovate OAuth not configured. Please contact support.");
     }
   };
-  
+
   const handleIBKRConnect = async () => {
     setConnecting(true);
     try {
       await connectBroker.mutateAsync({
-        broker: 'ibkr',
+        broker: "ibkr",
         credentials: {
           username: ibkrCredentials.username,
           accountId: ibkrCredentials.accountId,
@@ -1354,7 +1632,7 @@ function BrokersTab() {
       setConnecting(false);
     }
   };
-  
+
   return (
     <>
       {/* Broker Connections */}
@@ -1377,9 +1655,13 @@ function BrokersTab() {
               </div>
               <div>
                 <h3 className="font-medium">Tradovate</h3>
-                <p className="text-sm text-muted-foreground">Futures trading platform</p>
+                <p className="text-sm text-muted-foreground">
+                  Futures trading platform
+                </p>
                 {tradovateConnection && (
-                  <p className="text-xs text-emerald-400 mt-1">Account: {tradovateConnection.accountId || 'Connected'}</p>
+                  <p className="text-xs text-emerald-400 mt-1">
+                    Account: {tradovateConnection.accountId || "Connected"}
+                  </p>
                 )}
               </div>
             </div>
@@ -1390,18 +1672,28 @@ function BrokersTab() {
                     <CheckCircle2 className="h-3 w-3 mr-1" />
                     Connected
                   </Badge>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     size="sm"
-                    onClick={() => disconnectBroker.mutate({ connectionId: tradovateConnection.id })}
+                    onClick={() =>
+                      disconnectBroker.mutate({
+                        connectionId: tradovateConnection.id,
+                      })
+                    }
                   >
                     Disconnect
                   </Button>
                 </>
               ) : (
                 <>
-                  <Badge className="bg-gray-500/20 text-gray-400">Not Connected</Badge>
-                  <Button variant="outline" size="sm" onClick={handleTradovateConnect}>
+                  <Badge className="bg-gray-500/20 text-gray-400">
+                    Not Connected
+                  </Badge>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleTradovateConnect}
+                  >
                     <ExternalLink className="h-4 w-4 mr-2" />
                     Connect to Tradovate
                   </Button>
@@ -1418,9 +1710,13 @@ function BrokersTab() {
               </div>
               <div>
                 <h3 className="font-medium">Interactive Brokers</h3>
-                <p className="text-sm text-muted-foreground">Multi-asset broker</p>
+                <p className="text-sm text-muted-foreground">
+                  Multi-asset broker
+                </p>
                 {ibkrConnection && (
-                  <p className="text-xs text-emerald-400 mt-1">Account: {ibkrConnection.accountId || 'Connected'}</p>
+                  <p className="text-xs text-emerald-400 mt-1">
+                    Account: {ibkrConnection.accountId || "Connected"}
+                  </p>
                 )}
               </div>
             </div>
@@ -1431,18 +1727,28 @@ function BrokersTab() {
                     <CheckCircle2 className="h-3 w-3 mr-1" />
                     Connected
                   </Badge>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     size="sm"
-                    onClick={() => disconnectBroker.mutate({ connectionId: ibkrConnection.id })}
+                    onClick={() =>
+                      disconnectBroker.mutate({
+                        connectionId: ibkrConnection.id,
+                      })
+                    }
                   >
                     Disconnect
                   </Button>
                 </>
               ) : (
                 <>
-                  <Badge className="bg-gray-500/20 text-gray-400">Not Connected</Badge>
-                  <Button variant="outline" size="sm" onClick={() => setShowIBKRDialog(true)}>
+                  <Badge className="bg-gray-500/20 text-gray-400">
+                    Not Connected
+                  </Badge>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowIBKRDialog(true)}
+                  >
                     <Link2 className="h-4 w-4 mr-2" />
                     Connect
                   </Button>
@@ -1456,21 +1762,25 @@ function BrokersTab() {
             <div className="p-4 rounded-lg border border-red-500/30 bg-red-500/5 space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h4 className="font-medium text-red-400">IBKR Gateway Testing</h4>
-                  <p className="text-sm text-muted-foreground">Test your connection and place a paper trade</p>
+                  <h4 className="font-medium text-red-400">
+                    IBKR Gateway Testing
+                  </h4>
+                  <p className="text-sm text-muted-foreground">
+                    Test your connection and place a paper trade
+                  </p>
                 </div>
               </div>
-              
+
               <div className="flex items-center gap-3">
                 <Label className="text-sm">Gateway URL:</Label>
                 <Input
                   value={ibkrGatewayUrl}
-                  onChange={(e) => setIBKRGatewayUrl(e.target.value)}
+                  onChange={e => setIBKRGatewayUrl(e.target.value)}
                   placeholder="http://localhost:5000"
                   className="max-w-xs bg-background/50"
                 />
               </div>
-              
+
               <div className="flex items-center gap-3">
                 <Button
                   variant="outline"
@@ -1480,12 +1790,18 @@ function BrokersTab() {
                   className="border-red-500/50 text-red-400 hover:bg-red-500/10"
                 >
                   {testingConnection ? (
-                    <><RefreshCw className="h-4 w-4 mr-2 animate-spin" />Testing...</>
+                    <>
+                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                      Testing...
+                    </>
                   ) : (
-                    <><Wifi className="h-4 w-4 mr-2" />Test Connection</>
+                    <>
+                      <Wifi className="h-4 w-4 mr-2" />
+                      Test Connection
+                    </>
                   )}
                 </Button>
-                
+
                 <Button
                   variant="outline"
                   size="sm"
@@ -1494,28 +1810,42 @@ function BrokersTab() {
                   className="border-emerald-500/50 text-emerald-400 hover:bg-emerald-500/10"
                 >
                   {placingTestOrder ? (
-                    <><RefreshCw className="h-4 w-4 mr-2 animate-spin" />Placing...</>
+                    <>
+                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                      Placing...
+                    </>
                   ) : (
-                    <><TrendingUp className="h-4 w-4 mr-2" />Place Test Order (1 MES)</>
+                    <>
+                      <TrendingUp className="h-4 w-4 mr-2" />
+                      Place Test Order (1 MES)
+                    </>
                   )}
                 </Button>
               </div>
-              
+
               {connectionTestResult && (
-                <div className={`p-3 rounded-lg ${connectionTestResult.success ? 'bg-emerald-500/10 border border-emerald-500/30' : 'bg-red-500/10 border border-red-500/30'}`}>
-                  <p className={`text-sm ${connectionTestResult.success ? 'text-emerald-400' : 'text-red-400'}`}>
-                    {connectionTestResult.success ? '✓' : '✗'} {connectionTestResult.message}
+                <div
+                  className={`p-3 rounded-lg ${connectionTestResult.success ? "bg-emerald-500/10 border border-emerald-500/30" : "bg-red-500/10 border border-red-500/30"}`}
+                >
+                  <p
+                    className={`text-sm ${connectionTestResult.success ? "text-emerald-400" : "text-red-400"}`}
+                  >
+                    {connectionTestResult.success ? "✓" : "✗"}{" "}
+                    {connectionTestResult.message}
                   </p>
-                  {connectionTestResult.accounts && connectionTestResult.accounts.length > 0 && (
-                    <div className="mt-2 text-xs text-muted-foreground">
-                      <p>Accounts found:</p>
-                      <ul className="list-disc list-inside">
-                        {connectionTestResult.accounts.map((acc: { id: string; accountId: string }) => (
-                          <li key={acc.id}>{acc.accountId || acc.id}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
+                  {connectionTestResult.accounts &&
+                    connectionTestResult.accounts.length > 0 && (
+                      <div className="mt-2 text-xs text-muted-foreground">
+                        <p>Accounts found:</p>
+                        <ul className="list-disc list-inside">
+                          {connectionTestResult.accounts.map(
+                            (acc: { id: string; accountId: string }) => (
+                              <li key={acc.id}>{acc.accountId || acc.id}</li>
+                            )
+                          )}
+                        </ul>
+                      </div>
+                    )}
                 </div>
               )}
             </div>
@@ -1529,11 +1859,15 @@ function BrokersTab() {
               </div>
               <div>
                 <h3 className="font-medium">Fidelity</h3>
-                <p className="text-sm text-muted-foreground">Stocks & options broker</p>
+                <p className="text-sm text-muted-foreground">
+                  Stocks & options broker
+                </p>
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <Badge className="bg-yellow-500/20 text-yellow-400">Coming Soon</Badge>
+              <Badge className="bg-yellow-500/20 text-yellow-400">
+                Coming Soon
+              </Badge>
               <Button variant="outline" size="sm" disabled>
                 <Link2 className="h-4 w-4 mr-2" />
                 Connect
@@ -1542,7 +1876,7 @@ function BrokersTab() {
           </div>
         </CardContent>
       </Card>
-      
+
       {/* Tradovate OAuth Info Card */}
       <Card className="bg-card/50 border-border/50">
         <CardHeader>
@@ -1570,38 +1904,41 @@ function BrokersTab() {
           <div className="flex items-center justify-between p-3 bg-background/50 rounded-lg border border-border/50">
             <div>
               <Label>Account Type</Label>
-              <p className="text-xs text-muted-foreground">Select before connecting</p>
+              <p className="text-xs text-muted-foreground">
+                Select before connecting
+              </p>
             </div>
             <div className="flex gap-2">
-              <Button 
-                variant={tradovateMode === 'demo' ? 'default' : 'outline'}
+              <Button
+                variant={tradovateMode === "demo" ? "default" : "outline"}
                 size="sm"
-                onClick={() => setTradovateMode('demo')}
-                className={tradovateMode === 'demo' ? 'bg-emerald-600' : ''}
+                onClick={() => setTradovateMode("demo")}
+                className={tradovateMode === "demo" ? "bg-emerald-600" : ""}
               >
                 Demo
               </Button>
-              <Button 
-                variant={tradovateMode === 'live' ? 'default' : 'outline'}
+              <Button
+                variant={tradovateMode === "live" ? "default" : "outline"}
                 size="sm"
-                onClick={() => setTradovateMode('live')}
-                className={tradovateMode === 'live' ? 'bg-red-600' : ''}
+                onClick={() => setTradovateMode("live")}
+                className={tradovateMode === "live" ? "bg-red-600" : ""}
               >
                 Live
               </Button>
             </div>
           </div>
-          {tradovateMode === 'live' && (
+          {tradovateMode === "live" && (
             <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3">
               <p className="text-sm text-red-400">
                 <AlertTriangle className="h-4 w-4 inline mr-1" />
-                Live trading uses real money. Make sure you understand the risks.
+                Live trading uses real money. Make sure you understand the
+                risks.
               </p>
             </div>
           )}
         </CardContent>
       </Card>
-      
+
       {/* IBKR Connection Dialog */}
       {showIBKRDialog && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -1621,48 +1958,73 @@ function BrokersTab() {
               <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
                 <p className="text-sm text-blue-400">
                   <AlertCircle className="h-4 w-4 inline mr-1" />
-                  IBKR requires the Client Portal Gateway to be running locally. 
-                  <a href="https://www.interactivebrokers.com/campus/ibkr-api-page/cpapi-v1/" target="_blank" rel="noopener" className="underline ml-1">
+                  IBKR requires the Client Portal Gateway to be running locally.
+                  <a
+                    href="https://www.interactivebrokers.com/campus/ibkr-api-page/cpapi-v1/"
+                    target="_blank"
+                    rel="noopener"
+                    className="underline ml-1"
+                  >
                     Learn more
                   </a>
                 </p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="ibkr-username">Username</Label>
-                <Input 
+                <Input
                   id="ibkr-username"
                   placeholder="Your IBKR username"
                   value={ibkrCredentials.username}
-                  onChange={(e) => setIBKRCredentials(prev => ({ ...prev, username: e.target.value }))}
+                  onChange={e =>
+                    setIBKRCredentials(prev => ({
+                      ...prev,
+                      username: e.target.value,
+                    }))
+                  }
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="ibkr-account">Account ID (Optional)</Label>
-                <Input 
+                <Input
                   id="ibkr-account"
                   placeholder="e.g., U1234567"
                   value={ibkrCredentials.accountId}
-                  onChange={(e) => setIBKRCredentials(prev => ({ ...prev, accountId: e.target.value }))}
+                  onChange={e =>
+                    setIBKRCredentials(prev => ({
+                      ...prev,
+                      accountId: e.target.value,
+                    }))
+                  }
                 />
               </div>
               <div className="flex items-center justify-between">
                 <Label htmlFor="ibkr-paper">Paper Trading</Label>
-                <Switch 
+                <Switch
                   id="ibkr-paper"
                   checked={ibkrCredentials.isPaper}
-                  onCheckedChange={(checked) => setIBKRCredentials(prev => ({ ...prev, isPaper: checked }))}
+                  onCheckedChange={checked =>
+                    setIBKRCredentials(prev => ({ ...prev, isPaper: checked }))
+                  }
                 />
               </div>
               <div className="flex gap-3 pt-2">
-                <Button variant="outline" className="flex-1" onClick={() => setShowIBKRDialog(false)}>
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setShowIBKRDialog(false)}
+                >
                   Cancel
                 </Button>
-                <Button 
-                  className="flex-1 bg-red-600 hover:bg-red-700" 
+                <Button
+                  className="flex-1 bg-red-600 hover:bg-red-700"
                   onClick={handleIBKRConnect}
                   disabled={connecting || !ibkrCredentials.username}
                 >
-                  {connecting ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <Link2 className="h-4 w-4 mr-2" />}
+                  {connecting ? (
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Link2 className="h-4 w-4 mr-2" />
+                  )}
                   Connect
                 </Button>
               </div>
@@ -1686,7 +2048,10 @@ function BrokersTab() {
           <div className="text-center py-8 text-muted-foreground">
             <Server className="h-12 w-12 mx-auto mb-4 opacity-50" />
             <p>Connect a broker to configure routing rules</p>
-            <p className="text-sm mt-1">Signals will be logged but not executed until a broker is connected</p>
+            <p className="text-sm mt-1">
+              Signals will be logged but not executed until a broker is
+              connected
+            </p>
           </div>
         </CardContent>
       </Card>
@@ -1703,23 +2068,33 @@ function BrokersTab() {
           <div className="flex items-center justify-between p-4 rounded-lg border border-border/50">
             <div>
               <h3 className="font-medium">Signal Logging Only</h3>
-              <p className="text-sm text-muted-foreground">Webhooks are logged but not executed</p>
+              <p className="text-sm text-muted-foreground">
+                Webhooks are logged but not executed
+              </p>
             </div>
             <Badge className="bg-blue-500/20 text-blue-400">Current Mode</Badge>
           </div>
           <div className="flex items-center justify-between p-4 rounded-lg border border-border/50 opacity-60">
             <div>
               <h3 className="font-medium">Paper Trading</h3>
-              <p className="text-sm text-muted-foreground">Simulated execution without real orders</p>
+              <p className="text-sm text-muted-foreground">
+                Simulated execution without real orders
+              </p>
             </div>
-            <Badge className="bg-gray-500/20 text-gray-400">Requires Broker</Badge>
+            <Badge className="bg-gray-500/20 text-gray-400">
+              Requires Broker
+            </Badge>
           </div>
           <div className="flex items-center justify-between p-4 rounded-lg border border-border/50 opacity-60">
             <div>
               <h3 className="font-medium">Live Execution</h3>
-              <p className="text-sm text-muted-foreground">Real orders sent to connected brokers</p>
+              <p className="text-sm text-muted-foreground">
+                Real orders sent to connected brokers
+              </p>
             </div>
-            <Badge className="bg-gray-500/20 text-gray-400">Requires Broker</Badge>
+            <Badge className="bg-gray-500/20 text-gray-400">
+              Requires Broker
+            </Badge>
           </div>
         </CardContent>
       </Card>
@@ -1732,11 +2107,14 @@ function BrokersTab() {
 // ============================================================================
 
 function MonitoringTab() {
-  const { data: healthReport, refetch: refetchHealth } = trpc.webhook.getHealthReport.useQuery();
-  const { data: logs, refetch: refetchLogs } = trpc.webhook.getLogs.useQuery({ limit: 50 });
+  const { data: healthReport, refetch: refetchHealth } =
+    trpc.webhook.getHealthReport.useQuery();
+  const { data: logs, refetch: refetchLogs } = trpc.webhook.getLogs.useQuery({
+    limit: 50,
+  });
   const { data: status } = trpc.webhook.getStatus.useQuery();
   const [autoRefresh, setAutoRefresh] = useState(true);
-  
+
   // Auto-refresh every 30 seconds
   useEffect(() => {
     if (!autoRefresh) return;
@@ -1746,56 +2124,88 @@ function MonitoringTab() {
     }, 30000);
     return () => clearInterval(interval);
   }, [autoRefresh, refetchHealth, refetchLogs]);
-  
+
   // Calculate error rate
-  const errorCount = logs?.filter(l => l.status === 'failed').length || 0;
+  const errorCount = logs?.filter(l => l.status === "failed").length || 0;
   const totalLogs = logs?.length || 0;
-  const errorRate = totalLogs > 0 ? ((errorCount / totalLogs) * 100).toFixed(1) : '0';
-  
+  const errorRate =
+    totalLogs > 0 ? ((errorCount / totalLogs) * 100).toFixed(1) : "0";
+
   // Calculate success rate
-  const successCount = logs?.filter(l => l.status === 'success').length || 0;
-  const successRate = totalLogs > 0 ? ((successCount / totalLogs) * 100).toFixed(1) : '100';
-  
+  const successCount = logs?.filter(l => l.status === "success").length || 0;
+  const successRate =
+    totalLogs > 0 ? ((successCount / totalLogs) * 100).toFixed(1) : "100";
+
   // Calculate average response time
-  const avgResponseTime = logs && logs.length > 0
-    ? (logs.reduce((sum, l) => sum + (l.processingTimeMs || 0), 0) / logs.length).toFixed(0)
-    : '0';
-  
+  const avgResponseTime =
+    logs && logs.length > 0
+      ? (
+          logs.reduce((sum, l) => sum + (l.processingTimeMs || 0), 0) /
+          logs.length
+        ).toFixed(0)
+      : "0";
+
   // Calculate P95 response time
-  const sortedTimes = logs?.map(l => l.processingTimeMs || 0).sort((a, b) => a - b) || [];
-  const p95ResponseTime = sortedTimes.length > 0 
-    ? sortedTimes[Math.floor(sortedTimes.length * 0.95)] 
-    : 0;
-  
+  const sortedTimes =
+    logs?.map(l => l.processingTimeMs || 0).sort((a, b) => a - b) || [];
+  const p95ResponseTime =
+    sortedTimes.length > 0
+      ? sortedTimes[Math.floor(sortedTimes.length * 0.95)]
+      : 0;
+
   // Get last webhook timestamp
-  const lastWebhook = logs && logs.length > 0 ? new Date(logs[0].createdAt) : null;
-  const timeSinceLastWebhook = lastWebhook 
+  const lastWebhook =
+    logs && logs.length > 0 ? new Date(logs[0].createdAt) : null;
+  const timeSinceLastWebhook = lastWebhook
     ? Math.floor((Date.now() - lastWebhook.getTime()) / 60000)
     : null;
-  
+
   return (
     <>
       {/* Monitoring Controls */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
-          <Badge className={autoRefresh ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-gray-500/20 text-gray-400 border-gray-500/30'}>
-            <div className={`w-2 h-2 rounded-full mr-2 ${autoRefresh ? 'bg-green-400 animate-pulse' : 'bg-gray-400'}`} />
-            {autoRefresh ? 'Live Monitoring' : 'Paused'}
+          <Badge
+            className={
+              autoRefresh
+                ? "bg-green-500/20 text-green-400 border-green-500/30"
+                : "bg-gray-500/20 text-gray-400 border-gray-500/30"
+            }
+          >
+            <div
+              className={`w-2 h-2 rounded-full mr-2 ${autoRefresh ? "bg-green-400 animate-pulse" : "bg-gray-400"}`}
+            />
+            {autoRefresh ? "Live Monitoring" : "Paused"}
           </Badge>
           {lastWebhook && (
             <span className="text-xs text-muted-foreground">
-              Last activity: {timeSinceLastWebhook === 0 ? 'Just now' : `${timeSinceLastWebhook}m ago`}
+              Last activity:{" "}
+              {timeSinceLastWebhook === 0
+                ? "Just now"
+                : `${timeSinceLastWebhook}m ago`}
             </span>
           )}
         </div>
         <div className="flex items-center gap-2">
-          <Label htmlFor="auto-refresh" className="text-sm text-muted-foreground">Auto-refresh</Label>
-          <Switch 
+          <Label
+            htmlFor="auto-refresh"
+            className="text-sm text-muted-foreground"
+          >
+            Auto-refresh
+          </Label>
+          <Switch
             id="auto-refresh"
-            checked={autoRefresh} 
-            onCheckedChange={setAutoRefresh} 
+            checked={autoRefresh}
+            onCheckedChange={setAutoRefresh}
           />
-          <Button variant="outline" size="sm" onClick={() => { refetchHealth(); refetchLogs(); }}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              refetchHealth();
+              refetchLogs();
+            }}
+          >
             <RefreshCw className="h-4 w-4 mr-2" />
             Refresh Now
           </Button>
@@ -1816,39 +2226,71 @@ function MonitoringTab() {
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
             <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/30">
-              <div className="text-sm text-muted-foreground mb-1">System Status</div>
+              <div className="text-sm text-muted-foreground mb-1">
+                System Status
+              </div>
               <div className="text-2xl font-bold text-green-400">
-                {healthReport?.isPaused ? 'Paused' : 'Healthy'}
+                {healthReport?.isPaused ? "Paused" : "Healthy"}
               </div>
               <div className="text-xs text-green-400/70 mt-1">
-                {healthReport?.isPaused ? 'Processing paused' : 'All systems operational'}
+                {healthReport?.isPaused
+                  ? "Processing paused"
+                  : "All systems operational"}
               </div>
             </div>
             <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/30">
-              <div className="text-sm text-muted-foreground mb-1">Success Rate</div>
-              <div className="text-2xl font-bold text-blue-400">{successRate}%</div>
-              <div className="text-xs text-blue-400/70 mt-1">{successCount} successful</div>
+              <div className="text-sm text-muted-foreground mb-1">
+                Success Rate
+              </div>
+              <div className="text-2xl font-bold text-blue-400">
+                {successRate}%
+              </div>
+              <div className="text-xs text-blue-400/70 mt-1">
+                {successCount} successful
+              </div>
             </div>
             <div className="p-4 rounded-lg bg-cyan-500/10 border border-cyan-500/30">
-              <div className="text-sm text-muted-foreground mb-1">Avg Response</div>
-              <div className="text-2xl font-bold text-cyan-400">{avgResponseTime}ms</div>
-              <div className="text-xs text-cyan-400/70 mt-1">Last 50 requests</div>
+              <div className="text-sm text-muted-foreground mb-1">
+                Avg Response
+              </div>
+              <div className="text-2xl font-bold text-cyan-400">
+                {avgResponseTime}ms
+              </div>
+              <div className="text-xs text-cyan-400/70 mt-1">
+                Last 50 requests
+              </div>
             </div>
             <div className="p-4 rounded-lg bg-purple-500/10 border border-purple-500/30">
-              <div className="text-sm text-muted-foreground mb-1">P95 Response</div>
-              <div className="text-2xl font-bold text-purple-400">{p95ResponseTime}ms</div>
-              <div className="text-xs text-purple-400/70 mt-1">95th percentile</div>
+              <div className="text-sm text-muted-foreground mb-1">
+                P95 Response
+              </div>
+              <div className="text-2xl font-bold text-purple-400">
+                {p95ResponseTime}ms
+              </div>
+              <div className="text-xs text-purple-400/70 mt-1">
+                95th percentile
+              </div>
             </div>
             <div className="p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/30">
-              <div className="text-sm text-muted-foreground mb-1">Error Rate</div>
-              <div className={`text-2xl font-bold ${parseFloat(errorRate) > 10 ? 'text-red-400' : 'text-yellow-400'}`}>
+              <div className="text-sm text-muted-foreground mb-1">
+                Error Rate
+              </div>
+              <div
+                className={`text-2xl font-bold ${parseFloat(errorRate) > 10 ? "text-red-400" : "text-yellow-400"}`}
+              >
                 {errorRate}%
               </div>
-              <div className="text-xs text-yellow-400/70 mt-1">{errorCount} of {totalLogs} failed</div>
+              <div className="text-xs text-yellow-400/70 mt-1">
+                {errorCount} of {totalLogs} failed
+              </div>
             </div>
             <div className="p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/30">
-              <div className="text-sm text-muted-foreground mb-1">Total Processed</div>
-              <div className="text-2xl font-bold text-emerald-400">{status?.stats?.total || 0}</div>
+              <div className="text-sm text-muted-foreground mb-1">
+                Total Processed
+              </div>
+              <div className="text-2xl font-bold text-emerald-400">
+                {status?.stats?.total || 0}
+              </div>
               <div className="text-xs text-emerald-400/70 mt-1">All time</div>
             </div>
           </div>
@@ -1882,7 +2324,9 @@ function MonitoringTab() {
                 <CheckCircle2 className="h-5 w-5 text-green-400" />
                 <div>
                   <div className="font-medium">Database Connection</div>
-                  <div className="text-sm text-muted-foreground">MySQL/TiDB connected</div>
+                  <div className="text-sm text-muted-foreground">
+                    MySQL/TiDB connected
+                  </div>
                 </div>
               </div>
               <Badge className="bg-green-500/20 text-green-400">healthy</Badge>
@@ -1898,12 +2342,20 @@ function MonitoringTab() {
                 <div>
                   <div className="font-medium">Webhook Processing</div>
                   <div className="text-sm text-muted-foreground">
-                    {healthReport?.isPaused ? 'Processing paused' : 'Processing active'}
+                    {healthReport?.isPaused
+                      ? "Processing paused"
+                      : "Processing active"}
                   </div>
                 </div>
               </div>
-              <Badge className={healthReport?.isPaused ? 'bg-yellow-500/20 text-yellow-400' : 'bg-green-500/20 text-green-400'}>
-                {healthReport?.isPaused ? 'paused' : 'healthy'}
+              <Badge
+                className={
+                  healthReport?.isPaused
+                    ? "bg-yellow-500/20 text-yellow-400"
+                    : "bg-green-500/20 text-green-400"
+                }
+              >
+                {healthReport?.isPaused ? "paused" : "healthy"}
               </Badge>
             </div>
             {/* Circuit Breaker */}
@@ -1917,27 +2369,44 @@ function MonitoringTab() {
                 <div>
                   <div className="font-medium">Circuit Breaker</div>
                   <div className="text-sm text-muted-foreground">
-                    {healthReport?.circuitBreaker?.open ? 'Circuit open - requests blocked' : 'Circuit closed - normal operation'}
+                    {healthReport?.circuitBreaker?.open
+                      ? "Circuit open - requests blocked"
+                      : "Circuit closed - normal operation"}
                   </div>
                 </div>
               </div>
-              <Badge className={healthReport?.circuitBreaker?.open ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'}>
-                {healthReport?.circuitBreaker?.open ? 'open' : 'closed'}
+              <Badge
+                className={
+                  healthReport?.circuitBreaker?.open
+                    ? "bg-red-500/20 text-red-400"
+                    : "bg-green-500/20 text-green-400"
+                }
+              >
+                {healthReport?.circuitBreaker?.open ? "open" : "closed"}
               </Badge>
             </div>
             {/* Issues */}
-            {healthReport?.issues && healthReport.issues.length > 0 && healthReport.issues.map((issue: string, index: number) => (
-              <div key={index} className="flex items-center justify-between p-3 rounded-lg border border-yellow-500/30 bg-yellow-500/5">
-                <div className="flex items-center gap-3">
-                  <AlertTriangle className="h-5 w-5 text-yellow-400" />
-                  <div>
-                    <div className="font-medium">Issue Detected</div>
-                    <div className="text-sm text-muted-foreground">{issue}</div>
+            {healthReport?.issues &&
+              healthReport.issues.length > 0 &&
+              healthReport.issues.map((issue: string, index: number) => (
+                <div
+                  key={index}
+                  className="flex items-center justify-between p-3 rounded-lg border border-yellow-500/30 bg-yellow-500/5"
+                >
+                  <div className="flex items-center gap-3">
+                    <AlertTriangle className="h-5 w-5 text-yellow-400" />
+                    <div>
+                      <div className="font-medium">Issue Detected</div>
+                      <div className="text-sm text-muted-foreground">
+                        {issue}
+                      </div>
+                    </div>
                   </div>
+                  <Badge className="bg-yellow-500/20 text-yellow-400">
+                    warning
+                  </Badge>
                 </div>
-                <Badge className="bg-yellow-500/20 text-yellow-400">warning</Badge>
-              </div>
-            ))}
+              ))}
             {(!healthReport?.issues || healthReport.issues.length === 0) && (
               <div className="text-center py-8 text-muted-foreground">
                 <Activity className="h-12 w-12 mx-auto mb-4 opacity-50" />
@@ -1961,18 +2430,28 @@ function MonitoringTab() {
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            {logs?.filter(l => l.status === 'failed').slice(0, 10).map((log, index) => (
-              <div key={index} className="flex items-start gap-3 p-3 rounded-lg bg-red-500/5 border border-red-500/20">
-                <XCircle className="h-4 w-4 text-red-400 mt-0.5 flex-shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-red-400">{log.errorMessage || 'Unknown error'}</div>
-                  <div className="text-xs text-muted-foreground mt-1">
-                    {new Date(log.createdAt).toLocaleString()} • {log.strategySymbol || 'Unknown strategy'}
+            {logs
+              ?.filter(l => l.status === "failed")
+              .slice(0, 10)
+              .map((log, index) => (
+                <div
+                  key={index}
+                  className="flex items-start gap-3 p-3 rounded-lg bg-red-500/5 border border-red-500/20"
+                >
+                  <XCircle className="h-4 w-4 text-red-400 mt-0.5 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium text-red-400">
+                      {log.errorMessage || "Unknown error"}
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      {new Date(log.createdAt).toLocaleString()} •{" "}
+                      {log.strategySymbol || "Unknown strategy"}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-            {(!logs || logs.filter(l => l.status === 'failed').length === 0) && (
+              ))}
+            {(!logs ||
+              logs.filter(l => l.status === "failed").length === 0) && (
               <div className="text-center py-8 text-muted-foreground">
                 <CheckCircle2 className="h-12 w-12 mx-auto mb-4 opacity-50 text-green-400" />
                 <p>No recent errors</p>
@@ -1991,7 +2470,9 @@ function MonitoringTab() {
 // ============================================================================
 
 function StagingTab() {
-  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected' | 'edited'>('pending');
+  const [statusFilter, setStatusFilter] = useState<
+    "all" | "pending" | "approved" | "rejected" | "edited"
+  >("pending");
   const [editingTrade, setEditingTrade] = useState<any | null>(null);
   const [editForm, setEditForm] = useState<{
     entryPrice: string;
@@ -2000,61 +2481,73 @@ function StagingTab() {
     pnl: string;
     direction: string;
     reviewNotes: string;
-  }>({ entryPrice: '', exitPrice: '', quantity: '', pnl: '', direction: '', reviewNotes: '' });
+  }>({
+    entryPrice: "",
+    exitPrice: "",
+    quantity: "",
+    pnl: "",
+    direction: "",
+    reviewNotes: "",
+  });
 
-  const { data: stagingTrades, refetch, isLoading } = trpc.webhook.getStagingTrades.useQuery(
-    statusFilter === 'all' ? undefined : { status: statusFilter }
+  const {
+    data: stagingTrades,
+    refetch,
+    isLoading,
+  } = trpc.webhook.getStagingTrades.useQuery(
+    statusFilter === "all" ? undefined : { status: statusFilter }
   );
-  const { data: stagingStats, refetch: refetchStats } = trpc.webhook.getStagingStats.useQuery();
+  const { data: stagingStats, refetch: refetchStats } =
+    trpc.webhook.getStagingStats.useQuery();
 
   const approveMutation = trpc.webhook.approveStagingTrade.useMutation({
     onSuccess: () => {
-      toast.success('Trade approved and moved to production');
+      toast.success("Trade approved and moved to production");
       refetch();
       refetchStats();
     },
-    onError: (error) => {
+    onError: error => {
       toast.error(`Failed to approve: ${error.message}`);
     },
   });
 
   const rejectMutation = trpc.webhook.rejectStagingTrade.useMutation({
     onSuccess: () => {
-      toast.success('Trade rejected');
+      toast.success("Trade rejected");
       refetch();
       refetchStats();
     },
-    onError: (error) => {
+    onError: error => {
       toast.error(`Failed to reject: ${error.message}`);
     },
   });
 
   const editMutation = trpc.webhook.editStagingTrade.useMutation({
     onSuccess: () => {
-      toast.success('Trade updated');
+      toast.success("Trade updated");
       setEditingTrade(null);
       refetch();
       refetchStats();
     },
-    onError: (error) => {
+    onError: error => {
       toast.error(`Failed to edit: ${error.message}`);
     },
   });
 
   const deleteMutation = trpc.webhook.deleteStagingTrade.useMutation({
     onSuccess: () => {
-      toast.success('Trade deleted permanently');
+      toast.success("Trade deleted permanently");
       refetch();
       refetchStats();
     },
-    onError: (error) => {
+    onError: error => {
       toast.error(`Failed to delete: ${error.message}`);
     },
   });
 
   const handleApprove = (trade: any) => {
     if (trade.isOpen) {
-      toast.error('Cannot approve open positions. Wait for exit signal.');
+      toast.error("Cannot approve open positions. Wait for exit signal.");
       return;
     }
     approveMutation.mutate({ stagingTradeId: trade.id });
@@ -2062,7 +2555,7 @@ function StagingTab() {
 
   const handleReject = (trade: any) => {
     const action = window.confirm(
-      'Reject this trade?\n\nClick OK to reject, or Cancel to edit instead.'
+      "Reject this trade?\n\nClick OK to reject, or Cancel to edit instead."
     );
     if (action) {
       rejectMutation.mutate({ stagingTradeId: trade.id });
@@ -2070,18 +2563,20 @@ function StagingTab() {
       // Open edit dialog
       setEditingTrade(trade);
       setEditForm({
-        entryPrice: trade.entryPrice?.toString() || '',
-        exitPrice: trade.exitPrice?.toString() || '',
-        quantity: trade.quantity?.toString() || '',
-        pnl: trade.pnl?.toString() || '',
-        direction: trade.direction || '',
-        reviewNotes: '',
+        entryPrice: trade.entryPrice?.toString() || "",
+        exitPrice: trade.exitPrice?.toString() || "",
+        quantity: trade.quantity?.toString() || "",
+        pnl: trade.pnl?.toString() || "",
+        direction: trade.direction || "",
+        reviewNotes: "",
       });
     }
   };
 
   const handleDelete = (trade: any) => {
-    if (window.confirm('Delete this trade permanently? This cannot be undone.')) {
+    if (
+      window.confirm("Delete this trade permanently? This cannot be undone.")
+    ) {
       deleteMutation.mutate({ stagingTradeId: trade.id });
     }
   };
@@ -2091,8 +2586,12 @@ function StagingTab() {
     editMutation.mutate({
       stagingTradeId: editingTrade.id,
       updates: {
-        entryPrice: editForm.entryPrice ? parseFloat(editForm.entryPrice) : undefined,
-        exitPrice: editForm.exitPrice ? parseFloat(editForm.exitPrice) : undefined,
+        entryPrice: editForm.entryPrice
+          ? parseFloat(editForm.entryPrice)
+          : undefined,
+        exitPrice: editForm.exitPrice
+          ? parseFloat(editForm.exitPrice)
+          : undefined,
         quantity: editForm.quantity ? parseInt(editForm.quantity) : undefined,
         pnl: editForm.pnl ? parseFloat(editForm.pnl) : undefined,
         direction: editForm.direction || undefined,
@@ -2103,17 +2602,42 @@ function StagingTab() {
 
   const getStatusBadge = (status: string, isOpen: boolean) => {
     if (isOpen) {
-      return <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30"><Clock className="w-3 h-3 mr-1" />Open</Badge>;
+      return (
+        <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">
+          <Clock className="w-3 h-3 mr-1" />
+          Open
+        </Badge>
+      );
     }
     switch (status) {
-      case 'pending':
-        return <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30"><Clock className="w-3 h-3 mr-1" />Pending</Badge>;
-      case 'approved':
-        return <Badge className="bg-green-500/20 text-green-400 border-green-500/30"><CheckCircle2 className="w-3 h-3 mr-1" />Approved</Badge>;
-      case 'rejected':
-        return <Badge className="bg-red-500/20 text-red-400 border-red-500/30"><XCircle className="w-3 h-3 mr-1" />Rejected</Badge>;
-      case 'edited':
-        return <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30"><AlertTriangle className="w-3 h-3 mr-1" />Edited</Badge>;
+      case "pending":
+        return (
+          <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">
+            <Clock className="w-3 h-3 mr-1" />
+            Pending
+          </Badge>
+        );
+      case "approved":
+        return (
+          <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
+            <CheckCircle2 className="w-3 h-3 mr-1" />
+            Approved
+          </Badge>
+        );
+      case "rejected":
+        return (
+          <Badge className="bg-red-500/20 text-red-400 border-red-500/30">
+            <XCircle className="w-3 h-3 mr-1" />
+            Rejected
+          </Badge>
+        );
+      case "edited":
+        return (
+          <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30">
+            <AlertTriangle className="w-3 h-3 mr-1" />
+            Edited
+          </Badge>
+        );
       default:
         return <Badge className="bg-gray-500/20 text-gray-400">{status}</Badge>;
     }
@@ -2125,31 +2649,41 @@ function StagingTab() {
       <div className="grid grid-cols-5 gap-4">
         <Card className="bg-yellow-500/10 border-yellow-500/30">
           <CardContent className="pt-4">
-            <div className="text-2xl font-bold text-yellow-400">{stagingStats?.pending || 0}</div>
+            <div className="text-2xl font-bold text-yellow-400">
+              {stagingStats?.pending || 0}
+            </div>
             <div className="text-sm text-muted-foreground">Pending Review</div>
           </CardContent>
         </Card>
         <Card className="bg-blue-500/10 border-blue-500/30">
           <CardContent className="pt-4">
-            <div className="text-2xl font-bold text-blue-400">{stagingStats?.openPositions || 0}</div>
+            <div className="text-2xl font-bold text-blue-400">
+              {stagingStats?.openPositions || 0}
+            </div>
             <div className="text-sm text-muted-foreground">Open Positions</div>
           </CardContent>
         </Card>
         <Card className="bg-purple-500/10 border-purple-500/30">
           <CardContent className="pt-4">
-            <div className="text-2xl font-bold text-purple-400">{stagingStats?.edited || 0}</div>
+            <div className="text-2xl font-bold text-purple-400">
+              {stagingStats?.edited || 0}
+            </div>
             <div className="text-sm text-muted-foreground">Edited</div>
           </CardContent>
         </Card>
         <Card className="bg-green-500/10 border-green-500/30">
           <CardContent className="pt-4">
-            <div className="text-2xl font-bold text-green-400">{stagingStats?.approved || 0}</div>
+            <div className="text-2xl font-bold text-green-400">
+              {stagingStats?.approved || 0}
+            </div>
             <div className="text-sm text-muted-foreground">Approved</div>
           </CardContent>
         </Card>
         <Card className="bg-red-500/10 border-red-500/30">
           <CardContent className="pt-4">
-            <div className="text-2xl font-bold text-red-400">{stagingStats?.rejected || 0}</div>
+            <div className="text-2xl font-bold text-red-400">
+              {stagingStats?.rejected || 0}
+            </div>
             <div className="text-sm text-muted-foreground">Rejected</div>
           </CardContent>
         </Card>
@@ -2161,7 +2695,10 @@ function StagingTab() {
           <div className="flex flex-wrap gap-4 items-center">
             <div className="flex items-center gap-2">
               <Filter className="h-4 w-4 text-muted-foreground" />
-              <Select value={statusFilter} onValueChange={(v: any) => setStatusFilter(v)}>
+              <Select
+                value={statusFilter}
+                onValueChange={(v: any) => setStatusFilter(v)}
+              >
                 <SelectTrigger className="w-[140px]">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
@@ -2175,8 +2712,18 @@ function StagingTab() {
               </Select>
             </div>
             <div className="flex gap-2 ml-auto">
-              <Button variant="outline" size="sm" onClick={() => { refetch(); refetchStats(); }} disabled={isLoading}>
-                <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  refetch();
+                  refetchStats();
+                }}
+                disabled={isLoading}
+              >
+                <RefreshCw
+                  className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`}
+                />
                 Refresh
               </Button>
             </div>
@@ -2192,7 +2739,9 @@ function StagingTab() {
             Staging Trades
           </CardTitle>
           <CardDescription>
-            Review webhook alerts before they update the production database. Approve to move to production, reject to discard, or edit to correct errors.
+            Review webhook alerts before they update the production database.
+            Approve to move to production, reject to discard, or edit to correct
+            errors.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -2211,12 +2760,19 @@ function StagingTab() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {stagingTrades?.map((trade) => (
-                <TableRow key={trade.id} className={trade.isOpen ? 'bg-blue-500/5' : ''}>
-                  <TableCell>{getStatusBadge(trade.status, trade.isOpen)}</TableCell>
-                  <TableCell className="font-medium">{trade.strategySymbol}</TableCell>
+              {stagingTrades?.map(trade => (
+                <TableRow
+                  key={trade.id}
+                  className={trade.isOpen ? "bg-blue-500/5" : ""}
+                >
                   <TableCell>
-                    {trade.direction === 'Long' ? (
+                    {getStatusBadge(trade.status, trade.isOpen)}
+                  </TableCell>
+                  <TableCell className="font-medium">
+                    {trade.strategySymbol}
+                  </TableCell>
+                  <TableCell>
+                    {trade.direction === "Long" ? (
                       <span className="text-green-400 flex items-center gap-1">
                         <TrendingUp className="h-3 w-3" /> Long
                       </span>
@@ -2227,57 +2783,71 @@ function StagingTab() {
                     )}
                   </TableCell>
                   <TableCell className="font-mono">
-                    ${trade.entryPrice?.toFixed(2) || '-'}
+                    ${trade.entryPrice?.toFixed(2) || "-"}
                     <div className="text-xs text-muted-foreground">
-                      {trade.entryDate ? new Date(trade.entryDate).toLocaleDateString() : '-'}
+                      {trade.entryDate
+                        ? new Date(trade.entryDate).toLocaleDateString()
+                        : "-"}
                     </div>
                   </TableCell>
                   <TableCell className="font-mono">
-                    {trade.exitPrice ? `$${trade.exitPrice.toFixed(2)}` : '-'}
+                    {trade.exitPrice ? `$${trade.exitPrice.toFixed(2)}` : "-"}
                     <div className="text-xs text-muted-foreground">
-                      {trade.exitDate ? new Date(trade.exitDate).toLocaleDateString() : '-'}
+                      {trade.exitDate
+                        ? new Date(trade.exitDate).toLocaleDateString()
+                        : "-"}
                     </div>
                   </TableCell>
                   <TableCell className="font-mono">
                     {trade.pnl !== null ? (
-                      <span className={trade.pnl >= 0 ? 'text-green-400' : 'text-red-400'}>
-                        {trade.pnl >= 0 ? '+' : ''}${trade.pnl.toFixed(2)}
+                      <span
+                        className={
+                          trade.pnl >= 0 ? "text-green-400" : "text-red-400"
+                        }
+                      >
+                        {trade.pnl >= 0 ? "+" : ""}${trade.pnl.toFixed(2)}
                       </span>
-                    ) : '-'}
+                    ) : (
+                      "-"
+                    )}
                   </TableCell>
                   <TableCell>{trade.quantity}</TableCell>
                   <TableCell className="text-muted-foreground text-sm">
                     {new Date(trade.createdAt).toLocaleString()}
                   </TableCell>
                   <TableCell>
-                    {(trade.status === 'pending' || trade.status === 'edited') && !trade.isOpen && (
-                      <div className="flex gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-green-400 hover:text-green-300 hover:bg-green-500/10"
-                          onClick={() => handleApprove(trade)}
-                          disabled={approveMutation.isPending}
-                          title="Approve"
-                        >
-                          <Check className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-red-400 hover:text-red-300 hover:bg-red-500/10"
-                          onClick={() => handleReject(trade)}
-                          disabled={rejectMutation.isPending}
-                          title="Reject (or Edit)"
-                        >
-                          <XCircle className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    )}
+                    {(trade.status === "pending" ||
+                      trade.status === "edited") &&
+                      !trade.isOpen && (
+                        <div className="flex gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-green-400 hover:text-green-300 hover:bg-green-500/10"
+                            onClick={() => handleApprove(trade)}
+                            disabled={approveMutation.isPending}
+                            title="Approve"
+                          >
+                            <Check className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                            onClick={() => handleReject(trade)}
+                            disabled={rejectMutation.isPending}
+                            title="Reject (or Edit)"
+                          >
+                            <XCircle className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      )}
                     {trade.isOpen && (
-                      <span className="text-xs text-muted-foreground">Awaiting exit</span>
+                      <span className="text-xs text-muted-foreground">
+                        Awaiting exit
+                      </span>
                     )}
-                    {trade.status === 'rejected' && (
+                    {trade.status === "rejected" && (
                       <Button
                         variant="ghost"
                         size="icon"
@@ -2293,7 +2863,10 @@ function StagingTab() {
               ))}
               {(!stagingTrades || stagingTrades.length === 0) && (
                 <TableRow>
-                  <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                  <TableCell
+                    colSpan={9}
+                    className="text-center py-8 text-muted-foreground"
+                  >
                     No staging trades found
                   </TableCell>
                 </TableRow>
@@ -2310,7 +2883,8 @@ function StagingTab() {
             <CardHeader>
               <CardTitle>Edit Staging Trade</CardTitle>
               <CardDescription>
-                Correct the trade data before approving. Original values will be preserved.
+                Correct the trade data before approving. Original values will be
+                preserved.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -2321,7 +2895,9 @@ function StagingTab() {
                     type="number"
                     step="0.01"
                     value={editForm.entryPrice}
-                    onChange={(e) => setEditForm({ ...editForm, entryPrice: e.target.value })}
+                    onChange={e =>
+                      setEditForm({ ...editForm, entryPrice: e.target.value })
+                    }
                     placeholder={editingTrade.entryPrice?.toString()}
                   />
                 </div>
@@ -2331,7 +2907,9 @@ function StagingTab() {
                     type="number"
                     step="0.01"
                     value={editForm.exitPrice}
-                    onChange={(e) => setEditForm({ ...editForm, exitPrice: e.target.value })}
+                    onChange={e =>
+                      setEditForm({ ...editForm, exitPrice: e.target.value })
+                    }
                     placeholder={editingTrade.exitPrice?.toString()}
                   />
                 </div>
@@ -2342,7 +2920,9 @@ function StagingTab() {
                   <Input
                     type="number"
                     value={editForm.quantity}
-                    onChange={(e) => setEditForm({ ...editForm, quantity: e.target.value })}
+                    onChange={e =>
+                      setEditForm({ ...editForm, quantity: e.target.value })
+                    }
                     placeholder={editingTrade.quantity?.toString()}
                   />
                 </div>
@@ -2352,14 +2932,21 @@ function StagingTab() {
                     type="number"
                     step="0.01"
                     value={editForm.pnl}
-                    onChange={(e) => setEditForm({ ...editForm, pnl: e.target.value })}
+                    onChange={e =>
+                      setEditForm({ ...editForm, pnl: e.target.value })
+                    }
                     placeholder={editingTrade.pnl?.toString()}
                   />
                 </div>
               </div>
               <div className="space-y-2">
                 <Label>Direction</Label>
-                <Select value={editForm.direction} onValueChange={(v) => setEditForm({ ...editForm, direction: v })}>
+                <Select
+                  value={editForm.direction}
+                  onValueChange={v =>
+                    setEditForm({ ...editForm, direction: v })
+                  }
+                >
                   <SelectTrigger>
                     <SelectValue placeholder={editingTrade.direction} />
                   </SelectTrigger>
@@ -2373,7 +2960,9 @@ function StagingTab() {
                 <Label>Review Notes (optional)</Label>
                 <Textarea
                   value={editForm.reviewNotes}
-                  onChange={(e) => setEditForm({ ...editForm, reviewNotes: e.target.value })}
+                  onChange={e =>
+                    setEditForm({ ...editForm, reviewNotes: e.target.value })
+                  }
                   placeholder="Reason for edit..."
                 />
               </div>
@@ -2382,8 +2971,11 @@ function StagingTab() {
               <Button variant="outline" onClick={() => setEditingTrade(null)}>
                 Cancel
               </Button>
-              <Button onClick={handleSaveEdit} disabled={editMutation.isPending}>
-                {editMutation.isPending ? 'Saving...' : 'Save & Mark as Edited'}
+              <Button
+                onClick={handleSaveEdit}
+                disabled={editMutation.isPending}
+              >
+                {editMutation.isPending ? "Saving..." : "Save & Mark as Edited"}
               </Button>
             </div>
           </Card>
@@ -2399,13 +2991,13 @@ function StagingTab() {
 
 function SettingsTab() {
   const { data: status, refetch } = trpc.webhook.getStatus.useQuery();
-  
+
   const clearLogsMutation = trpc.webhook.clearLogs.useMutation({
-    onSuccess: (data) => {
+    onSuccess: data => {
       toast.success(`Cleared ${data.deleted} logs`);
       refetch();
     },
-    onError: (error) => {
+    onError: error => {
       toast.error(`Failed to clear logs: ${error.message}`);
     },
   });
@@ -2424,31 +3016,39 @@ function SettingsTab() {
           <div className="flex items-center justify-between">
             <div>
               <h3 className="font-medium">Token Authentication</h3>
-              <p className="text-sm text-muted-foreground">Require valid token in webhook payload</p>
+              <p className="text-sm text-muted-foreground">
+                Require valid token in webhook payload
+              </p>
             </div>
             <Badge className="bg-green-500/20 text-green-400">Enabled</Badge>
           </div>
-          
+
           <div className="flex items-center justify-between">
             <div>
               <h3 className="font-medium">Rate Limiting</h3>
-              <p className="text-sm text-muted-foreground">60 requests per minute per IP</p>
+              <p className="text-sm text-muted-foreground">
+                60 requests per minute per IP
+              </p>
             </div>
             <Badge className="bg-green-500/20 text-green-400">Enabled</Badge>
           </div>
-          
+
           <div className="flex items-center justify-between">
             <div>
               <h3 className="font-medium">IP Allowlist</h3>
-              <p className="text-sm text-muted-foreground">Only accept webhooks from TradingView IPs</p>
+              <p className="text-sm text-muted-foreground">
+                Only accept webhooks from TradingView IPs
+              </p>
             </div>
             <Badge className="bg-gray-500/20 text-gray-400">Disabled</Badge>
           </div>
-          
+
           <div className="flex items-center justify-between">
             <div>
               <h3 className="font-medium">Replay Protection</h3>
-              <p className="text-sm text-muted-foreground">Reject requests with timestamps older than 5 minutes</p>
+              <p className="text-sm text-muted-foreground">
+                Reject requests with timestamps older than 5 minutes
+              </p>
             </div>
             <Badge className="bg-green-500/20 text-green-400">Enabled</Badge>
           </div>
@@ -2467,15 +3067,19 @@ function SettingsTab() {
           <div className="flex items-center justify-between">
             <div>
               <h3 className="font-medium">Duplicate Detection</h3>
-              <p className="text-sm text-muted-foreground">Prevent duplicate trades within 24 hours</p>
+              <p className="text-sm text-muted-foreground">
+                Prevent duplicate trades within 24 hours
+              </p>
             </div>
             <Badge className="bg-green-500/20 text-green-400">Enabled</Badge>
           </div>
-          
+
           <div className="flex items-center justify-between">
             <div>
               <h3 className="font-medium">Circuit Breaker</h3>
-              <p className="text-sm text-muted-foreground">Auto-pause on repeated failures</p>
+              <p className="text-sm text-muted-foreground">
+                Auto-pause on repeated failures
+              </p>
             </div>
             <Badge className="bg-green-500/20 text-green-400">Enabled</Badge>
           </div>
@@ -2494,10 +3098,12 @@ function SettingsTab() {
           <div className="flex items-center justify-between p-4 rounded-lg border border-border/50">
             <div>
               <h3 className="font-medium">Webhook Logs</h3>
-              <p className="text-sm text-muted-foreground">{status?.stats?.total || 0} total entries</p>
+              <p className="text-sm text-muted-foreground">
+                {status?.stats?.total || 0} total entries
+              </p>
             </div>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
               className="text-red-400 border-red-500/30 hover:bg-red-500/10"
               onClick={() => {
@@ -2524,72 +3130,92 @@ function SettingsTab() {
 // ============================================================================
 
 function TradeUploadSection() {
-  const [selectedStrategy, setSelectedStrategy] = useState<string>('');
-  const [csvData, setCsvData] = useState('');
+  const [selectedStrategy, setSelectedStrategy] = useState<string>("");
+  const [csvData, setCsvData] = useState("");
   const [overwrite, setOverwrite] = useState(false);
-  const [parseResult, setParseResult] = useState<{ trades: any[]; errors: string[] } | null>(null);
-  
+  const [parseResult, setParseResult] = useState<{
+    trades: any[];
+    errors: string[];
+  } | null>(null);
+
   const { data: strategies } = trpc.portfolio.listStrategies.useQuery();
   const uploadMutation = trpc.webhook.uploadTrades.useMutation({
-    onSuccess: (data) => {
+    onSuccess: data => {
       toast.success(data.message);
-      setCsvData('');
+      setCsvData("");
       setParseResult(null);
     },
-    onError: (error) => {
+    onError: error => {
       toast.error(`Upload failed: ${error.message}`);
     },
   });
-  
+
   // Parse TradingView CSV format
   const parseCSV = (csv: string) => {
-    const lines = csv.trim().split('\n');
+    const lines = csv.trim().split("\n");
     if (lines.length < 2) {
-      return { trades: [], errors: ['CSV must have at least a header row and one data row'] };
+      return {
+        trades: [],
+        errors: ["CSV must have at least a header row and one data row"],
+      };
     }
-    
+
     const header = lines[0].toLowerCase();
     const trades: any[] = [];
     const errors: string[] = [];
-    
+
     // Detect column indices from header
-    const cols = header.split(',').map(c => c.trim());
-    const findCol = (names: string[]) => cols.findIndex(c => names.some(n => c.includes(n)));
-    
-    const entryDateIdx = findCol(['entry date', 'entry time', 'entry_date']);
-    const exitDateIdx = findCol(['exit date', 'exit time', 'exit_date']);
-    const directionIdx = findCol(['type', 'direction', 'side']);
-    const entryPriceIdx = findCol(['entry price', 'entry_price', 'avg entry']);
-    const exitPriceIdx = findCol(['exit price', 'exit_price', 'avg exit']);
-    const pnlIdx = findCol(['profit', 'pnl', 'p&l', 'net profit']);
-    const qtyIdx = findCol(['qty', 'quantity', 'contracts', 'size']);
-    
+    const cols = header.split(",").map(c => c.trim());
+    const findCol = (names: string[]) =>
+      cols.findIndex(c => names.some(n => c.includes(n)));
+
+    const entryDateIdx = findCol(["entry date", "entry time", "entry_date"]);
+    const exitDateIdx = findCol(["exit date", "exit time", "exit_date"]);
+    const directionIdx = findCol(["type", "direction", "side"]);
+    const entryPriceIdx = findCol(["entry price", "entry_price", "avg entry"]);
+    const exitPriceIdx = findCol(["exit price", "exit_price", "avg exit"]);
+    const pnlIdx = findCol(["profit", "pnl", "p&l", "net profit"]);
+    const qtyIdx = findCol(["qty", "quantity", "contracts", "size"]);
+
     if (entryDateIdx === -1 || exitDateIdx === -1 || pnlIdx === -1) {
-      return { trades: [], errors: ['Missing required columns: entry date, exit date, and profit/pnl'] };
+      return {
+        trades: [],
+        errors: [
+          "Missing required columns: entry date, exit date, and profit/pnl",
+        ],
+      };
     }
-    
+
     for (let i = 1; i < lines.length; i++) {
-      const row = lines[i].split(',').map(c => c.trim());
+      const row = lines[i].split(",").map(c => c.trim());
       if (row.length < 3) continue;
-      
+
       try {
         const entryDate = row[entryDateIdx];
         const exitDate = row[exitDateIdx];
-        const direction = directionIdx !== -1 ? row[directionIdx] : 'Long';
-        const entryPrice = entryPriceIdx !== -1 ? parseFloat(row[entryPriceIdx].replace(/[^0-9.-]/g, '')) : 0;
-        const exitPrice = exitPriceIdx !== -1 ? parseFloat(row[exitPriceIdx].replace(/[^0-9.-]/g, '')) : 0;
-        const pnl = parseFloat(row[pnlIdx].replace(/[^0-9.-]/g, ''));
+        const direction = directionIdx !== -1 ? row[directionIdx] : "Long";
+        const entryPrice =
+          entryPriceIdx !== -1
+            ? parseFloat(row[entryPriceIdx].replace(/[^0-9.-]/g, ""))
+            : 0;
+        const exitPrice =
+          exitPriceIdx !== -1
+            ? parseFloat(row[exitPriceIdx].replace(/[^0-9.-]/g, ""))
+            : 0;
+        const pnl = parseFloat(row[pnlIdx].replace(/[^0-9.-]/g, ""));
         const quantity = qtyIdx !== -1 ? parseInt(row[qtyIdx]) || 1 : 1;
-        
+
         if (!entryDate || !exitDate || isNaN(pnl)) {
           errors.push(`Row ${i + 1}: Invalid data`);
           continue;
         }
-        
+
         trades.push({
           entryDate,
           exitDate,
-          direction: direction.toLowerCase().includes('short') ? 'Short' : 'Long',
+          direction: direction.toLowerCase().includes("short")
+            ? "Short"
+            : "Long",
           entryPrice: entryPrice || 100,
           exitPrice: exitPrice || 100,
           quantity,
@@ -2600,25 +3226,25 @@ function TradeUploadSection() {
         errors.push(`Row ${i + 1}: Parse error`);
       }
     }
-    
+
     return { trades, errors };
   };
-  
+
   const handleParse = () => {
     const result = parseCSV(csvData);
     setParseResult(result);
   };
-  
+
   const handleUpload = () => {
     if (!selectedStrategy || !parseResult?.trades.length) {
-      toast.error('Select a strategy and parse valid CSV data first');
+      toast.error("Select a strategy and parse valid CSV data first");
       return;
     }
-    
+
     const confirmMsg = overwrite
       ? `This will DELETE all existing trades for this strategy and replace with ${parseResult.trades.length} new trades. Continue?`
       : `This will add ${parseResult.trades.length} trades. Continue?`;
-    
+
     if (confirm(confirmMsg)) {
       uploadMutation.mutate({
         strategyId: parseInt(selectedStrategy),
@@ -2627,7 +3253,7 @@ function TradeUploadSection() {
       });
     }
   };
-  
+
   return (
     <Card className="bg-card/50 border-border/50">
       <CardHeader>
@@ -2636,20 +3262,26 @@ function TradeUploadSection() {
           Trade Upload
         </CardTitle>
         <CardDescription>
-          Upload trades from TradingView CSV export. Overwrite mode replaces all existing trades for the strategy.
+          Upload trades from TradingView CSV export. Overwrite mode replaces all
+          existing trades for the strategy.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label>Strategy</Label>
-            <Select value={selectedStrategy} onValueChange={setSelectedStrategy}>
+            <Select
+              value={selectedStrategy}
+              onValueChange={setSelectedStrategy}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Select strategy" />
               </SelectTrigger>
               <SelectContent>
                 {strategies?.map((s: { id: number; name: string }) => (
-                  <SelectItem key={s.id} value={s.id.toString()}>{s.name}</SelectItem>
+                  <SelectItem key={s.id} value={s.id.toString()}>
+                    {s.name}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -2665,38 +3297,50 @@ function TradeUploadSection() {
             </Label>
           </div>
         </div>
-        
+
         <div className="space-y-2">
           <Label>CSV Data (paste from TradingView)</Label>
           <Textarea
             value={csvData}
-            onChange={(e) => setCsvData(e.target.value)}
+            onChange={e => setCsvData(e.target.value)}
             placeholder="Entry Date,Exit Date,Type,Entry Price,Exit Price,Profit\n2024-01-15 09:30,2024-01-15 10:45,Long,4500,4520,500..."
             className="font-mono text-xs h-32"
           />
         </div>
-        
+
         <div className="flex gap-2">
           <Button variant="outline" onClick={handleParse} disabled={!csvData}>
             Parse CSV
           </Button>
-          <Button 
-            onClick={handleUpload} 
-            disabled={!parseResult?.trades.length || !selectedStrategy || uploadMutation.isPending}
-            className={overwrite ? 'bg-orange-600 hover:bg-orange-700' : ''}
+          <Button
+            onClick={handleUpload}
+            disabled={
+              !parseResult?.trades.length ||
+              !selectedStrategy ||
+              uploadMutation.isPending
+            }
+            className={overwrite ? "bg-orange-600 hover:bg-orange-700" : ""}
           >
             {uploadMutation.isPending ? (
-              <><RefreshCw className="h-4 w-4 mr-2 animate-spin" />Uploading...</>
+              <>
+                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                Uploading...
+              </>
             ) : overwrite ? (
-              <><AlertTriangle className="h-4 w-4 mr-2" />Replace All Trades</>
+              <>
+                <AlertTriangle className="h-4 w-4 mr-2" />
+                Replace All Trades
+              </>
             ) : (
-              'Upload Trades'
+              "Upload Trades"
             )}
           </Button>
         </div>
-        
+
         {parseResult && (
-          <div className={`p-4 rounded-lg ${parseResult.trades.length > 0 ? 'bg-green-500/10 border border-green-500/30' : 'bg-red-500/10 border border-red-500/30'}`}>
+          <div
+            className={`p-4 rounded-lg ${parseResult.trades.length > 0 ? "bg-green-500/10 border border-green-500/30" : "bg-red-500/10 border border-red-500/30"}`}
+          >
             {parseResult.trades.length > 0 ? (
               <div className="space-y-2">
                 <p className="text-green-400 font-medium flex items-center gap-2">
@@ -2709,14 +3353,23 @@ function TradeUploadSection() {
                   </p>
                 )}
                 <div className="text-xs text-muted-foreground">
-                  <p>First trade: {parseResult.trades[0]?.entryDate} ({parseResult.trades[0]?.direction})</p>
-                  <p>Last trade: {parseResult.trades[parseResult.trades.length - 1]?.entryDate}</p>
+                  <p>
+                    First trade: {parseResult.trades[0]?.entryDate} (
+                    {parseResult.trades[0]?.direction})
+                  </p>
+                  <p>
+                    Last trade:{" "}
+                    {
+                      parseResult.trades[parseResult.trades.length - 1]
+                        ?.entryDate
+                    }
+                  </p>
                 </div>
               </div>
             ) : (
               <p className="text-red-400 flex items-center gap-2">
                 <XCircle className="h-4 w-4" />
-                {parseResult.errors[0] || 'No valid trades found'}
+                {parseResult.errors[0] || "No valid trades found"}
               </p>
             )}
           </div>
@@ -2726,79 +3379,111 @@ function TradeUploadSection() {
   );
 }
 
-
 // ============================================================================
 // PIPELINE QA TAB COMPONENT
 // ============================================================================
 
-function QAStatusBadge({ status }: { status: 'pass' | 'fail' | 'warn' }) {
-  if (status === 'pass') {
-    return <Badge className="bg-green-500/20 text-green-400 border-green-500/30">Pass</Badge>;
-  } else if (status === 'fail') {
-    return <Badge className="bg-red-500/20 text-red-400 border-red-500/30">Fail</Badge>;
+function QAStatusBadge({ status }: { status: "pass" | "fail" | "warn" }) {
+  if (status === "pass") {
+    return (
+      <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
+        Pass
+      </Badge>
+    );
+  } else if (status === "fail") {
+    return (
+      <Badge className="bg-red-500/20 text-red-400 border-red-500/30">
+        Fail
+      </Badge>
+    );
   } else {
-    return <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">Warning</Badge>;
+    return (
+      <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">
+        Warning
+      </Badge>
+    );
   }
 }
 
 function PipelineQATab() {
-  const [activeQATab, setActiveQATab] = useState('health');
-  
+  const [activeQATab, setActiveQATab] = useState("health");
+
   // Health check query
-  const { data: health, isLoading: healthLoading, refetch: refetchHealth } = trpc.qa.healthCheck.useQuery(undefined, {
+  const {
+    data: health,
+    isLoading: healthLoading,
+    refetch: refetchHealth,
+  } = trpc.qa.healthCheck.useQuery(undefined, {
     refetchInterval: 30000,
   });
-  
+
   // Webhook metrics query
-  const { data: metrics, isLoading: metricsLoading, refetch: refetchMetrics } = trpc.qa.webhookMetrics.useQuery({ hours: 24 });
-  
+  const {
+    data: metrics,
+    isLoading: metricsLoading,
+    refetch: refetchMetrics,
+  } = trpc.qa.webhookMetrics.useQuery({ hours: 24 });
+
   // Open positions query
-  const { data: positions, isLoading: positionsLoading } = trpc.qa.openPositionsStatus.useQuery();
-  
+  const { data: positions, isLoading: positionsLoading } =
+    trpc.qa.openPositionsStatus.useQuery();
+
   // Pipeline test mutation
   const runTestMutation = trpc.qa.runPipelineTest.useMutation({
-    onSuccess: (result) => {
+    onSuccess: result => {
       if (result.success) {
-        toast.success('All pipeline tests passed!');
+        toast.success("All pipeline tests passed!");
       } else {
-        toast.error(`${result.steps.filter(s => s.status === 'fail').length} test(s) failed`);
+        toast.error(
+          `${result.steps.filter(s => s.status === "fail").length} test(s) failed`
+        );
       }
     },
-    onError: (error) => {
+    onError: error => {
       toast.error(`Test failed: ${error.message}`);
     },
   });
-  
+
   // Validation query
-  const { data: validation, isLoading: validationLoading, refetch: refetchValidation } = trpc.qa.validateIntegrity.useQuery(undefined, {
+  const {
+    data: validation,
+    isLoading: validationLoading,
+    refetch: refetchValidation,
+  } = trpc.qa.validateIntegrity.useQuery(undefined, {
     enabled: false, // Only run when manually triggered
   });
-  
+
   // Pipeline validation query
-  const { data: pipelineValidation, isLoading: pipelineValidationLoading, refetch: refetchPipelineValidation } = trpc.qa.validateAllPipelines.useQuery(undefined, {
+  const {
+    data: pipelineValidation,
+    isLoading: pipelineValidationLoading,
+    refetch: refetchPipelineValidation,
+  } = trpc.qa.validateAllPipelines.useQuery(undefined, {
     enabled: false,
   });
-  
+
   // Repair mutations
   const repairPositionsMutation = trpc.qa.repairOrphanedPositions.useMutation({
-    onSuccess: (result) => {
+    onSuccess: result => {
       toast.success(`Repaired ${result.repaired} orphaned positions`);
       refetchHealth();
     },
-    onError: (error) => {
+    onError: error => {
       toast.error(`Repair failed: ${error.message}`);
     },
   });
-  
-  const repairWebhooksMutation = trpc.qa.repairOrphanedExitWebhooks.useMutation({
-    onSuccess: (result) => {
-      toast.success(`Linked ${result.repaired} orphaned exit webhooks`);
-      refetchHealth();
-    },
-    onError: (error) => {
-      toast.error(`Repair failed: ${error.message}`);
-    },
-  });
+
+  const repairWebhooksMutation = trpc.qa.repairOrphanedExitWebhooks.useMutation(
+    {
+      onSuccess: result => {
+        toast.success(`Linked ${result.repaired} orphaned exit webhooks`);
+        refetchHealth();
+      },
+      onError: error => {
+        toast.error(`Repair failed: ${error.message}`);
+      },
+    }
+  );
 
   return (
     <div className="space-y-6">
@@ -2808,10 +3493,12 @@ function PipelineQATab() {
             <Zap className="h-6 w-6 text-primary" />
             Pipeline QA Dashboard
           </h2>
-          <p className="text-muted-foreground">Monitor and validate the webhook-to-trade data pipeline</p>
+          <p className="text-muted-foreground">
+            Monitor and validate the webhook-to-trade data pipeline
+          </p>
         </div>
       </div>
-      
+
       <Tabs value={activeQATab} onValueChange={setActiveQATab}>
         <TabsList>
           <TabsTrigger value="health">Health & Integrity</TabsTrigger>
@@ -2819,7 +3506,7 @@ function PipelineQATab() {
           <TabsTrigger value="metrics">Webhook Metrics</TabsTrigger>
           <TabsTrigger value="test">Pipeline Test</TabsTrigger>
         </TabsList>
-        
+
         {/* Health & Integrity Tab */}
         <TabsContent value="health" className="space-y-6">
           <div className="grid gap-6 md:grid-cols-2">
@@ -2831,39 +3518,54 @@ function PipelineQATab() {
                     <Shield className="h-5 w-5" />
                     Pipeline Health
                   </CardTitle>
-                  <CardDescription>Real-time health status of the data pipeline</CardDescription>
+                  <CardDescription>
+                    Real-time health status of the data pipeline
+                  </CardDescription>
                 </div>
-                <Button variant="outline" size="sm" onClick={() => refetchHealth()}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => refetchHealth()}
+                >
                   <RefreshCw className="h-4 w-4 mr-1" />
                   Refresh
                 </Button>
               </CardHeader>
               <CardContent>
                 {healthLoading ? (
-                  <div className="text-center py-8 text-muted-foreground">Loading health status...</div>
+                  <div className="text-center py-8 text-muted-foreground">
+                    Loading health status...
+                  </div>
                 ) : health ? (
                   <div className="space-y-4">
                     <div className="flex items-center gap-2">
                       {health.healthy ? (
                         <>
                           <CheckCircle2 className="h-6 w-6 text-green-500" />
-                          <span className="text-lg font-semibold text-green-500">All Systems Healthy</span>
+                          <span className="text-lg font-semibold text-green-500">
+                            All Systems Healthy
+                          </span>
                         </>
                       ) : (
                         <>
                           <AlertCircle className="h-6 w-6 text-red-500" />
-                          <span className="text-lg font-semibold text-red-500">Issues Detected</span>
+                          <span className="text-lg font-semibold text-red-500">
+                            Issues Detected
+                          </span>
                         </>
                       )}
                     </div>
-                    
+
                     <div className="grid gap-3">
                       {health.checks.map((check, idx) => (
-                        <div key={idx} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                        <div
+                          key={idx}
+                          className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
+                        >
                           <div className="flex items-center gap-3">
-                            {check.status === 'pass' ? (
+                            {check.status === "pass" ? (
                               <CheckCircle2 className="h-5 w-5 text-green-500" />
-                            ) : check.status === 'fail' ? (
+                            ) : check.status === "fail" ? (
                               <AlertCircle className="h-5 w-5 text-red-500" />
                             ) : (
                               <AlertTriangle className="h-5 w-5 text-yellow-500" />
@@ -2871,7 +3573,9 @@ function PipelineQATab() {
                             <span className="font-medium">{check.name}</span>
                           </div>
                           <div className="flex items-center gap-2">
-                            <span className="text-sm text-muted-foreground">{check.message}</span>
+                            <span className="text-sm text-muted-foreground">
+                              {check.message}
+                            </span>
                             <QAStatusBadge status={check.status} />
                           </div>
                         </div>
@@ -2879,11 +3583,13 @@ function PipelineQATab() {
                     </div>
                   </div>
                 ) : (
-                  <div className="text-center py-8 text-muted-foreground">No health data available</div>
+                  <div className="text-center py-8 text-muted-foreground">
+                    No health data available
+                  </div>
                 )}
               </CardContent>
             </Card>
-            
+
             {/* Open Positions Card */}
             <Card>
               <CardHeader>
@@ -2891,11 +3597,15 @@ function PipelineQATab() {
                   <Activity className="h-5 w-5" />
                   Open Positions
                 </CardTitle>
-                <CardDescription>Currently tracked open positions</CardDescription>
+                <CardDescription>
+                  Currently tracked open positions
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 {positionsLoading ? (
-                  <div className="text-center py-8 text-muted-foreground">Loading positions...</div>
+                  <div className="text-center py-8 text-muted-foreground">
+                    Loading positions...
+                  </div>
                 ) : positions && positions.positions.length > 0 ? (
                   <Table>
                     <TableHeader>
@@ -2908,28 +3618,42 @@ function PipelineQATab() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {positions.positions.map((pos) => (
+                      {positions.positions.map(pos => (
                         <TableRow key={pos.id}>
-                          <TableCell className="font-medium">{pos.strategySymbol}</TableCell>
+                          <TableCell className="font-medium">
+                            {pos.strategySymbol}
+                          </TableCell>
                           <TableCell>
-                            <Badge className={pos.direction === 'long' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}>
-                              {pos.direction === 'long' ? 'Long' : 'Short'}
+                            <Badge
+                              className={
+                                pos.direction === "long"
+                                  ? "bg-green-500/20 text-green-400"
+                                  : "bg-red-500/20 text-red-400"
+                              }
+                            >
+                              {pos.direction === "long" ? "Long" : "Short"}
                             </Badge>
                           </TableCell>
                           <TableCell>${pos.entryPrice.toFixed(2)}</TableCell>
                           <TableCell>{pos.quantity}</TableCell>
-                          <TableCell>{pos.ageMinutes < 60 ? `${pos.ageMinutes}m` : `${Math.floor(pos.ageMinutes / 60)}h ${pos.ageMinutes % 60}m`}</TableCell>
+                          <TableCell>
+                            {pos.ageMinutes < 60
+                              ? `${pos.ageMinutes}m`
+                              : `${Math.floor(pos.ageMinutes / 60)}h ${pos.ageMinutes % 60}m`}
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
                   </Table>
                 ) : (
-                  <div className="text-center py-8 text-muted-foreground">No open positions</div>
+                  <div className="text-center py-8 text-muted-foreground">
+                    No open positions
+                  </div>
                 )}
               </CardContent>
             </Card>
           </div>
-          
+
           {/* Data Integrity Validation */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0">
@@ -2938,7 +3662,9 @@ function PipelineQATab() {
                   <Database className="h-5 w-5" />
                   Data Integrity Validation
                 </CardTitle>
-                <CardDescription>Comprehensive validation of all data relationships</CardDescription>
+                <CardDescription>
+                  Comprehensive validation of all data relationships
+                </CardDescription>
               </div>
               <Button variant="outline" onClick={() => refetchValidation()}>
                 <Play className="h-4 w-4 mr-1" />
@@ -2947,49 +3673,70 @@ function PipelineQATab() {
             </CardHeader>
             <CardContent>
               {validationLoading ? (
-                <div className="text-center py-8 text-muted-foreground">Running validation...</div>
+                <div className="text-center py-8 text-muted-foreground">
+                  Running validation...
+                </div>
               ) : validation ? (
                 <div className="space-y-4">
                   <div className="flex items-center gap-2">
                     {validation.isValid ? (
                       <>
                         <CheckCircle2 className="h-6 w-6 text-green-500" />
-                        <span className="text-lg font-semibold text-green-500">All Validations Passed</span>
+                        <span className="text-lg font-semibold text-green-500">
+                          All Validations Passed
+                        </span>
                       </>
                     ) : (
                       <>
                         <AlertCircle className="h-6 w-6 text-red-500" />
                         <span className="text-lg font-semibold text-red-500">
-                          {validation.errors.length} Error(s), {validation.warnings.length} Warning(s)
+                          {validation.errors.length} Error(s),{" "}
+                          {validation.warnings.length} Warning(s)
                         </span>
                       </>
                     )}
                   </div>
-                  
+
                   {validation.errors.length > 0 && (
                     <div className="space-y-2">
                       <h4 className="font-medium text-red-400">Errors:</h4>
                       {validation.errors.slice(0, 5).map((error, idx) => (
-                        <div key={idx} className="p-2 rounded bg-red-500/10 text-sm">
-                          <span className="font-mono text-red-400">[{error.code}]</span> {error.message}
+                        <div
+                          key={idx}
+                          className="p-2 rounded bg-red-500/10 text-sm"
+                        >
+                          <span className="font-mono text-red-400">
+                            [{error.code}]
+                          </span>{" "}
+                          {error.message}
                         </div>
                       ))}
                       {validation.errors.length > 5 && (
-                        <p className="text-sm text-muted-foreground">...and {validation.errors.length - 5} more errors</p>
+                        <p className="text-sm text-muted-foreground">
+                          ...and {validation.errors.length - 5} more errors
+                        </p>
                       )}
                     </div>
                   )}
-                  
+
                   {validation.warnings.length > 0 && (
                     <div className="space-y-2">
                       <h4 className="font-medium text-yellow-400">Warnings:</h4>
                       {validation.warnings.slice(0, 5).map((warning, idx) => (
-                        <div key={idx} className="p-2 rounded bg-yellow-500/10 text-sm">
-                          <span className="font-mono text-yellow-400">[{warning.code}]</span> {warning.message}
+                        <div
+                          key={idx}
+                          className="p-2 rounded bg-yellow-500/10 text-sm"
+                        >
+                          <span className="font-mono text-yellow-400">
+                            [{warning.code}]
+                          </span>{" "}
+                          {warning.message}
                         </div>
                       ))}
                       {validation.warnings.length > 5 && (
-                        <p className="text-sm text-muted-foreground">...and {validation.warnings.length - 5} more warnings</p>
+                        <p className="text-sm text-muted-foreground">
+                          ...and {validation.warnings.length - 5} more warnings
+                        </p>
                       )}
                     </div>
                   )}
@@ -3003,7 +3750,7 @@ function PipelineQATab() {
             </CardContent>
           </Card>
         </TabsContent>
-        
+
         {/* Pipeline Validation Tab */}
         <TabsContent value="validation" className="space-y-6">
           <Card>
@@ -3013,78 +3760,100 @@ function PipelineQATab() {
                   <Shield className="h-5 w-5" />
                   Full Pipeline Validation
                 </CardTitle>
-                <CardDescription>Validate all data pipelines and auto-repair issues</CardDescription>
+                <CardDescription>
+                  Validate all data pipelines and auto-repair issues
+                </CardDescription>
               </div>
-              <Button variant="outline" onClick={() => refetchPipelineValidation()}>
+              <Button
+                variant="outline"
+                onClick={() => refetchPipelineValidation()}
+              >
                 <Play className="h-4 w-4 mr-1" />
                 Run Full Validation
               </Button>
             </CardHeader>
             <CardContent>
               {pipelineValidationLoading ? (
-                <div className="text-center py-8 text-muted-foreground">Running pipeline validation...</div>
+                <div className="text-center py-8 text-muted-foreground">
+                  Running pipeline validation...
+                </div>
               ) : pipelineValidation ? (
                 <div className="space-y-6">
                   {/* Overall Status */}
                   <div className="flex items-center gap-2">
-                    {pipelineValidation.overall === 'healthy' ? (
+                    {pipelineValidation.overall === "healthy" ? (
                       <>
                         <CheckCircle2 className="h-6 w-6 text-green-500" />
-                        <span className="text-lg font-semibold text-green-500">All Pipelines Healthy</span>
+                        <span className="text-lg font-semibold text-green-500">
+                          All Pipelines Healthy
+                        </span>
                       </>
-                    ) : pipelineValidation.overall === 'degraded' ? (
+                    ) : pipelineValidation.overall === "degraded" ? (
                       <>
                         <AlertTriangle className="h-6 w-6 text-yellow-500" />
-                        <span className="text-lg font-semibold text-yellow-500">Some Issues Detected</span>
+                        <span className="text-lg font-semibold text-yellow-500">
+                          Some Issues Detected
+                        </span>
                       </>
                     ) : (
                       <>
                         <AlertCircle className="h-6 w-6 text-red-500" />
-                        <span className="text-lg font-semibold text-red-500">Critical Issues Found</span>
+                        <span className="text-lg font-semibold text-red-500">
+                          Critical Issues Found
+                        </span>
                       </>
                     )}
                     <span className="text-sm text-muted-foreground ml-auto">
                       Duration: {pipelineValidation.totalDuration}ms
                     </span>
                   </div>
-                  
+
                   {/* Pipeline Results */}
                   {pipelineValidation.pipelines.map((pipeline, idx) => (
                     <div key={idx} className="p-4 rounded-lg bg-muted/50">
                       <div className="flex items-center justify-between mb-2">
                         <h4 className="font-medium">{pipeline.pipeline}</h4>
-                        <Badge className={
-                          pipeline.status === 'healthy' ? 'bg-green-500/20 text-green-400' :
-                          pipeline.status === 'degraded' ? 'bg-yellow-500/20 text-yellow-400' :
-                          'bg-red-500/20 text-red-400'
-                        }>
+                        <Badge
+                          className={
+                            pipeline.status === "healthy"
+                              ? "bg-green-500/20 text-green-400"
+                              : pipeline.status === "degraded"
+                                ? "bg-yellow-500/20 text-yellow-400"
+                                : "bg-red-500/20 text-red-400"
+                          }
+                        >
                           {pipeline.status}
                         </Badge>
                       </div>
                       <div className="space-y-2">
                         {pipeline.checks.map((check, checkIdx) => (
-                          <div key={checkIdx} className="flex items-center justify-between text-sm">
+                          <div
+                            key={checkIdx}
+                            className="flex items-center justify-between text-sm"
+                          >
                             <div className="flex items-center gap-2">
-                              {check.status === 'pass' ? (
+                              {check.status === "pass" ? (
                                 <CheckCircle2 className="h-4 w-4 text-green-500" />
-                              ) : check.status === 'warn' ? (
+                              ) : check.status === "warn" ? (
                                 <AlertTriangle className="h-4 w-4 text-yellow-500" />
                               ) : (
                                 <AlertCircle className="h-4 w-4 text-red-500" />
                               )}
                               <span>{check.name}</span>
                             </div>
-                            <span className="text-muted-foreground">{check.message}</span>
+                            <span className="text-muted-foreground">
+                              {check.message}
+                            </span>
                           </div>
                         ))}
                       </div>
                     </div>
                   ))}
-                  
+
                   {/* Auto-Repair Actions */}
                   <div className="flex gap-4">
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       onClick={() => repairPositionsMutation.mutate()}
                       disabled={repairPositionsMutation.isPending}
                     >
@@ -3095,8 +3864,8 @@ function PipelineQATab() {
                       )}
                       Repair Orphaned Positions
                     </Button>
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       onClick={() => repairWebhooksMutation.mutate()}
                       disabled={repairWebhooksMutation.isPending}
                     >
@@ -3118,7 +3887,7 @@ function PipelineQATab() {
             </CardContent>
           </Card>
         </TabsContent>
-        
+
         {/* Webhook Metrics Tab */}
         <TabsContent value="metrics" className="space-y-6">
           <Card>
@@ -3128,42 +3897,68 @@ function PipelineQATab() {
                   <TrendingUp className="h-5 w-5" />
                   Webhook Processing Metrics
                 </CardTitle>
-                <CardDescription>Last 24 hours of webhook processing statistics</CardDescription>
+                <CardDescription>
+                  Last 24 hours of webhook processing statistics
+                </CardDescription>
               </div>
-              <Button variant="outline" size="sm" onClick={() => refetchMetrics()}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => refetchMetrics()}
+              >
                 <RefreshCw className="h-4 w-4 mr-1" />
                 Refresh
               </Button>
             </CardHeader>
             <CardContent>
               {metricsLoading ? (
-                <div className="text-center py-8 text-muted-foreground">Loading metrics...</div>
+                <div className="text-center py-8 text-muted-foreground">
+                  Loading metrics...
+                </div>
               ) : metrics ? (
                 <div className="space-y-6">
                   {/* Summary Stats */}
                   <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                     <div className="p-4 rounded-lg bg-muted/50 text-center">
-                      <div className="text-2xl font-bold">{metrics.summary.total}</div>
+                      <div className="text-2xl font-bold">
+                        {metrics.summary.total}
+                      </div>
                       <div className="text-sm text-muted-foreground">Total</div>
                     </div>
                     <div className="p-4 rounded-lg bg-green-500/10 text-center">
-                      <div className="text-2xl font-bold text-green-400">{metrics.summary.successful}</div>
-                      <div className="text-sm text-muted-foreground">Successful</div>
+                      <div className="text-2xl font-bold text-green-400">
+                        {metrics.summary.successful}
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        Successful
+                      </div>
                     </div>
                     <div className="p-4 rounded-lg bg-red-500/10 text-center">
-                      <div className="text-2xl font-bold text-red-400">{metrics.summary.failed}</div>
-                      <div className="text-sm text-muted-foreground">Failed</div>
+                      <div className="text-2xl font-bold text-red-400">
+                        {metrics.summary.failed}
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        Failed
+                      </div>
                     </div>
                     <div className="p-4 rounded-lg bg-yellow-500/10 text-center">
-                      <div className="text-2xl font-bold text-yellow-400">{metrics.summary.duplicate}</div>
-                      <div className="text-sm text-muted-foreground">Duplicate</div>
+                      <div className="text-2xl font-bold text-yellow-400">
+                        {metrics.summary.duplicate}
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        Duplicate
+                      </div>
                     </div>
                     <div className="p-4 rounded-lg bg-primary/10 text-center">
-                      <div className="text-2xl font-bold text-primary">{metrics.summary.successRate}</div>
-                      <div className="text-sm text-muted-foreground">Success Rate</div>
+                      <div className="text-2xl font-bold text-primary">
+                        {metrics.summary.successRate}
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        Success Rate
+                      </div>
                     </div>
                   </div>
-                  
+
                   {/* Latency Stats */}
                   <div className="p-4 rounded-lg bg-muted/50">
                     <h4 className="font-medium mb-2">Processing Latency</h4>
@@ -3173,7 +3968,7 @@ function PipelineQATab() {
                       <div>Max: {metrics.latency.max}ms</div>
                     </div>
                   </div>
-                  
+
                   {/* Recent Failures */}
                   {metrics.recentFailures.length > 0 && (
                     <div>
@@ -3187,10 +3982,14 @@ function PipelineQATab() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {metrics.recentFailures.map((failure) => (
+                          {metrics.recentFailures.map(failure => (
                             <TableRow key={failure.id}>
-                              <TableCell>{failure.strategySymbol || 'Unknown'}</TableCell>
-                              <TableCell className="text-red-400 text-sm">{failure.errorMessage}</TableCell>
+                              <TableCell>
+                                {failure.strategySymbol || "Unknown"}
+                              </TableCell>
+                              <TableCell className="text-red-400 text-sm">
+                                {failure.errorMessage}
+                              </TableCell>
                               <TableCell className="text-muted-foreground text-sm">
                                 {new Date(failure.createdAt).toLocaleString()}
                               </TableCell>
@@ -3202,12 +4001,14 @@ function PipelineQATab() {
                   )}
                 </div>
               ) : (
-                <div className="text-center py-8 text-muted-foreground">No metrics available</div>
+                <div className="text-center py-8 text-muted-foreground">
+                  No metrics available
+                </div>
               )}
             </CardContent>
           </Card>
         </TabsContent>
-        
+
         {/* Pipeline Test Tab */}
         <TabsContent value="test" className="space-y-6">
           <Card>
@@ -3217,10 +4018,14 @@ function PipelineQATab() {
                   <Zap className="h-5 w-5" />
                   End-to-End Pipeline Test
                 </CardTitle>
-                <CardDescription>Run a comprehensive test of the entire pipeline</CardDescription>
+                <CardDescription>
+                  Run a comprehensive test of the entire pipeline
+                </CardDescription>
               </div>
-              <Button 
-                onClick={() => runTestMutation.mutate({ strategySymbol: 'ESTrend' })}
+              <Button
+                onClick={() =>
+                  runTestMutation.mutate({ strategySymbol: "ESTrend" })
+                }
                 disabled={runTestMutation.isPending}
               >
                 {runTestMutation.isPending ? (
@@ -3244,13 +4049,20 @@ function PipelineQATab() {
                       {runTestMutation.data.success ? (
                         <>
                           <CheckCircle2 className="h-6 w-6 text-green-500" />
-                          <span className="text-lg font-semibold text-green-500">All tests passed</span>
+                          <span className="text-lg font-semibold text-green-500">
+                            All tests passed
+                          </span>
                         </>
                       ) : (
                         <>
                           <AlertCircle className="h-6 w-6 text-red-500" />
                           <span className="text-lg font-semibold text-red-500">
-                            {runTestMutation.data.steps.filter(s => s.status === 'fail').length} test(s) failed
+                            {
+                              runTestMutation.data.steps.filter(
+                                s => s.status === "fail"
+                              ).length
+                            }{" "}
+                            test(s) failed
                           </span>
                         </>
                       )}
@@ -3259,12 +4071,15 @@ function PipelineQATab() {
                       Total: {runTestMutation.data.totalDurationMs}ms
                     </span>
                   </div>
-                  
+
                   <div className="space-y-2">
                     {runTestMutation.data.steps.map((step, idx) => (
-                      <div key={idx} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                      <div
+                        key={idx}
+                        className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
+                      >
                         <div className="flex items-center gap-3">
-                          {step.status === 'pass' ? (
+                          {step.status === "pass" ? (
                             <CheckCircle2 className="h-5 w-5 text-green-500" />
                           ) : (
                             <AlertCircle className="h-5 w-5 text-red-500" />
@@ -3272,8 +4087,12 @@ function PipelineQATab() {
                           <span className="font-medium">{step.step}</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="text-sm text-muted-foreground">{step.message}</span>
-                          <span className="text-xs text-muted-foreground">{step.durationMs}ms</span>
+                          <span className="text-sm text-muted-foreground">
+                            {step.message}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {step.durationMs}ms
+                          </span>
                           <QAStatusBadge status={step.status} />
                         </div>
                       </div>
@@ -3290,6 +4109,80 @@ function PipelineQATab() {
           </Card>
         </TabsContent>
       </Tabs>
+    </div>
+  );
+}
+
+// ============================================================================
+// ADVANCED TAB - Consolidates advanced features for power users
+// ============================================================================
+
+function AdvancedTab() {
+  const [activeSection, setActiveSection] = useState<
+    "staging" | "brokers" | "monitoring" | "settings" | "qa"
+  >("staging");
+
+  return (
+    <div className="space-y-6">
+      {/* Section Selector */}
+      <Card className="bg-card/50 border-border/50">
+        <CardContent className="pt-4">
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant={activeSection === "staging" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setActiveSection("staging")}
+              className={activeSection === "staging" ? "bg-primary" : ""}
+            >
+              <FlaskConical className="h-4 w-4 mr-2" />
+              Staging Area
+            </Button>
+            <Button
+              variant={activeSection === "brokers" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setActiveSection("brokers")}
+              className={activeSection === "brokers" ? "bg-primary" : ""}
+            >
+              <Server className="h-4 w-4 mr-2" />
+              Broker Connections
+            </Button>
+            <Button
+              variant={activeSection === "monitoring" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setActiveSection("monitoring")}
+              className={activeSection === "monitoring" ? "bg-primary" : ""}
+            >
+              <Eye className="h-4 w-4 mr-2" />
+              System Monitoring
+            </Button>
+            <Button
+              variant={activeSection === "settings" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setActiveSection("settings")}
+              className={activeSection === "settings" ? "bg-primary" : ""}
+            >
+              <Settings className="h-4 w-4 mr-2" />
+              Settings
+            </Button>
+            <Button
+              variant={activeSection === "qa" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setActiveSection("qa")}
+              className={activeSection === "qa" ? "bg-primary" : ""}
+            >
+              <Zap className="h-4 w-4 mr-2" />
+              Pipeline QA
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Section Content */}
+      {activeSection === "staging" && <StagingTab />}
+      {activeSection === "brokers" && <BrokersTab />}
+      {activeSection === "monitoring" && <MonitoringTab />}
+      {activeSection === "settings" && <SettingsTab />}
+      {activeSection === "qa" && <PipelineQATab />}
     </div>
   );
 }

@@ -35,35 +35,38 @@ The token is configured in your environment as `TRADINGVIEW_WEBHOOK_TOKEN`.
 
 ### Required Fields
 
-| Field | Type | Description | Example |
-|-------|------|-------------|---------|
-| `symbol` | string | Strategy identifier (must match a registered strategy) | `"ESTrend"`, `"NQORB"` |
-| `price` | number | Current price at signal time | `4500.25` |
-| `data` or `action` | string | Signal action (see Action Values below) | `"buy"`, `"exit"` |
-| `token` | string | Authentication token | `"abc123..."` |
+| Field              | Type   | Description                                            | Example                |
+| ------------------ | ------ | ------------------------------------------------------ | ---------------------- |
+| `symbol`           | string | Strategy identifier (must match a registered strategy) | `"ESTrend"`, `"NQORB"` |
+| `price`            | number | Current price at signal time                           | `4500.25`              |
+| `data` or `action` | string | Signal action (see Action Values below)                | `"buy"`, `"exit"`      |
+| `token`            | string | Authentication token                                   | `"abc123..."`          |
 
 ### Optional Fields
 
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `date` or `timestamp` | string | Current time | Signal timestamp (ISO 8601 or TradingView format) |
-| `quantity` | number | `1` | Number of contracts |
-| `direction` | string | Inferred from action | `"Long"` or `"Short"` |
-| `signalType` | string | Inferred | `"entry"` or `"exit"` |
-| `position` | string | - | Market position: `"long"`, `"short"`, `"flat"` |
-| `pnl` | number | Calculated | Override P&L calculation (in dollars) |
-| `comment` | string | - | Optional note for the trade |
-| `isTest` | boolean | `false` | Mark as test data (excluded from analytics) |
+| Field                 | Type    | Default              | Description                                       |
+| --------------------- | ------- | -------------------- | ------------------------------------------------- |
+| `date` or `timestamp` | string  | Current time         | Signal timestamp (ISO 8601 or TradingView format) |
+| `quantity`            | number  | `1`                  | Number of contracts                               |
+| `direction`           | string  | Inferred from action | `"Long"` or `"Short"`                             |
+| `signalType`          | string  | Inferred             | `"entry"` or `"exit"`                             |
+| `position`            | string  | -                    | Market position: `"long"`, `"short"`, `"flat"`    |
+| `pnl`                 | number  | Calculated           | Override P&L calculation (in dollars)             |
+| `comment`             | string  | -                    | Optional note for the trade                       |
+| `isTest`              | boolean | `false`              | Mark as test data (excluded from analytics)       |
 
 ### Action Values (Case-Insensitive)
 
 **Entry Actions (Open Position)**
+
 - `buy`, `long`, `entry`, `enter`, `open`, `open_long`, `entry_long`
 
 **Short Entry Actions**
+
 - `sell`, `short`, `open_short`, `entry_short`
 
 **Exit Actions (Close Position)**
+
 - `exit`, `close`, `flat`, `cover`, `exit_long`, `exit_short`, `close_long`, `close_short`
 
 ---
@@ -101,17 +104,17 @@ The token is configured in your environment as `TRADINGVIEW_WEBHOOK_TOKEN`.
 
 ## Error Codes
 
-| Code | HTTP Status | Description | Resolution |
-|------|-------------|-------------|------------|
-| `VALIDATION_ERROR` | 400 | Invalid payload format | Check required fields |
-| `TIMESTAMP_INVALID` | 400 | Timestamp too old/future | Use current timestamp |
-| `RATE_LIMIT_EXCEEDED` | 429 | Too many requests | Wait and retry |
-| `SERVICE_UNAVAILABLE` | 503 | Circuit breaker open | Wait 30 seconds |
-| `PAUSED` | 503 | Webhook processing paused | Contact admin |
-| `POSITION_EXISTS` | 200 | Already have open position | Send exit signal first |
-| `NO_OPEN_POSITION` | 200 | No position to close | Send entry signal first |
-| `DUPLICATE` | 200 | Duplicate signal detected | Add unique timestamp |
-| `INTERNAL_ERROR` | 500 | Server error | Contact support |
+| Code                  | HTTP Status | Description                | Resolution              |
+| --------------------- | ----------- | -------------------------- | ----------------------- |
+| `VALIDATION_ERROR`    | 400         | Invalid payload format     | Check required fields   |
+| `TIMESTAMP_INVALID`   | 400         | Timestamp too old/future   | Use current timestamp   |
+| `RATE_LIMIT_EXCEEDED` | 429         | Too many requests          | Wait and retry          |
+| `SERVICE_UNAVAILABLE` | 503         | Circuit breaker open       | Wait 30 seconds         |
+| `PAUSED`              | 503         | Webhook processing paused  | Contact admin           |
+| `POSITION_EXISTS`     | 200         | Already have open position | Send exit signal first  |
+| `NO_OPEN_POSITION`    | 200         | No position to close       | Send entry signal first |
+| `DUPLICATE`           | 200         | Duplicate signal detected  | Add unique timestamp    |
+| `INTERNAL_ERROR`      | 500         | Server error               | Contact support         |
 
 ---
 
@@ -165,27 +168,28 @@ The token is configured in your environment as `TRADINGVIEW_WEBHOOK_TOKEN`.
 
 ## Registered Strategies
 
-| Symbol | Name | Instrument |
-|--------|------|------------|
-| `ESTrend` | ES Trend Following | E-mini S&P 500 |
-| `ESORB` | ES Opening Range Breakout | E-mini S&P 500 |
-| `NQTrend` | NQ Trend Following | E-mini NASDAQ |
-| `NQORB` | NQ Opening Range Breakout | E-mini NASDAQ |
-| `CLTrend` | CL Trend Following | Crude Oil |
-| `BTCTrend` | BTC Trend Following | Bitcoin |
-| `GCTrend` | GC Trend Following | Gold |
-| `YMORB` | YM Opening Range Breakout | E-mini Dow |
+| Symbol     | Name                      | Instrument     |
+| ---------- | ------------------------- | -------------- |
+| `ESTrend`  | ES Trend Following        | E-mini S&P 500 |
+| `ESORB`    | ES Opening Range Breakout | E-mini S&P 500 |
+| `NQTrend`  | NQ Trend Following        | E-mini NASDAQ  |
+| `NQORB`    | NQ Opening Range Breakout | E-mini NASDAQ  |
+| `CLTrend`  | CL Trend Following        | Crude Oil      |
+| `BTCTrend` | BTC Trend Following       | Bitcoin        |
+| `GCTrend`  | GC Trend Following        | Gold           |
+| `YMORB`    | YM Opening Range Breakout | E-mini Dow     |
 
 ---
 
 ## Rate Limits
 
-| Limit | Value | Window |
-|-------|-------|--------|
+| Limit  | Value       | Window   |
+| ------ | ----------- | -------- |
 | Per IP | 60 requests | 1 minute |
-| Global | Unlimited | - |
+| Global | Unlimited   | -        |
 
 Rate limit headers are included in responses:
+
 - `X-RateLimit-Remaining`: Requests remaining in window
 - `X-RateLimit-Reset`: Unix timestamp when window resets
 - `Retry-After`: Seconds to wait (when rate limited)
@@ -220,6 +224,7 @@ Add `"isTest": true` to your payload to mark signals as test data:
 ```
 
 Test data:
+
 - Is logged and processed normally
 - Creates positions and trades marked as test
 - Is excluded from production analytics
@@ -233,6 +238,20 @@ GET /api/webhook/health
 
 Returns system status, success rates, and latency metrics.
 
+### Weekend Testing (Market Closed)
+
+You can test webhooks anytime, even when markets are closed:
+
+1. **Use Test Mode**: Add `"isTest": true` to your payload - this marks trades as test data
+2. **Use the Simulator**: Go to Admin → Test Signals to simulate webhooks without TradingView
+3. **Paper Trading**: Use the Paper Trading feature in Broker Setup to practice order execution
+
+Test data is:
+
+- Processed through the full pipeline (validation, logging, position tracking)
+- Excluded from production analytics and performance metrics
+- Cleanable via Admin → Advanced → Settings → Clear Test Data
+
 ---
 
 ## Versioning Policy
@@ -242,6 +261,7 @@ Returns system status, success rates, and latency metrics.
 - **Patch version** (1.0.0 → 1.0.1): Bug fixes, no API changes
 
 Current version is returned in response headers:
+
 ```
 X-API-Version: 1.0.0
 ```
@@ -251,6 +271,7 @@ X-API-Version: 1.0.0
 ## Changelog
 
 ### v1.0.0 (December 25, 2024)
+
 - Initial stable release
 - Locked endpoint URL: `/api/webhook/tradingview`
 - Added action aliases for flexibility

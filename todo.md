@@ -4795,3 +4795,49 @@
 - [x] Link to paper trading as recommended starting point
 - [x] Add security information and credentials notice
 - [x] Add Broker Setup to navigation menu
+
+## UX Simplification Sprint - Dec 27, 2025
+
+### Broker Setup Page Consolidation
+
+- [ ] Merge Paper Trading functionality into Broker Setup page
+- [ ] Remove separate Paper Trading nav item
+- [ ] Add paper trading interface within Broker Setup
+- [ ] Simplify broker selection UI for beginners
+- [ ] Add clear step-by-step instructions
+- [ ] Add visual progress indicators
+
+### Admin Page Simplification
+
+- [ ] Audit Admin page tabs for clarity
+- [ ] Simplify tab labels for non-technical users
+- [ ] Reorganize content for logical flow
+- [ ] Add helpful tooltips and explanations
+- [ ] Ensure consistent styling across tabs
+
+### Webhook API Stability
+
+- [ ] Document webhook API contract (lock API format)
+- [ ] Add API versioning to prevent breaking changes
+- [ ] Create weekend testing mode for webhooks
+- [ ] Add test webhook button that works without market
+- [ ] Ensure backward compatibility for existing integrations
+
+### Broker Credential Readiness
+
+- [ ] Verify Alpaca credential form is complete
+- [ ] Verify Tradovate credential form is complete
+- [ ] Document IBKR setup requirements
+- [ ] Create credential validation tests
+- [ ] Add clear error messages for invalid credentials
+
+## UX Simplification Sprint (Dec 27, 2024)
+
+- [x] Consolidate paper trading into Broker Setup page
+- [x] Remove separate Paper Trading navigation item
+- [x] Simplify Admin page tabs from 10 to 6 essential tabs
+- [x] Create Advanced tab to consolidate power user features
+- [x] Update webhook API contract documentation with weekend testing
+- [x] Verify Alpaca broker integration is ready for user credentials
+- [x] Verify Tradovate OAuth integration is ready
+- [x] Test paper trading flow end-to-end
