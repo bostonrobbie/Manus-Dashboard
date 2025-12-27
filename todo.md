@@ -4857,3 +4857,7 @@
 - [x] Move Trade Source Breakdown chart from My Dashboard to Admin page
 - [x] Move Webhook Signal Performance chart from My Dashboard to Admin page
 - [x] Remove these charts from My Dashboard page
+
+## Bug Fixes (Dec 27, 2024)
+
+- [x] Fix timeRange validation error - change 'all' to 'ALL' in Admin.tsx

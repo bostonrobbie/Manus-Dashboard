@@ -517,10 +517,10 @@ function OverviewTab() {
       </Card>
 
       {/* Trade Source Breakdown */}
-      <TradeSourceBreakdown timeRange="all" />
+      <TradeSourceBreakdown timeRange="ALL" />
 
       {/* Webhook Signal Performance */}
-      <WebhookSignalPerformance timeRange="all" />
+      <WebhookSignalPerformance timeRange="ALL" />
     </>
   );
 }
