@@ -4851,3 +4851,9 @@
 - [x] Verify Alpaca integration is ready for API keys
 - [x] Verify Tradovate integration is ready for OAuth
 - [x] Test fresh pipeline with no data
+
+## Move Charts to Admin Page (Dec 27, 2024)
+
+- [x] Move Trade Source Breakdown chart from My Dashboard to Admin page
+- [x] Move Webhook Signal Performance chart from My Dashboard to Admin page
+- [x] Remove these charts from My Dashboard page

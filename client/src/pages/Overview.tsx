@@ -717,11 +717,7 @@ export default function Overview() {
 
       {/* Monthly Returns Calendar - REMOVED per user request (redundant with Calendar P&L) */}
 
-      {/* Trade Source Breakdown */}
-      <TradeSourceBreakdown timeRange={timeRange} />
-
-      {/* Webhook Signal Performance */}
-      <WebhookSignalPerformance timeRange={timeRange} />
+      {/* Trade Source Breakdown and Webhook Signal Performance - MOVED to Admin page */}
 
       {/* Calendar P&L */}
       {breakdownData && (

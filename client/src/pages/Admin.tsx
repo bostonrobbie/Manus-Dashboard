@@ -70,6 +70,10 @@ import { toast } from "sonner";
 import { useLocation, useSearch } from "wouter";
 import { WebhookSimulator } from "@/components/WebhookSimulator";
 import { PositionManager } from "@/components/PositionManager";
+import {
+  TradeSourceBreakdown,
+  WebhookSignalPerformance,
+} from "@/components/TradeSourceBreakdown";
 
 // ============================================================================
 // MAIN COMPONENT
@@ -511,6 +515,12 @@ function OverviewTab() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Trade Source Breakdown */}
+      <TradeSourceBreakdown timeRange="all" />
+
+      {/* Webhook Signal Performance */}
+      <WebhookSignalPerformance timeRange="all" />
     </>
   );
 }
