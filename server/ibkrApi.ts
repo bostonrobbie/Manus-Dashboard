@@ -17,7 +17,6 @@ const IBKR_GATEWAY_URL = 'https://localhost:5000/v1/api'; // Local gateway
 const IBKR_PAPER_URL = 'https://localhost:5000/v1/api'; // Paper trading
 
 // For production third-party access (requires OAuth registration)
-const IBKR_OAUTH_URL = 'https://oauth.interactivebrokers.com';
 const IBKR_API_URL = 'https://api.ibkr.com/v1/api';
 
 // ============================================================================
@@ -167,7 +166,6 @@ export class IBKRApiClient {
   private baseUrl: string;
   private accessToken: string | null = null;
   private accountId: string | null = null;
-  private credentials: IBKRCredentials | null = null;
   private sessionValid: boolean = false;
   
   constructor(isPaper: boolean = true) {
@@ -192,7 +190,7 @@ export class IBKRApiClient {
     accounts?: IBKRAccount[];
   }> {
     try {
-      this.credentials = credentials;
+      // Store credentials for potential re-authentication
       this.accountId = credentials.accountId || null;
       
       // If using OAuth token
@@ -535,7 +533,7 @@ export class IBKRApiClient {
   disconnect(): void {
     this.accessToken = null;
     this.accountId = null;
-    this.credentials = null;
+    // Clear stored state
     this.sessionValid = false;
   }
   

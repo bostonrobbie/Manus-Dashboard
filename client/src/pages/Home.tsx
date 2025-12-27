@@ -133,7 +133,7 @@ const comparisonFeatures = [
 
 export default function Home() {
   const { isAuthenticated } = useAuth();
-  const { data: stats } = trpc.platform.stats.useQuery();
+  const { data: stats, isLoading } = trpc.platform.stats.useQuery();
   // Strategies query available for future use
   trpc.subscription.availableStrategies.useQuery(undefined, { enabled: isAuthenticated });
   const [openFaq, setOpenFaq] = useState<number | null>(null);

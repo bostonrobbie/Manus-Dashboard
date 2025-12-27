@@ -1092,7 +1092,7 @@ export const appRouter = router({
         includeToken: z.boolean().optional().default(true),
       }))
       .mutation(async ({ input }) => {
-        const { validatePayload, mapSymbolToStrategy } = await import('./webhookService');
+        const { validatePayload } = await import('./webhookService');
         
         // Build the test payload
         const payload: Record<string, unknown> = {
@@ -2249,7 +2249,7 @@ Please check the Webhooks page in your dashboard for more details.
         // Get S&P 500 benchmark data
         const benchmarkData = await db.getBenchmarkData({ startDate, endDate: now });
         const benchmarkEquityCurve = benchmarkData.length > 0 
-          ? benchmarkData.map((b, idx) => {
+          ? benchmarkData.map((b, _idx) => {
               // Scale benchmark to match starting capital
               const firstClose = benchmarkData[0]!.close / 100; // cents to dollars
               const currentClose = b.close / 100;
@@ -2860,7 +2860,7 @@ Please check the Webhooks page in your dashboard for more details.
     /**
      * Clear all read notifications
      */
-    clearRead: protectedProcedure.mutation(async ({ ctx }) => {
+    clearRead: protectedProcedure.mutation(async ({ ctx: _ctx }) => {
       const { deleteOldNotifications } = await import('./services/inAppNotificationService');
       // Delete read notifications older than 0 days (all read notifications)
       const count = await deleteOldNotifications(0);

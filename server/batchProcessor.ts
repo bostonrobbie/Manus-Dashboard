@@ -5,7 +5,7 @@
 
 import { getDb } from './db';
 import { signalBatches } from '../drizzle/schema';
-import { eq, and, sql } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 
 // Batch configuration
 const BATCH_WINDOW_MS = 2000; // 2 second window to collect signals
@@ -283,7 +283,7 @@ export async function getBatchStats(): Promise<{
 /**
  * Check if batching is enabled for a strategy
  */
-export function isBatchingEnabled(strategySymbol: string): boolean {
+export function isBatchingEnabled(_strategySymbol: string): boolean {
   // For now, batching is disabled by default
   // Can be enabled per-strategy in the future
   return false;

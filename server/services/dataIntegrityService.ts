@@ -7,7 +7,7 @@
 
 import { getDb } from '../db';
 import { trades, openPositions, webhookLogs } from '../../drizzle/schema';
-import { eq, sql, and, isNull, isNotNull, ne } from 'drizzle-orm';
+import { eq, sql, and, isNull, isNotNull } from 'drizzle-orm';
 
 export interface ValidationResult {
   isValid: boolean;

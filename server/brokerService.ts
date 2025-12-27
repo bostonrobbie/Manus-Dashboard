@@ -83,7 +83,6 @@ export interface IBrokerService {
 export class TradovateService implements IBrokerService {
   readonly brokerType: BrokerType = "tradovate";
   private connected = false;
-  private accessToken: string | null = null;
   private accountId: string | null = null;
   
   /**
@@ -127,7 +126,6 @@ export class TradovateService implements IBrokerService {
   
   async disconnect(): Promise<void> {
     this.connected = false;
-    this.accessToken = null;
     this.accountId = null;
     console.log("[Tradovate] Disconnected");
   }
@@ -176,7 +174,7 @@ export class TradovateService implements IBrokerService {
     return { success: false, error: "Not implemented" };
   }
   
-  async getOrderStatus(orderId: string): Promise<{ status: string; fillPrice?: number; fillQuantity?: number }> {
+  async getOrderStatus(_orderId: string): Promise<{ status: string; fillPrice?: number; fillQuantity?: number }> {
     // TODO: Implement actual order status check
     return { status: "unknown" };
   }
@@ -199,7 +197,7 @@ export class IBKRService implements IBrokerService {
    * 
    * For now, this is a placeholder
    */
-  async connect(credentials: BrokerCredentials): Promise<{ success: boolean; error?: string }> {
+  async connect(_credentials: BrokerCredentials): Promise<{ success: boolean; error?: string }> {
     console.log("[IBKR] Connection not implemented yet");
     return { success: false, error: "IBKR integration coming soon" };
   }
@@ -216,15 +214,15 @@ export class IBKRService implements IBrokerService {
     return null;
   }
   
-  async placeOrder(order: OrderRequest): Promise<OrderResult> {
+  async placeOrder(_order: OrderRequest): Promise<OrderResult> {
     return { success: false, error: "IBKR integration not implemented" };
   }
   
-  async cancelOrder(orderId: string): Promise<{ success: boolean; error?: string }> {
+  async cancelOrder(_orderId: string): Promise<{ success: boolean; error?: string }> {
     return { success: false, error: "Not implemented" };
   }
   
-  async getOrderStatus(orderId: string): Promise<{ status: string }> {
+  async getOrderStatus(_orderId: string): Promise<{ status: string }> {
     return { status: "unknown" };
   }
 }
@@ -237,7 +235,7 @@ export class FidelityService implements IBrokerService {
   readonly brokerType: BrokerType = "fidelity";
   private connected = false;
   
-  async connect(credentials: BrokerCredentials): Promise<{ success: boolean; error?: string }> {
+  async connect(_credentials: BrokerCredentials): Promise<{ success: boolean; error?: string }> {
     console.log("[Fidelity] Connection not available - coming soon");
     return { success: false, error: "Fidelity integration coming soon" };
   }
@@ -254,15 +252,15 @@ export class FidelityService implements IBrokerService {
     return null;
   }
   
-  async placeOrder(order: OrderRequest): Promise<OrderResult> {
+  async placeOrder(_order: OrderRequest): Promise<OrderResult> {
     return { success: false, error: "Fidelity integration not available" };
   }
   
-  async cancelOrder(orderId: string): Promise<{ success: boolean; error?: string }> {
+  async cancelOrder(_orderId: string): Promise<{ success: boolean; error?: string }> {
     return { success: false, error: "Not implemented" };
   }
   
-  async getOrderStatus(orderId: string): Promise<{ status: string }> {
+  async getOrderStatus(_orderId: string): Promise<{ status: string }> {
     return { status: "unknown" };
   }
 }

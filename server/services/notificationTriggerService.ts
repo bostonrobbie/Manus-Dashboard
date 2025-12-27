@@ -10,13 +10,11 @@ import {
   notifyTradeExecuted,
   notifyPositionOpened,
   notifyPositionClosed,
-  notifyWebhookFailure,
-  notifySystemAlert,
   notifyTradeError,
   notifyDailyDigest,
 } from './inAppNotificationService';
 import { getDb } from '../db';
-import { eq, and, gte, sql } from 'drizzle-orm';
+import { eq, and, sql } from 'drizzle-orm';
 import { webhookLogs, trades, openPositions, users } from '../../drizzle/schema';
 
 /**

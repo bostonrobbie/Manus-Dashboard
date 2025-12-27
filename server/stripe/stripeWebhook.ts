@@ -80,10 +80,10 @@ router.post(
           console.log(`[Stripe Webhook] Unhandled event type: ${event.type}`);
       }
 
-      res.json({ received: true });
+      return res.json({ received: true });
     } catch (error) {
       console.error(`[Stripe Webhook] Error handling ${event.type}:`, error);
-      res.status(500).json({ error: "Webhook handler failed" });
+      return res.status(500).json({ error: "Webhook handler failed" });
     }
   }
 );

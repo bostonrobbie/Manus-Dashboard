@@ -7,15 +7,12 @@
  */
 
 import { getDb } from '../db';
-import { eq, and, sql, lt, isNull } from 'drizzle-orm';
+import { eq, and, sql } from 'drizzle-orm';
 import { 
-  trades, 
   openPositions, 
-  webhookLogs, 
-  strategies,
-  users 
+  webhookLogs
 } from '../../drizzle/schema';
-import { notifyAdmins, notifySystemAlert } from './inAppNotificationService';
+import { notifyAdmins } from './inAppNotificationService';
 import { runPeriodicChecks, sendDailyDigestToAdmins } from './notificationTriggerService';
 
 export interface IntegrityCheckResult {

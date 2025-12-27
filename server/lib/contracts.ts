@@ -55,8 +55,8 @@ export function convertPnL(
  */
 export function convertPrice(
   price: number,
-  targetSize: ContractSize,
-  ratio: number
+  _targetSize: ContractSize,
+  _ratio: number
 ): number {
   // Prices don't change, only P&L multipliers change
   // But for display purposes, we might want to show adjusted values

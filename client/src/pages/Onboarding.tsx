@@ -9,12 +9,15 @@ import { Progress } from "@/components/ui/progress";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { 
-  ChevronRight, 
+  ChevronRight,
+  ChevronLeft,
+  Check,
   Bell, 
   Shield, 
   Target,
   BarChart3,
-  Sparkles
+  Sparkles,
+  TrendingUp
 } from "lucide-react";
 import { toast } from "sonner";
 

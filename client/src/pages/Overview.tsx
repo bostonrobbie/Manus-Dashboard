@@ -21,7 +21,6 @@ import { TradeAndRiskStats } from "@/components/TradeAndRiskStats";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { DistributionSnapshot } from "@/components/DistributionSnapshot";
-import { MetricTooltip } from "@/components/MetricTooltip";
 
 type TimeRange = '6M' | 'YTD' | '1Y' | '3Y' | '5Y' | '10Y' | 'ALL';
 

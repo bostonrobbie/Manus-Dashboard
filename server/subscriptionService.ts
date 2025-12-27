@@ -10,8 +10,7 @@ import {
   userSubscriptions, 
   strategies, 
   userSignals,
-  auditLogs,
-  users 
+  auditLogs
 } from '../drizzle/schema';
 import { eq, and, sql, desc } from 'drizzle-orm';
 

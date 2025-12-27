@@ -10,8 +10,8 @@
  */
 
 import { getDb } from "./db";
-import { brokerOrders, trades, openPositions } from "../drizzle/schema";
-import { eq, and, inArray } from "drizzle-orm";
+import { brokerOrders, trades } from "../drizzle/schema";
+import { eq, inArray } from "drizzle-orm";
 import { randomBytes } from "crypto";
 
 // Order status type

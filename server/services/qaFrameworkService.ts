@@ -7,7 +7,7 @@
  */
 
 import { getDb } from '../db';
-import { sql, desc, eq, and, gte, lte } from 'drizzle-orm';
+import { sql, eq } from 'drizzle-orm';
 import { webhookLogs, trades, openPositions, strategies } from '../../drizzle/schema';
 
 // Error tracking types

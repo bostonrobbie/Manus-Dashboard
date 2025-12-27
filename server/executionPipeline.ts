@@ -14,10 +14,9 @@ import {
   userSignals, 
   userSubscriptions, 
   executionLogs,
-  auditLogs,
-  strategies 
+  auditLogs
 } from "../drizzle/schema";
-import { eq, and, inArray, desc, sql } from "drizzle-orm";
+import { eq, and, desc, sql } from "drizzle-orm";
 import type { NormalizedPayload } from "./webhookService";
 
 // ============================================================================
@@ -569,7 +568,7 @@ export async function expirePendingSignals(): Promise<number> {
  * Get execution history for a user
  */
 export async function getExecutionHistory(
-  userId: number,
+  _userId: number,
   limit: number = 50
 ) {
   const db = await getDb();
@@ -585,7 +584,7 @@ export async function getExecutionHistory(
 /**
  * Get execution logs for an order
  */
-export async function getOrderExecutionLogs(orderId: number) {
+export async function getOrderExecutionLogs(_orderId: number) {
   const db = await getDb();
   if (!db) return [];
   

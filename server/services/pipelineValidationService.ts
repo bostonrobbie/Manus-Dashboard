@@ -11,7 +11,7 @@
 
 import { getDb } from '../db';
 import { trades, openPositions, webhookLogs, strategies } from '../../drizzle/schema';
-import { eq, sql, and, isNull, isNotNull, ne, gte, lte, desc, asc } from 'drizzle-orm';
+import { eq, sql, and, isNull, isNotNull, desc } from 'drizzle-orm';
 import * as dataValidation from '../core/dataValidation';
 
 // ============================================================================
