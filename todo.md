@@ -4841,3 +4841,13 @@
 - [x] Verify Alpaca broker integration is ready for user credentials
 - [x] Verify Tradovate OAuth integration is ready
 - [x] Test paper trading flow end-to-end
+
+## Fresh Start & IBKR Setup (Dec 27, 2024)
+
+- [x] Clear all test data from database
+- [x] Clear all open positions
+- [x] Clear all webhook logs
+- [x] Set up Interactive Brokers API integration
+- [x] Verify Alpaca integration is ready for API keys
+- [x] Verify Tradovate integration is ready for OAuth
+- [x] Test fresh pipeline with no data

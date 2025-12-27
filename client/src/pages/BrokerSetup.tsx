@@ -138,24 +138,26 @@ const brokerOptions: BrokerOption[] = [
     id: "ibkr",
     name: "Interactive Brokers",
     logo: "🏦",
-    description: "Industry-leading broker with comprehensive API access.",
+    description:
+      "Industry-leading broker with comprehensive API access via Client Portal Gateway.",
     features: [
-      "Full futures support",
-      "Lowest commissions",
-      "Global market access",
-      "Professional-grade API",
+      "Full futures support (ES, NQ, CL, etc.)",
+      "Lowest commissions in the industry",
+      "Global market access (100+ markets)",
+      "Professional-grade REST API",
+      "Paper trading mode available",
     ],
     requirements: [
-      "Create IBKR account",
-      "Complete identity verification",
-      "Fund account ($2,000 minimum)",
-      "Third-party app approval (8-14 weeks)",
+      "Create IBKR account (free)",
+      "Download Client Portal Gateway",
+      "Set up tunnel (ngrok or Cloudflare)",
+      "Fund account ($2,000 minimum for futures)",
     ],
-    setupTime: "8-14 weeks",
+    setupTime: "30-60 minutes",
     minDeposit: "$2,000",
     apiCost: "Free",
     recommended: false,
-    status: "coming_soon",
+    status: "available",
     difficulty: "advanced",
   },
 ];
@@ -466,6 +468,8 @@ function BrokerSelectionView({
                       <ArrowRight className="h-4 w-4 mr-2" />I Have API Keys
                     </Button>
                   </div>
+                ) : selectedBroker === "ibkr" ? (
+                  <IBKRSetupForm />
                 ) : (
                   <Button disabled className="w-full">
                     <Clock className="h-4 w-4 mr-2" />
@@ -568,32 +572,32 @@ function SetupSteps({ brokerId }: { brokerId: string }) {
     ibkr: [
       {
         step: 1,
-        title: "Create Account",
-        description: "Sign up at interactivebrokers.com",
+        title: "Create IBKR Account",
+        description: "Sign up free at interactivebrokers.com",
         completed: false,
       },
       {
         step: 2,
-        title: "Complete Verification",
-        description: "Identity and risk assessment",
+        title: "Download Client Portal Gateway",
+        description: "Get the gateway from IBKR's website",
         completed: false,
       },
       {
         step: 3,
-        title: "Fund Account",
-        description: "Deposit minimum $2,000",
+        title: "Set Up Tunnel",
+        description: "Use ngrok or Cloudflare Tunnel to expose gateway",
         completed: false,
       },
       {
         step: 4,
-        title: "Wait for Approval",
-        description: "Third-party app approval (8-14 weeks)",
+        title: "Enter Gateway URL",
+        description: "Paste your tunnel URL below",
         completed: false,
       },
       {
         step: 5,
-        title: "Connect Account",
-        description: "Complete OAuth flow",
+        title: "Test Connection",
+        description: "Verify gateway is authenticated",
         completed: false,
       },
     ],
@@ -1093,6 +1097,236 @@ function PaperTradingView({ onBack: _onBack }: { onBack: () => void }) {
               conditions.
             </p>
           </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// ============================================================================
+// IBKR SETUP FORM
+// ============================================================================
+
+function IBKRSetupForm() {
+  const [gatewayUrl, setGatewayUrl] = useState("");
+  const [accountId, setAccountId] = useState("");
+  const [isTestingConnection, setIsTestingConnection] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<
+    "idle" | "success" | "error"
+  >("idle");
+  const [errorMessage, setErrorMessage] = useState("");
+
+  const saveBrokerConnection = trpc.broker.connect.useMutation({
+    onSuccess: () => {
+      toast.success("IBKR connection saved successfully!");
+      setConnectionStatus("success");
+    },
+    onError: error => {
+      toast.error(error.message);
+      setConnectionStatus("error");
+      setErrorMessage(error.message);
+    },
+  });
+
+  const testIBKRConnection = trpc.broker.testIBKRConnection.useMutation({
+    onSuccess: result => {
+      if (result.success) {
+        toast.success(`Connected! Account: ${result.accountId || "Found"}`);
+        setConnectionStatus("success");
+      } else {
+        toast.error(result.error || "Connection failed");
+        setConnectionStatus("error");
+        setErrorMessage(result.error || "Connection failed");
+      }
+    },
+    onError: error => {
+      toast.error(error.message);
+      setConnectionStatus("error");
+      setErrorMessage(error.message);
+    },
+  });
+
+  const handleTestConnection = async () => {
+    if (!gatewayUrl) {
+      toast.error("Please enter your Gateway URL");
+      return;
+    }
+
+    setIsTestingConnection(true);
+    setConnectionStatus("idle");
+    setErrorMessage("");
+
+    try {
+      // Test the connection via server-side
+      toast.info("Testing connection to IBKR Gateway...");
+
+      testIBKRConnection.mutate({
+        gatewayUrl: gatewayUrl.replace(/\/$/, ""),
+      });
+    } catch (error) {
+      setConnectionStatus("error");
+      setErrorMessage(
+        "Could not reach gateway. Make sure it's running and accessible."
+      );
+      toast.error("Connection test failed");
+    } finally {
+      setIsTestingConnection(false);
+    }
+  };
+
+  const handleSaveConnection = () => {
+    if (!gatewayUrl) {
+      toast.error("Please enter your Gateway URL");
+      return;
+    }
+
+    saveBrokerConnection.mutate({
+      broker: "ibkr",
+      credentials: {
+        username: gatewayUrl.replace(/\/$/, ""),
+        accountId: accountId || undefined,
+      },
+      isDemo: false,
+    });
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Gateway URL Input */}
+      <div className="space-y-2">
+        <Label htmlFor="gatewayUrl" className="flex items-center gap-2">
+          Gateway URL
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger>
+                <HelpCircle className="h-4 w-4 text-muted-foreground" />
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p>
+                  Enter your ngrok or Cloudflare Tunnel URL that points to your
+                  IBKR Client Portal Gateway (usually running on localhost:5000)
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </Label>
+        <Input
+          id="gatewayUrl"
+          placeholder="https://abc123.ngrok.io"
+          value={gatewayUrl}
+          onChange={e => setGatewayUrl(e.target.value)}
+        />
+        <p className="text-xs text-muted-foreground">
+          Example: https://abc123.ngrok.io or https://ibkr.yourdomain.com
+        </p>
+      </div>
+
+      {/* Account ID (Optional) */}
+      <div className="space-y-2">
+        <Label htmlFor="accountId" className="flex items-center gap-2">
+          Account ID (Optional)
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger>
+                <HelpCircle className="h-4 w-4 text-muted-foreground" />
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p>
+                  Your IBKR account ID. If not provided, we'll use the first
+                  account found.
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </Label>
+        <Input
+          id="accountId"
+          placeholder="U1234567"
+          value={accountId}
+          onChange={e => setAccountId(e.target.value)}
+        />
+      </div>
+
+      {/* Connection Status */}
+      {connectionStatus === "success" && (
+        <div className="flex items-center gap-2 p-3 rounded-lg bg-green-500/10 border border-green-500/20">
+          <CheckCircle className="h-5 w-5 text-green-500" />
+          <span className="text-green-500 text-sm">
+            Connection saved successfully!
+          </span>
+        </div>
+      )}
+
+      {connectionStatus === "error" && (
+        <div className="flex items-center gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+          <AlertTriangle className="h-5 w-5 text-red-500" />
+          <span className="text-red-500 text-sm">
+            {errorMessage || "Connection failed"}
+          </span>
+        </div>
+      )}
+
+      {/* Action Buttons */}
+      <div className="space-y-2">
+        <Button
+          className="w-full"
+          onClick={handleTestConnection}
+          disabled={isTestingConnection || !gatewayUrl}
+        >
+          {isTestingConnection ? (
+            <>
+              <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+              Testing Connection...
+            </>
+          ) : (
+            <>
+              <Zap className="h-4 w-4 mr-2" />
+              Save & Test Connection
+            </>
+          )}
+        </Button>
+
+        <Button
+          variant="outline"
+          className="w-full"
+          onClick={() =>
+            window.open(
+              "https://www.interactivebrokers.com/en/trading/ib-api.php",
+              "_blank"
+            )
+          }
+        >
+          <ExternalLink className="h-4 w-4 mr-2" />
+          Download Client Portal Gateway
+        </Button>
+      </div>
+
+      {/* Setup Help */}
+      <Card className="bg-blue-500/10 border-blue-500/20">
+        <CardContent className="pt-4">
+          <h4 className="font-semibold text-blue-400 text-sm mb-2">
+            Quick Setup Guide
+          </h4>
+          <ol className="text-xs text-muted-foreground space-y-1 list-decimal list-inside">
+            <li>Download and run IBKR Client Portal Gateway</li>
+            <li>Log in to the gateway at https://localhost:5000</li>
+            <li>
+              Install ngrok:{" "}
+              <code className="bg-muted px-1 rounded">brew install ngrok</code>
+            </li>
+            <li>
+              Create tunnel:{" "}
+              <code className="bg-muted px-1 rounded">ngrok http 5000</code>
+            </li>
+            <li>Copy the ngrok URL and paste it above</li>
+          </ol>
+          <Button
+            variant="link"
+            className="text-blue-400 p-0 h-auto mt-2 text-xs"
+            onClick={() => window.open("https://ngrok.com/download", "_blank")}
+          >
+            Get ngrok (free) →
+          </Button>
         </CardContent>
       </Card>
     </div>
