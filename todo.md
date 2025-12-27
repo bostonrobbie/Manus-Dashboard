@@ -4329,3 +4329,6 @@
 - [ ] Implement OAuth flow for Tradovate (framework ready)
 - [ ] Implement order placement functionality (framework ready)
 - [ ] Test Tradovate connection (requires user credentials)
+
+## Bug Fixes (Dec 26, 2025)
+- [x] Fix 'memo is not defined' error on Overview page - add missing React memo import
