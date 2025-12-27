@@ -15,6 +15,7 @@ import * as brokerService from "./brokerService";
 import * as subscriptionService from "./subscriptionService";
 import * as dataValidation from "./core/dataValidation";
 import * as dailyEquityCurve from "./core/dailyEquityCurve";
+import * as paperTrading from "./paperTradingService";
 import { stripeRouter } from "./stripe/stripeRouter";
 import { cache, cacheKeys, cacheTTL } from "./cache";
 
@@ -3461,6 +3462,65 @@ Please check the Webhooks page in your dashboard for more details.
           endDate: now,
         });
       }),
+  }),
+
+  // Paper Trading
+  paperTrading: router({
+    /**
+     * Get paper trading account summary
+     */
+    getAccount: protectedProcedure.query(async ({ ctx }) => {
+      return paperTrading.getPaperAccountSummary(ctx.user.id);
+    }),
+
+    /**
+     * Get open positions
+     */
+    getPositions: protectedProcedure.query(async ({ ctx }) => {
+      return paperTrading.getOpenPositions(ctx.user.id);
+    }),
+
+    /**
+     * Get trade history
+     */
+    getTradeHistory: protectedProcedure
+      .input(
+        z.object({
+          limit: z.number().min(1).max(500).optional().default(50),
+        })
+      )
+      .query(async ({ ctx, input }) => {
+        return paperTrading.getPaperTradeHistory(ctx.user.id, input.limit);
+      }),
+
+    /**
+     * Execute a paper trade
+     */
+    executeTrade: protectedProcedure
+      .input(
+        z.object({
+          symbol: z.string(),
+          side: z.enum(["BUY", "SELL"]),
+          quantity: z.number().min(1),
+          orderType: z.enum(["MARKET", "LIMIT", "STOP"]),
+          limitPrice: z.number().optional(),
+          stopPrice: z.number().optional(),
+          strategyId: z.number().optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        return paperTrading.executePaperOrder({
+          userId: ctx.user.id,
+          ...input,
+        });
+      }),
+
+    /**
+     * Reset paper trading account
+     */
+    resetAccount: protectedProcedure.mutation(async ({ ctx }) => {
+      return paperTrading.resetPaperAccount(ctx.user.id);
+    }),
   }),
 });
 

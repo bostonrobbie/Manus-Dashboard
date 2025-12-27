@@ -4724,3 +4724,74 @@
 - [ ] Add source filter to trades table
 - [ ] Show webhook vs CSV import performance comparison
 - [ ] Write tests for source analytics
+
+## Broker Integration & Paper Trading (Dec 27, 2025)
+
+### Interactive Brokers Integration (DEFERRED - requires 8-14 week approval process)
+
+- [x] Research IBKR Web API documentation
+- [x] Document third-party approval requirements
+- [ ] (Future) Apply for third-party approval if platform grows
+- [ ] (Future) Implement OAuth flow after approval
+
+### Paper Trading Mode
+
+- [ ] Create paper trading service (paperTradingService.ts)
+- [ ] Implement simulated order execution
+- [ ] Track paper positions and P&L
+- [ ] Add paper trading toggle to UI
+- [ ] Store paper trades in database
+- [ ] Calculate paper trading performance metrics
+
+### Guided Broker Onboarding
+
+- [ ] Create broker selection page
+- [ ] Add IBKR account setup guide
+- [ ] Add Tradovate account setup guide
+- [ ] Create broker connection wizard
+- [ ] Add connection status indicators
+- [ ] Implement credential validation
+
+## Broker Integration & Paper Trading (Dec 27, 2025)
+
+### Pre-commit Hooks
+
+- [x] Install husky for git hooks
+- [x] Install lint-staged for staged file linting
+- [x] Configure pre-commit hook to run ESLint
+- [x] Configure lint-staged to run prettier on staged files
+- [x] Test pre-commit workflow
+
+### Alpaca Broker Integration
+
+- [x] Research Alpaca API documentation
+- [x] Create Alpaca API client (alpacaApi.ts)
+- [x] Implement AlpacaService in brokerService.ts
+- [x] Add Alpaca to broker type enum (schema + service)
+- [x] Write unit tests for Alpaca integration (14 tests passing)
+- [ ] Test connection with paper trading (requires user credentials)
+
+### Interactive Brokers Integration (DEFERRED - requires 8-14 week approval process)
+
+- [x] Research IBKR Web API documentation
+- [x] Document third-party approval requirements
+- [ ] (Future) Apply for third-party approval if platform grows
+- [ ] (Future) Implement OAuth flow after approval
+
+### Paper Trading Simulation
+
+- [x] Create paper_accounts, paper_positions, paper_trades tables
+- [x] Create paperTradingService.ts with order execution logic
+- [x] Add paperTrading tRPC router with procedures
+- [x] Create PaperTrading.tsx UI component
+- [x] Add Paper Trading to navigation menu
+- [x] Test paper trading page loads correctly
+
+### Guided Broker Onboarding
+
+- [x] Create broker comparison page (BrokerOnboarding.tsx)
+- [x] Add setup steps for each broker (Paper, Alpaca, Tradovate, IBKR)
+- [x] Show requirements and costs for each option
+- [x] Link to paper trading as recommended starting point
+- [x] Add security information and credentials notice
+- [x] Add Broker Setup to navigation menu

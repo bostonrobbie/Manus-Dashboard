@@ -22,19 +22,63 @@ import {
 } from "@/components/ui/sidebar";
 import { getLoginUrl } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
-import { LayoutDashboard, LogOut, PanelLeft, TrendingUp, GitCompare, Shield, User, Home } from "lucide-react";
+import {
+  LayoutDashboard,
+  LogOut,
+  PanelLeft,
+  TrendingUp,
+  GitCompare,
+  Shield,
+  User,
+  Home,
+  PlayCircle,
+  Link2,
+} from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
-import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
+import { DashboardLayoutSkeleton } from "./DashboardLayoutSkeleton";
 import { Button } from "./ui/button";
 
 const baseMenuItems = [
-  { icon: LayoutDashboard, label: "Overview", path: "/overview", adminOnly: false },
-  { icon: TrendingUp, label: "Strategies", path: "/strategies", adminOnly: false },
+  {
+    icon: LayoutDashboard,
+    label: "Overview",
+    path: "/overview",
+    adminOnly: false,
+  },
+  {
+    icon: TrendingUp,
+    label: "Strategies",
+    path: "/strategies",
+    adminOnly: false,
+  },
   { icon: GitCompare, label: "Compare", path: "/compare", adminOnly: false },
-  { icon: User, label: "My Dashboard", path: "/my-dashboard", adminOnly: false },
+  {
+    icon: User,
+    label: "My Dashboard",
+    path: "/my-dashboard",
+    adminOnly: false,
+  },
+  {
+    icon: PlayCircle,
+    label: "Paper Trading",
+    path: "/paper-trading",
+    adminOnly: false,
+  },
+  {
+    icon: Link2,
+    label: "Broker Setup",
+    path: "/broker-setup",
+    adminOnly: false,
+  },
   { icon: Shield, label: "Admin", path: "/admin", adminOnly: true },
-  { icon: Home, label: "Homepage", path: "/", adminOnly: false, external: true },
+  {
+    icon: Home,
+    label: "Homepage",
+    path: "/",
+    adminOnly: false,
+    external: true,
+  },
 ];
 
 const SIDEBAR_WIDTH_KEY = "sidebar-width";
@@ -58,13 +102,14 @@ export default function DashboardLayout({
   }, [sidebarWidth]);
 
   if (loading) {
-    return <DashboardLayoutSkeleton />
+    return <DashboardLayoutSkeleton />;
   }
 
   if (!user) {
     // Get current path to redirect back after login
-    const currentPath = typeof window !== 'undefined' ? window.location.pathname : '/overview';
-    
+    const currentPath =
+      typeof window !== "undefined" ? window.location.pathname : "/overview";
+
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="flex flex-col items-center gap-8 p-8 max-w-md w-full">
@@ -73,7 +118,8 @@ export default function DashboardLayout({
               Sign in to continue
             </h1>
             <p className="text-sm text-muted-foreground text-center max-w-sm">
-              Access to this dashboard requires authentication. Continue to launch the login flow.
+              Access to this dashboard requires authentication. Continue to
+              launch the login flow.
             </p>
           </div>
           <Button
@@ -123,11 +169,11 @@ function DashboardLayoutContent({
   const sidebarRef = useRef<HTMLDivElement>(null);
 
   const isMobile = useIsMobile();
-  
+
   // Filter menu items based on user role
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = user?.role === "admin";
   const menuItems = baseMenuItems.filter(item => !item.adminOnly || isAdmin);
-  
+
   // Navigation is now click-only (no hover expansion) for better UX
   const activeMenuItem = menuItems.find(item => item.path === location);
 
@@ -169,10 +215,7 @@ function DashboardLayoutContent({
 
   return (
     <>
-      <div 
-        className="relative" 
-        ref={sidebarRef}
-      >
+      <div className="relative" ref={sidebarRef}>
         <Sidebar
           collapsible="icon"
           className="border-r-0 transition-[width] duration-300 ease-in-out"
@@ -274,21 +317,21 @@ function DashboardLayoutContent({
 
       <SidebarInset>
         {isMobile && (
-            <div className="flex border-b h-12 sm:h-14 items-center justify-between bg-background/95 px-2 backdrop-blur supports-[backdrop-filter]:backdrop-blur sticky top-0 z-40">
-              <div className="flex items-center gap-2">
-                <SidebarTrigger className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg bg-background" />
-                <div className="flex items-center gap-2 sm:gap-3">
-                  <div className="flex flex-col gap-0.5 sm:gap-1">
-                    <span className="tracking-tight text-foreground text-sm sm:text-base font-medium">
-                      {activeMenuItem?.label ?? "Menu"}
-                    </span>
-                  </div>
+          <div className="flex border-b h-12 sm:h-14 items-center justify-between bg-background/95 px-2 backdrop-blur supports-[backdrop-filter]:backdrop-blur sticky top-0 z-40">
+            <div className="flex items-center gap-2">
+              <SidebarTrigger className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg bg-background" />
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="flex flex-col gap-0.5 sm:gap-1">
+                  <span className="tracking-tight text-foreground text-sm sm:text-base font-medium">
+                    {activeMenuItem?.label ?? "Menu"}
+                  </span>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <NotificationBell />
-              </div>
             </div>
+            <div className="flex items-center gap-2">
+              <NotificationBell />
+            </div>
+          </div>
         )}
         {/* Desktop header with notification bell */}
         {!isMobile && (
@@ -299,9 +342,7 @@ function DashboardLayoutContent({
           </div>
         )}
         <main className="flex-1 p-2 sm:p-4 md:p-6 animate-fade-in overflow-x-hidden">
-          <div className="max-w-7xl mx-auto">
-            {children}
-          </div>
+          <div className="max-w-7xl mx-auto">{children}</div>
         </main>
       </SidebarInset>
     </>

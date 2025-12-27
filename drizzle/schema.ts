@@ -1117,3 +1117,97 @@ export const positionAdjustments = mysqlTable(
 
 export type PositionAdjustment = typeof positionAdjustments.$inferSelect;
 export type InsertPositionAdjustment = typeof positionAdjustments.$inferInsert;
+
+/**
+ * Paper trading accounts table
+ * Virtual accounts for simulated trading
+ */
+export const paperAccounts = mysqlTable(
+  "paper_accounts",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    userId: int("userId").notNull(),
+    name: varchar("name", { length: 100 }).notNull(),
+    // Balance tracking (all in cents)
+    balance: int("balance").notNull().default(10000000), // $100,000 default
+    startingBalance: int("startingBalance").notNull().default(10000000),
+    realizedPnl: int("realizedPnl").default(0),
+    // Performance stats
+    totalTrades: int("totalTrades").default(0),
+    winningTrades: int("winningTrades").default(0),
+    losingTrades: int("losingTrades").default(0),
+    // Timestamps
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  table => ({
+    userIdx: index("idx_paper_accounts_user").on(table.userId),
+  })
+);
+
+export type PaperAccount = typeof paperAccounts.$inferSelect;
+export type InsertPaperAccount = typeof paperAccounts.$inferInsert;
+
+/**
+ * Paper positions table
+ * Tracks open and closed positions in paper trading
+ */
+export const paperPositions = mysqlTable(
+  "paper_positions",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    accountId: int("accountId").notNull(),
+    strategyId: int("strategyId"),
+    symbol: varchar("symbol", { length: 20 }).notNull(),
+    side: mysqlEnum("side", ["LONG", "SHORT"]).notNull(),
+    quantity: int("quantity").notNull(),
+    entryPrice: int("entryPrice").notNull(), // in cents
+    entryDate: datetime("entryDate").notNull(),
+    exitPrice: int("exitPrice"), // in cents
+    exitDate: datetime("exitDate"),
+    status: mysqlEnum("status", ["open", "closed"]).default("open").notNull(),
+    unrealizedPnl: int("unrealizedPnl").default(0),
+    realizedPnl: int("realizedPnl").default(0),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  table => ({
+    accountIdx: index("idx_paper_positions_account").on(table.accountId),
+    statusIdx: index("idx_paper_positions_status").on(table.status),
+    symbolIdx: index("idx_paper_positions_symbol").on(table.symbol),
+  })
+);
+
+export type PaperPosition = typeof paperPositions.$inferSelect;
+export type InsertPaperPosition = typeof paperPositions.$inferInsert;
+
+/**
+ * Paper trades table
+ * Records all paper trading executions
+ */
+export const paperTrades = mysqlTable(
+  "paper_trades",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    accountId: int("accountId").notNull(),
+    positionId: int("positionId"),
+    strategyId: int("strategyId"),
+    symbol: varchar("symbol", { length: 20 }).notNull(),
+    side: mysqlEnum("side", ["BUY", "SELL"]).notNull(),
+    quantity: int("quantity").notNull(),
+    price: int("price").notNull(), // in cents
+    orderType: mysqlEnum("orderType", ["MARKET", "LIMIT", "STOP"]).notNull(),
+    pnl: int("pnl").default(0), // realized P&L for this trade
+    commission: int("commission").default(0), // simulated commission
+    executedAt: datetime("executedAt").notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  table => ({
+    accountIdx: index("idx_paper_trades_account").on(table.accountId),
+    positionIdx: index("idx_paper_trades_position").on(table.positionId),
+    executedIdx: index("idx_paper_trades_executed").on(table.executedAt),
+  })
+);
+
+export type PaperTrade = typeof paperTrades.$inferSelect;
+export type InsertPaperTrade = typeof paperTrades.$inferInsert;

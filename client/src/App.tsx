@@ -19,6 +19,8 @@ const LandingPage = lazy(() => import("./pages/LandingPage"));
 const Pricing = lazy(() => import("./pages/Pricing"));
 const Onboarding = lazy(() => import("./pages/Onboarding"));
 const CheckoutSuccess = lazy(() => import("./pages/CheckoutSuccess"));
+const PaperTrading = lazy(() => import("./pages/PaperTrading"));
+const BrokerOnboarding = lazy(() => import("./pages/BrokerOnboarding"));
 // QADashboard available for future use
 // const QADashboard = lazy(() => import("./pages/QADashboard"));
 
@@ -35,94 +37,150 @@ function Router() {
   return (
     <Suspense fallback={<PageLoader />}>
       <Switch>
-        <Route path="/" component={() => (
-          <Suspense fallback={<PageLoader />}>
-            <LandingPage />
-          </Suspense>
-        )} />
-        
-        <Route path="/pricing" component={() => (
-          <Suspense fallback={<PageLoader />}>
-            <Pricing />
-          </Suspense>
-        )} />
-        
-        <Route path="/onboarding" component={() => (
-          <Suspense fallback={<PageLoader />}>
-            <Onboarding />
-          </Suspense>
-        )} />
-        
-        <Route path="/checkout/success" component={() => (
-          <Suspense fallback={<PageLoader />}>
-            <CheckoutSuccess />
-          </Suspense>
-        )} />
-        
-        <Route path="/overview" component={() => (
-          <DashboardLayout>
+        <Route
+          path="/"
+          component={() => (
             <Suspense fallback={<PageLoader />}>
-              <Overview />
+              <LandingPage />
             </Suspense>
-          </DashboardLayout>
-        )} />
-        
-        <Route path="/strategy/:id" component={() => (
-          <DashboardLayout>
+          )}
+        />
+
+        <Route
+          path="/pricing"
+          component={() => (
             <Suspense fallback={<PageLoader />}>
-              <StrategyDetail />
+              <Pricing />
             </Suspense>
-          </DashboardLayout>
-        )} />
-        
-        <Route path="/strategies" component={() => (
-          <DashboardLayout>
+          )}
+        />
+
+        <Route
+          path="/onboarding"
+          component={() => (
             <Suspense fallback={<PageLoader />}>
-              <Strategies />
+              <Onboarding />
             </Suspense>
-          </DashboardLayout>
-        )} />
-        
-        <Route path="/compare" component={() => (
-          <DashboardLayout>
+          )}
+        />
+
+        <Route
+          path="/checkout/success"
+          component={() => (
             <Suspense fallback={<PageLoader />}>
-              <StrategyComparison />
+              <CheckoutSuccess />
             </Suspense>
-          </DashboardLayout>
-        )} />
-        
-        <Route path="/admin" component={() => (
-          <DashboardLayout>
+          )}
+        />
+
+        <Route
+          path="/overview"
+          component={() => (
+            <DashboardLayout>
+              <Suspense fallback={<PageLoader />}>
+                <Overview />
+              </Suspense>
+            </DashboardLayout>
+          )}
+        />
+
+        <Route
+          path="/strategy/:id"
+          component={() => (
+            <DashboardLayout>
+              <Suspense fallback={<PageLoader />}>
+                <StrategyDetail />
+              </Suspense>
+            </DashboardLayout>
+          )}
+        />
+
+        <Route
+          path="/strategies"
+          component={() => (
+            <DashboardLayout>
+              <Suspense fallback={<PageLoader />}>
+                <Strategies />
+              </Suspense>
+            </DashboardLayout>
+          )}
+        />
+
+        <Route
+          path="/compare"
+          component={() => (
+            <DashboardLayout>
+              <Suspense fallback={<PageLoader />}>
+                <StrategyComparison />
+              </Suspense>
+            </DashboardLayout>
+          )}
+        />
+
+        <Route
+          path="/admin"
+          component={() => (
+            <DashboardLayout>
+              <Suspense fallback={<PageLoader />}>
+                <Admin />
+              </Suspense>
+            </DashboardLayout>
+          )}
+        />
+
+        <Route
+          path="/my-dashboard"
+          component={() => (
+            <DashboardLayout>
+              <Suspense fallback={<PageLoader />}>
+                <UserDashboard />
+              </Suspense>
+            </DashboardLayout>
+          )}
+        />
+
+        <Route
+          path="/paper-trading"
+          component={() => (
             <Suspense fallback={<PageLoader />}>
-              <Admin />
+              <PaperTrading />
             </Suspense>
-          </DashboardLayout>
-        )} />
-        
-        <Route path="/my-dashboard" component={() => (
-          <DashboardLayout>
+          )}
+        />
+
+        <Route
+          path="/broker-setup"
+          component={() => (
             <Suspense fallback={<PageLoader />}>
-              <UserDashboard />
+              <BrokerOnboarding />
             </Suspense>
-          </DashboardLayout>
-        )} />
-        
-        <Route path="/qa" component={() => {
-          // Redirect to Admin page with QA tab
-          window.location.href = '/admin?tab=qa';
-          return <PageLoader />;
-        }} />
-        
-        <Route path="/404" component={() => (
-          <Suspense fallback={<PageLoader />}>
-            <NotFound />
-          </Suspense>
-        )} />
-        <Route component={() => (
-          <Suspense fallback={<PageLoader />}>
-            <NotFound />
-          </Suspense>
-        )} />
+          )}
+        />
+
+        <Route
+          path="/qa"
+          component={() => {
+            // Redirect to Admin page with QA tab
+            window.location.href = "/admin?tab=qa";
+            return <PageLoader />;
+          }}
+        />
+
+        <Route
+          path="/404"
+          component={() => (
+            <Suspense fallback={<PageLoader />}>
+              <NotFound />
+            </Suspense>
+          )}
+        />
+        <Route
+          component={() => (
+            <Suspense fallback={<PageLoader />}>
+              <NotFound />
+            </Suspense>
+          )}
+        />
       </Switch>
     </Suspense>
   );
