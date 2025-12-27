@@ -1,8 +1,26 @@
 import { eq, and, gte, lte, inArray, desc, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import mysql from 'mysql2/promise';
-import { InsertUser, users, strategies, trades, benchmarks, webhookLogs, InsertWebhookLog, openPositions, InsertOpenPosition, OpenPosition, notificationPreferences, strategyNotificationSettings, InsertNotificationPreference, NotificationPreference, StrategyNotificationSetting, stagingTrades, StagingTrade } from "../drizzle/schema";
-import { ENV } from './_core/env';
+import mysql from "mysql2/promise";
+import {
+  InsertUser,
+  users,
+  strategies,
+  trades,
+  benchmarks,
+  webhookLogs,
+  InsertWebhookLog,
+  openPositions,
+  InsertOpenPosition,
+  OpenPosition,
+  notificationPreferences,
+  strategyNotificationSettings,
+  InsertNotificationPreference,
+  NotificationPreference,
+  StrategyNotificationSetting,
+  stagingTrades,
+  StagingTrade,
+} from "../drizzle/schema";
+import { ENV } from "./_core/env";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 let _pool: mysql.Pool | null = null;
@@ -93,8 +111,8 @@ export async function upsertUser(user: InsertUser): Promise<void> {
         values.role = user.role;
         updateSet.role = user.role;
       } else if (user.openId === ENV.ownerOpenId) {
-        values.role = 'admin';
-        updateSet.role = 'admin';
+        values.role = "admin";
+        updateSet.role = "admin";
       }
 
       if (!values.lastSignedIn) {
@@ -111,13 +129,17 @@ export async function upsertUser(user: InsertUser): Promise<void> {
       return; // Success, exit retry loop
     } catch (error) {
       lastError = error;
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      const isRetryable = errorMessage.includes('ECONNRESET') || 
-                          errorMessage.includes('ETIMEDOUT') || 
-                          errorMessage.includes('ECONNREFUSED');
-      
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      const isRetryable =
+        errorMessage.includes("ECONNRESET") ||
+        errorMessage.includes("ETIMEDOUT") ||
+        errorMessage.includes("ECONNREFUSED");
+
       if (isRetryable && attempt < maxRetries) {
-        console.warn(`[Database] Upsert user failed (attempt ${attempt}/${maxRetries}), resetting connection and retrying in ${attempt * 500}ms...`);
+        console.warn(
+          `[Database] Upsert user failed (attempt ${attempt}/${maxRetries}), resetting connection and retrying in ${attempt * 500}ms...`
+        );
         await resetDbConnection(); // Reset connection pool on transient errors
         await new Promise(resolve => setTimeout(resolve, attempt * 500));
       } else {
@@ -145,17 +167,25 @@ export async function getUserByOpenId(openId: string) {
     }
 
     try {
-      const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
+      const result = await db
+        .select()
+        .from(users)
+        .where(eq(users.openId, openId))
+        .limit(1);
       return result.length > 0 ? result[0] : undefined;
     } catch (error) {
       lastError = error;
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      const isRetryable = errorMessage.includes('ECONNRESET') || 
-                          errorMessage.includes('ETIMEDOUT') || 
-                          errorMessage.includes('ECONNREFUSED');
-      
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      const isRetryable =
+        errorMessage.includes("ECONNRESET") ||
+        errorMessage.includes("ETIMEDOUT") ||
+        errorMessage.includes("ECONNREFUSED");
+
       if (isRetryable && attempt < maxRetries) {
-        console.warn(`[Database] Get user failed (attempt ${attempt}/${maxRetries}), resetting connection and retrying in ${attempt * 500}ms...`);
+        console.warn(
+          `[Database] Get user failed (attempt ${attempt}/${maxRetries}), resetting connection and retrying in ${attempt * 500}ms...`
+        );
         await resetDbConnection(); // Reset connection pool on transient errors
         await new Promise(resolve => setTimeout(resolve, attempt * 500));
       } else {
@@ -174,11 +204,16 @@ export async function getUserByOpenId(openId: string) {
 export async function updateUserOnboarding(userId: number, completed: boolean) {
   const db = await getDb();
   if (!db) {
-    console.warn("[Database] Cannot update user onboarding: database not available");
+    console.warn(
+      "[Database] Cannot update user onboarding: database not available"
+    );
     return;
   }
 
-  await db.update(users).set({ onboardingCompleted: completed }).where(eq(users.id, userId));
+  await db
+    .update(users)
+    .set({ onboardingCompleted: completed })
+    .where(eq(users.id, userId));
 }
 
 /**
@@ -187,11 +222,16 @@ export async function updateUserOnboarding(userId: number, completed: boolean) {
 export async function dismissUserOnboarding(userId: number) {
   const db = await getDb();
   if (!db) {
-    console.warn("[Database] Cannot dismiss user onboarding: database not available");
+    console.warn(
+      "[Database] Cannot dismiss user onboarding: database not available"
+    );
     return;
   }
 
-  await db.update(users).set({ onboardingDismissed: true }).where(eq(users.id, userId));
+  await db
+    .update(users)
+    .set({ onboardingDismissed: true })
+    .where(eq(users.id, userId));
 }
 
 /**
@@ -200,8 +240,12 @@ export async function dismissUserOnboarding(userId: number) {
 export async function getAllStrategies() {
   const db = await getDb();
   if (!db) return [];
-  
-  return await db.select().from(strategies).where(eq(strategies.active, true)).orderBy(strategies.id);
+
+  return await db
+    .select()
+    .from(strategies)
+    .where(eq(strategies.active, true))
+    .orderBy(strategies.id);
 }
 
 /**
@@ -210,41 +254,54 @@ export async function getAllStrategies() {
 export async function getStrategyById(id: number) {
   const db = await getDb();
   if (!db) return null;
-  
-  const result = await db.select().from(strategies).where(eq(strategies.id, id)).limit(1);
+
+  const result = await db
+    .select()
+    .from(strategies)
+    .where(eq(strategies.id, id))
+    .limit(1);
   return result.length > 0 ? result[0] : null;
 }
 
 /**
- * Get all trades for specific strategies with optional date filtering
+ * Get all trades for specific strategies with optional date and source filtering
  */
 export async function getTrades(params: {
   strategyIds?: number[];
   startDate?: Date;
   endDate?: Date;
+  source?: "csv_import" | "webhook" | "manual" | "all";
 }) {
   const db = await getDb();
   if (!db) return [];
 
   const conditions = [];
-  
+
   if (params.strategyIds && params.strategyIds.length > 0) {
     conditions.push(inArray(trades.strategyId, params.strategyIds));
   }
-  
+
   if (params.startDate) {
     conditions.push(gte(trades.exitDate, params.startDate));
   }
-  
+
   if (params.endDate) {
     conditions.push(lte(trades.exitDate, params.endDate));
+  }
+
+  // Filter by source if specified (and not 'all')
+  if (params.source && params.source !== "all") {
+    conditions.push(eq(trades.source, params.source));
   }
 
   if (conditions.length === 0) {
     return await db.select().from(trades);
   }
 
-  return await db.select().from(trades).where(and(...conditions));
+  return await db
+    .select()
+    .from(trades)
+    .where(and(...conditions));
 }
 
 /**
@@ -258,11 +315,11 @@ export async function getBenchmarkData(params?: {
   if (!db) return [];
 
   const conditions = [];
-  
+
   if (params?.startDate) {
     conditions.push(gte(benchmarks.date, params.startDate));
   }
-  
+
   if (params?.endDate) {
     conditions.push(lte(benchmarks.date, params.endDate));
   }
@@ -271,7 +328,10 @@ export async function getBenchmarkData(params?: {
     return await db.select().from(benchmarks);
   }
 
-  return await db.select().from(benchmarks).where(and(...conditions));
+  return await db
+    .select()
+    .from(benchmarks)
+    .where(and(...conditions));
 }
 
 /**
@@ -289,7 +349,7 @@ export async function insertTrade(trade: {
   pnlPercent: number;
   commission: number;
   isTest?: boolean;
-  source?: 'csv_import' | 'webhook' | 'manual';
+  source?: "csv_import" | "webhook" | "manual";
 }) {
   const db = await getDb();
   if (!db) {
@@ -299,7 +359,6 @@ export async function insertTrade(trade: {
   const result = await db.insert(trades).values(trade);
   return result;
 }
-
 
 /**
  * Strategy cache for webhook processing
@@ -322,18 +381,22 @@ export async function getStrategyBySymbol(symbol: string) {
   if (cached && Date.now() - cached.timestamp < STRATEGY_CACHE_TTL) {
     return cached.strategy;
   }
-  
+
   const db = await getDb();
   if (!db) return null;
-  
-  const result = await db.select().from(strategies).where(eq(strategies.symbol, symbol)).limit(1);
+
+  const result = await db
+    .select()
+    .from(strategies)
+    .where(eq(strategies.symbol, symbol))
+    .limit(1);
   const strategy = result.length > 0 ? result[0] : null;
-  
+
   // Cache the result (even null to avoid repeated lookups for invalid symbols)
   if (strategy) {
     strategyCache.set(symbol, { strategy, timestamp: Date.now() });
   }
-  
+
   return strategy;
 }
 
@@ -360,7 +423,10 @@ export async function insertWebhookLog(log: InsertWebhookLog) {
 /**
  * Update a webhook log entry
  */
-export async function updateWebhookLog(id: number, updates: Partial<InsertWebhookLog>) {
+export async function updateWebhookLog(
+  id: number,
+  updates: Partial<InsertWebhookLog>
+) {
   const db = await getDb();
   if (!db) {
     throw new Error("Database not available");
@@ -372,22 +438,30 @@ export async function updateWebhookLog(id: number, updates: Partial<InsertWebhoo
 /**
  * Get recent webhook logs for display
  */
-export async function getWebhookLogs(params?: {
-  status?: string;
-  startDate?: Date;
-  endDate?: Date;
-  limit?: number;
-} | number) {
+export async function getWebhookLogs(
+  params?:
+    | {
+        status?: string;
+        startDate?: Date;
+        endDate?: Date;
+        limit?: number;
+      }
+    | number
+) {
   const db = await getDb();
   if (!db) return [];
 
   // Handle legacy call with just limit number
-  if (typeof params === 'number') {
-    return await db.select().from(webhookLogs).orderBy(desc(webhookLogs.createdAt)).limit(params);
+  if (typeof params === "number") {
+    return await db
+      .select()
+      .from(webhookLogs)
+      .orderBy(desc(webhookLogs.createdAt))
+      .limit(params);
   }
 
   const { status, startDate, endDate, limit = 100 } = params || {};
-  
+
   const conditions = [];
   if (status) {
     conditions.push(eq(webhookLogs.status, status as any));
@@ -400,13 +474,19 @@ export async function getWebhookLogs(params?: {
   }
 
   if (conditions.length > 0) {
-    return await db.select().from(webhookLogs)
+    return await db
+      .select()
+      .from(webhookLogs)
       .where(and(...conditions))
       .orderBy(desc(webhookLogs.createdAt))
       .limit(limit);
   }
 
-  return await db.select().from(webhookLogs).orderBy(desc(webhookLogs.createdAt)).limit(limit);
+  return await db
+    .select()
+    .from(webhookLogs)
+    .orderBy(desc(webhookLogs.createdAt))
+    .limit(limit);
 }
 
 /**
@@ -428,16 +508,20 @@ export async function checkDuplicateTrade(params: {
   const exitStart = new Date(params.exitDate.getTime() - 60000);
   const exitEnd = new Date(params.exitDate.getTime() + 60000);
 
-  const result = await db.select().from(trades).where(
-    and(
-      eq(trades.strategyId, params.strategyId),
-      eq(trades.direction, params.direction),
-      gte(trades.entryDate, entryStart),
-      lte(trades.entryDate, entryEnd),
-      gte(trades.exitDate, exitStart),
-      lte(trades.exitDate, exitEnd)
+  const result = await db
+    .select()
+    .from(trades)
+    .where(
+      and(
+        eq(trades.strategyId, params.strategyId),
+        eq(trades.direction, params.direction),
+        gte(trades.entryDate, entryStart),
+        lte(trades.entryDate, entryEnd),
+        gte(trades.exitDate, exitStart),
+        lte(trades.exitDate, exitEnd)
+      )
     )
-  ).limit(1);
+    .limit(1);
 
   return result.length > 0;
 }
@@ -450,7 +534,8 @@ export async function getLastInsertedTradeId(strategyId: number) {
   if (!db) return null;
 
   // Get the most recent trade for this strategy
-  const result = await db.select({ id: trades.id })
+  const result = await db
+    .select({ id: trades.id })
     .from(trades)
     .where(eq(trades.strategyId, strategyId))
     .orderBy(desc(trades.id))
@@ -458,7 +543,6 @@ export async function getLastInsertedTradeId(strategyId: number) {
 
   return result.length > 0 ? result[0].id : null;
 }
-
 
 /**
  * Delete a specific webhook log entry
@@ -485,14 +569,16 @@ export async function deleteAllWebhookLogs(): Promise<number> {
 
   try {
     // Count before deleting using SQL count
-    const countResult = await db.select({ count: sql<number>`count(*)` }).from(webhookLogs);
+    const countResult = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(webhookLogs);
     const count = countResult[0]?.count ?? 0;
-    
+
     if (count === 0) {
       console.log("[Database] No webhook logs to delete");
       return 0;
     }
-    
+
     // Delete all logs
     await db.delete(webhookLogs);
     console.log(`[Database] Deleted ${count} webhook logs`);
@@ -518,7 +604,9 @@ export async function getWebhookSettings(): Promise<{ paused: boolean }> {
 /**
  * Update webhook processing settings
  */
-export async function updateWebhookSettings(updates: Partial<{ paused: boolean }>): Promise<void> {
+export async function updateWebhookSettings(
+  updates: Partial<{ paused: boolean }>
+): Promise<void> {
   webhookSettings = { ...webhookSettings, ...updates };
 }
 
@@ -557,23 +645,28 @@ export async function deleteTradesByIds(tradeIds: number[]): Promise<number> {
 /**
  * Delete all trades for a strategy (for overwrite functionality)
  */
-export async function deleteTradesByStrategy(strategyId: number): Promise<number> {
+export async function deleteTradesByStrategy(
+  strategyId: number
+): Promise<number> {
   const db = await getDb();
   if (!db) return 0;
 
   try {
     // Count before deleting
-    const countResult = await db.select({ count: sql<number>`count(*)` })
+    const countResult = await db
+      .select({ count: sql<number>`count(*)` })
       .from(trades)
       .where(eq(trades.strategyId, strategyId));
     const count = countResult[0]?.count ?? 0;
-    
+
     if (count === 0) {
       return 0;
     }
-    
+
     await db.delete(trades).where(eq(trades.strategyId, strategyId));
-    console.log(`[Database] Deleted ${count} trades for strategy ${strategyId}`);
+    console.log(
+      `[Database] Deleted ${count} trades for strategy ${strategyId}`
+    );
     return count;
   } catch (error) {
     console.error("[Database] Failed to delete trades for strategy:", error);
@@ -584,18 +677,20 @@ export async function deleteTradesByStrategy(strategyId: number): Promise<number
 /**
  * Bulk insert trades (for CSV upload)
  */
-export async function bulkInsertTrades(tradesToInsert: Array<{
-  strategyId: number;
-  entryDate: Date;
-  exitDate: Date;
-  direction: string;
-  entryPrice: number;
-  exitPrice: number;
-  quantity: number;
-  pnl: number;
-  pnlPercent: number;
-  commission: number;
-}>): Promise<number> {
+export async function bulkInsertTrades(
+  tradesToInsert: Array<{
+    strategyId: number;
+    entryDate: Date;
+    exitDate: Date;
+    direction: string;
+    entryPrice: number;
+    exitPrice: number;
+    quantity: number;
+    pnl: number;
+    pnlPercent: number;
+    commission: number;
+  }>
+): Promise<number> {
   const db = await getDb();
   if (!db || tradesToInsert.length === 0) return 0;
 
@@ -603,13 +698,13 @@ export async function bulkInsertTrades(tradesToInsert: Array<{
     // Insert in batches of 100 to avoid query size limits
     const batchSize = 100;
     let inserted = 0;
-    
+
     for (let i = 0; i < tradesToInsert.length; i += batchSize) {
       const batch = tradesToInsert.slice(i, i + batchSize);
       await db.insert(trades).values(batch);
       inserted += batch.length;
     }
-    
+
     console.log(`[Database] Bulk inserted ${inserted} trades`);
     return inserted;
   } catch (error) {
@@ -641,21 +736,21 @@ export async function uploadTradesForStrategy(
   if (!db) throw new Error("Database not available");
 
   let deleted = 0;
-  
+
   // Delete existing trades if overwrite is enabled
   if (overwrite) {
     deleted = await deleteTradesByStrategy(strategyId);
   }
-  
+
   // Add strategyId to each trade
   const tradesWithStrategy = tradesToUpload.map(t => ({
     ...t,
     strategyId,
   }));
-  
+
   // Insert new trades
   const inserted = await bulkInsertTrades(tradesWithStrategy);
-  
+
   return { deleted, inserted };
 }
 
@@ -666,7 +761,9 @@ export async function uploadTradesForStrategy(
 /**
  * Create a new open position when an entry signal is received
  */
-export async function createOpenPosition(position: InsertOpenPosition): Promise<number | null> {
+export async function createOpenPosition(
+  position: InsertOpenPosition
+): Promise<number | null> {
   const db = await getDb();
   if (!db) {
     throw new Error("Database not available");
@@ -686,16 +783,19 @@ export async function createOpenPosition(position: InsertOpenPosition): Promise<
 /**
  * Get open position for a strategy (there should only be one open position per strategy at a time)
  */
-export async function getOpenPositionByStrategy(strategySymbol: string): Promise<OpenPosition | null> {
+export async function getOpenPositionByStrategy(
+  strategySymbol: string
+): Promise<OpenPosition | null> {
   const db = await getDb();
   if (!db) return null;
 
-  const result = await db.select()
+  const result = await db
+    .select()
     .from(openPositions)
     .where(
       and(
         eq(openPositions.strategySymbol, strategySymbol),
-        eq(openPositions.status, 'open')
+        eq(openPositions.status, "open")
       )
     )
     .orderBy(desc(openPositions.createdAt))
@@ -707,11 +807,14 @@ export async function getOpenPositionByStrategy(strategySymbol: string): Promise
 /**
  * Get open position by ID
  */
-export async function getOpenPositionById(id: number): Promise<OpenPosition | null> {
+export async function getOpenPositionById(
+  id: number
+): Promise<OpenPosition | null> {
   const db = await getDb();
   if (!db) return null;
 
-  const result = await db.select()
+  const result = await db
+    .select()
     .from(openPositions)
     .where(eq(openPositions.id, id))
     .limit(1);
@@ -726,20 +829,24 @@ export async function getAllOpenPositions(): Promise<OpenPosition[]> {
   const db = await getDb();
   if (!db) return [];
 
-  return await db.select()
+  return await db
+    .select()
     .from(openPositions)
-    .where(eq(openPositions.status, 'open'))
+    .where(eq(openPositions.status, "open"))
     .orderBy(desc(openPositions.entryTime));
 }
 
 /**
  * Get all positions (open and recently closed) for dashboard
  */
-export async function getRecentPositions(limit: number = 50): Promise<OpenPosition[]> {
+export async function getRecentPositions(
+  limit: number = 50
+): Promise<OpenPosition[]> {
   const db = await getDb();
   if (!db) return [];
 
-  return await db.select()
+  return await db
+    .select()
     .from(openPositions)
     .orderBy(desc(openPositions.updatedAt))
     .limit(limit);
@@ -762,9 +869,10 @@ export async function closeOpenPosition(
   if (!db) return false;
 
   try {
-    await db.update(openPositions)
+    await db
+      .update(openPositions)
       .set({
-        status: 'closed',
+        status: "closed",
         exitPrice: exitData.exitPrice,
         exitTime: exitData.exitTime,
         exitWebhookLogId: exitData.exitWebhookLogId,
@@ -798,12 +906,15 @@ export async function deleteOpenPosition(positionId: number): Promise<boolean> {
 /**
  * Clear all open positions for a strategy (admin function)
  */
-export async function clearOpenPositionsForStrategy(strategySymbol: string): Promise<number> {
+export async function clearOpenPositionsForStrategy(
+  strategySymbol: string
+): Promise<number> {
   const db = await getDb();
   if (!db) return 0;
 
   try {
-    const result = await db.delete(openPositions)
+    const result = await db
+      .delete(openPositions)
       .where(eq(openPositions.strategySymbol, strategySymbol));
     return (result as any).affectedRows || 0;
   } catch (error) {
@@ -825,26 +936,31 @@ export async function getPositionStats(): Promise<{
 
   try {
     // Get open positions count
-    const openResult = await db.select()
+    const openResult = await db
+      .select()
       .from(openPositions)
-      .where(eq(openPositions.status, 'open'));
-    
+      .where(eq(openPositions.status, "open"));
+
     // Get today's closed positions
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
-    const closedResult = await db.select()
+
+    const closedResult = await db
+      .select()
       .from(openPositions)
       .where(
         and(
-          eq(openPositions.status, 'closed'),
+          eq(openPositions.status, "closed"),
           gte(openPositions.exitTime!, today)
         )
       );
-    
+
     // Calculate total P&L for today
-    const totalPnlToday = closedResult.reduce((sum, pos) => sum + (pos.pnl || 0), 0);
-    
+    const totalPnlToday = closedResult.reduce(
+      (sum, pos) => sum + (pos.pnl || 0),
+      0
+    );
+
     return {
       open: openResult.length,
       closedToday: closedResult.length,
@@ -856,7 +972,6 @@ export async function getPositionStats(): Promise<{
   }
 }
 
-
 // ============================================================================
 // Notification Preferences Functions
 // ============================================================================
@@ -864,25 +979,35 @@ export async function getPositionStats(): Promise<{
 /**
  * Get notification preferences for a user
  */
-export async function getNotificationPreferences(userId: number): Promise<NotificationPreference | null> {
+export async function getNotificationPreferences(
+  userId: number
+): Promise<NotificationPreference | null> {
   const db = await getDb();
   if (!db) return null;
-  
-  const result = await db.select().from(notificationPreferences).where(eq(notificationPreferences.userId, userId)).limit(1);
+
+  const result = await db
+    .select()
+    .from(notificationPreferences)
+    .where(eq(notificationPreferences.userId, userId))
+    .limit(1);
   return result[0] || null;
 }
 
 /**
  * Create or update notification preferences for a user
  */
-export async function upsertNotificationPreferences(userId: number, prefs: Partial<InsertNotificationPreference>): Promise<void> {
+export async function upsertNotificationPreferences(
+  userId: number,
+  prefs: Partial<InsertNotificationPreference>
+): Promise<void> {
   const db = await getDb();
   if (!db) return;
-  
+
   const existing = await getNotificationPreferences(userId);
-  
+
   if (existing) {
-    await db.update(notificationPreferences)
+    await db
+      .update(notificationPreferences)
       .set({ ...prefs, updatedAt: new Date() })
       .where(eq(notificationPreferences.userId, userId));
   } else {
@@ -906,27 +1031,39 @@ export async function upsertNotificationPreferences(userId: number, prefs: Parti
 /**
  * Get strategy notification settings for a user
  */
-export async function getStrategyNotificationSettings(userId: number): Promise<StrategyNotificationSetting[]> {
+export async function getStrategyNotificationSettings(
+  userId: number
+): Promise<StrategyNotificationSetting[]> {
   const db = await getDb();
   if (!db) return [];
-  
-  return db.select().from(strategyNotificationSettings).where(eq(strategyNotificationSettings.userId, userId));
+
+  return db
+    .select()
+    .from(strategyNotificationSettings)
+    .where(eq(strategyNotificationSettings.userId, userId));
 }
 
 /**
  * Get notification setting for a specific strategy
  */
-export async function getStrategyNotificationSetting(userId: number, strategyId: number): Promise<StrategyNotificationSetting | null> {
+export async function getStrategyNotificationSetting(
+  userId: number,
+  strategyId: number
+): Promise<StrategyNotificationSetting | null> {
   const db = await getDb();
   if (!db) return null;
-  
-  const result = await db.select().from(strategyNotificationSettings)
-    .where(and(
-      eq(strategyNotificationSettings.userId, userId),
-      eq(strategyNotificationSettings.strategyId, strategyId)
-    ))
+
+  const result = await db
+    .select()
+    .from(strategyNotificationSettings)
+    .where(
+      and(
+        eq(strategyNotificationSettings.userId, userId),
+        eq(strategyNotificationSettings.strategyId, strategyId)
+      )
+    )
     .limit(1);
-  
+
   return result[0] || null;
 }
 
@@ -934,22 +1071,25 @@ export async function getStrategyNotificationSetting(userId: number, strategyId:
  * Update notification setting for a specific strategy
  */
 export async function upsertStrategyNotificationSetting(
-  userId: number, 
-  strategyId: number, 
+  userId: number,
+  strategyId: number,
   settings: { emailEnabled?: boolean; pushEnabled?: boolean }
 ): Promise<void> {
   const db = await getDb();
   if (!db) return;
-  
+
   const existing = await getStrategyNotificationSetting(userId, strategyId);
-  
+
   if (existing) {
-    await db.update(strategyNotificationSettings)
+    await db
+      .update(strategyNotificationSettings)
       .set({ ...settings, updatedAt: new Date() })
-      .where(and(
-        eq(strategyNotificationSettings.userId, userId),
-        eq(strategyNotificationSettings.strategyId, strategyId)
-      ));
+      .where(
+        and(
+          eq(strategyNotificationSettings.userId, userId),
+          eq(strategyNotificationSettings.strategyId, strategyId)
+        )
+      );
   } else {
     await db.insert(strategyNotificationSettings).values({
       userId,
@@ -965,54 +1105,63 @@ export async function upsertStrategyNotificationSetting(
  * Returns true if notifications should be sent based on type and mute settings
  */
 export async function shouldSendNotification(
-  userId: number, 
-  strategyId: number, 
-  type: 'trade_executed' | 'trade_error' | 'position_opened' | 'position_closed' | 'webhook_failed' | 'daily_digest'
+  userId: number,
+  strategyId: number,
+  type:
+    | "trade_executed"
+    | "trade_error"
+    | "position_opened"
+    | "position_closed"
+    | "webhook_failed"
+    | "daily_digest"
 ): Promise<{ email: boolean; inApp: boolean }> {
   const prefs = await getNotificationPreferences(userId);
-  const strategySettings = await getStrategyNotificationSetting(userId, strategyId);
-  
+  const strategySettings = await getStrategyNotificationSetting(
+    userId,
+    strategyId
+  );
+
   // Default to enabled if no preferences set
   if (!prefs) {
     return { email: true, inApp: true };
   }
-  
+
   // Check global mute
   if (prefs.globalMute) {
     return { email: false, inApp: false };
   }
-  
+
   // Check type-specific mute settings
   let typeMuted = false;
   switch (type) {
-    case 'trade_executed':
+    case "trade_executed":
       typeMuted = prefs.muteTradeExecuted;
       break;
-    case 'trade_error':
+    case "trade_error":
       typeMuted = prefs.muteTradeError;
       break;
-    case 'position_opened':
+    case "position_opened":
       typeMuted = prefs.mutePositionOpened;
       break;
-    case 'position_closed':
+    case "position_closed":
       typeMuted = prefs.mutePositionClosed;
       break;
-    case 'webhook_failed':
+    case "webhook_failed":
       typeMuted = prefs.muteWebhookFailed;
       break;
-    case 'daily_digest':
+    case "daily_digest":
       typeMuted = prefs.muteDailyDigest;
       break;
   }
-  
+
   if (typeMuted) {
     return { email: false, inApp: false };
   }
-  
+
   // Check strategy-specific settings (default to enabled if not set)
   const strategyEmailEnabled = strategySettings?.emailEnabled ?? true;
   const strategyPushEnabled = strategySettings?.pushEnabled ?? true;
-  
+
   return {
     email: prefs.emailEnabled && strategyEmailEnabled,
     inApp: prefs.inAppEnabled && strategyPushEnabled,
@@ -1022,22 +1171,29 @@ export async function shouldSendNotification(
 /**
  * Get all strategies with their notification settings for a user
  */
-export async function getStrategiesWithNotificationSettings(userId: number): Promise<Array<{
-  id: number;
-  symbol: string;
-  name: string;
-  emailEnabled: boolean;
-  pushEnabled: boolean;
-}>> {
+export async function getStrategiesWithNotificationSettings(
+  userId: number
+): Promise<
+  Array<{
+    id: number;
+    symbol: string;
+    name: string;
+    emailEnabled: boolean;
+    pushEnabled: boolean;
+  }>
+> {
   const db = await getDb();
   if (!db) return [];
-  
-  const allStrategies = await db.select().from(strategies).where(eq(strategies.active, true));
+
+  const allStrategies = await db
+    .select()
+    .from(strategies)
+    .where(eq(strategies.active, true));
   const userSettings = await getStrategyNotificationSettings(userId);
-  
+
   // Create a map of strategy settings
   const settingsMap = new Map(userSettings.map(s => [s.strategyId, s]));
-  
+
   return allStrategies.map(strategy => ({
     id: strategy.id,
     symbol: strategy.symbol,
@@ -1046,7 +1202,6 @@ export async function getStrategiesWithNotificationSettings(userId: number): Pro
     pushEnabled: settingsMap.get(strategy.id)?.pushEnabled ?? true,
   }));
 }
-
 
 // ============================================================================
 // Staging Trades Functions (Webhook Review Workflow)
@@ -1088,9 +1243,9 @@ export async function createStagingTrade(trade: {
       pnlPercent: trade.pnlPercent || null,
       commission: trade.commission || 0,
       isOpen: trade.isOpen ?? !trade.exitDate,
-      status: 'pending',
+      status: "pending",
     });
-    
+
     // Get the inserted ID
     const insertedId = (result as any)[0]?.insertId;
     return insertedId || null;
@@ -1104,7 +1259,7 @@ export async function createStagingTrade(trade: {
  * Get all staging trades with optional filters
  */
 export async function getStagingTrades(params?: {
-  status?: 'pending' | 'approved' | 'rejected' | 'edited';
+  status?: "pending" | "approved" | "rejected" | "edited";
   strategyId?: number;
   isOpen?: boolean;
   limit?: number;
@@ -1113,7 +1268,7 @@ export async function getStagingTrades(params?: {
   if (!db) return [];
 
   const { status, strategyId, isOpen, limit = 100 } = params || {};
-  
+
   const conditions = [];
   if (status) {
     conditions.push(eq(stagingTrades.status, status));
@@ -1126,13 +1281,17 @@ export async function getStagingTrades(params?: {
   }
 
   if (conditions.length > 0) {
-    return await db.select().from(stagingTrades)
+    return await db
+      .select()
+      .from(stagingTrades)
       .where(and(...conditions))
       .orderBy(desc(stagingTrades.createdAt))
       .limit(limit);
   }
 
-  return await db.select().from(stagingTrades)
+  return await db
+    .select()
+    .from(stagingTrades)
     .orderBy(desc(stagingTrades.createdAt))
     .limit(limit);
 }
@@ -1140,14 +1299,18 @@ export async function getStagingTrades(params?: {
 /**
  * Get a single staging trade by ID
  */
-export async function getStagingTradeById(id: number): Promise<StagingTrade | null> {
+export async function getStagingTradeById(
+  id: number
+): Promise<StagingTrade | null> {
   const db = await getDb();
   if (!db) return null;
 
-  const result = await db.select().from(stagingTrades)
+  const result = await db
+    .select()
+    .from(stagingTrades)
     .where(eq(stagingTrades.id, id))
     .limit(1);
-  
+
   return result[0] || null;
 }
 
@@ -1160,22 +1323,32 @@ export async function approveStagingTrade(
   reviewNotes?: string
 ): Promise<{ success: boolean; productionTradeId?: number; error?: string }> {
   const db = await getDb();
-  if (!db) return { success: false, error: 'Database not available' };
+  if (!db) return { success: false, error: "Database not available" };
 
   try {
     // Get the staging trade
     const stagingTrade = await getStagingTradeById(stagingTradeId);
     if (!stagingTrade) {
-      return { success: false, error: 'Staging trade not found' };
+      return { success: false, error: "Staging trade not found" };
     }
 
-    if (stagingTrade.status !== 'pending' && stagingTrade.status !== 'edited') {
-      return { success: false, error: `Cannot approve trade with status: ${stagingTrade.status}` };
+    if (stagingTrade.status !== "pending" && stagingTrade.status !== "edited") {
+      return {
+        success: false,
+        error: `Cannot approve trade with status: ${stagingTrade.status}`,
+      };
     }
 
     // Only approve closed trades (with exit data)
-    if (stagingTrade.isOpen || !stagingTrade.exitDate || !stagingTrade.exitPrice) {
-      return { success: false, error: 'Cannot approve open positions. Wait for exit signal.' };
+    if (
+      stagingTrade.isOpen ||
+      !stagingTrade.exitDate ||
+      !stagingTrade.exitPrice
+    ) {
+      return {
+        success: false,
+        error: "Cannot approve open positions. Wait for exit signal.",
+      };
     }
 
     // Insert into production trades table
@@ -1195,9 +1368,10 @@ export async function approveStagingTrade(
     const productionTradeId = (insertResult as any)[0]?.insertId;
 
     // Update staging trade status
-    await db.update(stagingTrades)
+    await db
+      .update(stagingTrades)
       .set({
-        status: 'approved',
+        status: "approved",
         reviewedBy,
         reviewedAt: new Date(),
         reviewNotes,
@@ -1205,11 +1379,16 @@ export async function approveStagingTrade(
       })
       .where(eq(stagingTrades.id, stagingTradeId));
 
-    console.log(`[Database] Approved staging trade ${stagingTradeId} -> production trade ${productionTradeId}`);
+    console.log(
+      `[Database] Approved staging trade ${stagingTradeId} -> production trade ${productionTradeId}`
+    );
     return { success: true, productionTradeId };
   } catch (error) {
     console.error("[Database] Failed to approve staging trade:", error);
-    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
   }
 }
 
@@ -1222,17 +1401,18 @@ export async function rejectStagingTrade(
   reviewNotes?: string
 ): Promise<{ success: boolean; error?: string }> {
   const db = await getDb();
-  if (!db) return { success: false, error: 'Database not available' };
+  if (!db) return { success: false, error: "Database not available" };
 
   try {
     const stagingTrade = await getStagingTradeById(stagingTradeId);
     if (!stagingTrade) {
-      return { success: false, error: 'Staging trade not found' };
+      return { success: false, error: "Staging trade not found" };
     }
 
-    await db.update(stagingTrades)
+    await db
+      .update(stagingTrades)
       .set({
-        status: 'rejected',
+        status: "rejected",
         reviewedBy,
         reviewedAt: new Date(),
         reviewNotes,
@@ -1243,7 +1423,10 @@ export async function rejectStagingTrade(
     return { success: true };
   } catch (error) {
     console.error("[Database] Failed to reject staging trade:", error);
-    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
   }
 }
 
@@ -1267,12 +1450,12 @@ export async function editStagingTrade(
   reviewNotes?: string
 ): Promise<{ success: boolean; error?: string }> {
   const db = await getDb();
-  if (!db) return { success: false, error: 'Database not available' };
+  if (!db) return { success: false, error: "Database not available" };
 
   try {
     const stagingTrade = await getStagingTradeById(stagingTradeId);
     if (!stagingTrade) {
-      return { success: false, error: 'Staging trade not found' };
+      return { success: false, error: "Staging trade not found" };
     }
 
     // Store original values before edit
@@ -1288,10 +1471,11 @@ export async function editStagingTrade(
       commission: stagingTrade.commission,
     });
 
-    await db.update(stagingTrades)
+    await db
+      .update(stagingTrades)
       .set({
         ...updates,
-        status: 'edited',
+        status: "edited",
         reviewedBy,
         reviewedAt: new Date(),
         reviewNotes,
@@ -1304,14 +1488,19 @@ export async function editStagingTrade(
     return { success: true };
   } catch (error) {
     console.error("[Database] Failed to edit staging trade:", error);
-    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
   }
 }
 
 /**
  * Delete a staging trade permanently
  */
-export async function deleteStagingTrade(stagingTradeId: number): Promise<boolean> {
+export async function deleteStagingTrade(
+  stagingTradeId: number
+): Promise<boolean> {
   const db = await getDb();
   if (!db) return false;
 
@@ -1336,21 +1525,34 @@ export async function getStagingTradeStats(): Promise<{
   openPositions: number;
 }> {
   const db = await getDb();
-  if (!db) return { pending: 0, approved: 0, rejected: 0, edited: 0, openPositions: 0 };
+  if (!db)
+    return {
+      pending: 0,
+      approved: 0,
+      rejected: 0,
+      edited: 0,
+      openPositions: 0,
+    };
 
   try {
     const allTrades = await db.select().from(stagingTrades);
-    
+
     return {
-      pending: allTrades.filter(t => t.status === 'pending').length,
-      approved: allTrades.filter(t => t.status === 'approved').length,
-      rejected: allTrades.filter(t => t.status === 'rejected').length,
-      edited: allTrades.filter(t => t.status === 'edited').length,
+      pending: allTrades.filter(t => t.status === "pending").length,
+      approved: allTrades.filter(t => t.status === "approved").length,
+      rejected: allTrades.filter(t => t.status === "rejected").length,
+      edited: allTrades.filter(t => t.status === "edited").length,
       openPositions: allTrades.filter(t => t.isOpen).length,
     };
   } catch (error) {
     console.error("[Database] Failed to get staging trade stats:", error);
-    return { pending: 0, approved: 0, rejected: 0, edited: 0, openPositions: 0 };
+    return {
+      pending: 0,
+      approved: 0,
+      rejected: 0,
+      edited: 0,
+      openPositions: 0,
+    };
   }
 }
 
@@ -1368,28 +1570,36 @@ export async function updateStagingTradeExit(
   }
 ): Promise<{ success: boolean; stagingTradeId?: number; error?: string }> {
   const db = await getDb();
-  if (!db) return { success: false, error: 'Database not available' };
+  if (!db) return { success: false, error: "Database not available" };
 
   try {
     // Find the open staging trade for this strategy and direction
-    const openTrades = await db.select().from(stagingTrades)
-      .where(and(
-        eq(stagingTrades.strategySymbol, strategySymbol),
-        eq(stagingTrades.direction, direction),
-        eq(stagingTrades.isOpen, true),
-        eq(stagingTrades.status, 'pending')
-      ))
+    const openTrades = await db
+      .select()
+      .from(stagingTrades)
+      .where(
+        and(
+          eq(stagingTrades.strategySymbol, strategySymbol),
+          eq(stagingTrades.direction, direction),
+          eq(stagingTrades.isOpen, true),
+          eq(stagingTrades.status, "pending")
+        )
+      )
       .orderBy(desc(stagingTrades.createdAt))
       .limit(1);
 
     if (openTrades.length === 0) {
-      return { success: false, error: 'No open staging trade found for this strategy' };
+      return {
+        success: false,
+        error: "No open staging trade found for this strategy",
+      };
     }
 
     const openTrade = openTrades[0];
 
     // Update with exit data
-    await db.update(stagingTrades)
+    await db
+      .update(stagingTrades)
       .set({
         exitDate: exitData.exitDate,
         exitPrice: exitData.exitPrice,
@@ -1399,14 +1609,18 @@ export async function updateStagingTradeExit(
       })
       .where(eq(stagingTrades.id, openTrade.id));
 
-    console.log(`[Database] Updated staging trade ${openTrade.id} with exit data`);
+    console.log(
+      `[Database] Updated staging trade ${openTrade.id} with exit data`
+    );
     return { success: true, stagingTradeId: openTrade.id };
   } catch (error) {
     console.error("[Database] Failed to update staging trade exit:", error);
-    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
   }
 }
-
 
 // ============================================================================
 // Test Data Cleanup Functions
@@ -1421,13 +1635,14 @@ export async function deleteTestWebhookLogs(): Promise<number> {
   if (!db) return 0;
 
   try {
-    const countResult = await db.select({ count: sql<number>`count(*)` })
+    const countResult = await db
+      .select({ count: sql<number>`count(*)` })
       .from(webhookLogs)
       .where(eq(webhookLogs.isTest, true));
     const count = countResult[0]?.count ?? 0;
-    
+
     if (count === 0) return 0;
-    
+
     await db.delete(webhookLogs).where(eq(webhookLogs.isTest, true));
     console.log(`[Database] Deleted ${count} test webhook logs`);
     return count;
@@ -1446,13 +1661,14 @@ export async function deleteTestTrades(): Promise<number> {
   if (!db) return 0;
 
   try {
-    const countResult = await db.select({ count: sql<number>`count(*)` })
+    const countResult = await db
+      .select({ count: sql<number>`count(*)` })
       .from(trades)
       .where(eq(trades.isTest, true));
     const count = countResult[0]?.count ?? 0;
-    
+
     if (count === 0) return 0;
-    
+
     await db.delete(trades).where(eq(trades.isTest, true));
     console.log(`[Database] Deleted ${count} test trades`);
     return count;
@@ -1471,13 +1687,14 @@ export async function deleteTestOpenPositions(): Promise<number> {
   if (!db) return 0;
 
   try {
-    const countResult = await db.select({ count: sql<number>`count(*)` })
+    const countResult = await db
+      .select({ count: sql<number>`count(*)` })
       .from(openPositions)
       .where(eq(openPositions.isTest, true));
     const count = countResult[0]?.count ?? 0;
-    
+
     if (count === 0) return 0;
-    
+
     await db.delete(openPositions).where(eq(openPositions.isTest, true));
     console.log(`[Database] Deleted ${count} test open positions`);
     return count;
@@ -1500,7 +1717,7 @@ export async function deleteAllTestData(): Promise<{
   const webhookLogs = await deleteTestWebhookLogs();
   const trades = await deleteTestTrades();
   const openPositions = await deleteTestOpenPositions();
-  
+
   return {
     webhookLogs,
     trades,
@@ -1523,9 +1740,18 @@ export async function getTestDataCounts(): Promise<{
   if (!db) return { webhookLogs: 0, trades: 0, openPositions: 0, total: 0 };
 
   const [wlCount, tCount, opCount] = await Promise.all([
-    db.select({ count: sql<number>`count(*)` }).from(webhookLogs).where(eq(webhookLogs.isTest, true)),
-    db.select({ count: sql<number>`count(*)` }).from(trades).where(eq(trades.isTest, true)),
-    db.select({ count: sql<number>`count(*)` }).from(openPositions).where(eq(openPositions.isTest, true)),
+    db
+      .select({ count: sql<number>`count(*)` })
+      .from(webhookLogs)
+      .where(eq(webhookLogs.isTest, true)),
+    db
+      .select({ count: sql<number>`count(*)` })
+      .from(trades)
+      .where(eq(trades.isTest, true)),
+    db
+      .select({ count: sql<number>`count(*)` })
+      .from(openPositions)
+      .where(eq(openPositions.isTest, true)),
   ]);
 
   const webhookLogsCount = wlCount[0]?.count ?? 0;

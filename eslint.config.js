@@ -40,6 +40,41 @@ export default [
         Response: 'readonly',
         Headers: 'readonly',
         AbortController: 'readonly',
+        requestAnimationFrame: 'readonly',
+        // DOM types
+        HTMLDivElement: 'readonly',
+        HTMLFormElement: 'readonly',
+        HTMLTextAreaElement: 'readonly',
+        HTMLInputElement: 'readonly',
+        HTMLButtonElement: 'readonly',
+        HTMLElement: 'readonly',
+        MouseEvent: 'readonly',
+        KeyboardEvent: 'readonly',
+        Event: 'readonly',
+        ErrorEvent: 'readonly',
+        PromiseRejectionEvent: 'readonly',
+        EventSource: 'readonly',
+        // Browser APIs
+        btoa: 'readonly',
+        atob: 'readonly',
+        alert: 'readonly',
+        confirm: 'readonly',
+        prompt: 'readonly',
+        TextEncoder: 'readonly',
+        TextDecoder: 'readonly',
+        // Fetch types
+        RequestInit: 'readonly',
+        RequestInfo: 'readonly',
+        HeadersInit: 'readonly',
+        // Performance API
+        performance: 'readonly',
+        // Node.js types
+        NodeJS: 'readonly',
+        // React
+        React: 'readonly',
+        JSX: 'readonly',
+        // Google Maps
+        google: 'readonly',
         // Node globals
         process: 'readonly',
         Buffer: 'readonly',
@@ -82,6 +117,12 @@ export default [
       
       // Disable base rule in favor of TypeScript version
       'no-unused-vars': 'off',
+      
+      // Allow lexical declarations in case blocks (common pattern)
+      'no-case-declarations': 'off',
+      
+      // Allow empty catch blocks (common for error suppression)
+      'no-empty': ['error', { allowEmptyCatch: true }],
     },
   },
   {

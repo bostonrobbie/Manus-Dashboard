@@ -1,14 +1,18 @@
 /**
  * Broker Service Framework
- * 
+ *
  * This module provides the foundation for connecting to trading brokers
- * (Tradovate, IBKR, Fidelity) and executing trades based on webhook signals.
- * 
+ * (Tradovate, IBKR, Fidelity, Alpaca) and executing trades based on webhook signals.
+ *
  * Current Status: Framework only - no live trading implemented yet
  */
 
 import { getDb } from "./db";
-import { brokerConnections, routingRules, executionLogs } from "../drizzle/schema";
+import {
+  brokerConnections,
+  routingRules,
+  executionLogs,
+} from "../drizzle/schema";
 import { eq, desc } from "drizzle-orm";
 import { encrypt, decrypt } from "./utils/encryption";
 
@@ -16,9 +20,13 @@ import { encrypt, decrypt } from "./utils/encryption";
 // TYPES
 // ============================================================================
 
-export type BrokerType = "tradovate" | "ibkr" | "fidelity";
+export type BrokerType = "tradovate" | "ibkr" | "fidelity" | "alpaca";
 
-export type ConnectionStatus = "disconnected" | "connecting" | "connected" | "error";
+export type ConnectionStatus =
+  | "disconnected"
+  | "connecting"
+  | "connected"
+  | "error";
 
 export interface BrokerCredentials {
   apiKey?: string;
@@ -61,19 +69,23 @@ export interface AccountInfo {
  */
 export interface IBrokerService {
   readonly brokerType: BrokerType;
-  
+
   // Connection management
-  connect(credentials: BrokerCredentials): Promise<{ success: boolean; error?: string }>;
+  connect(
+    credentials: BrokerCredentials
+  ): Promise<{ success: boolean; error?: string }>;
   disconnect(): Promise<void>;
   isConnected(): boolean;
-  
+
   // Account operations
   getAccountInfo(): Promise<AccountInfo | null>;
-  
+
   // Order operations (not implemented yet - framework only)
   placeOrder(order: OrderRequest): Promise<OrderResult>;
   cancelOrder(orderId: string): Promise<{ success: boolean; error?: string }>;
-  getOrderStatus(orderId: string): Promise<{ status: string; fillPrice?: number; fillQuantity?: number }>;
+  getOrderStatus(
+    orderId: string
+  ): Promise<{ status: string; fillPrice?: number; fillQuantity?: number }>;
 }
 
 // ============================================================================
@@ -84,38 +96,40 @@ export class TradovateService implements IBrokerService {
   readonly brokerType: BrokerType = "tradovate";
   private connected = false;
   private accountId: string | null = null;
-  
+
   /**
    * Connect to Tradovate API
-   * 
+   *
    * Tradovate uses OAuth2 authentication:
    * 1. User authenticates via Tradovate login
    * 2. We receive access token and refresh token
    * 3. Access token used for API calls
-   * 
+   *
    * For now, this is a placeholder that simulates connection
    */
-  async connect(credentials: BrokerCredentials): Promise<{ success: boolean; error?: string }> {
+  async connect(
+    credentials: BrokerCredentials
+  ): Promise<{ success: boolean; error?: string }> {
     try {
       // TODO: Implement actual Tradovate OAuth flow
       // https://api.tradovate.com/v1/auth/accesstokenrequest
-      
+
       console.log("[Tradovate] Attempting connection...");
-      
+
       // Validate required credentials
       if (!credentials.username || !credentials.password) {
         return { success: false, error: "Username and password required" };
       }
-      
+
       // Simulate connection (replace with actual API call)
       // In production, this would:
       // 1. POST to https://demo.tradovateapi.com/v1/auth/accesstokenrequest
       // 2. Store the access token and refresh token
       // 3. Set up token refresh timer
-      
+
       this.connected = true;
       this.accountId = credentials.accountId || null;
-      
+
       console.log("[Tradovate] Connection established (simulated)");
       return { success: true };
     } catch (error) {
@@ -123,23 +137,23 @@ export class TradovateService implements IBrokerService {
       return { success: false, error: String(error) };
     }
   }
-  
+
   async disconnect(): Promise<void> {
     this.connected = false;
     this.accountId = null;
     console.log("[Tradovate] Disconnected");
   }
-  
+
   isConnected(): boolean {
     return this.connected;
   }
-  
+
   async getAccountInfo(): Promise<AccountInfo | null> {
     if (!this.connected) return null;
-    
+
     // TODO: Implement actual account info fetch
     // GET https://demo.tradovateapi.com/v1/account/list
-    
+
     return {
       accountId: this.accountId || "demo-account",
       accountName: "Tradovate Demo",
@@ -148,33 +162,37 @@ export class TradovateService implements IBrokerService {
       buyingPower: 100000,
     };
   }
-  
+
   async placeOrder(order: OrderRequest): Promise<OrderResult> {
     if (!this.connected) {
       return { success: false, error: "Not connected to Tradovate" };
     }
-    
+
     // TODO: Implement actual order placement
     // POST https://demo.tradovateapi.com/v1/order/placeorder
-    
+
     console.log("[Tradovate] Order placement not implemented yet:", order);
-    return { 
-      success: false, 
-      error: "Order execution not implemented - signal logged only" 
+    return {
+      success: false,
+      error: "Order execution not implemented - signal logged only",
     };
   }
-  
-  async cancelOrder(orderId: string): Promise<{ success: boolean; error?: string }> {
+
+  async cancelOrder(
+    orderId: string
+  ): Promise<{ success: boolean; error?: string }> {
     if (!this.connected) {
       return { success: false, error: "Not connected to Tradovate" };
     }
-    
+
     // TODO: Implement actual order cancellation
     console.log("[Tradovate] Order cancellation not implemented:", orderId);
     return { success: false, error: "Not implemented" };
   }
-  
-  async getOrderStatus(_orderId: string): Promise<{ status: string; fillPrice?: number; fillQuantity?: number }> {
+
+  async getOrderStatus(
+    _orderId: string
+  ): Promise<{ status: string; fillPrice?: number; fillQuantity?: number }> {
     // TODO: Implement actual order status check
     return { status: "unknown" };
   }
@@ -187,41 +205,45 @@ export class TradovateService implements IBrokerService {
 export class IBKRService implements IBrokerService {
   readonly brokerType: BrokerType = "ibkr";
   private connected = false;
-  
+
   /**
    * Connect to Interactive Brokers
-   * 
+   *
    * IBKR uses the Client Portal API or TWS API:
    * - Client Portal: REST API, requires gateway running
    * - TWS API: Socket-based, requires TWS or IB Gateway
-   * 
+   *
    * For now, this is a placeholder
    */
-  async connect(_credentials: BrokerCredentials): Promise<{ success: boolean; error?: string }> {
+  async connect(
+    _credentials: BrokerCredentials
+  ): Promise<{ success: boolean; error?: string }> {
     console.log("[IBKR] Connection not implemented yet");
     return { success: false, error: "IBKR integration coming soon" };
   }
-  
+
   async disconnect(): Promise<void> {
     this.connected = false;
   }
-  
+
   isConnected(): boolean {
     return this.connected;
   }
-  
+
   async getAccountInfo(): Promise<AccountInfo | null> {
     return null;
   }
-  
+
   async placeOrder(_order: OrderRequest): Promise<OrderResult> {
     return { success: false, error: "IBKR integration not implemented" };
   }
-  
-  async cancelOrder(_orderId: string): Promise<{ success: boolean; error?: string }> {
+
+  async cancelOrder(
+    _orderId: string
+  ): Promise<{ success: boolean; error?: string }> {
     return { success: false, error: "Not implemented" };
   }
-  
+
   async getOrderStatus(_orderId: string): Promise<{ status: string }> {
     return { status: "unknown" };
   }
@@ -234,34 +256,246 @@ export class IBKRService implements IBrokerService {
 export class FidelityService implements IBrokerService {
   readonly brokerType: BrokerType = "fidelity";
   private connected = false;
-  
-  async connect(_credentials: BrokerCredentials): Promise<{ success: boolean; error?: string }> {
+
+  async connect(
+    _credentials: BrokerCredentials
+  ): Promise<{ success: boolean; error?: string }> {
     console.log("[Fidelity] Connection not available - coming soon");
     return { success: false, error: "Fidelity integration coming soon" };
   }
-  
+
   async disconnect(): Promise<void> {
     this.connected = false;
   }
-  
+
   isConnected(): boolean {
     return this.connected;
   }
-  
+
   async getAccountInfo(): Promise<AccountInfo | null> {
     return null;
   }
-  
+
   async placeOrder(_order: OrderRequest): Promise<OrderResult> {
     return { success: false, error: "Fidelity integration not available" };
   }
-  
-  async cancelOrder(_orderId: string): Promise<{ success: boolean; error?: string }> {
+
+  async cancelOrder(
+    _orderId: string
+  ): Promise<{ success: boolean; error?: string }> {
     return { success: false, error: "Not implemented" };
   }
-  
+
   async getOrderStatus(_orderId: string): Promise<{ status: string }> {
     return { status: "unknown" };
+  }
+}
+
+// ============================================================================
+// ALPACA SERVICE
+// ============================================================================
+
+import { AlpacaApiClient, createAlpacaClient } from "./alpacaApi";
+
+export class AlpacaService implements IBrokerService {
+  readonly brokerType: BrokerType = "alpaca";
+  private connected = false;
+  private client: AlpacaApiClient | null = null;
+  private accountId: string | null = null;
+
+  /**
+   * Connect to Alpaca API
+   *
+   * Alpaca uses API key authentication (no OAuth required for paper trading)
+   * Paper trading is free and doesn't require a funded account
+   */
+  async connect(
+    credentials: BrokerCredentials
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      if (!credentials.apiKey || !credentials.apiSecret) {
+        return {
+          success: false,
+          error: "API Key ID and Secret Key are required",
+        };
+      }
+
+      // Create client (default to paper trading)
+      this.client = createAlpacaClient({
+        apiKeyId: credentials.apiKey,
+        apiSecretKey: credentials.apiSecret,
+        isPaper: true, // Always use paper trading for safety
+      });
+
+      // Test connection by fetching account info
+      const result = await this.client.testConnection();
+
+      if (result.success && result.account) {
+        this.connected = true;
+        this.accountId = result.account.account_number;
+        console.log(
+          `[Alpaca] Connected to ${this.client.getMode()} account: ${this.accountId}`
+        );
+        return { success: true };
+      }
+
+      return { success: false, error: result.error || "Failed to connect" };
+    } catch (error) {
+      console.error("[Alpaca] Connection error:", error);
+      return { success: false, error: String(error) };
+    }
+  }
+
+  async disconnect(): Promise<void> {
+    this.connected = false;
+    this.client = null;
+    this.accountId = null;
+    console.log("[Alpaca] Disconnected");
+  }
+
+  isConnected(): boolean {
+    return this.connected;
+  }
+
+  async getAccountInfo(): Promise<AccountInfo | null> {
+    if (!this.client || !this.connected) return null;
+
+    try {
+      const account = await this.client.getAccount();
+      return {
+        accountId: account.account_number,
+        accountName: `Alpaca ${this.client.getMode().toUpperCase()}`,
+        accountType: this.client.getMode(),
+        balance: parseFloat(account.cash),
+        buyingPower: parseFloat(account.buying_power),
+      };
+    } catch (error) {
+      console.error("[Alpaca] Failed to get account info:", error);
+      return null;
+    }
+  }
+
+  async placeOrder(order: OrderRequest): Promise<OrderResult> {
+    if (!this.client || !this.connected) {
+      return { success: false, error: "Not connected to Alpaca" };
+    }
+
+    try {
+      let alpacaOrder;
+
+      if (order.orderType === "market") {
+        alpacaOrder = await this.client.placeMarketOrder(
+          order.symbol,
+          order.quantity,
+          order.side
+        );
+      } else if (order.orderType === "limit" && order.price) {
+        alpacaOrder = await this.client.placeLimitOrder(
+          order.symbol,
+          order.quantity,
+          order.side,
+          order.price
+        );
+      } else {
+        return {
+          success: false,
+          error: "Invalid order type or missing price for limit order",
+        };
+      }
+
+      console.log(
+        `[Alpaca] Order placed: ${alpacaOrder.id} - ${order.side} ${order.quantity} ${order.symbol}`
+      );
+
+      return {
+        success: true,
+        orderId: alpacaOrder.id,
+        fillPrice: alpacaOrder.filled_avg_price
+          ? parseFloat(alpacaOrder.filled_avg_price)
+          : undefined,
+        fillQuantity: alpacaOrder.filled_qty
+          ? parseFloat(alpacaOrder.filled_qty)
+          : undefined,
+      };
+    } catch (error) {
+      console.error("[Alpaca] Order placement failed:", error);
+      return { success: false, error: String(error) };
+    }
+  }
+
+  async cancelOrder(
+    orderId: string
+  ): Promise<{ success: boolean; error?: string }> {
+    if (!this.client || !this.connected) {
+      return { success: false, error: "Not connected to Alpaca" };
+    }
+
+    try {
+      await this.client.cancelOrder(orderId);
+      console.log(`[Alpaca] Order canceled: ${orderId}`);
+      return { success: true };
+    } catch (error) {
+      console.error("[Alpaca] Cancel order failed:", error);
+      return { success: false, error: String(error) };
+    }
+  }
+
+  async getOrderStatus(
+    orderId: string
+  ): Promise<{ status: string; fillPrice?: number; fillQuantity?: number }> {
+    if (!this.client || !this.connected) {
+      return { status: "unknown" };
+    }
+
+    try {
+      const order = await this.client.getOrder(orderId);
+      return {
+        status: order.status,
+        fillPrice: order.filled_avg_price
+          ? parseFloat(order.filled_avg_price)
+          : undefined,
+        fillQuantity: order.filled_qty
+          ? parseFloat(order.filled_qty)
+          : undefined,
+      };
+    } catch (error) {
+      console.error("[Alpaca] Get order status failed:", error);
+      return { status: "unknown" };
+    }
+  }
+
+  /**
+   * Get all open positions
+   */
+  async getPositions() {
+    if (!this.client || !this.connected) return [];
+
+    try {
+      return await this.client.getPositions();
+    } catch (error) {
+      console.error("[Alpaca] Get positions failed:", error);
+      return [];
+    }
+  }
+
+  /**
+   * Close a position
+   */
+  async closePosition(
+    symbol: string
+  ): Promise<{ success: boolean; error?: string }> {
+    if (!this.client || !this.connected) {
+      return { success: false, error: "Not connected to Alpaca" };
+    }
+
+    try {
+      await this.client.closePosition(symbol);
+      console.log(`[Alpaca] Position closed: ${symbol}`);
+      return { success: true };
+    } catch (error) {
+      console.error("[Alpaca] Close position failed:", error);
+      return { success: false, error: String(error) };
+    }
   }
 }
 
@@ -277,6 +511,8 @@ export function createBrokerService(brokerType: BrokerType): IBrokerService {
       return new IBKRService();
     case "fidelity":
       return new FidelityService();
+    case "alpaca":
+      return new AlpacaService();
     default:
       throw new Error(`Unknown broker type: ${brokerType}`);
   }
@@ -289,13 +525,19 @@ export function createBrokerService(brokerType: BrokerType): IBrokerService {
 export async function getBrokerConnections(userId: number) {
   const db = await getDb();
   if (!db) return [];
-  return db.select().from(brokerConnections).where(eq(brokerConnections.userId, userId));
+  return db
+    .select()
+    .from(brokerConnections)
+    .where(eq(brokerConnections.userId, userId));
 }
 
 export async function getBrokerConnection(id: number) {
   const db = await getDb();
   if (!db) return null;
-  const results = await db.select().from(brokerConnections).where(eq(brokerConnections.id, id));
+  const results = await db
+    .select()
+    .from(brokerConnections)
+    .where(eq(brokerConnections.id, id));
   return results[0] || null;
 }
 
@@ -309,19 +551,19 @@ export async function createBrokerConnection(data: {
   credentials?: BrokerCredentials;
 }) {
   const db = await getDb();
-  if (!db) throw new Error('Database not available');
-  
+  if (!db) throw new Error("Database not available");
+
   // Encrypt credentials if provided
   let encryptedCredentials: string | undefined;
   if (data.credentials) {
     try {
       encryptedCredentials = encrypt(JSON.stringify(data.credentials));
     } catch (error) {
-      console.error('[BrokerService] Failed to encrypt credentials:', error);
-      throw new Error('Failed to securely store credentials');
+      console.error("[BrokerService] Failed to encrypt credentials:", error);
+      throw new Error("Failed to securely store credentials");
     }
   }
-  
+
   const result = await db.insert(brokerConnections).values({
     userId: data.userId,
     broker: data.broker,
@@ -336,15 +578,16 @@ export async function createBrokerConnection(data: {
 }
 
 export async function updateBrokerConnectionStatus(
-  id: number, 
-  status: ConnectionStatus, 
+  id: number,
+  status: ConnectionStatus,
   error?: string
 ) {
   const db = await getDb();
   if (!db) return;
-  await db.update(brokerConnections)
-    .set({ 
-      status, 
+  await db
+    .update(brokerConnections)
+    .set({
+      status,
       lastError: error || null,
       lastConnectedAt: status === "connected" ? new Date() : undefined,
     })
@@ -361,17 +604,19 @@ export async function deleteBrokerConnection(id: number) {
  * Retrieve and decrypt credentials for a broker connection
  * Returns null if no credentials are stored or decryption fails
  */
-export async function getDecryptedCredentials(connectionId: number): Promise<BrokerCredentials | null> {
+export async function getDecryptedCredentials(
+  connectionId: number
+): Promise<BrokerCredentials | null> {
   const connection = await getBrokerConnection(connectionId);
   if (!connection?.encryptedCredentials) {
     return null;
   }
-  
+
   try {
     const decrypted = decrypt(connection.encryptedCredentials);
     return JSON.parse(decrypted) as BrokerCredentials;
   } catch (error) {
-    console.error('[BrokerService] Failed to decrypt credentials:', error);
+    console.error("[BrokerService] Failed to decrypt credentials:", error);
     return null;
   }
 }
@@ -385,15 +630,16 @@ export async function updateBrokerCredentials(
 ): Promise<boolean> {
   const db = await getDb();
   if (!db) return false;
-  
+
   try {
     const encryptedCredentials = encrypt(JSON.stringify(credentials));
-    await db.update(brokerConnections)
+    await db
+      .update(brokerConnections)
       .set({ encryptedCredentials })
       .where(eq(brokerConnections.id, connectionId));
     return true;
   } catch (error) {
-    console.error('[BrokerService] Failed to update credentials:', error);
+    console.error("[BrokerService] Failed to update credentials:", error);
     return false;
   }
 }
@@ -401,7 +647,8 @@ export async function updateBrokerCredentials(
 export async function getRoutingRules(userId: number) {
   const db = await getDb();
   if (!db) return [];
-  return db.select()
+  return db
+    .select()
     .from(routingRules)
     .where(eq(routingRules.userId, userId))
     .orderBy(desc(routingRules.priority));
@@ -411,13 +658,15 @@ export async function getExecutionLogs(webhookLogId?: number, limit = 50) {
   const db = await getDb();
   if (!db) return [];
   if (webhookLogId) {
-    return db.select()
+    return db
+      .select()
       .from(executionLogs)
       .where(eq(executionLogs.webhookLogId, webhookLogId))
       .orderBy(desc(executionLogs.createdAt))
       .limit(limit);
   }
-  return db.select()
+  return db
+    .select()
     .from(executionLogs)
     .orderBy(desc(executionLogs.createdAt))
     .limit(limit);
@@ -434,7 +683,7 @@ export async function createExecutionLog(data: {
   price?: number;
 }) {
   const db = await getDb();
-  if (!db) throw new Error('Database not available');
+  if (!db) throw new Error("Database not available");
   const result = await db.insert(executionLogs).values({
     webhookLogId: data.webhookLogId,
     routingRuleId: data.routingRuleId,

@@ -1,11 +1,35 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceArea } from "recharts";
+import {
+  LineChart,
+  Line,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  ReferenceArea,
+} from "recharts";
 import { Loader2, Settings, Clock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { CalendarPnL } from "@/components/CalendarPnL";
@@ -16,43 +40,63 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StrategyCorrelationHeatmap } from "@/components/StrategyCorrelationHeatmap";
 import { RollingMetricsChart } from "@/components/RollingMetricsChart";
 import { TradeAndRiskStats } from "@/components/TradeAndRiskStats";
+import {
+  TradeSourceBreakdown,
+  WebhookSignalPerformance,
+} from "@/components/TradeSourceBreakdown";
 
-
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { DistributionSnapshot } from "@/components/DistributionSnapshot";
 
-type TimeRange = '6M' | 'YTD' | '1Y' | '3Y' | '5Y' | '10Y' | 'ALL';
+type TimeRange = "6M" | "YTD" | "1Y" | "3Y" | "5Y" | "10Y" | "ALL";
 
 export default function Overview() {
-  const [timeRange, setTimeRange] = useState<TimeRange>('1Y');
+  const [timeRange, setTimeRange] = useState<TimeRange>("1Y");
   const [startingCapital, setStartingCapital] = useState(100000);
-  const [contractSize, setContractSize] = useState<'mini' | 'micro'>('mini');
-  const [calendarPeriodType, setCalendarPeriodType] = useState<'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly'>('yearly');
+  const [contractSize, setContractSize] = useState<"mini" | "micro">("mini");
+  const [calendarPeriodType, setCalendarPeriodType] = useState<
+    "daily" | "weekly" | "monthly" | "quarterly" | "yearly"
+  >("yearly");
   // S&P 500 benchmark comparison removed per user request
-  
 
-  const { data, isLoading, error } = trpc.portfolio.overview.useQuery({
-    timeRange,
-    startingCapital,
-  }, {
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
-  });
+  const { data, isLoading, error } = trpc.portfolio.overview.useQuery(
+    {
+      timeRange,
+      startingCapital,
+    },
+    {
+      staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    }
+  );
 
   // Fetch all-time max drawdown for portfolio sizing calculator
-  const { data: allTimeData } = trpc.portfolio.overview.useQuery({
-    timeRange: 'ALL',
-    startingCapital,
-  }, {
-    staleTime: 10 * 60 * 1000, // Cache for 10 minutes (less frequent updates)
-  });
+  const { data: allTimeData } = trpc.portfolio.overview.useQuery(
+    {
+      timeRange: "ALL",
+      startingCapital,
+    },
+    {
+      staleTime: 10 * 60 * 1000, // Cache for 10 minutes (less frequent updates)
+    }
+  );
 
-  const { data: breakdownData } = trpc.portfolio.performanceBreakdown.useQuery({
-    timeRange,
-    startingCapital,
-  }, {
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
-  });
+  const { data: breakdownData } = trpc.portfolio.performanceBreakdown.useQuery(
+    {
+      timeRange,
+      startingCapital,
+    },
+    {
+      staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    }
+  );
 
   if (isLoading) {
     return (
@@ -67,7 +111,9 @@ export default function Overview() {
       <div className="flex items-center justify-center min-h-[400px]">
         <Card className="w-full max-w-md">
           <CardHeader>
-            <CardTitle className="text-destructive">Error Loading Data</CardTitle>
+            <CardTitle className="text-destructive">
+              Error Loading Data
+            </CardTitle>
             <CardDescription>{error.message}</CardDescription>
           </CardHeader>
         </Card>
@@ -78,43 +124,43 @@ export default function Overview() {
   if (!data) return null;
 
   const { metrics, portfolioEquity, benchmarkEquity } = data;
-  
+
   // Contract size multiplier: micro = 1/10 of mini
-  const contractMultiplier = contractSize === 'micro' ? 0.1 : 1;
-
-
+  const contractMultiplier = contractSize === "micro" ? 0.1 : 1;
 
   // Prepare chart data with timestamps for proper domain calculation
   const chartData = portfolioEquity.map((point, index) => ({
     date: new Date(point.date).toLocaleDateString(),
     timestamp: new Date(point.date).getTime(), // Add timestamp for domain
     portfolio: point.equity * contractMultiplier,
-    benchmark: benchmarkEquity[index]?.equity ? benchmarkEquity[index].equity * contractMultiplier : null,
-
+    benchmark: benchmarkEquity[index]?.equity
+      ? benchmarkEquity[index].equity * contractMultiplier
+      : null,
   }));
 
   // Get only the max drawdown period for subtle highlighting (less distracting)
-  const maxDrawdownPeriod = data.majorDrawdowns && data.majorDrawdowns.length > 0
-    ? (() => {
-        const dd = data.majorDrawdowns[0]; // Max drawdown is always first
-        const startDate = new Date(dd.startDate).toLocaleDateString();
-        const endDate = dd.recoveryDate 
-          ? new Date(dd.recoveryDate).toLocaleDateString()
-          : chartData[chartData.length - 1]!.date;
-        const startIndex = chartData.findIndex(d => d.date === startDate);
-        let endIndex = chartData.findIndex(d => d.date === endDate);
-        if (endIndex === -1) endIndex = chartData.length - 1;
-        
-        if (startIndex >= 0 && endIndex >= 0) {
-          return {
-            startIndex,
-            endIndex,
-            depthPct: dd.depthPct,
-          };
-        }
-        return null;
-      })()
-    : null;
+  const maxDrawdownPeriod =
+    data.majorDrawdowns && data.majorDrawdowns.length > 0
+      ? (() => {
+          const dd = data.majorDrawdowns[0]; // Max drawdown is always first
+          const startDate = new Date(dd.startDate).toLocaleDateString();
+          const endDate = dd.recoveryDate
+            ? new Date(dd.recoveryDate).toLocaleDateString()
+            : chartData[chartData.length - 1]!.date;
+          const startIndex = chartData.findIndex(d => d.date === startDate);
+          let endIndex = chartData.findIndex(d => d.date === endDate);
+          if (endIndex === -1) endIndex = chartData.length - 1;
+
+          if (startIndex >= 0 && endIndex >= 0) {
+            return {
+              startIndex,
+              endIndex,
+              depthPct: dd.depthPct,
+            };
+          }
+          return null;
+        })()
+      : null;
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -123,11 +169,13 @@ export default function Overview() {
         <CardContent className="pt-4 sm:pt-6 space-y-4 sm:space-y-6 px-3 sm:px-6">
           {/* Header - Centered Title */}
           <div className="text-center relative">
-            <h1 className="text-2xl sm:text-4xl font-bold tracking-tight mb-1 sm:mb-2">Portfolio Overview</h1>
+            <h1 className="text-2xl sm:text-4xl font-bold tracking-tight mb-1 sm:mb-2">
+              Portfolio Overview
+            </h1>
             <p className="text-xs sm:text-sm text-muted-foreground">
               Combined performance of all intraday strategies
             </p>
-            
+
             {/* Settings Dropdown - Top Right */}
             <div className="absolute top-0 right-0">
               <DropdownMenu>
@@ -141,19 +189,39 @@ export default function Overview() {
                   <DropdownMenuSeparator />
                   <div className="p-2 space-y-3">
                     <div className="space-y-1.5">
-                      <Label htmlFor="starting-capital-setting" className="text-xs">Starting Capital</Label>
+                      <Label
+                        htmlFor="starting-capital-setting"
+                        className="text-xs"
+                      >
+                        Starting Capital
+                      </Label>
                       <Input
                         id="starting-capital-setting"
                         type="number"
                         value={startingCapital}
-                        onChange={(e) => setStartingCapital(Number(e.target.value))}
+                        onChange={e =>
+                          setStartingCapital(Number(e.target.value))
+                        }
                         className="h-8"
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <Label htmlFor="contract-size-setting" className="text-xs">Contract Size</Label>
-                      <Select value={contractSize} onValueChange={(v) => setContractSize(v as 'mini' | 'micro')}>
-                        <SelectTrigger id="contract-size-setting" className="h-8">
+                      <Label
+                        htmlFor="contract-size-setting"
+                        className="text-xs"
+                      >
+                        Contract Size
+                      </Label>
+                      <Select
+                        value={contractSize}
+                        onValueChange={v =>
+                          setContractSize(v as "mini" | "micro")
+                        }
+                      >
+                        <SelectTrigger
+                          id="contract-size-setting"
+                          className="h-8"
+                        >
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -164,18 +232,28 @@ export default function Overview() {
                     </div>
                   </div>
                   <DropdownMenuSeparator />
-                  {data.tradeStats?.riskOfRuinDetails?.minBalanceForZeroRisk && (
-                    <DropdownMenuItem 
+                  {data.tradeStats?.riskOfRuinDetails
+                    ?.minBalanceForZeroRisk && (
+                    <DropdownMenuItem
                       onClick={() => {
-                        const minBalance = Math.ceil(data.tradeStats.riskOfRuinDetails!.minBalanceForZeroRisk);
+                        const minBalance = Math.ceil(
+                          data.tradeStats.riskOfRuinDetails!
+                            .minBalanceForZeroRisk
+                        );
                         setStartingCapital(minBalance);
                       }}
                       className="cursor-pointer"
                     >
                       <div className="flex flex-col gap-1">
-                        <span className="text-xs font-medium">Set to Zero RoR Capital</span>
+                        <span className="text-xs font-medium">
+                          Set to Zero RoR Capital
+                        </span>
                         <span className="text-[10px] text-muted-foreground">
-                          ${Math.ceil(data.tradeStats.riskOfRuinDetails.minBalanceForZeroRisk).toLocaleString()}
+                          $
+                          {Math.ceil(
+                            data.tradeStats.riskOfRuinDetails
+                              .minBalanceForZeroRisk
+                          ).toLocaleString()}
                         </span>
                       </div>
                     </DropdownMenuItem>
@@ -189,30 +267,53 @@ export default function Overview() {
           <div className="grid gap-1.5 sm:gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
             {/* Total Return */}
             <div className="bg-muted/30 border border-muted rounded-lg p-2 sm:p-3 md:p-4 text-center overflow-hidden">
-              <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1 sm:mb-2">Total Return</div>
-              <div className={`text-xs sm:text-base md:text-lg lg:text-xl font-bold mb-1 ${
-                metrics.totalReturn >= 0 ? 'text-green-500' : 'text-red-500'
-              }`} title={`${metrics.totalReturn >= 0 ? '+' : ''}$${Math.round((metrics.totalReturn / 100) * startingCapital * contractMultiplier).toLocaleString()}`}>
-                {metrics.totalReturn >= 0 ? '+' : ''}${(() => {
-                  const value = Math.round((metrics.totalReturn / 100) * startingCapital * contractMultiplier);
-                  if (Math.abs(value) >= 1000000) return (value / 1000000).toFixed(1) + 'M';
-                  if (Math.abs(value) >= 1000) return (value / 1000).toFixed(1) + 'K';
+              <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1 sm:mb-2">
+                Total Return
+              </div>
+              <div
+                className={`text-xs sm:text-base md:text-lg lg:text-xl font-bold mb-1 ${
+                  metrics.totalReturn >= 0 ? "text-green-500" : "text-red-500"
+                }`}
+                title={`${metrics.totalReturn >= 0 ? "+" : ""}$${Math.round((metrics.totalReturn / 100) * startingCapital * contractMultiplier).toLocaleString()}`}
+              >
+                {metrics.totalReturn >= 0 ? "+" : ""}$
+                {(() => {
+                  const value = Math.round(
+                    (metrics.totalReturn / 100) *
+                      startingCapital *
+                      contractMultiplier
+                  );
+                  if (Math.abs(value) >= 1000000)
+                    return (value / 1000000).toFixed(1) + "M";
+                  if (Math.abs(value) >= 1000)
+                    return (value / 1000).toFixed(1) + "K";
                   return value.toLocaleString();
                 })()}
               </div>
               <div className="text-[8px] sm:text-[9px] text-muted-foreground">
-                {metrics.totalReturn.toFixed(1)}% ({metrics.annualizedReturn.toFixed(0)}% ann.)
+                {metrics.totalReturn.toFixed(1)}% (
+                {metrics.annualizedReturn.toFixed(0)}% ann.)
               </div>
             </div>
 
             {/* Max Drawdown */}
             <div className="bg-muted/30 border border-muted rounded-lg p-2 sm:p-3 md:p-4 text-center overflow-hidden">
-              <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1 sm:mb-2">Max Drawdown</div>
-              <div className="text-xs sm:text-base md:text-lg lg:text-xl font-bold mb-1 text-amber-500" title={`-$${Math.round(metrics.maxDrawdownDollars * contractMultiplier).toLocaleString()}`}>
-                -${(() => {
-                  const value = Math.round(metrics.maxDrawdownDollars * contractMultiplier);
-                  if (Math.abs(value) >= 1000000) return (value / 1000000).toFixed(1) + 'M';
-                  if (Math.abs(value) >= 1000) return (value / 1000).toFixed(1) + 'K';
+              <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1 sm:mb-2">
+                Max Drawdown
+              </div>
+              <div
+                className="text-xs sm:text-base md:text-lg lg:text-xl font-bold mb-1 text-amber-500"
+                title={`-$${Math.round(metrics.maxDrawdownDollars * contractMultiplier).toLocaleString()}`}
+              >
+                -$
+                {(() => {
+                  const value = Math.round(
+                    metrics.maxDrawdownDollars * contractMultiplier
+                  );
+                  if (Math.abs(value) >= 1000000)
+                    return (value / 1000000).toFixed(1) + "M";
+                  if (Math.abs(value) >= 1000)
+                    return (value / 1000).toFixed(1) + "K";
                   return value.toLocaleString();
                 })()}
               </div>
@@ -226,9 +327,17 @@ export default function Overview() {
               <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1 sm:mb-2 flex items-center justify-center gap-1">
                 <span className="hidden sm:inline">Sortino</span>
                 <span className="sm:hidden">Sortino</span>
-                <Badge variant="outline" className="text-[7px] sm:text-[8px] px-1 py-0 h-3 sm:h-4 bg-emerald-500/10 text-emerald-500 border-emerald-500/30">Daily</Badge>
+                <Badge
+                  variant="outline"
+                  className="text-[7px] sm:text-[8px] px-1 py-0 h-3 sm:h-4 bg-emerald-500/10 text-emerald-500 border-emerald-500/30"
+                >
+                  Daily
+                </Badge>
               </div>
-              <div className="text-sm sm:text-lg md:text-xl lg:text-2xl font-bold mb-1">{data.dailyMetrics?.sortino?.toFixed(2) ?? metrics.sortinoRatio.toFixed(2)}</div>
+              <div className="text-sm sm:text-lg md:text-xl lg:text-2xl font-bold mb-1">
+                {data.dailyMetrics?.sortino?.toFixed(2) ??
+                  metrics.sortinoRatio.toFixed(2)}
+              </div>
               <div className="text-[9px] sm:text-[10px] text-muted-foreground truncate">
                 Trade: {metrics.sortinoRatio.toFixed(2)}
               </div>
@@ -239,9 +348,17 @@ export default function Overview() {
               <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1 sm:mb-2 flex items-center justify-center gap-1">
                 <span className="hidden sm:inline">Sharpe</span>
                 <span className="sm:hidden">Sharpe</span>
-                <Badge variant="outline" className="text-[7px] sm:text-[8px] px-1 py-0 h-3 sm:h-4 bg-emerald-500/10 text-emerald-500 border-emerald-500/30">Daily</Badge>
+                <Badge
+                  variant="outline"
+                  className="text-[7px] sm:text-[8px] px-1 py-0 h-3 sm:h-4 bg-emerald-500/10 text-emerald-500 border-emerald-500/30"
+                >
+                  Daily
+                </Badge>
               </div>
-              <div className="text-sm sm:text-lg md:text-xl lg:text-2xl font-bold mb-1">{data.dailyMetrics?.sharpe?.toFixed(2) ?? metrics.sharpeRatio.toFixed(2)}</div>
+              <div className="text-sm sm:text-lg md:text-xl lg:text-2xl font-bold mb-1">
+                {data.dailyMetrics?.sharpe?.toFixed(2) ??
+                  metrics.sharpeRatio.toFixed(2)}
+              </div>
               <div className="text-[9px] sm:text-[10px] text-muted-foreground truncate">
                 Trade: {metrics.sharpeRatio.toFixed(2)}
               </div>
@@ -249,8 +366,12 @@ export default function Overview() {
 
             {/* Win Rate */}
             <div className="bg-muted/30 border border-muted rounded-lg p-2 sm:p-3 md:p-4 text-center overflow-hidden">
-              <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1 sm:mb-2">Win Rate</div>
-              <div className="text-sm sm:text-lg md:text-xl lg:text-2xl font-bold mb-1">{metrics.winRate.toFixed(1)}%</div>
+              <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1 sm:mb-2">
+                Win Rate
+              </div>
+              <div className="text-sm sm:text-lg md:text-xl lg:text-2xl font-bold mb-1">
+                {metrics.winRate.toFixed(1)}%
+              </div>
               <div className="text-[9px] sm:text-[10px] text-muted-foreground truncate">
                 {metrics.totalTrades.toLocaleString()} trades
               </div>
@@ -258,8 +379,12 @@ export default function Overview() {
 
             {/* Calmar Ratio */}
             <div className="bg-muted/30 border border-muted rounded-lg p-2 sm:p-3 md:p-4 text-center overflow-hidden">
-              <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1 sm:mb-2">Calmar</div>
-              <div className="text-sm sm:text-lg md:text-xl lg:text-2xl font-bold mb-1">{metrics.calmarRatio.toFixed(2)}</div>
+              <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1 sm:mb-2">
+                Calmar
+              </div>
+              <div className="text-sm sm:text-lg md:text-xl lg:text-2xl font-bold mb-1">
+                {metrics.calmarRatio.toFixed(2)}
+              </div>
               <div className="text-[9px] sm:text-[10px] text-muted-foreground truncate">
                 Return / DD
               </div>
@@ -277,7 +402,10 @@ export default function Overview() {
             <div>
               <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
                 Equity Curve
-                <Badge variant="outline" className="text-[10px] sm:text-xs font-normal text-green-400 border-green-400/30">
+                <Badge
+                  variant="outline"
+                  className="text-[10px] sm:text-xs font-normal text-green-400 border-green-400/30"
+                >
                   <Clock className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-0.5 sm:mr-1" />
                   Live
                 </Badge>
@@ -288,10 +416,10 @@ export default function Overview() {
             </div>
             {/* Time Range Selector - Mobile Optimized */}
             <div className="flex gap-1 flex-wrap w-full sm:w-auto">
-              {(['6M', 'YTD', '1Y', '5Y', '10Y', 'ALL'] as const).map((range) => (
+              {(["6M", "YTD", "1Y", "5Y", "10Y", "ALL"] as const).map(range => (
                 <Button
                   key={range}
-                  variant={timeRange === range ? 'default' : 'outline'}
+                  variant={timeRange === range ? "default" : "outline"}
                   size="sm"
                   className="h-8 sm:h-7 px-2.5 sm:px-2 text-xs flex-1 sm:flex-none min-w-[40px]"
                   onClick={() => setTimeRange(range)}
@@ -305,13 +433,21 @@ export default function Overview() {
         <CardContent className="px-2 sm:px-6">
           <div className="h-[240px] sm:h-[350px] md:h-[400px] lg:h-[450px] -mx-1 sm:mx-0">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData} margin={{ top: 10, right: 5, left: 0, bottom: 10 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted-foreground))" strokeOpacity={0.2} vertical={false} />
-                <XAxis 
-                  dataKey="date" 
-                  tick={{ fontSize: 11, fill: '#ffffff' }}
-                  tickLine={{ stroke: 'rgba(255,255,255,0.3)' }}
-                  axisLine={{ stroke: 'rgba(255,255,255,0.4)' }}
+              <LineChart
+                data={chartData}
+                margin={{ top: 10, right: 5, left: 0, bottom: 10 }}
+              >
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke="hsl(var(--muted-foreground))"
+                  strokeOpacity={0.2}
+                  vertical={false}
+                />
+                <XAxis
+                  dataKey="date"
+                  tick={{ fontSize: 11, fill: "#ffffff" }}
+                  tickLine={{ stroke: "rgba(255,255,255,0.3)" }}
+                  axisLine={{ stroke: "rgba(255,255,255,0.4)" }}
                   angle={-45}
                   textAnchor="end"
                   height={60}
@@ -320,21 +456,34 @@ export default function Overview() {
                   domain={[0, chartData.length - 1]}
                   type="category"
                   padding={{ left: 20, right: 20 }}
-                  label={{ value: 'Date', position: 'insideBottom', offset: -5, fill: '#ffffff', fontSize: 12 }}
+                  label={{
+                    value: "Date",
+                    position: "insideBottom",
+                    offset: -5,
+                    fill: "#ffffff",
+                    fontSize: 12,
+                  }}
                 />
-                <YAxis 
-                  tick={{ fontSize: 11, fill: '#ffffff' }}
-                  tickLine={{ stroke: 'rgba(255,255,255,0.3)' }}
-                  axisLine={{ stroke: 'rgba(255,255,255,0.4)' }}
-                  tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
+                <YAxis
+                  tick={{ fontSize: 11, fill: "#ffffff" }}
+                  tickLine={{ stroke: "rgba(255,255,255,0.3)" }}
+                  axisLine={{ stroke: "rgba(255,255,255,0.4)" }}
+                  tickFormatter={value => `$${(value / 1000).toFixed(0)}k`}
                   width={50}
-                  label={{ value: 'Portfolio Value', angle: -90, position: 'insideLeft', fill: '#ffffff', fontSize: 12, dx: -5 }}
+                  label={{
+                    value: "Portfolio Value",
+                    angle: -90,
+                    position: "insideLeft",
+                    fill: "#ffffff",
+                    fontSize: 12,
+                    dx: -5,
+                  }}
                 />
-                <Tooltip 
+                <Tooltip
                   formatter={(value: number) => `$${value.toFixed(2)}`}
-                  labelStyle={{ color: 'black' }}
+                  labelStyle={{ color: "black" }}
                 />
-                <Legend 
+                <Legend
                   content={() => {
                     return (
                       <div className="flex justify-center gap-6 mt-2 flex-wrap">
@@ -358,16 +507,14 @@ export default function Overview() {
                     strokeDasharray="3 3"
                   />
                 )}
-                <Line 
-                  type="monotone" 
-                  dataKey="portfolio" 
-                  stroke="#60a5fa" 
+                <Line
+                  type="monotone"
+                  dataKey="portfolio"
+                  stroke="#60a5fa"
                   strokeWidth={2}
                   dot={false}
                   name="Portfolio"
                 />
-
-
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -386,26 +533,35 @@ export default function Overview() {
           <CardContent>
             <div className="h-[220px] sm:h-[260px] md:h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart margin={{ top: 10, right: 10, left: 10, bottom: 10 }} 
+                <AreaChart
+                  margin={{ top: 10, right: 10, left: 10, bottom: 10 }}
                   data={(() => {
                     // Build a map of benchmark drawdown by date for efficient lookup
                     const benchmarkByDate = new Map<string, number>();
                     data.benchmarkUnderwater?.curve?.forEach((b: any) => {
-                      const dateKey = new Date(b.date).toISOString().split('T')[0];
+                      const dateKey = new Date(b.date)
+                        .toISOString()
+                        .split("T")[0];
                       benchmarkByDate.set(dateKey, b.drawdownPercent);
                     });
-                    
+
                     // Forward-fill benchmark values
                     let lastBenchmarkDrawdown = 0;
                     return data.underwater.curve.map((point, index) => {
-                      const pointDateKey = new Date(point.date).toISOString().split('T')[0];
-                      const displayDate = chartData[index]?.date || point.date.toLocaleDateString();
-                      
+                      const pointDateKey = new Date(point.date)
+                        .toISOString()
+                        .split("T")[0];
+                      const displayDate =
+                        chartData[index]?.date ||
+                        point.date.toLocaleDateString();
+
                       // Find exact match or use forward-fill
                       let benchmarkDrawdown = benchmarkByDate.get(pointDateKey);
                       if (benchmarkDrawdown === undefined) {
                         // Look for closest previous date
-                        const sortedDates = Array.from(benchmarkByDate.keys()).sort();
+                        const sortedDates = Array.from(
+                          benchmarkByDate.keys()
+                        ).sort();
                         for (const dateKey of sortedDates) {
                           if (dateKey <= pointDateKey) {
                             benchmarkDrawdown = benchmarkByDate.get(dateKey);
@@ -414,11 +570,11 @@ export default function Overview() {
                           }
                         }
                       }
-                      
+
                       if (benchmarkDrawdown !== undefined) {
                         lastBenchmarkDrawdown = benchmarkDrawdown;
                       }
-                      
+
                       return {
                         date: displayDate,
                         drawdown: point.drawdownPercent,
@@ -428,17 +584,32 @@ export default function Overview() {
                   })()}
                 >
                   <defs>
-                    <linearGradient id="drawdownGradient" x1="0" y1="0" x2="0" y2="1">
+                    <linearGradient
+                      id="drawdownGradient"
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2="1"
+                    >
                       <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.3} />
-                      <stop offset="100%" stopColor="#3b82f6" stopOpacity={0.05} />
+                      <stop
+                        offset="100%"
+                        stopColor="#3b82f6"
+                        stopOpacity={0.05}
+                      />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted-foreground))" strokeOpacity={0.15} vertical={false} />
-                  <XAxis 
-                    dataKey="date" 
-                    tick={{ fontSize: 10, fill: '#ffffff' }}
-                    tickLine={{ stroke: 'rgba(255,255,255,0.3)' }}
-                    axisLine={{ stroke: 'rgba(255,255,255,0.4)' }}
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="hsl(var(--muted-foreground))"
+                    strokeOpacity={0.15}
+                    vertical={false}
+                  />
+                  <XAxis
+                    dataKey="date"
+                    tick={{ fontSize: 10, fill: "#ffffff" }}
+                    tickLine={{ stroke: "rgba(255,255,255,0.3)" }}
+                    axisLine={{ stroke: "rgba(255,255,255,0.4)" }}
                     angle={-45}
                     textAnchor="end"
                     height={55}
@@ -446,20 +617,33 @@ export default function Overview() {
                     domain={[0, chartData.length - 1]}
                     type="category"
                     padding={{ left: 20, right: 20 }}
-                    label={{ value: 'Date', position: 'insideBottom', offset: -5, fill: '#ffffff', fontSize: 11 }}
+                    label={{
+                      value: "Date",
+                      position: "insideBottom",
+                      offset: -5,
+                      fill: "#ffffff",
+                      fontSize: 11,
+                    }}
                   />
-                  <YAxis 
-                    tick={{ fontSize: 10, fill: '#ffffff' }}
-                    tickLine={{ stroke: 'rgba(255,255,255,0.3)' }}
-                    axisLine={{ stroke: 'rgba(255,255,255,0.4)' }}
-                    tickFormatter={(value) => `${value.toFixed(0)}%`}
-                    domain={['dataMin', 0]}
+                  <YAxis
+                    tick={{ fontSize: 10, fill: "#ffffff" }}
+                    tickLine={{ stroke: "rgba(255,255,255,0.3)" }}
+                    axisLine={{ stroke: "rgba(255,255,255,0.4)" }}
+                    tickFormatter={value => `${value.toFixed(0)}%`}
+                    domain={["dataMin", 0]}
                     width={45}
-                    label={{ value: 'Drawdown %', angle: -90, position: 'insideLeft', fill: '#ffffff', fontSize: 11, dx: -5 }}
+                    label={{
+                      value: "Drawdown %",
+                      angle: -90,
+                      position: "insideLeft",
+                      fill: "#ffffff",
+                      fontSize: 11,
+                      dx: -5,
+                    }}
                   />
-                  <Tooltip 
+                  <Tooltip
                     formatter={(value: number) => `${value.toFixed(2)}%`}
-                    labelStyle={{ color: 'black' }}
+                    labelStyle={{ color: "black" }}
                   />
                   <Legend />
                   <Area
@@ -470,7 +654,6 @@ export default function Overview() {
                     fill="url(#drawdownGradient)"
                     name="Portfolio"
                   />
-
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -482,11 +665,14 @@ export default function Overview() {
       {/* Major Drawdowns Table - REMOVED per user request */}
 
       {/* Distribution Snapshot */}
-      {data.distribution && <DistributionSnapshot distribution={data.distribution} />}
+      {data.distribution && (
+        <DistributionSnapshot distribution={data.distribution} />
+      )}
 
       {/* Day-of-Week and Week-of-Month Performance */}
-      {((data.dayOfWeekBreakdown && data.dayOfWeekBreakdown.length > 0) || 
-        (data.weekOfMonthBreakdown && data.weekOfMonthBreakdown.length > 0)) && (
+      {((data.dayOfWeekBreakdown && data.dayOfWeekBreakdown.length > 0) ||
+        (data.weekOfMonthBreakdown &&
+          data.weekOfMonthBreakdown.length > 0)) && (
         <Card>
           <CardContent className="pt-6">
             <Tabs defaultValue="day-of-week" className="w-full">
@@ -495,10 +681,14 @@ export default function Overview() {
                 <TabsTrigger value="week-of-month">Week of Month</TabsTrigger>
               </TabsList>
               <TabsContent value="day-of-week">
-                {data.dayOfWeekBreakdown && <DayOfWeekHeatmap data={data.dayOfWeekBreakdown} />}
+                {data.dayOfWeekBreakdown && (
+                  <DayOfWeekHeatmap data={data.dayOfWeekBreakdown} />
+                )}
               </TabsContent>
               <TabsContent value="week-of-month">
-                {data.weekOfMonthBreakdown && <WeekOfMonthHeatmap data={data.weekOfMonthBreakdown} />}
+                {data.weekOfMonthBreakdown && (
+                  <WeekOfMonthHeatmap data={data.weekOfMonthBreakdown} />
+                )}
               </TabsContent>
             </Tabs>
           </CardContent>
@@ -507,14 +697,17 @@ export default function Overview() {
 
       {/* Rolling Metrics */}
       {data.rollingMetrics && data.rollingMetrics.length > 0 && (
-        <RollingMetricsChart rollingMetrics={data.rollingMetrics} timeRange={timeRange} />
+        <RollingMetricsChart
+          rollingMetrics={data.rollingMetrics}
+          timeRange={timeRange}
+        />
       )}
 
       {/* Strategy Correlation Matrix */}
       {data.strategyCorrelationMatrix && (
         <Card>
           <CardContent className="pt-6">
-            <StrategyCorrelationHeatmap 
+            <StrategyCorrelationHeatmap
               labels={data.strategyCorrelationMatrix.labels}
               matrix={data.strategyCorrelationMatrix.matrix}
             />
@@ -523,6 +716,12 @@ export default function Overview() {
       )}
 
       {/* Monthly Returns Calendar - REMOVED per user request (redundant with Calendar P&L) */}
+
+      {/* Trade Source Breakdown */}
+      <TradeSourceBreakdown timeRange={timeRange} />
+
+      {/* Webhook Signal Performance */}
+      <WebhookSignalPerformance timeRange={timeRange} />
 
       {/* Calendar P&L */}
       {breakdownData && (
@@ -541,7 +740,8 @@ export default function Overview() {
         <CardHeader>
           <CardTitle>Portfolio Sizing Calculator</CardTitle>
           <CardDescription>
-            Calculate minimum account size for micros and minis at Interactive Brokers
+            Calculate minimum account size for micros and minis at Interactive
+            Brokers
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -551,31 +751,54 @@ export default function Overview() {
               <Card className="bg-muted/30">
                 <CardHeader>
                   <CardTitle className="text-lg">Micro Contracts</CardTitle>
-                  <CardDescription>1/10th the size of mini contracts</CardDescription>
+                  <CardDescription>
+                    1/10th the size of mini contracts
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">Max Drawdown:</span>
+                    <span className="text-sm text-muted-foreground">
+                      Max Drawdown:
+                    </span>
                     <span className="font-semibold text-red-600">
-                      ${((allTimeData?.metrics.maxDrawdownDollars ?? metrics.maxDrawdownDollars) / 10).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                      $
+                      {(
+                        (allTimeData?.metrics.maxDrawdownDollars ??
+                          metrics.maxDrawdownDollars) / 10
+                      ).toLocaleString(undefined, {
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 0,
+                      })}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">IBKR Margin Requirement:</span>
+                    <span className="text-sm text-muted-foreground">
+                      IBKR Margin Requirement:
+                    </span>
                     <span className="font-semibold">$500</span>
                   </div>
                   <div className="border-t pt-3 mt-3">
                     <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium">Minimum Account Size:</span>
+                      <span className="text-sm font-medium">
+                        Minimum Account Size:
+                      </span>
                       <span className="text-lg font-bold text-primary">
-                        ${Math.max(
+                        $
+                        {Math.max(
                           500,
-                          Math.ceil(((allTimeData?.metrics.maxDrawdownDollars ?? metrics.maxDrawdownDollars) / 10 + 500) / 100) * 100
+                          Math.ceil(
+                            ((allTimeData?.metrics.maxDrawdownDollars ??
+                              metrics.maxDrawdownDollars) /
+                              10 +
+                              500) /
+                              100
+                          ) * 100
                         ).toLocaleString()}
                       </span>
                     </div>
                     <p className="text-xs text-muted-foreground mt-2">
-                      Based on max drawdown + margin requirement with 0% risk of ruin
+                      Based on max drawdown + margin requirement with 0% risk of
+                      ruin
                     </p>
                   </div>
                 </CardContent>
@@ -585,43 +808,75 @@ export default function Overview() {
               <Card className="bg-muted/30">
                 <CardHeader>
                   <CardTitle className="text-lg">Mini Contracts</CardTitle>
-                  <CardDescription>Standard contract size for retail traders</CardDescription>
+                  <CardDescription>
+                    Standard contract size for retail traders
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">Max Drawdown:</span>
+                    <span className="text-sm text-muted-foreground">
+                      Max Drawdown:
+                    </span>
                     <span className="font-semibold text-red-600">
-                      ${(allTimeData?.metrics.maxDrawdownDollars ?? metrics.maxDrawdownDollars).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                      $
+                      {(
+                        allTimeData?.metrics.maxDrawdownDollars ??
+                        metrics.maxDrawdownDollars
+                      ).toLocaleString(undefined, {
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 0,
+                      })}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">IBKR Margin Requirement:</span>
+                    <span className="text-sm text-muted-foreground">
+                      IBKR Margin Requirement:
+                    </span>
                     <span className="font-semibold">$5,000</span>
                   </div>
                   <div className="border-t pt-3 mt-3">
                     <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium">Minimum Account Size:</span>
+                      <span className="text-sm font-medium">
+                        Minimum Account Size:
+                      </span>
                       <span className="text-lg font-bold text-primary">
-                        ${Math.max(
+                        $
+                        {Math.max(
                           5000,
-                          Math.ceil(((allTimeData?.metrics.maxDrawdownDollars ?? metrics.maxDrawdownDollars) + 5000) / 1000) * 1000
+                          Math.ceil(
+                            ((allTimeData?.metrics.maxDrawdownDollars ??
+                              metrics.maxDrawdownDollars) +
+                              5000) /
+                              1000
+                          ) * 1000
                         ).toLocaleString()}
                       </span>
                     </div>
                     <p className="text-xs text-muted-foreground mt-2">
-                      Based on max drawdown + margin requirement with 0% risk of ruin
+                      Based on max drawdown + margin requirement with 0% risk of
+                      ruin
                     </p>
                   </div>
                 </CardContent>
               </Card>
             </div>
-            
+
             <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900 rounded-lg p-4">
               <p className="text-sm text-blue-900 dark:text-blue-100">
-                <strong>Note:</strong> These calculations assume trading with the same position sizing as your backtest 
-                (${startingCapital.toLocaleString()} starting capital). The minimum account size ensures you can survive 
-                the maximum historical drawdown (${(allTimeData?.metrics.maxDrawdownDollars ?? metrics.maxDrawdownDollars).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}) plus maintain required margin. 
-                For 0% risk of ruin, your actual trading capital should exceed these minimums.
+                <strong>Note:</strong> These calculations assume trading with
+                the same position sizing as your backtest ($
+                {startingCapital.toLocaleString()} starting capital). The
+                minimum account size ensures you can survive the maximum
+                historical drawdown ($
+                {(
+                  allTimeData?.metrics.maxDrawdownDollars ??
+                  metrics.maxDrawdownDollars
+                ).toLocaleString(undefined, {
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 0,
+                })}
+                ) plus maintain required margin. For 0% risk of ruin, your
+                actual trading capital should exceed these minimums.
               </p>
             </div>
           </div>

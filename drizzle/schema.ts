@@ -1,4 +1,15 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, decimal, datetime, boolean, index } from "drizzle-orm/mysql-core";
+import {
+  int,
+  mysqlEnum,
+  mysqlTable,
+  text,
+  timestamp,
+  varchar,
+  decimal,
+  datetime,
+  boolean,
+  index,
+} from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
@@ -11,10 +22,14 @@ export const users = mysqlTable("users", {
   loginMethod: varchar("loginMethod", { length: 64 }),
   role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
   // Subscription fields
-  subscriptionTier: mysqlEnum("subscriptionTier", ["free", "pro", "premium"]).default("free").notNull(),
+  subscriptionTier: mysqlEnum("subscriptionTier", ["free", "pro", "premium"])
+    .default("free")
+    .notNull(),
   stripeCustomerId: varchar("stripeCustomerId", { length: 255 }),
   stripeSubscriptionId: varchar("stripeSubscriptionId", { length: 255 }),
-  subscriptionStatus: varchar("subscriptionStatus", { length: 50 }).default("active"), // active, canceled, past_due
+  subscriptionStatus: varchar("subscriptionStatus", { length: 50 }).default(
+    "active"
+  ), // active, canceled, past_due
   // Onboarding
   onboardingCompleted: boolean("onboardingCompleted").default(false).notNull(),
   onboardingDismissed: boolean("onboardingDismissed").default(false).notNull(),
@@ -37,7 +52,9 @@ export const strategies = mysqlTable("strategies", {
   description: text("description"),
   market: varchar("market", { length: 50 }), // e.g., "ES", "NQ", "CL", "BTC", "GC", "YM"
   strategyType: varchar("strategyType", { length: 50 }), // e.g., "Trend", "ORB" (Opening Range Breakout)
-  contractSize: mysqlEnum("contractSize", ["mini", "micro"]).default("mini").notNull(), // Contract size: mini/standard or micro
+  contractSize: mysqlEnum("contractSize", ["mini", "micro"])
+    .default("mini")
+    .notNull(), // Contract size: mini/standard or micro
   microToMiniRatio: int("microToMiniRatio").default(10).notNull(), // Conversion ratio (typically 10:1, BTC is 50:1)
   active: boolean("active").default(true).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -51,27 +68,36 @@ export type InsertStrategy = typeof strategies.$inferInsert;
  * Trades table
  * Stores individual trade records for all strategies
  */
-export const trades = mysqlTable("trades", {
-  id: int("id").autoincrement().primaryKey(),
-  strategyId: int("strategyId").notNull(), // Foreign key to strategies table
-  entryDate: datetime("entryDate").notNull(), // Entry timestamp
-  exitDate: datetime("exitDate").notNull(), // Exit timestamp
-  direction: varchar("direction", { length: 10 }).notNull(), // "Long" or "Short"
-  entryPrice: int("entryPrice").notNull(), // Entry price in cents (multiply by 100)
-  exitPrice: int("exitPrice").notNull(), // Exit price in cents
-  quantity: int("quantity").notNull().default(1), // Number of contracts/shares
-  pnl: int("pnl").notNull(), // Profit/Loss in cents
-  pnlPercent: int("pnlPercent").notNull(), // P&L as percentage (multiply by 10000, e.g., 1.5% = 15000)
-  commission: int("commission").default(0).notNull(), // Commission in cents
-  isTest: boolean("isTest").default(false).notNull(), // Test data flag - excluded from analytics
-  source: mysqlEnum("source", ["csv_import", "webhook", "manual"]).default("csv_import").notNull(), // Trade source for validation
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-}, (table) => ({
-  strategyIdx: index("idx_trades_strategy").on(table.strategyId),
-  isTestIdx: index("idx_trades_is_test").on(table.isTest),
-  exitDateIdx: index("idx_trades_exit_date").on(table.exitDate),
-  strategyExitIdx: index("idx_trades_strategy_exit").on(table.strategyId, table.exitDate),
-}));
+export const trades = mysqlTable(
+  "trades",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    strategyId: int("strategyId").notNull(), // Foreign key to strategies table
+    entryDate: datetime("entryDate").notNull(), // Entry timestamp
+    exitDate: datetime("exitDate").notNull(), // Exit timestamp
+    direction: varchar("direction", { length: 10 }).notNull(), // "Long" or "Short"
+    entryPrice: int("entryPrice").notNull(), // Entry price in cents (multiply by 100)
+    exitPrice: int("exitPrice").notNull(), // Exit price in cents
+    quantity: int("quantity").notNull().default(1), // Number of contracts/shares
+    pnl: int("pnl").notNull(), // Profit/Loss in cents
+    pnlPercent: int("pnlPercent").notNull(), // P&L as percentage (multiply by 10000, e.g., 1.5% = 15000)
+    commission: int("commission").default(0).notNull(), // Commission in cents
+    isTest: boolean("isTest").default(false).notNull(), // Test data flag - excluded from analytics
+    source: mysqlEnum("source", ["csv_import", "webhook", "manual"])
+      .default("csv_import")
+      .notNull(), // Trade source for validation
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  table => ({
+    strategyIdx: index("idx_trades_strategy").on(table.strategyId),
+    isTestIdx: index("idx_trades_is_test").on(table.isTest),
+    exitDateIdx: index("idx_trades_exit_date").on(table.exitDate),
+    strategyExitIdx: index("idx_trades_strategy_exit").on(
+      table.strategyId,
+      table.exitDate
+    ),
+  })
+);
 
 export type Trade = typeof trades.$inferSelect;
 export type InsertTrade = typeof trades.$inferInsert;
@@ -94,74 +120,100 @@ export const benchmarks = mysqlTable("benchmarks", {
 export type Benchmark = typeof benchmarks.$inferSelect;
 export type InsertBenchmark = typeof benchmarks.$inferInsert;
 
-
 /**
  * Webhook logs table
  * Stores all incoming TradingView webhook notifications for auditing and debugging
  */
-export const webhookLogs = mysqlTable("webhook_logs", {
-  id: int("id").autoincrement().primaryKey(),
-  // Raw payload for debugging
-  payload: text("payload").notNull(), // JSON string of the raw webhook payload
-  // Processing status
-  status: mysqlEnum("status", ["pending", "processing", "success", "failed", "duplicate"]).default("pending").notNull(),
-  // Parsed fields (for quick querying)
-  strategyId: int("strategyId"), // Linked strategy (if found)
-  strategySymbol: varchar("strategySymbol", { length: 20 }), // Strategy symbol from payload
-  tradeId: int("tradeId"), // Created trade ID (if successful)
-  direction: varchar("direction", { length: 10 }), // "Long" or "Short"
-  entryPrice: int("entryPrice"), // Entry price in cents
-  exitPrice: int("exitPrice"), // Exit price in cents
-  pnl: int("pnl"), // P&L in cents
-  entryTime: datetime("entryTime"), // Parsed entry timestamp
-  exitTime: datetime("exitTime"), // Parsed exit timestamp
-  // Metadata
-  ipAddress: varchar("ipAddress", { length: 45 }), // Source IP for security auditing
-  processingTimeMs: int("processingTimeMs"), // How long processing took
-  errorMessage: text("errorMessage"), // Error details if failed
-  isTest: boolean("isTest").default(false).notNull(), // Test data flag
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-}, (table) => ({
-  strategyIdx: index("idx_webhook_logs_strategy").on(table.strategyId),
-  statusIdx: index("idx_webhook_logs_status").on(table.status),
-  createdIdx: index("idx_webhook_logs_created").on(table.createdAt),
-  isTestIdx: index("idx_webhook_logs_is_test").on(table.isTest),
-}));
+export const webhookLogs = mysqlTable(
+  "webhook_logs",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    // Raw payload for debugging
+    payload: text("payload").notNull(), // JSON string of the raw webhook payload
+    // Processing status
+    status: mysqlEnum("status", [
+      "pending",
+      "processing",
+      "success",
+      "failed",
+      "duplicate",
+    ])
+      .default("pending")
+      .notNull(),
+    // Parsed fields (for quick querying)
+    strategyId: int("strategyId"), // Linked strategy (if found)
+    strategySymbol: varchar("strategySymbol", { length: 20 }), // Strategy symbol from payload
+    tradeId: int("tradeId"), // Created trade ID (if successful)
+    direction: varchar("direction", { length: 10 }), // "Long" or "Short"
+    entryPrice: int("entryPrice"), // Entry price in cents
+    exitPrice: int("exitPrice"), // Exit price in cents
+    pnl: int("pnl"), // P&L in cents
+    entryTime: datetime("entryTime"), // Parsed entry timestamp
+    exitTime: datetime("exitTime"), // Parsed exit timestamp
+    // Metadata
+    ipAddress: varchar("ipAddress", { length: 45 }), // Source IP for security auditing
+    processingTimeMs: int("processingTimeMs"), // How long processing took
+    errorMessage: text("errorMessage"), // Error details if failed
+    isTest: boolean("isTest").default(false).notNull(), // Test data flag
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  table => ({
+    strategyIdx: index("idx_webhook_logs_strategy").on(table.strategyId),
+    statusIdx: index("idx_webhook_logs_status").on(table.status),
+    createdIdx: index("idx_webhook_logs_created").on(table.createdAt),
+    isTestIdx: index("idx_webhook_logs_is_test").on(table.isTest),
+  })
+);
 
 export type WebhookLog = typeof webhookLogs.$inferSelect;
 export type InsertWebhookLog = typeof webhookLogs.$inferInsert;
-
 
 /**
  * Broker connections table
  * Stores connected broker accounts for automated trading
  */
-export const brokerConnections = mysqlTable("broker_connections", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull(), // Owner of this connection
-  broker: mysqlEnum("broker", ["tradovate", "ibkr", "fidelity"]).notNull(),
-  name: varchar("name", { length: 100 }).notNull(), // User-friendly name for this connection
-  // Connection status
-  status: mysqlEnum("status", ["disconnected", "connecting", "connected", "error"]).default("disconnected").notNull(),
-  // Encrypted credentials (stored securely)
-  encryptedCredentials: text("encryptedCredentials"), // JSON blob with encrypted API keys/tokens
-  // Account info (cached from broker)
-  accountId: varchar("accountId", { length: 100 }), // Broker account ID
-  accountName: varchar("accountName", { length: 100 }), // Account display name
-  accountType: varchar("accountType", { length: 50 }), // e.g., "live", "paper", "demo"
-  // OAuth tokens (for OAuth-based brokers)
-  accessToken: text("accessToken"),
-  refreshToken: text("refreshToken"),
-  tokenExpiresAt: datetime("tokenExpiresAt"),
-  // Metadata
-  lastConnectedAt: datetime("lastConnectedAt"),
-  lastError: text("lastError"),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-}, (table) => ({
-  userIdx: index("idx_broker_connections_user").on(table.userId),
-  statusIdx: index("idx_broker_connections_status").on(table.status),
-}));
+export const brokerConnections = mysqlTable(
+  "broker_connections",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    userId: int("userId").notNull(), // Owner of this connection
+    broker: mysqlEnum("broker", [
+      "tradovate",
+      "ibkr",
+      "fidelity",
+      "alpaca",
+    ]).notNull(),
+    name: varchar("name", { length: 100 }).notNull(), // User-friendly name for this connection
+    // Connection status
+    status: mysqlEnum("status", [
+      "disconnected",
+      "connecting",
+      "connected",
+      "error",
+    ])
+      .default("disconnected")
+      .notNull(),
+    // Encrypted credentials (stored securely)
+    encryptedCredentials: text("encryptedCredentials"), // JSON blob with encrypted API keys/tokens
+    // Account info (cached from broker)
+    accountId: varchar("accountId", { length: 100 }), // Broker account ID
+    accountName: varchar("accountName", { length: 100 }), // Account display name
+    accountType: varchar("accountType", { length: 50 }), // e.g., "live", "paper", "demo"
+    // OAuth tokens (for OAuth-based brokers)
+    accessToken: text("accessToken"),
+    refreshToken: text("refreshToken"),
+    tokenExpiresAt: datetime("tokenExpiresAt"),
+    // Metadata
+    lastConnectedAt: datetime("lastConnectedAt"),
+    lastError: text("lastError"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  table => ({
+    userIdx: index("idx_broker_connections_user").on(table.userId),
+    statusIdx: index("idx_broker_connections_status").on(table.status),
+  })
+);
 
 export type BrokerConnection = typeof brokerConnections.$inferSelect;
 export type InsertBrokerConnection = typeof brokerConnections.$inferInsert;
@@ -170,30 +222,39 @@ export type InsertBrokerConnection = typeof brokerConnections.$inferInsert;
  * Routing rules table
  * Configures how webhook signals are routed to brokers
  */
-export const routingRules = mysqlTable("routing_rules", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull(),
-  name: varchar("name", { length: 100 }).notNull(),
-  // Source matching
-  strategyId: int("strategyId"), // Match specific strategy (null = all)
-  direction: varchar("direction", { length: 10 }), // Match specific direction (null = all)
-  // Target broker
-  brokerConnectionId: int("brokerConnectionId").notNull(),
-  // Execution settings
-  enabled: boolean("enabled").default(true).notNull(),
-  autoExecute: boolean("autoExecute").default(false).notNull(), // Auto-execute or just log
-  quantityMultiplier: decimal("quantityMultiplier", { precision: 10, scale: 4 }).default("1.0000").notNull(),
-  // Risk controls
-  maxPositionSize: int("maxPositionSize"), // Max contracts per trade
-  maxDailyLoss: int("maxDailyLoss"), // Max daily loss in cents before stopping
-  // Metadata
-  priority: int("priority").default(0).notNull(), // Higher = evaluated first
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-}, (table) => ({
-  userIdx: index("idx_routing_rules_user").on(table.userId),
-  brokerIdx: index("idx_routing_rules_broker").on(table.brokerConnectionId),
-}));
+export const routingRules = mysqlTable(
+  "routing_rules",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    userId: int("userId").notNull(),
+    name: varchar("name", { length: 100 }).notNull(),
+    // Source matching
+    strategyId: int("strategyId"), // Match specific strategy (null = all)
+    direction: varchar("direction", { length: 10 }), // Match specific direction (null = all)
+    // Target broker
+    brokerConnectionId: int("brokerConnectionId").notNull(),
+    // Execution settings
+    enabled: boolean("enabled").default(true).notNull(),
+    autoExecute: boolean("autoExecute").default(false).notNull(), // Auto-execute or just log
+    quantityMultiplier: decimal("quantityMultiplier", {
+      precision: 10,
+      scale: 4,
+    })
+      .default("1.0000")
+      .notNull(),
+    // Risk controls
+    maxPositionSize: int("maxPositionSize"), // Max contracts per trade
+    maxDailyLoss: int("maxDailyLoss"), // Max daily loss in cents before stopping
+    // Metadata
+    priority: int("priority").default(0).notNull(), // Higher = evaluated first
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  table => ({
+    userIdx: index("idx_routing_rules_user").on(table.userId),
+    brokerIdx: index("idx_routing_rules_broker").on(table.brokerConnectionId),
+  })
+);
 
 export type RoutingRule = typeof routingRules.$inferSelect;
 export type InsertRoutingRule = typeof routingRules.$inferInsert;
@@ -202,41 +263,54 @@ export type InsertRoutingRule = typeof routingRules.$inferInsert;
  * Execution logs table
  * Records all order execution attempts and results
  */
-export const executionLogs = mysqlTable("execution_logs", {
-  id: int("id").autoincrement().primaryKey(),
-  webhookLogId: int("webhookLogId").notNull(), // Link to source webhook
-  routingRuleId: int("routingRuleId"), // Which rule triggered this
-  brokerConnectionId: int("brokerConnectionId").notNull(),
-  // Execution details
-  status: mysqlEnum("status", ["pending", "submitted", "filled", "partial", "rejected", "cancelled", "error"]).default("pending").notNull(),
-  orderType: varchar("orderType", { length: 20 }), // "market", "limit", etc.
-  side: varchar("side", { length: 10 }), // "buy" or "sell"
-  symbol: varchar("symbol", { length: 20 }),
-  quantity: int("quantity"),
-  price: int("price"), // Requested price in cents
-  // Broker response
-  brokerOrderId: varchar("brokerOrderId", { length: 100 }),
-  fillPrice: int("fillPrice"), // Actual fill price in cents
-  fillQuantity: int("fillQuantity"),
-  commission: int("commission"), // Commission in cents
-  // Timing
-  submittedAt: datetime("submittedAt"),
-  filledAt: datetime("filledAt"),
-  // Error handling
-  errorMessage: text("errorMessage"),
-  retryCount: int("retryCount").default(0).notNull(),
-  // Metadata
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-}, (table) => ({
-  webhookIdx: index("idx_execution_logs_webhook").on(table.webhookLogId),
-  brokerIdx: index("idx_execution_logs_broker").on(table.brokerConnectionId),
-  statusIdx: index("idx_execution_logs_status").on(table.status),
-}));
+export const executionLogs = mysqlTable(
+  "execution_logs",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    webhookLogId: int("webhookLogId").notNull(), // Link to source webhook
+    routingRuleId: int("routingRuleId"), // Which rule triggered this
+    brokerConnectionId: int("brokerConnectionId").notNull(),
+    // Execution details
+    status: mysqlEnum("status", [
+      "pending",
+      "submitted",
+      "filled",
+      "partial",
+      "rejected",
+      "cancelled",
+      "error",
+    ])
+      .default("pending")
+      .notNull(),
+    orderType: varchar("orderType", { length: 20 }), // "market", "limit", etc.
+    side: varchar("side", { length: 10 }), // "buy" or "sell"
+    symbol: varchar("symbol", { length: 20 }),
+    quantity: int("quantity"),
+    price: int("price"), // Requested price in cents
+    // Broker response
+    brokerOrderId: varchar("brokerOrderId", { length: 100 }),
+    fillPrice: int("fillPrice"), // Actual fill price in cents
+    fillQuantity: int("fillQuantity"),
+    commission: int("commission"), // Commission in cents
+    // Timing
+    submittedAt: datetime("submittedAt"),
+    filledAt: datetime("filledAt"),
+    // Error handling
+    errorMessage: text("errorMessage"),
+    retryCount: int("retryCount").default(0).notNull(),
+    // Metadata
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  table => ({
+    webhookIdx: index("idx_execution_logs_webhook").on(table.webhookLogId),
+    brokerIdx: index("idx_execution_logs_broker").on(table.brokerConnectionId),
+    statusIdx: index("idx_execution_logs_status").on(table.status),
+  })
+);
 
 export type ExecutionLog = typeof executionLogs.$inferSelect;
 export type InsertExecutionLog = typeof executionLogs.$inferInsert;
-
 
 /**
  * User strategy subscriptions table
@@ -250,7 +324,10 @@ export const userSubscriptions = mysqlTable("user_subscriptions", {
   notificationsEnabled: boolean("notificationsEnabled").default(true).notNull(),
   autoExecuteEnabled: boolean("autoExecuteEnabled").default(false).notNull(),
   // User's custom settings for this strategy
-  quantityMultiplier: decimal("quantityMultiplier", { precision: 10, scale: 4 }).default("1.0000"),
+  quantityMultiplier: decimal("quantityMultiplier", {
+    precision: 10,
+    scale: 4,
+  }).default("1.0000"),
   maxPositionSize: int("maxPositionSize"), // User's max contracts for this strategy
   // Metadata
   subscribedAt: timestamp("subscribedAt").defaultNow().notNull(),
@@ -293,58 +370,79 @@ export type InsertSubscriptionTier = typeof subscriptionTiers.$inferInsert;
  * User payment subscriptions table
  * Tracks user's active subscription (Stripe-ready)
  */
-export const userPaymentSubscriptions = mysqlTable("user_payment_subscriptions", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull().unique(), // One active subscription per user
-  tierId: int("tierId").notNull(),
-  // Subscription status
-  status: mysqlEnum("status", ["active", "past_due", "cancelled", "paused", "trialing"]).default("active").notNull(),
-  // Billing cycle
-  billingCycle: mysqlEnum("billingCycle", ["monthly", "yearly"]).default("monthly").notNull(),
-  currentPeriodStart: datetime("currentPeriodStart"),
-  currentPeriodEnd: datetime("currentPeriodEnd"),
-  // Trial info
-  trialStart: datetime("trialStart"),
-  trialEnd: datetime("trialEnd"),
-  // Stripe integration (ready but not active)
-  stripeCustomerId: varchar("stripeCustomerId", { length: 100 }),
-  stripeSubscriptionId: varchar("stripeSubscriptionId", { length: 100 }),
-  // Cancellation
-  cancelAtPeriodEnd: boolean("cancelAtPeriodEnd").default(false).notNull(),
-  cancelledAt: datetime("cancelledAt"),
-  // Metadata
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-});
+export const userPaymentSubscriptions = mysqlTable(
+  "user_payment_subscriptions",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    userId: int("userId").notNull().unique(), // One active subscription per user
+    tierId: int("tierId").notNull(),
+    // Subscription status
+    status: mysqlEnum("status", [
+      "active",
+      "past_due",
+      "cancelled",
+      "paused",
+      "trialing",
+    ])
+      .default("active")
+      .notNull(),
+    // Billing cycle
+    billingCycle: mysqlEnum("billingCycle", ["monthly", "yearly"])
+      .default("monthly")
+      .notNull(),
+    currentPeriodStart: datetime("currentPeriodStart"),
+    currentPeriodEnd: datetime("currentPeriodEnd"),
+    // Trial info
+    trialStart: datetime("trialStart"),
+    trialEnd: datetime("trialEnd"),
+    // Stripe integration (ready but not active)
+    stripeCustomerId: varchar("stripeCustomerId", { length: 100 }),
+    stripeSubscriptionId: varchar("stripeSubscriptionId", { length: 100 }),
+    // Cancellation
+    cancelAtPeriodEnd: boolean("cancelAtPeriodEnd").default(false).notNull(),
+    cancelledAt: datetime("cancelledAt"),
+    // Metadata
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  }
+);
 
-export type UserPaymentSubscription = typeof userPaymentSubscriptions.$inferSelect;
-export type InsertUserPaymentSubscription = typeof userPaymentSubscriptions.$inferInsert;
+export type UserPaymentSubscription =
+  typeof userPaymentSubscriptions.$inferSelect;
+export type InsertUserPaymentSubscription =
+  typeof userPaymentSubscriptions.$inferInsert;
 
 /**
  * Payment history table
  * Records all payment transactions (Stripe-ready)
  */
-export const paymentHistory = mysqlTable("payment_history", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull(),
-  subscriptionId: int("subscriptionId"),
-  // Payment details
-  amount: int("amount").notNull(), // Amount in cents
-  currency: varchar("currency", { length: 3 }).default("USD").notNull(),
-  status: mysqlEnum("status", ["pending", "succeeded", "failed", "refunded"]).default("pending").notNull(),
-  // Stripe integration
-  stripePaymentIntentId: varchar("stripePaymentIntentId", { length: 100 }),
-  stripeInvoiceId: varchar("stripeInvoiceId", { length: 100 }),
-  // Receipt info
-  receiptUrl: text("receiptUrl"),
-  description: text("description"),
-  // Metadata
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-}, (table) => ({
-  userIdx: index("idx_payment_history_user").on(table.userId),
-  statusIdx: index("idx_payment_history_status").on(table.status),
-  createdIdx: index("idx_payment_history_created").on(table.createdAt),
-}));
+export const paymentHistory = mysqlTable(
+  "payment_history",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    userId: int("userId").notNull(),
+    subscriptionId: int("subscriptionId"),
+    // Payment details
+    amount: int("amount").notNull(), // Amount in cents
+    currency: varchar("currency", { length: 3 }).default("USD").notNull(),
+    status: mysqlEnum("status", ["pending", "succeeded", "failed", "refunded"])
+      .default("pending")
+      .notNull(),
+    // Stripe integration
+    stripePaymentIntentId: varchar("stripePaymentIntentId", { length: 100 }),
+    stripeInvoiceId: varchar("stripeInvoiceId", { length: 100 }),
+    // Receipt info
+    receiptUrl: text("receiptUrl"),
+    description: text("description"),
+    // Metadata
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  table => ({
+    userIdx: index("idx_payment_history_user").on(table.userId),
+    statusIdx: index("idx_payment_history_status").on(table.status),
+    createdIdx: index("idx_payment_history_created").on(table.createdAt),
+  })
+);
 
 export type PaymentHistoryRecord = typeof paymentHistory.$inferSelect;
 export type InsertPaymentHistory = typeof paymentHistory.$inferInsert;
@@ -367,7 +465,9 @@ export const auditLogs = mysqlTable("audit_logs", {
   previousValue: text("previousValue"), // JSON of previous state
   newValue: text("newValue"), // JSON of new state
   // Result
-  status: mysqlEnum("status", ["success", "failure"]).default("success").notNull(),
+  status: mysqlEnum("status", ["success", "failure"])
+    .default("success")
+    .notNull(),
   errorMessage: text("errorMessage"),
   // Metadata
   createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -386,7 +486,15 @@ export const webhookQueue = mysqlTable("webhook_queue", {
   payload: text("payload").notNull(),
   ipAddress: varchar("ipAddress", { length: 45 }),
   // Processing status
-  status: mysqlEnum("status", ["pending", "processing", "completed", "failed", "dead"]).default("pending").notNull(),
+  status: mysqlEnum("status", [
+    "pending",
+    "processing",
+    "completed",
+    "failed",
+    "dead",
+  ])
+    .default("pending")
+    .notNull(),
   // Retry tracking
   attempts: int("attempts").default(0).notNull(),
   maxAttempts: int("maxAttempts").default(5).notNull(),
@@ -422,7 +530,9 @@ export const deadLetterQueue = mysqlTable("dead_letter_queue", {
   // Error history
   errorHistory: text("errorHistory"), // JSON array of all errors
   // Resolution
-  status: mysqlEnum("status", ["unresolved", "resolved", "ignored"]).default("unresolved").notNull(),
+  status: mysqlEnum("status", ["unresolved", "resolved", "ignored"])
+    .default("unresolved")
+    .notNull(),
   resolvedBy: int("resolvedBy"), // User who resolved
   resolvedAt: datetime("resolvedAt"),
   resolutionNotes: text("resolutionNotes"),
@@ -447,7 +557,9 @@ export const userSignals = mysqlTable("user_signals", {
   price: int("price").notNull(), // Signal price in cents
   quantity: int("quantity").notNull(),
   // User's action
-  action: mysqlEnum("action", ["pending", "executed", "skipped", "expired"]).default("pending").notNull(),
+  action: mysqlEnum("action", ["pending", "executed", "skipped", "expired"])
+    .default("pending")
+    .notNull(),
   executionLogId: int("executionLogId"), // If executed, link to execution
   // Timing
   signalReceivedAt: datetime("signalReceivedAt").notNull(),
@@ -465,35 +577,44 @@ export type InsertUserSignal = typeof userSignals.$inferInsert;
  * Tracks currently open trades waiting for exit signals
  * This replaces the in-memory pendingEntries for persistence across server restarts
  */
-export const openPositions = mysqlTable("open_positions", {
-  id: int("id").autoincrement().primaryKey(),
-  strategyId: int("strategyId").notNull(),
-  strategySymbol: varchar("strategySymbol", { length: 20 }).notNull(),
-  // Position details
-  direction: varchar("direction", { length: 10 }).notNull(), // "Long" or "Short"
-  entryPrice: int("entryPrice").notNull(), // Entry price in cents
-  quantity: int("quantity").notNull().default(1),
-  // Timing
-  entryTime: datetime("entryTime").notNull(),
-  entryWebhookLogId: int("entryWebhookLogId"), // Link to entry webhook log
-  // Status
-  status: mysqlEnum("status", ["open", "closing", "closed"]).default("open").notNull(),
-  // Exit details (filled when closed)
-  exitPrice: int("exitPrice"),
-  exitTime: datetime("exitTime"),
-  exitWebhookLogId: int("exitWebhookLogId"), // Link to exit webhook log
-  pnl: int("pnl"), // P&L in cents
-  tradeId: int("tradeId"), // Link to created trade record
-  isTest: boolean("isTest").default(false).notNull(), // Test data flag
-  // Metadata
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-}, (table) => ({
-  strategyIdx: index("idx_open_positions_strategy").on(table.strategyId),
-  statusIdx: index("idx_open_positions_status").on(table.status),
-  strategyStatusIdx: index("idx_open_positions_strategy_status").on(table.strategyId, table.status),
-  isTestIdx: index("idx_open_positions_is_test").on(table.isTest),
-}));
+export const openPositions = mysqlTable(
+  "open_positions",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    strategyId: int("strategyId").notNull(),
+    strategySymbol: varchar("strategySymbol", { length: 20 }).notNull(),
+    // Position details
+    direction: varchar("direction", { length: 10 }).notNull(), // "Long" or "Short"
+    entryPrice: int("entryPrice").notNull(), // Entry price in cents
+    quantity: int("quantity").notNull().default(1),
+    // Timing
+    entryTime: datetime("entryTime").notNull(),
+    entryWebhookLogId: int("entryWebhookLogId"), // Link to entry webhook log
+    // Status
+    status: mysqlEnum("status", ["open", "closing", "closed"])
+      .default("open")
+      .notNull(),
+    // Exit details (filled when closed)
+    exitPrice: int("exitPrice"),
+    exitTime: datetime("exitTime"),
+    exitWebhookLogId: int("exitWebhookLogId"), // Link to exit webhook log
+    pnl: int("pnl"), // P&L in cents
+    tradeId: int("tradeId"), // Link to created trade record
+    isTest: boolean("isTest").default(false).notNull(), // Test data flag
+    // Metadata
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  table => ({
+    strategyIdx: index("idx_open_positions_strategy").on(table.strategyId),
+    statusIdx: index("idx_open_positions_status").on(table.status),
+    strategyStatusIdx: index("idx_open_positions_strategy_status").on(
+      table.strategyId,
+      table.status
+    ),
+    isTestIdx: index("idx_open_positions_is_test").on(table.isTest),
+  })
+);
 
 export type OpenPosition = typeof openPositions.$inferSelect;
 export type InsertOpenPosition = typeof openPositions.$inferInsert;
@@ -501,9 +622,13 @@ export type InsertOpenPosition = typeof openPositions.$inferInsert;
 /**
  * Signal types enum for webhook processing
  */
-export const signalTypeEnum = ["entry", "exit", "scale_in", "scale_out"] as const;
-export type SignalType = typeof signalTypeEnum[number];
-
+export const signalTypeEnum = [
+  "entry",
+  "exit",
+  "scale_in",
+  "scale_out",
+] as const;
+export type SignalType = (typeof signalTypeEnum)[number];
 
 // Note: notificationPreferences table is defined at the end of this file with updated schema
 
@@ -511,97 +636,120 @@ export type SignalType = typeof signalTypeEnum[number];
  * Strategy notification settings table
  * Per-strategy notification toggles for each user
  */
-export const strategyNotificationSettings = mysqlTable("strategy_notification_settings", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull(),
-  strategyId: int("strategyId").notNull(),
-  // Notification toggles
-  emailEnabled: boolean("emailEnabled").default(true).notNull(),
-  pushEnabled: boolean("pushEnabled").default(true).notNull(),
-  // Metadata
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-});
+export const strategyNotificationSettings = mysqlTable(
+  "strategy_notification_settings",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    userId: int("userId").notNull(),
+    strategyId: int("strategyId").notNull(),
+    // Notification toggles
+    emailEnabled: boolean("emailEnabled").default(true).notNull(),
+    pushEnabled: boolean("pushEnabled").default(true).notNull(),
+    // Metadata
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  }
+);
 
-export type StrategyNotificationSetting = typeof strategyNotificationSettings.$inferSelect;
-export type InsertStrategyNotificationSetting = typeof strategyNotificationSettings.$inferInsert;
-
+export type StrategyNotificationSetting =
+  typeof strategyNotificationSettings.$inferSelect;
+export type InsertStrategyNotificationSetting =
+  typeof strategyNotificationSettings.$inferInsert;
 
 /**
  * Staging trades table
  * Stores incoming webhook trades for review before approval into the main trades table
  * This provides a two-stage workflow: webhook -> staging -> production
  */
-export const stagingTrades = mysqlTable("staging_trades", {
-  id: int("id").autoincrement().primaryKey(),
-  // Link to the original webhook log
-  webhookLogId: int("webhookLogId").notNull(),
-  // Strategy info
-  strategyId: int("strategyId").notNull(),
-  strategySymbol: varchar("strategySymbol", { length: 20 }).notNull(),
-  // Trade details (same as trades table)
-  entryDate: datetime("entryDate").notNull(),
-  exitDate: datetime("exitDate"),
-  direction: varchar("direction", { length: 10 }).notNull(), // "Long" or "Short"
-  entryPrice: int("entryPrice").notNull(), // Entry price in cents
-  exitPrice: int("exitPrice"), // Exit price in cents (null if position still open)
-  quantity: int("quantity").notNull().default(1),
-  pnl: int("pnl"), // P&L in cents (null if position still open)
-  pnlPercent: int("pnlPercent"), // P&L as percentage
-  commission: int("commission").default(0).notNull(),
-  // Position tracking
-  isOpen: boolean("isOpen").default(true).notNull(), // True if this is an open position
-  // Review status
-  status: mysqlEnum("status", ["pending", "approved", "rejected", "edited"]).default("pending").notNull(),
-  // Approval workflow
-  reviewedBy: int("reviewedBy"), // User ID who reviewed
-  reviewedAt: datetime("reviewedAt"),
-  reviewNotes: text("reviewNotes"), // Optional notes from reviewer
-  // If edited, store the original values
-  originalPayload: text("originalPayload"), // JSON of original values before edit
-  // Link to production trade (after approval)
-  productionTradeId: int("productionTradeId"), // ID in trades table after approval
-  // Metadata
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-}, (table) => ({
-  webhookIdx: index("idx_staging_trades_webhook").on(table.webhookLogId),
-  strategyIdx: index("idx_staging_trades_strategy").on(table.strategyId),
-  statusIdx: index("idx_staging_trades_status").on(table.status),
-  isOpenIdx: index("idx_staging_trades_is_open").on(table.isOpen),
-  createdIdx: index("idx_staging_trades_created").on(table.createdAt),
-}));
+export const stagingTrades = mysqlTable(
+  "staging_trades",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    // Link to the original webhook log
+    webhookLogId: int("webhookLogId").notNull(),
+    // Strategy info
+    strategyId: int("strategyId").notNull(),
+    strategySymbol: varchar("strategySymbol", { length: 20 }).notNull(),
+    // Trade details (same as trades table)
+    entryDate: datetime("entryDate").notNull(),
+    exitDate: datetime("exitDate"),
+    direction: varchar("direction", { length: 10 }).notNull(), // "Long" or "Short"
+    entryPrice: int("entryPrice").notNull(), // Entry price in cents
+    exitPrice: int("exitPrice"), // Exit price in cents (null if position still open)
+    quantity: int("quantity").notNull().default(1),
+    pnl: int("pnl"), // P&L in cents (null if position still open)
+    pnlPercent: int("pnlPercent"), // P&L as percentage
+    commission: int("commission").default(0).notNull(),
+    // Position tracking
+    isOpen: boolean("isOpen").default(true).notNull(), // True if this is an open position
+    // Review status
+    status: mysqlEnum("status", ["pending", "approved", "rejected", "edited"])
+      .default("pending")
+      .notNull(),
+    // Approval workflow
+    reviewedBy: int("reviewedBy"), // User ID who reviewed
+    reviewedAt: datetime("reviewedAt"),
+    reviewNotes: text("reviewNotes"), // Optional notes from reviewer
+    // If edited, store the original values
+    originalPayload: text("originalPayload"), // JSON of original values before edit
+    // Link to production trade (after approval)
+    productionTradeId: int("productionTradeId"), // ID in trades table after approval
+    // Metadata
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  table => ({
+    webhookIdx: index("idx_staging_trades_webhook").on(table.webhookLogId),
+    strategyIdx: index("idx_staging_trades_strategy").on(table.strategyId),
+    statusIdx: index("idx_staging_trades_status").on(table.status),
+    isOpenIdx: index("idx_staging_trades_is_open").on(table.isOpen),
+    createdIdx: index("idx_staging_trades_created").on(table.createdAt),
+  })
+);
 
 export type StagingTrade = typeof stagingTrades.$inferSelect;
 export type InsertStagingTrade = typeof stagingTrades.$inferInsert;
-
 
 /**
  * Webhook retry queue table
  * Stores failed webhooks for retry with exponential backoff
  */
-export const webhookRetryQueue = mysqlTable("webhook_retry_queue", {
-  id: int("id").autoincrement().primaryKey(),
-  // Original webhook data
-  originalPayload: text("originalPayload").notNull(), // JSON string of original webhook payload
-  correlationId: varchar("correlationId", { length: 50 }).notNull(),
-  strategySymbol: varchar("strategySymbol", { length: 20 }),
-  // Retry tracking
-  retryCount: int("retryCount").default(0).notNull(),
-  maxRetries: int("maxRetries").default(5).notNull(),
-  nextRetryAt: datetime("nextRetryAt").notNull(),
-  lastError: text("lastError"),
-  // Status
-  status: mysqlEnum("status", ["pending", "processing", "completed", "failed", "cancelled"]).default("pending").notNull(),
-  // Metadata
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-  completedAt: datetime("completedAt"),
-}, (table) => ({
-  statusIdx: index("idx_retry_queue_status").on(table.status),
-  nextRetryIdx: index("idx_retry_queue_next_retry").on(table.nextRetryAt),
-  correlationIdx: index("idx_retry_queue_correlation").on(table.correlationId),
-}));
+export const webhookRetryQueue = mysqlTable(
+  "webhook_retry_queue",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    // Original webhook data
+    originalPayload: text("originalPayload").notNull(), // JSON string of original webhook payload
+    correlationId: varchar("correlationId", { length: 50 }).notNull(),
+    strategySymbol: varchar("strategySymbol", { length: 20 }),
+    // Retry tracking
+    retryCount: int("retryCount").default(0).notNull(),
+    maxRetries: int("maxRetries").default(5).notNull(),
+    nextRetryAt: datetime("nextRetryAt").notNull(),
+    lastError: text("lastError"),
+    // Status
+    status: mysqlEnum("status", [
+      "pending",
+      "processing",
+      "completed",
+      "failed",
+      "cancelled",
+    ])
+      .default("pending")
+      .notNull(),
+    // Metadata
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+    completedAt: datetime("completedAt"),
+  },
+  table => ({
+    statusIdx: index("idx_retry_queue_status").on(table.status),
+    nextRetryIdx: index("idx_retry_queue_next_retry").on(table.nextRetryAt),
+    correlationIdx: index("idx_retry_queue_correlation").on(
+      table.correlationId
+    ),
+  })
+);
 
 export type WebhookRetryQueueItem = typeof webhookRetryQueue.$inferSelect;
 export type InsertWebhookRetryQueueItem = typeof webhookRetryQueue.$inferInsert;
@@ -633,38 +781,52 @@ export const notificationPreferences = mysqlTable("notification_preferences", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
-export type NotificationPreference = typeof notificationPreferences.$inferSelect;
-export type InsertNotificationPreference = typeof notificationPreferences.$inferInsert;
+export type NotificationPreference =
+  typeof notificationPreferences.$inferSelect;
+export type InsertNotificationPreference =
+  typeof notificationPreferences.$inferInsert;
 
 /**
  * Notifications table
  * Stores notification history for users
  */
-export const notifications = mysqlTable("notifications", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull(),
-  // Notification content
-  type: mysqlEnum("type", ["trade_executed", "trade_error", "position_opened", "position_closed", "webhook_failed", "daily_digest", "system"]).notNull(),
-  title: varchar("title", { length: 200 }).notNull(),
-  message: text("message").notNull(),
-  // Related entities
-  strategyId: int("strategyId"),
-  tradeId: int("tradeId"),
-  webhookLogId: int("webhookLogId"),
-  // Status
-  read: boolean("read").default(false).notNull(),
-  dismissed: boolean("dismissed").default(false).notNull(),
-  // Delivery status
-  emailSent: boolean("emailSent").default(false).notNull(),
-  emailSentAt: datetime("emailSentAt"),
-  // Metadata
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-}, (table) => ({
-  userIdx: index("idx_notifications_user").on(table.userId),
-  typeIdx: index("idx_notifications_type").on(table.type),
-  readIdx: index("idx_notifications_read").on(table.read),
-  createdIdx: index("idx_notifications_created").on(table.createdAt),
-}));
+export const notifications = mysqlTable(
+  "notifications",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    userId: int("userId").notNull(),
+    // Notification content
+    type: mysqlEnum("type", [
+      "trade_executed",
+      "trade_error",
+      "position_opened",
+      "position_closed",
+      "webhook_failed",
+      "daily_digest",
+      "system",
+    ]).notNull(),
+    title: varchar("title", { length: 200 }).notNull(),
+    message: text("message").notNull(),
+    // Related entities
+    strategyId: int("strategyId"),
+    tradeId: int("tradeId"),
+    webhookLogId: int("webhookLogId"),
+    // Status
+    read: boolean("read").default(false).notNull(),
+    dismissed: boolean("dismissed").default(false).notNull(),
+    // Delivery status
+    emailSent: boolean("emailSent").default(false).notNull(),
+    emailSentAt: datetime("emailSentAt"),
+    // Metadata
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  table => ({
+    userIdx: index("idx_notifications_user").on(table.userId),
+    typeIdx: index("idx_notifications_type").on(table.type),
+    readIdx: index("idx_notifications_read").on(table.read),
+    createdIdx: index("idx_notifications_created").on(table.createdAt),
+  })
+);
 
 export type Notification = typeof notifications.$inferSelect;
 export type InsertNotification = typeof notifications.$inferInsert;
@@ -673,76 +835,100 @@ export type InsertNotification = typeof notifications.$inferInsert;
  * Signal batch table
  * Groups rapid-fire webhook signals for batch processing
  */
-export const signalBatches = mysqlTable("signal_batches", {
-  id: int("id").autoincrement().primaryKey(),
-  // Batch identification
-  batchId: varchar("batchId", { length: 50 }).notNull().unique(),
-  strategySymbol: varchar("strategySymbol", { length: 20 }).notNull(),
-  // Batch window
-  windowStartAt: datetime("windowStartAt").notNull(),
-  windowEndAt: datetime("windowEndAt"),
-  // Aggregated data
-  signalCount: int("signalCount").default(0).notNull(),
-  netDirection: varchar("netDirection", { length: 10 }), // "long", "short", "flat"
-  netQuantity: int("netQuantity").default(0).notNull(),
-  avgPrice: int("avgPrice"), // Average price in cents
-  // Status
-  status: mysqlEnum("status", ["collecting", "processing", "completed", "failed"]).default("collecting").notNull(),
-  // Processing result
-  resultWebhookLogId: int("resultWebhookLogId"),
-  errorMessage: text("errorMessage"),
-  // Metadata
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-}, (table) => ({
-  batchIdx: index("idx_signal_batches_batch").on(table.batchId),
-  strategyIdx: index("idx_signal_batches_strategy").on(table.strategySymbol),
-  statusIdx: index("idx_signal_batches_status").on(table.status),
-}));
+export const signalBatches = mysqlTable(
+  "signal_batches",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    // Batch identification
+    batchId: varchar("batchId", { length: 50 }).notNull().unique(),
+    strategySymbol: varchar("strategySymbol", { length: 20 }).notNull(),
+    // Batch window
+    windowStartAt: datetime("windowStartAt").notNull(),
+    windowEndAt: datetime("windowEndAt"),
+    // Aggregated data
+    signalCount: int("signalCount").default(0).notNull(),
+    netDirection: varchar("netDirection", { length: 10 }), // "long", "short", "flat"
+    netQuantity: int("netQuantity").default(0).notNull(),
+    avgPrice: int("avgPrice"), // Average price in cents
+    // Status
+    status: mysqlEnum("status", [
+      "collecting",
+      "processing",
+      "completed",
+      "failed",
+    ])
+      .default("collecting")
+      .notNull(),
+    // Processing result
+    resultWebhookLogId: int("resultWebhookLogId"),
+    errorMessage: text("errorMessage"),
+    // Metadata
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  table => ({
+    batchIdx: index("idx_signal_batches_batch").on(table.batchId),
+    strategyIdx: index("idx_signal_batches_strategy").on(table.strategySymbol),
+    statusIdx: index("idx_signal_batches_status").on(table.status),
+  })
+);
 
 export type SignalBatch = typeof signalBatches.$inferSelect;
 export type InsertSignalBatch = typeof signalBatches.$inferInsert;
-
 
 /**
  * Webhook Write-Ahead Log (WAL) table
  * Ensures crash-safe webhook processing by persisting webhooks before processing
  */
-export const webhookWal = mysqlTable("webhook_wal", {
-  id: int("id").autoincrement().primaryKey(),
-  // Unique identifier for this webhook
-  walId: varchar("walId", { length: 64 }).notNull().unique(),
-  correlationId: varchar("correlationId", { length: 64 }).notNull(),
-  // Raw payload stored for replay capability
-  rawPayload: text("rawPayload").notNull(),
-  // Parsed fields for quick lookup
-  strategySymbol: varchar("strategySymbol", { length: 50 }),
-  action: varchar("action", { length: 20 }),
-  direction: varchar("direction", { length: 10 }),
-  price: int("price"), // in cents
-  quantity: int("quantity"),
-  // Processing status
-  status: mysqlEnum("status", ["received", "processing", "completed", "failed", "retrying"]).default("received").notNull(),
-  // Processing metadata
-  attempts: int("attempts").default(0).notNull(),
-  lastAttemptAt: datetime("lastAttemptAt"),
-  completedAt: datetime("completedAt"),
-  // Result tracking
-  resultWebhookLogId: int("resultWebhookLogId"),
-  errorMessage: text("errorMessage"),
-  // Source info
-  sourceIp: varchar("sourceIp", { length: 45 }),
-  userAgent: varchar("userAgent", { length: 255 }),
-  // Timestamps
-  receivedAt: datetime("receivedAt").notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-}, (table) => ({
-  walIdIdx: index("idx_webhook_wal_wal_id").on(table.walId),
-  statusIdx: index("idx_webhook_wal_status").on(table.status),
-  correlationIdx: index("idx_webhook_wal_correlation").on(table.correlationId),
-  receivedAtIdx: index("idx_webhook_wal_received_at").on(table.receivedAt),
-}));
+export const webhookWal = mysqlTable(
+  "webhook_wal",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    // Unique identifier for this webhook
+    walId: varchar("walId", { length: 64 }).notNull().unique(),
+    correlationId: varchar("correlationId", { length: 64 }).notNull(),
+    // Raw payload stored for replay capability
+    rawPayload: text("rawPayload").notNull(),
+    // Parsed fields for quick lookup
+    strategySymbol: varchar("strategySymbol", { length: 50 }),
+    action: varchar("action", { length: 20 }),
+    direction: varchar("direction", { length: 10 }),
+    price: int("price"), // in cents
+    quantity: int("quantity"),
+    // Processing status
+    status: mysqlEnum("status", [
+      "received",
+      "processing",
+      "completed",
+      "failed",
+      "retrying",
+    ])
+      .default("received")
+      .notNull(),
+    // Processing metadata
+    attempts: int("attempts").default(0).notNull(),
+    lastAttemptAt: datetime("lastAttemptAt"),
+    completedAt: datetime("completedAt"),
+    // Result tracking
+    resultWebhookLogId: int("resultWebhookLogId"),
+    errorMessage: text("errorMessage"),
+    // Source info
+    sourceIp: varchar("sourceIp", { length: 45 }),
+    userAgent: varchar("userAgent", { length: 255 }),
+    // Timestamps
+    receivedAt: datetime("receivedAt").notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  table => ({
+    walIdIdx: index("idx_webhook_wal_wal_id").on(table.walId),
+    statusIdx: index("idx_webhook_wal_status").on(table.status),
+    correlationIdx: index("idx_webhook_wal_correlation").on(
+      table.correlationId
+    ),
+    receivedAtIdx: index("idx_webhook_wal_received_at").on(table.receivedAt),
+  })
+);
 
 export type WebhookWal = typeof webhookWal.$inferSelect;
 export type InsertWebhookWal = typeof webhookWal.$inferInsert;
@@ -751,61 +937,73 @@ export type InsertWebhookWal = typeof webhookWal.$inferInsert;
  * Broker orders table
  * Tracks order lifecycle from submission to fill/rejection
  */
-export const brokerOrders = mysqlTable("broker_orders", {
-  id: int("id").autoincrement().primaryKey(),
-  // Internal references
-  webhookLogId: int("webhookLogId"),
-  openPositionId: int("openPositionId"),
-  tradeId: int("tradeId"),
-  // Order identification
-  internalOrderId: varchar("internalOrderId", { length: 64 }).notNull().unique(),
-  brokerOrderId: varchar("brokerOrderId", { length: 64 }), // ID returned by broker
-  // Order details
-  broker: varchar("broker", { length: 20 }).notNull(), // "ibkr", "tradovate", etc.
-  strategySymbol: varchar("strategySymbol", { length: 50 }).notNull(),
-  symbol: varchar("symbol", { length: 20 }).notNull(), // Actual trading symbol (MES, NQ, etc.)
-  action: mysqlEnum("action", ["buy", "sell"]).notNull(),
-  orderType: mysqlEnum("orderType", ["market", "limit", "stop", "stop_limit"]).default("market").notNull(),
-  quantity: int("quantity").notNull(),
-  // Prices (in cents)
-  requestedPrice: int("requestedPrice"),
-  limitPrice: int("limitPrice"),
-  stopPrice: int("stopPrice"),
-  // Fill information
-  filledQuantity: int("filledQuantity").default(0).notNull(),
-  avgFillPrice: int("avgFillPrice"),
-  commission: int("commission").default(0), // in cents
-  // Status tracking
-  status: mysqlEnum("status", [
-    "pending",      // Created, not yet submitted
-    "submitted",    // Sent to broker
-    "acknowledged", // Broker received
-    "working",      // Order is live in market
-    "partially_filled",
-    "filled",
-    "cancelled",
-    "rejected",
-    "expired",
-    "error"
-  ]).default("pending").notNull(),
-  // Status messages
-  brokerStatus: varchar("brokerStatus", { length: 100 }),
-  rejectReason: text("rejectReason"),
-  // Timing
-  submittedAt: datetime("submittedAt"),
-  acknowledgedAt: datetime("acknowledgedAt"),
-  filledAt: datetime("filledAt"),
-  cancelledAt: datetime("cancelledAt"),
-  // Metadata
-  isTest: boolean("isTest").default(false).notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-}, (table) => ({
-  internalOrderIdx: index("idx_broker_orders_internal").on(table.internalOrderId),
-  brokerOrderIdx: index("idx_broker_orders_broker").on(table.brokerOrderId),
-  statusIdx: index("idx_broker_orders_status").on(table.status),
-  strategyIdx: index("idx_broker_orders_strategy").on(table.strategySymbol),
-}));
+export const brokerOrders = mysqlTable(
+  "broker_orders",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    // Internal references
+    webhookLogId: int("webhookLogId"),
+    openPositionId: int("openPositionId"),
+    tradeId: int("tradeId"),
+    // Order identification
+    internalOrderId: varchar("internalOrderId", { length: 64 })
+      .notNull()
+      .unique(),
+    brokerOrderId: varchar("brokerOrderId", { length: 64 }), // ID returned by broker
+    // Order details
+    broker: varchar("broker", { length: 20 }).notNull(), // "ibkr", "tradovate", etc.
+    strategySymbol: varchar("strategySymbol", { length: 50 }).notNull(),
+    symbol: varchar("symbol", { length: 20 }).notNull(), // Actual trading symbol (MES, NQ, etc.)
+    action: mysqlEnum("action", ["buy", "sell"]).notNull(),
+    orderType: mysqlEnum("orderType", ["market", "limit", "stop", "stop_limit"])
+      .default("market")
+      .notNull(),
+    quantity: int("quantity").notNull(),
+    // Prices (in cents)
+    requestedPrice: int("requestedPrice"),
+    limitPrice: int("limitPrice"),
+    stopPrice: int("stopPrice"),
+    // Fill information
+    filledQuantity: int("filledQuantity").default(0).notNull(),
+    avgFillPrice: int("avgFillPrice"),
+    commission: int("commission").default(0), // in cents
+    // Status tracking
+    status: mysqlEnum("status", [
+      "pending", // Created, not yet submitted
+      "submitted", // Sent to broker
+      "acknowledged", // Broker received
+      "working", // Order is live in market
+      "partially_filled",
+      "filled",
+      "cancelled",
+      "rejected",
+      "expired",
+      "error",
+    ])
+      .default("pending")
+      .notNull(),
+    // Status messages
+    brokerStatus: varchar("brokerStatus", { length: 100 }),
+    rejectReason: text("rejectReason"),
+    // Timing
+    submittedAt: datetime("submittedAt"),
+    acknowledgedAt: datetime("acknowledgedAt"),
+    filledAt: datetime("filledAt"),
+    cancelledAt: datetime("cancelledAt"),
+    // Metadata
+    isTest: boolean("isTest").default(false).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  table => ({
+    internalOrderIdx: index("idx_broker_orders_internal").on(
+      table.internalOrderId
+    ),
+    brokerOrderIdx: index("idx_broker_orders_broker").on(table.brokerOrderId),
+    statusIdx: index("idx_broker_orders_status").on(table.status),
+    strategyIdx: index("idx_broker_orders_strategy").on(table.strategySymbol),
+  })
+);
 
 export type BrokerOrder = typeof brokerOrders.$inferSelect;
 export type InsertBrokerOrder = typeof brokerOrders.$inferInsert;
@@ -814,51 +1012,59 @@ export type InsertBrokerOrder = typeof brokerOrders.$inferInsert;
  * Position reconciliation log table
  * Tracks discrepancies between database positions and broker positions
  */
-export const reconciliationLogs = mysqlTable("reconciliation_logs", {
-  id: int("id").autoincrement().primaryKey(),
-  // Reconciliation run identifier
-  reconciliationId: varchar("reconciliationId", { length: 64 }).notNull(),
-  runAt: datetime("runAt").notNull(),
-  // Broker info
-  broker: varchar("broker", { length: 20 }).notNull(),
-  accountId: varchar("accountId", { length: 64 }),
-  // Position details
-  strategySymbol: varchar("strategySymbol", { length: 50 }),
-  symbol: varchar("symbol", { length: 20 }).notNull(),
-  // Database state
-  dbPositionId: int("dbPositionId"),
-  dbDirection: varchar("dbDirection", { length: 10 }),
-  dbQuantity: int("dbQuantity"),
-  dbEntryPrice: int("dbEntryPrice"),
-  // Broker state
-  brokerDirection: varchar("brokerDirection", { length: 10 }),
-  brokerQuantity: int("brokerQuantity"),
-  brokerAvgPrice: int("brokerAvgPrice"),
-  // Discrepancy details
-  discrepancyType: mysqlEnum("discrepancyType", [
-    "missing_in_db",      // Position exists in broker but not DB
-    "missing_in_broker",  // Position exists in DB but not broker
-    "quantity_mismatch",  // Different quantities
-    "direction_mismatch", // Different directions (should never happen)
-    "price_mismatch",     // Significant price difference
-    "matched"             // No discrepancy
-  ]).notNull(),
-  discrepancyDetails: text("discrepancyDetails"),
-  // Resolution
-  resolved: boolean("resolved").default(false).notNull(),
-  resolvedAt: datetime("resolvedAt"),
-  resolvedBy: varchar("resolvedBy", { length: 100 }),
-  resolutionAction: varchar("resolutionAction", { length: 50 }),
-  resolutionNotes: text("resolutionNotes"),
-  // Timestamps
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-}, (table) => ({
-  reconciliationIdx: index("idx_reconciliation_run").on(table.reconciliationId),
-  brokerIdx: index("idx_reconciliation_broker").on(table.broker),
-  discrepancyIdx: index("idx_reconciliation_discrepancy").on(table.discrepancyType),
-  unresolvedIdx: index("idx_reconciliation_unresolved").on(table.resolved),
-}));
+export const reconciliationLogs = mysqlTable(
+  "reconciliation_logs",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    // Reconciliation run identifier
+    reconciliationId: varchar("reconciliationId", { length: 64 }).notNull(),
+    runAt: datetime("runAt").notNull(),
+    // Broker info
+    broker: varchar("broker", { length: 20 }).notNull(),
+    accountId: varchar("accountId", { length: 64 }),
+    // Position details
+    strategySymbol: varchar("strategySymbol", { length: 50 }),
+    symbol: varchar("symbol", { length: 20 }).notNull(),
+    // Database state
+    dbPositionId: int("dbPositionId"),
+    dbDirection: varchar("dbDirection", { length: 10 }),
+    dbQuantity: int("dbQuantity"),
+    dbEntryPrice: int("dbEntryPrice"),
+    // Broker state
+    brokerDirection: varchar("brokerDirection", { length: 10 }),
+    brokerQuantity: int("brokerQuantity"),
+    brokerAvgPrice: int("brokerAvgPrice"),
+    // Discrepancy details
+    discrepancyType: mysqlEnum("discrepancyType", [
+      "missing_in_db", // Position exists in broker but not DB
+      "missing_in_broker", // Position exists in DB but not broker
+      "quantity_mismatch", // Different quantities
+      "direction_mismatch", // Different directions (should never happen)
+      "price_mismatch", // Significant price difference
+      "matched", // No discrepancy
+    ]).notNull(),
+    discrepancyDetails: text("discrepancyDetails"),
+    // Resolution
+    resolved: boolean("resolved").default(false).notNull(),
+    resolvedAt: datetime("resolvedAt"),
+    resolvedBy: varchar("resolvedBy", { length: 100 }),
+    resolutionAction: varchar("resolutionAction", { length: 50 }),
+    resolutionNotes: text("resolutionNotes"),
+    // Timestamps
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  table => ({
+    reconciliationIdx: index("idx_reconciliation_run").on(
+      table.reconciliationId
+    ),
+    brokerIdx: index("idx_reconciliation_broker").on(table.broker),
+    discrepancyIdx: index("idx_reconciliation_discrepancy").on(
+      table.discrepancyType
+    ),
+    unresolvedIdx: index("idx_reconciliation_unresolved").on(table.resolved),
+  })
+);
 
 export type ReconciliationLog = typeof reconciliationLogs.$inferSelect;
 export type InsertReconciliationLog = typeof reconciliationLogs.$inferInsert;
@@ -867,39 +1073,47 @@ export type InsertReconciliationLog = typeof reconciliationLogs.$inferInsert;
  * Position adjustments table
  * Tracks manual adjustments to positions for audit trail
  */
-export const positionAdjustments = mysqlTable("position_adjustments", {
-  id: int("id").autoincrement().primaryKey(),
-  // Position reference
-  openPositionId: int("openPositionId"),
-  strategySymbol: varchar("strategySymbol", { length: 50 }).notNull(),
-  // Adjustment type
-  adjustmentType: mysqlEnum("adjustmentType", [
-    "force_close",       // Manually close position
-    "force_open",        // Manually open position
-    "quantity_adjust",   // Adjust quantity
-    "price_adjust",      // Adjust entry price
-    "sync_from_broker",  // Sync from broker state
-    "manual_override"    // General override
-  ]).notNull(),
-  // Before state
-  beforeDirection: varchar("beforeDirection", { length: 10 }),
-  beforeQuantity: int("beforeQuantity"),
-  beforeEntryPrice: int("beforeEntryPrice"),
-  // After state
-  afterDirection: varchar("afterDirection", { length: 10 }),
-  afterQuantity: int("afterQuantity"),
-  afterEntryPrice: int("afterEntryPrice"),
-  // Audit info
-  reason: text("reason").notNull(),
-  adjustedBy: varchar("adjustedBy", { length: 100 }).notNull(),
-  reconciliationLogId: int("reconciliationLogId"),
-  // Timestamps
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-}, (table) => ({
-  positionIdx: index("idx_position_adjustments_position").on(table.openPositionId),
-  strategyIdx: index("idx_position_adjustments_strategy").on(table.strategySymbol),
-  typeIdx: index("idx_position_adjustments_type").on(table.adjustmentType),
-}));
+export const positionAdjustments = mysqlTable(
+  "position_adjustments",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    // Position reference
+    openPositionId: int("openPositionId"),
+    strategySymbol: varchar("strategySymbol", { length: 50 }).notNull(),
+    // Adjustment type
+    adjustmentType: mysqlEnum("adjustmentType", [
+      "force_close", // Manually close position
+      "force_open", // Manually open position
+      "quantity_adjust", // Adjust quantity
+      "price_adjust", // Adjust entry price
+      "sync_from_broker", // Sync from broker state
+      "manual_override", // General override
+    ]).notNull(),
+    // Before state
+    beforeDirection: varchar("beforeDirection", { length: 10 }),
+    beforeQuantity: int("beforeQuantity"),
+    beforeEntryPrice: int("beforeEntryPrice"),
+    // After state
+    afterDirection: varchar("afterDirection", { length: 10 }),
+    afterQuantity: int("afterQuantity"),
+    afterEntryPrice: int("afterEntryPrice"),
+    // Audit info
+    reason: text("reason").notNull(),
+    adjustedBy: varchar("adjustedBy", { length: 100 }).notNull(),
+    reconciliationLogId: int("reconciliationLogId"),
+    // Timestamps
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  table => ({
+    positionIdx: index("idx_position_adjustments_position").on(
+      table.openPositionId
+    ),
+    strategyIdx: index("idx_position_adjustments_strategy").on(
+      table.strategySymbol
+    ),
+    typeIdx: index("idx_position_adjustments_type").on(table.adjustmentType),
+  })
+);
 
 export type PositionAdjustment = typeof positionAdjustments.$inferSelect;
 export type InsertPositionAdjustment = typeof positionAdjustments.$inferInsert;
