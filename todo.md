@@ -4861,3 +4861,11 @@
 ## Bug Fixes (Dec 27, 2024)
 
 - [x] Fix timeRange validation error - change 'all' to 'ALL' in Admin.tsx
+
+## Broker API Setup Forms (Dec 27, 2024)
+
+- [x] Fix Alpaca "I Have API Keys" button to show API key entry form
+- [x] Build complete Alpaca API key entry form with save functionality
+- [x] Build Tradovate credentials entry form
+- [x] Verify Interactive Brokers form is complete
+- [x] Test all broker setup flows

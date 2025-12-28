@@ -1865,9 +1865,11 @@ Please check the Webhooks page in your dashboard for more details.
     connect: adminProcedure
       .input(
         z.object({
-          broker: z.enum(["tradovate", "ibkr", "fidelity"]),
+          broker: z.enum(["alpaca", "tradovate", "ibkr", "fidelity"]),
           credentials: z.object({
-            username: z.string(),
+            apiKey: z.string().optional(),
+            apiSecret: z.string().optional(),
+            username: z.string().optional(),
             password: z.string().optional(),
             accountId: z.string().optional(),
           }),

@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import {
   CheckCircle,
@@ -260,6 +261,40 @@ function BrokerSelectionView({
   selectedBrokerData: BrokerOption | undefined;
   onStartPaperTrading: () => void;
 }) {
+  const [showApiForm, setShowApiForm] = useState<string | null>(null);
+
+  // If showing API form, render that instead
+  if (showApiForm === "alpaca") {
+    return <AlpacaSetupForm onBack={() => setShowApiForm(null)} />;
+  }
+  if (showApiForm === "tradovate") {
+    return <TradovateSetupForm onBack={() => setShowApiForm(null)} />;
+  }
+
+  return (
+    <BrokerSelectionViewInner
+      selectedBroker={selectedBroker}
+      setSelectedBroker={setSelectedBroker}
+      selectedBrokerData={selectedBrokerData}
+      onStartPaperTrading={onStartPaperTrading}
+      onShowApiForm={setShowApiForm}
+    />
+  );
+}
+
+function BrokerSelectionViewInner({
+  selectedBroker,
+  setSelectedBroker,
+  selectedBrokerData,
+  onStartPaperTrading,
+  onShowApiForm,
+}: {
+  selectedBroker: string;
+  setSelectedBroker: (id: string) => void;
+  selectedBrokerData: BrokerOption | undefined;
+  onStartPaperTrading: () => void;
+  onShowApiForm: (broker: string) => void;
+}) {
   return (
     <>
       {/* Broker Cards */}
@@ -449,7 +484,11 @@ function BrokerSelectionView({
                       <ExternalLink className="h-4 w-4 mr-2" />
                       Create Alpaca Account
                     </Button>
-                    <Button variant="outline" className="w-full">
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => onShowApiForm("alpaca")}
+                    >
                       <ArrowRight className="h-4 w-4 mr-2" />I Have API Keys
                     </Button>
                   </div>
@@ -464,7 +503,11 @@ function BrokerSelectionView({
                       <ExternalLink className="h-4 w-4 mr-2" />
                       Create Tradovate Account
                     </Button>
-                    <Button variant="outline" className="w-full">
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => onShowApiForm("tradovate")}
+                    >
                       <ArrowRight className="h-4 w-4 mr-2" />I Have API Keys
                     </Button>
                   </div>
@@ -1330,5 +1373,501 @@ function IBKRSetupForm() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+// ============================================================================
+// ALPACA SETUP FORM
+// ============================================================================
+
+function AlpacaSetupForm({ onBack }: { onBack: () => void }) {
+  const [apiKey, setApiKey] = useState("");
+  const [apiSecret, setApiSecret] = useState("");
+  const [isPaperTrading, setIsPaperTrading] = useState(true);
+  const [isTestingConnection, setIsTestingConnection] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<
+    "idle" | "success" | "error"
+  >("idle");
+  const [errorMessage, setErrorMessage] = useState("");
+
+  const saveBrokerConnection = trpc.broker.connect.useMutation({
+    onSuccess: () => {
+      toast.success("Alpaca connection saved successfully!");
+      setConnectionStatus("success");
+    },
+    onError: error => {
+      toast.error(error.message);
+      setConnectionStatus("error");
+      setErrorMessage(error.message);
+    },
+  });
+
+  const handleSaveConnection = async () => {
+    if (!apiKey || !apiSecret) {
+      toast.error("Please enter both API Key and Secret");
+      return;
+    }
+
+    setIsTestingConnection(true);
+    setConnectionStatus("idle");
+    setErrorMessage("");
+
+    try {
+      // Save the connection
+      saveBrokerConnection.mutate({
+        broker: "alpaca",
+        credentials: {
+          apiKey: apiKey,
+          apiSecret: apiSecret,
+        },
+        isDemo: isPaperTrading,
+      });
+    } catch (error) {
+      setConnectionStatus("error");
+      setErrorMessage("Failed to save connection");
+      toast.error("Connection failed");
+    } finally {
+      setIsTestingConnection(false);
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <span className="text-3xl">🦙</span>
+            <div>
+              <CardTitle>Connect Alpaca</CardTitle>
+              <CardDescription>
+                Enter your Alpaca API credentials to enable trading
+              </CardDescription>
+            </div>
+          </div>
+          <Button variant="ghost" size="sm" onClick={onBack}>
+            ← Back
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {/* Account Type Toggle */}
+        <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
+          <div>
+            <Label className="text-base font-medium">Account Type</Label>
+            <p className="text-sm text-muted-foreground">
+              {isPaperTrading
+                ? "Paper trading (simulated, no real money)"
+                : "Live trading (real money)"}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <span
+              className={
+                isPaperTrading ? "text-muted-foreground" : "font-medium"
+              }
+            >
+              Live
+            </span>
+            <Switch
+              checked={isPaperTrading}
+              onCheckedChange={setIsPaperTrading}
+            />
+            <span
+              className={
+                isPaperTrading ? "font-medium" : "text-muted-foreground"
+              }
+            >
+              Paper
+            </span>
+          </div>
+        </div>
+
+        {/* API Key Input */}
+        <div className="space-y-2">
+          <Label htmlFor="alpacaApiKey" className="flex items-center gap-2">
+            API Key ID
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger>
+                  <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  <p>
+                    Find this in your Alpaca dashboard under API Keys. Use paper
+                    keys for testing.
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </Label>
+          <Input
+            id="alpacaApiKey"
+            placeholder="PKXXXXXXXXXXXXXXXX"
+            value={apiKey}
+            onChange={e => setApiKey(e.target.value)}
+            className="font-mono"
+          />
+        </div>
+
+        {/* API Secret Input */}
+        <div className="space-y-2">
+          <Label htmlFor="alpacaApiSecret" className="flex items-center gap-2">
+            Secret Key
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger>
+                  <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  <p>
+                    Your secret key is only shown once when created. Generate a
+                    new one if needed.
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </Label>
+          <Input
+            id="alpacaApiSecret"
+            type="password"
+            placeholder="••••••••••••••••••••••••••••••••"
+            value={apiSecret}
+            onChange={e => setApiSecret(e.target.value)}
+            className="font-mono"
+          />
+        </div>
+
+        {/* Connection Status */}
+        {connectionStatus === "success" && (
+          <div className="flex items-center gap-2 p-3 rounded-lg bg-green-500/10 border border-green-500/20">
+            <CheckCircle className="h-5 w-5 text-green-500" />
+            <span className="text-green-500 text-sm">
+              Alpaca connection saved successfully! You can now use
+              auto-execution.
+            </span>
+          </div>
+        )}
+
+        {connectionStatus === "error" && (
+          <div className="flex items-center gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+            <AlertTriangle className="h-5 w-5 text-red-500" />
+            <span className="text-red-500 text-sm">
+              {errorMessage ||
+                "Connection failed. Please check your credentials."}
+            </span>
+          </div>
+        )}
+
+        {/* Action Buttons */}
+        <div className="space-y-2">
+          <Button
+            className="w-full bg-emerald-600 hover:bg-emerald-700"
+            onClick={handleSaveConnection}
+            disabled={isTestingConnection || !apiKey || !apiSecret}
+          >
+            {isTestingConnection ? (
+              <>
+                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                Saving Connection...
+              </>
+            ) : (
+              <>
+                <Zap className="h-4 w-4 mr-2" />
+                Save & Connect
+              </>
+            )}
+          </Button>
+
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={() =>
+              window.open(
+                "https://app.alpaca.markets/paper/dashboard/overview",
+                "_blank"
+              )
+            }
+          >
+            <ExternalLink className="h-4 w-4 mr-2" />
+            Open Alpaca Dashboard
+          </Button>
+        </div>
+
+        {/* Help Section */}
+        <Card className="bg-blue-500/10 border-blue-500/20">
+          <CardContent className="pt-4">
+            <h4 className="font-semibold text-blue-400 text-sm mb-2">
+              How to Get Your API Keys
+            </h4>
+            <ol className="text-xs text-muted-foreground space-y-1 list-decimal list-inside">
+              <li>Log in to your Alpaca account</li>
+              <li>Go to Paper Trading → API Keys (for testing)</li>
+              <li>Click "Generate New Key"</li>
+              <li>Copy both the Key ID and Secret Key</li>
+              <li>Paste them above and click Save & Connect</li>
+            </ol>
+            <Button
+              variant="link"
+              className="text-blue-400 p-0 h-auto mt-2 text-xs"
+              onClick={() =>
+                window.open(
+                  "https://alpaca.markets/docs/trading/getting_started/",
+                  "_blank"
+                )
+              }
+            >
+              View Alpaca API Documentation →
+            </Button>
+          </CardContent>
+        </Card>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ============================================================================
+// TRADOVATE SETUP FORM
+// ============================================================================
+
+function TradovateSetupForm({ onBack }: { onBack: () => void }) {
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [isDemo, setIsDemo] = useState(true);
+  const [isTestingConnection, setIsTestingConnection] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<
+    "idle" | "success" | "error"
+  >("idle");
+  const [errorMessage, setErrorMessage] = useState("");
+
+  const saveBrokerConnection = trpc.broker.connect.useMutation({
+    onSuccess: () => {
+      toast.success("Tradovate connection saved successfully!");
+      setConnectionStatus("success");
+    },
+    onError: error => {
+      toast.error(error.message);
+      setConnectionStatus("error");
+      setErrorMessage(error.message);
+    },
+  });
+
+  const handleSaveConnection = async () => {
+    if (!username || !password) {
+      toast.error("Please enter both username and password");
+      return;
+    }
+
+    setIsTestingConnection(true);
+    setConnectionStatus("idle");
+    setErrorMessage("");
+
+    try {
+      saveBrokerConnection.mutate({
+        broker: "tradovate",
+        credentials: {
+          username: username,
+          password: password,
+        },
+        isDemo: isDemo,
+      });
+    } catch (error) {
+      setConnectionStatus("error");
+      setErrorMessage("Failed to save connection");
+      toast.error("Connection failed");
+    } finally {
+      setIsTestingConnection(false);
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <span className="text-3xl">📈</span>
+            <div>
+              <CardTitle>Connect Tradovate</CardTitle>
+              <CardDescription>
+                Enter your Tradovate credentials to enable futures trading
+              </CardDescription>
+            </div>
+          </div>
+          <Button variant="ghost" size="sm" onClick={onBack}>
+            ← Back
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {/* Account Type Toggle */}
+        <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
+          <div>
+            <Label className="text-base font-medium">Account Type</Label>
+            <p className="text-sm text-muted-foreground">
+              {isDemo
+                ? "Demo account (simulated trading)"
+                : "Live account (real money)"}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className={isDemo ? "text-muted-foreground" : "font-medium"}>
+              Live
+            </span>
+            <Switch checked={isDemo} onCheckedChange={setIsDemo} />
+            <span className={isDemo ? "font-medium" : "text-muted-foreground"}>
+              Demo
+            </span>
+          </div>
+        </div>
+
+        {/* Username Input */}
+        <div className="space-y-2">
+          <Label
+            htmlFor="tradovateUsername"
+            className="flex items-center gap-2"
+          >
+            Tradovate Username
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger>
+                  <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  <p>Your Tradovate account username (not email)</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </Label>
+          <Input
+            id="tradovateUsername"
+            placeholder="your_username"
+            value={username}
+            onChange={e => setUsername(e.target.value)}
+          />
+        </div>
+
+        {/* Password Input */}
+        <div className="space-y-2">
+          <Label
+            htmlFor="tradovatePassword"
+            className="flex items-center gap-2"
+          >
+            Password
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger>
+                  <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  <p>Your Tradovate account password</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </Label>
+          <Input
+            id="tradovatePassword"
+            type="password"
+            placeholder="••••••••••••"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+          />
+        </div>
+
+        {/* Connection Status */}
+        {connectionStatus === "success" && (
+          <div className="flex items-center gap-2 p-3 rounded-lg bg-green-500/10 border border-green-500/20">
+            <CheckCircle className="h-5 w-5 text-green-500" />
+            <span className="text-green-500 text-sm">
+              Tradovate connection saved successfully! You can now trade
+              futures.
+            </span>
+          </div>
+        )}
+
+        {connectionStatus === "error" && (
+          <div className="flex items-center gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+            <AlertTriangle className="h-5 w-5 text-red-500" />
+            <span className="text-red-500 text-sm">
+              {errorMessage ||
+                "Connection failed. Please check your credentials."}
+            </span>
+          </div>
+        )}
+
+        {/* Action Buttons */}
+        <div className="space-y-2">
+          <Button
+            className="w-full bg-emerald-600 hover:bg-emerald-700"
+            onClick={handleSaveConnection}
+            disabled={isTestingConnection || !username || !password}
+          >
+            {isTestingConnection ? (
+              <>
+                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                Saving Connection...
+              </>
+            ) : (
+              <>
+                <Zap className="h-4 w-4 mr-2" />
+                Save & Connect
+              </>
+            )}
+          </Button>
+
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={() =>
+              window.open("https://trader.tradovate.com/", "_blank")
+            }
+          >
+            <ExternalLink className="h-4 w-4 mr-2" />
+            Open Tradovate Platform
+          </Button>
+        </div>
+
+        {/* Help Section */}
+        <Card className="bg-blue-500/10 border-blue-500/20">
+          <CardContent className="pt-4">
+            <h4 className="font-semibold text-blue-400 text-sm mb-2">
+              Getting Started with Tradovate
+            </h4>
+            <ol className="text-xs text-muted-foreground space-y-1 list-decimal list-inside">
+              <li>Create a Tradovate account if you don't have one</li>
+              <li>Start with a Demo account to practice</li>
+              <li>Enter your username and password above</li>
+              <li>Click Save & Connect to enable trading</li>
+            </ol>
+            <Button
+              variant="link"
+              className="text-blue-400 p-0 h-auto mt-2 text-xs"
+              onClick={() =>
+                window.open("https://www.tradovate.com/resources/", "_blank")
+              }
+            >
+              View Tradovate Resources →
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Warning for Live Trading */}
+        {!isDemo && (
+          <Card className="bg-amber-500/10 border-amber-500/20">
+            <CardContent className="flex items-start gap-4 pt-4">
+              <AlertTriangle className="h-5 w-5 text-amber-500 flex-shrink-0" />
+              <div>
+                <h4 className="font-semibold text-amber-500 text-sm">
+                  Live Trading Warning
+                </h4>
+                <p className="text-xs text-muted-foreground mt-1">
+                  You are connecting a live trading account. Real money will be
+                  at risk. Make sure you understand the strategies before
+                  enabling auto-execution.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </CardContent>
+    </Card>
   );
 }
