@@ -23,7 +23,7 @@ import {
 import { getLoginUrl } from "@/const";
 import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 
 // FAQ data - Updated for single plan with 7-day guarantee
 const faqs = [
@@ -134,6 +134,12 @@ const comparisonFeatures = [
 
 export default function LandingPage() {
   const { isAuthenticated } = useAuth();
+
+  // Set page title for SEO (30-60 characters)
+  useEffect(() => {
+    document.title = "STS Futures | Systematic Trading Strategies Platform";
+  }, []);
+
   // Platform stats query available for future use
   trpc.platform.stats.useQuery();
   // Strategies query available for future use

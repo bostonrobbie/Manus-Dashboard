@@ -4974,3 +4974,9 @@
 - [x] Submit sitemap.xml to Google Search Console (13 pages indexed)
 - [x] Sitemap accessible at https://stsdashboard.com/sitemap.xml
 - [x] Google will periodically process and index pages
+
+## SEO Fixes - Landing Page (Dec 29, 2025)
+
+- [x] Add H1 heading to landing page (already present: "Systematic Trading Strategies for Futures")
+- [x] Add H2 headings to landing page sections (7 H2 headings present)
+- [x] Optimize title length via document.title (52 chars: "STS Futures | Systematic Trading Strategies Platform")
