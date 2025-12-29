@@ -335,6 +335,68 @@ export async function getBenchmarkData(params?: {
 }
 
 /**
+ * Get trades with strategy info in a single query (avoids N+1)
+ * Use this when you need strategy names alongside trades
+ */
+export async function getTradesWithStrategy(params: {
+  strategyIds?: number[];
+  startDate?: Date;
+  endDate?: Date;
+  source?: "csv_import" | "webhook" | "manual" | "all";
+  limit?: number;
+}) {
+  const db = await getDb();
+  if (!db) return [];
+
+  const conditions = [eq(trades.isTest, false)];
+
+  if (params.strategyIds && params.strategyIds.length > 0) {
+    conditions.push(inArray(trades.strategyId, params.strategyIds));
+  }
+
+  if (params.startDate) {
+    conditions.push(gte(trades.exitDate, params.startDate));
+  }
+
+  if (params.endDate) {
+    conditions.push(lte(trades.exitDate, params.endDate));
+  }
+
+  if (params.source && params.source !== "all") {
+    conditions.push(eq(trades.source, params.source));
+  }
+
+  let query = db
+    .select({
+      id: trades.id,
+      strategyId: trades.strategyId,
+      strategySymbol: strategies.symbol,
+      strategyName: strategies.name,
+      entryDate: trades.entryDate,
+      exitDate: trades.exitDate,
+      direction: trades.direction,
+      entryPrice: trades.entryPrice,
+      exitPrice: trades.exitPrice,
+      quantity: trades.quantity,
+      pnl: trades.pnl,
+      pnlPercent: trades.pnlPercent,
+      commission: trades.commission,
+      source: trades.source,
+      createdAt: trades.createdAt,
+    })
+    .from(trades)
+    .leftJoin(strategies, eq(trades.strategyId, strategies.id))
+    .where(and(...conditions))
+    .orderBy(desc(trades.exitDate));
+
+  if (params.limit) {
+    return await query.limit(params.limit);
+  }
+
+  return await query;
+}
+
+/**
  * Insert a new trade (for webhook ingestion)
  */
 export async function insertTrade(trade: {

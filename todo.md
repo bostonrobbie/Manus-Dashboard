@@ -4926,3 +4926,11 @@
 - [x] Document known issues
 - [x] Prioritize fixes by impact
 - [x] Create improvement roadmap
+
+## Backend Improvements (Dec 28, 2024)
+
+- [x] Add health check endpoint to routers.ts
+- [x] Add composite indexes for common queries (trades, webhook_logs)
+- [x] Fix N+1 queries in db.ts with JOINs (getTradesWithStrategy)
+- [x] Add input sanitization utility (server/lib/sanitize.ts)
+- [x] Push database migrations (4 new indexes created)
