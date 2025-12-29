@@ -1,5 +1,5 @@
 # robots.txt for STS Futures
-# https://sts-futures.com
+# https://stsdashboard.com
 
 # Allow all search engine crawlers
 User-agent: *
@@ -105,7 +105,7 @@ Disallow: /api/
 Disallow: /admin
 
 # Sitemap location
-Sitemap: https://sts-futures.com/sitemap.xml
+Sitemap: https://stsdashboard.com/sitemap.xml
 
 # AI-specific files
 # See /llms.txt for AI-optimized content
