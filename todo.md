@@ -4917,3 +4917,29 @@
 - [x] Add rate limiting for API endpoints (already implemented for webhooks)
 - [x] Verify database indexes for performance (50+ indexes on all major tables)
 - [x] Check error handling for high-load scenarios (3 retries, connection reset)
+
+## Stripe Live Configuration (Dec 29, 2025)
+
+### Stripe Setup
+
+- [ ] Update Stripe live secret key (user must update in Settings → Payment)
+- [ ] Update Stripe live publishable key (user must update in Settings → Payment)
+- [x] Create "STS Pro" product in Stripe (prod_Th43AKZoq4vikp)
+- [x] Create $50/month price (price_1SjfvXLQsJRtPDrZBEMq9bWX)
+- [x] Create $500/year price (price_1SjfwvLQsJRtPDrZT0dxyReY)
+- [x] Set up webhook endpoint in Stripe dashboard (we_1SjgBlLQsJRtPDrZAARKBw7w)
+- [ ] Update STRIPE_WEBHOOK_SECRET (whsec_O5QcBBdO1lTvo5nk4aUrSKVgp1W4RKJ5)
+
+### Homepage Pricing Update
+
+- [x] Update pricing section to show $50/month
+- [x] Update pricing section to show $500/year
+- [x] Update savings calculation (Save $100 badge)
+
+### Subscription Access Control
+
+- [x] Gate dashboard access to subscribers only (SubscriptionGate component)
+- [x] Gate strategy pages to subscribers only
+- [x] Allow admin access regardless of subscription
+- [x] Show upgrade prompt for non-subscribers
+- [x] Implement grandfathered pricing (locked rate for continuous subscribers - Stripe handles this automatically)

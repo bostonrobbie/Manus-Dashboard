@@ -3,7 +3,14 @@ import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { getLoginUrl } from "@/const";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -18,7 +25,7 @@ export default function Pricing() {
   const [loadingTier, setLoadingTier] = useState<string | null>(null);
 
   const createCheckout = trpc.stripe.createCheckoutSession.useMutation({
-    onSuccess: (data) => {
+    onSuccess: data => {
       if (data.url) {
         window.open(data.url, "_blank");
         toast.success("Redirecting to checkout...", {
@@ -27,7 +34,7 @@ export default function Pricing() {
       }
       setLoadingTier(null);
     },
-    onError: (error) => {
+    onError: error => {
       toast.error("Failed to start checkout", {
         description: error.message,
       });
@@ -43,7 +50,6 @@ export default function Pricing() {
 
     setLoadingTier(tier);
     createCheckout.mutate({
-      tier,
       interval: isYearly ? "yearly" : "monthly",
     });
   };
@@ -134,13 +140,16 @@ export default function Pricing() {
           Choose Your Trading Edge
         </h1>
         <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-8">
-          Access professional-grade algorithmic trading signals with proven track records.
-          Start free and upgrade as you grow.
+          Access professional-grade algorithmic trading signals with proven
+          track records. Start free and upgrade as you grow.
         </p>
 
         {/* Billing Toggle */}
         <div className="flex items-center justify-center gap-4 mb-12">
-          <Label htmlFor="billing-toggle" className={!isYearly ? "font-semibold" : "text-muted-foreground"}>
+          <Label
+            htmlFor="billing-toggle"
+            className={!isYearly ? "font-semibold" : "text-muted-foreground"}
+          >
             Monthly
           </Label>
           <Switch
@@ -148,7 +157,10 @@ export default function Pricing() {
             checked={isYearly}
             onCheckedChange={setIsYearly}
           />
-          <Label htmlFor="billing-toggle" className={isYearly ? "font-semibold" : "text-muted-foreground"}>
+          <Label
+            htmlFor="billing-toggle"
+            className={isYearly ? "font-semibold" : "text-muted-foreground"}
+          >
             Yearly
             <Badge variant="secondary" className="ml-2 text-xs">
               Save 20%
@@ -160,12 +172,13 @@ export default function Pricing() {
       {/* Pricing Cards */}
       <div className="container pb-24">
         <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-          {tiers.map((tier) => {
+          {tiers.map(tier => {
             const Icon = tier.icon;
             const price = isYearly ? tier.priceYearly : tier.priceMonthly;
             const isCurrentTier = currentTier === tier.id;
-            const isUpgrade = 
-              (currentTier === "free" && (tier.id === "pro" || tier.id === "premium")) ||
+            const isUpgrade =
+              (currentTier === "free" &&
+                (tier.id === "pro" || tier.id === "premium")) ||
               (currentTier === "pro" && tier.id === "premium");
 
             return (
@@ -220,23 +233,27 @@ export default function Pricing() {
                   <Button
                     className="w-full"
                     variant={tier.popular ? "default" : "outline"}
-                    disabled={isCurrentTier || loadingTier === tier.id || (tier.id === "free" && !!user)}
+                    disabled={
+                      isCurrentTier ||
+                      loadingTier === tier.id ||
+                      (tier.id === "free" && !!user)
+                    }
                     onClick={() => {
                       if (tier.id === "free") return;
                       handleSubscribe(tier.id as "pro" | "premium");
                     }}
                   >
-                    {loadingTier === tier.id ? (
-                      "Processing..."
-                    ) : isCurrentTier ? (
-                      "Current Plan"
-                    ) : isUpgrade ? (
-                      tier.cta
-                    ) : tier.id === "free" ? (
-                      user ? "Current Plan" : "Get Started Free"
-                    ) : (
-                      tier.cta
-                    )}
+                    {loadingTier === tier.id
+                      ? "Processing..."
+                      : isCurrentTier
+                        ? "Current Plan"
+                        : isUpgrade
+                          ? tier.cta
+                          : tier.id === "free"
+                            ? user
+                              ? "Current Plan"
+                              : "Get Started Free"
+                            : tier.cta}
                   </Button>
                 </CardFooter>
               </Card>
@@ -253,25 +270,34 @@ export default function Pricing() {
             <div className="p-6 rounded-lg bg-card border border-border/50">
               <h3 className="font-semibold mb-2">Can I cancel anytime?</h3>
               <p className="text-muted-foreground text-sm">
-                Yes, you can cancel your subscription at any time. You'll continue to have access until the end of your billing period.
+                Yes, you can cancel your subscription at any time. You'll
+                continue to have access until the end of your billing period.
               </p>
             </div>
             <div className="p-6 rounded-lg bg-card border border-border/50">
-              <h3 className="font-semibold mb-2">What payment methods do you accept?</h3>
+              <h3 className="font-semibold mb-2">
+                What payment methods do you accept?
+              </h3>
               <p className="text-muted-foreground text-sm">
-                We accept all major credit cards (Visa, Mastercard, American Express) through our secure Stripe payment processor.
+                We accept all major credit cards (Visa, Mastercard, American
+                Express) through our secure Stripe payment processor.
               </p>
             </div>
             <div className="p-6 rounded-lg bg-card border border-border/50">
               <h3 className="font-semibold mb-2">Is there a refund policy?</h3>
               <p className="text-muted-foreground text-sm">
-                We offer a 7-day money-back guarantee. If you're not satisfied within the first week, contact us for a full refund.
+                We offer a 7-day money-back guarantee. If you're not satisfied
+                within the first week, contact us for a full refund.
               </p>
             </div>
             <div className="p-6 rounded-lg bg-card border border-border/50">
-              <h3 className="font-semibold mb-2">Can I upgrade or downgrade my plan?</h3>
+              <h3 className="font-semibold mb-2">
+                Can I upgrade or downgrade my plan?
+              </h3>
               <p className="text-muted-foreground text-sm">
-                Yes, you can change your plan at any time. Upgrades take effect immediately, and downgrades take effect at the end of your billing period.
+                Yes, you can change your plan at any time. Upgrades take effect
+                immediately, and downgrades take effect at the end of your
+                billing period.
               </p>
             </div>
           </div>

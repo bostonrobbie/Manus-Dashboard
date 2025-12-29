@@ -4,7 +4,7 @@ import Stripe from "stripe";
 import { getDb } from "../db";
 import { users } from "../../drizzle/schema";
 import { eq } from "drizzle-orm";
-import { SUBSCRIPTION_TIERS } from "./products";
+import { SUBSCRIPTION_TIERS, STRIPE_PRICE_IDS } from "./products";
 
 // Initialize Stripe with secret key
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "");
@@ -14,12 +14,12 @@ export const stripeRouter = router({
   createCheckoutSession: protectedProcedure
     .input(
       z.object({
-        tier: z.enum(["pro", "premium"]),
+        priceId: z.string().optional(),
         interval: z.enum(["monthly", "yearly"]).default("monthly"),
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const { tier, interval } = input;
+      const { interval, priceId } = input;
       const user = ctx.user;
 
       // Get or create Stripe customer
@@ -46,12 +46,14 @@ export const stripeRouter = router({
         }
       }
 
-      // Get price based on tier and interval
-      const tierConfig = SUBSCRIPTION_TIERS[tier];
-      const amount = interval === "yearly" ? tierConfig.priceYearly : tierConfig.priceMonthly;
+      // Use the provided priceId or default based on interval
+      const stripePriceId =
+        priceId ||
+        (interval === "yearly"
+          ? STRIPE_PRICE_IDS.pro_yearly
+          : STRIPE_PRICE_IDS.pro_monthly);
 
-      // Create checkout session with dynamic pricing
-      // Note: When customer is provided, don't pass customer_email (Stripe doesn't allow both)
+      // Create checkout session with live price ID
       const session = await stripe.checkout.sessions.create({
         customer: customerId,
         mode: "subscription",
@@ -62,26 +64,16 @@ export const stripeRouter = router({
           user_id: user.id.toString(),
           customer_email: user.email || "",
           customer_name: user.name || "",
-          tier: tier,
+          tier: "pro",
           interval: interval,
         },
         line_items: [
           {
-            price_data: {
-              currency: "usd",
-              product_data: {
-                name: `${tierConfig.name} Plan`,
-                description: tierConfig.description,
-              },
-              unit_amount: amount,
-              recurring: {
-                interval: interval === "yearly" ? "year" : "month",
-              },
-            },
+            price: stripePriceId,
             quantity: 1,
           },
         ],
-        success_url: `${ctx.req.headers.origin}/checkout/success?tier=${tier}`,
+        success_url: `${ctx.req.headers.origin}/checkout/success?tier=pro`,
         cancel_url: `${ctx.req.headers.origin}/pricing?payment=canceled`,
       });
 
@@ -102,7 +94,9 @@ export const stripeRouter = router({
         return {
           tier: user.subscriptionTier,
           status: subData.status,
-          currentPeriodEnd: subData.current_period_end ? new Date(subData.current_period_end * 1000) : null,
+          currentPeriodEnd: subData.current_period_end
+            ? new Date(subData.current_period_end * 1000)
+            : null,
           cancelAtPeriodEnd: subData.cancel_at_period_end || false,
         };
       } catch (error) {

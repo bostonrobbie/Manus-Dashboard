@@ -19,6 +19,7 @@ const LandingPage = lazy(() => import("./pages/LandingPage"));
 const Pricing = lazy(() => import("./pages/Pricing"));
 const Onboarding = lazy(() => import("./pages/Onboarding"));
 const CheckoutSuccess = lazy(() => import("./pages/CheckoutSuccess"));
+const Checkout = lazy(() => import("./pages/Checkout"));
 const BrokerSetup = lazy(() => import("./pages/BrokerSetup"));
 // QADashboard available for future use
 // const QADashboard = lazy(() => import("./pages/QADashboard"));
@@ -59,6 +60,15 @@ function Router() {
           component={() => (
             <Suspense fallback={<PageLoader />}>
               <Onboarding />
+            </Suspense>
+          )}
+        />
+
+        <Route
+          path="/checkout"
+          component={() => (
+            <Suspense fallback={<PageLoader />}>
+              <Checkout />
             </Suspense>
           )}
         />
