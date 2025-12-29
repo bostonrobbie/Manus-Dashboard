@@ -4980,3 +4980,12 @@
 - [x] Add H1 heading to landing page (already present: "Systematic Trading Strategies for Futures")
 - [x] Add H2 headings to landing page sections (7 H2 headings present)
 - [x] Optimize title length via document.title (52 chars: "STS Futures | Systematic Trading Strategies Platform")
+
+## SEO Enhancements - Structured Data & Social (Dec 29, 2025)
+
+- [x] Add JSON-LD structured data for pricing (Product schema) - already present, updated pricing to $49
+- [x] Add JSON-LD structured data for FAQ section (FAQPage schema) - already present with 6 FAQs
+- [x] Add Open Graph meta tags (og:title, og:description, og:image) - already present
+- [x] Add Twitter Card meta tags - already present
+- [x] Add canonical URL - already present
+- [x] Update all domain references from sts-futures.com to stsdashboard.com
