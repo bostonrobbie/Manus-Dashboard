@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import {
   Card,
@@ -57,7 +57,20 @@ type TimeRange = "6M" | "YTD" | "1Y" | "3Y" | "5Y" | "10Y" | "ALL";
 
 export default function Overview() {
   const [timeRange, setTimeRange] = useState<TimeRange>("1Y");
+  const [startingCapitalInput, setStartingCapitalInput] = useState("100000");
   const [startingCapital, setStartingCapital] = useState(100000);
+
+  // Debounce starting capital changes - only update after 800ms of no typing
+  useEffect(() => {
+    const value = Number(startingCapitalInput);
+    if (isNaN(value) || value <= 0) return;
+
+    const timer = setTimeout(() => {
+      setStartingCapital(value);
+    }, 800);
+
+    return () => clearTimeout(timer);
+  }, [startingCapitalInput]);
   const [contractSize, setContractSize] = useState<"mini" | "micro">("mini");
   const [calendarPeriodType, setCalendarPeriodType] = useState<
     "daily" | "weekly" | "monthly" | "quarterly" | "yearly"
@@ -195,10 +208,8 @@ export default function Overview() {
                       <Input
                         id="starting-capital-setting"
                         type="number"
-                        value={startingCapital}
-                        onChange={e =>
-                          setStartingCapital(Number(e.target.value))
-                        }
+                        value={startingCapitalInput}
+                        onChange={e => setStartingCapitalInput(e.target.value)}
                         className="h-8"
                       />
                     </div>
@@ -237,6 +248,7 @@ export default function Overview() {
                           data.tradeStats.riskOfRuinDetails!
                             .minBalanceForZeroRisk
                         );
+                        setStartingCapitalInput(String(minBalance));
                         setStartingCapital(minBalance);
                       }}
                       className="cursor-pointer"

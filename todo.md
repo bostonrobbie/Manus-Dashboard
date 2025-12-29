@@ -4996,3 +4996,25 @@
 - [x] Create storyboard frame mockups for key scenes (5 frames generated)
 - [x] Find voiceover artists with pricing recommendations (Fiverr, Voices.com, pricing guide)
 - [x] Build video editor brief document (comprehensive brief ready to send)
+
+## Dec 29, 2025 - UI/UX Improvements
+
+- [ ] Fix "Set to Zero RoR Capital" button not working
+- [ ] Add debouncing to Starting Capital input (prevent auto-loading on every keystroke)
+- [ ] Redesign Portfolio Performance Center with uniform colors
+- [ ] Make Portfolio Performance Center hedge-fund quality (clean, organized, professional)
+
+## Dec 29, 2025 - UI/UX Improvements
+
+### Portfolio Performance Center Redesign
+
+- [x] Fix "Set to Zero RoR Capital" button not working (verified - was already working)
+- [x] Add debouncing to Starting Capital input to prevent auto-recalculation on every keystroke
+- [x] Redesign Portfolio Performance Center with uniform emerald/teal color scheme
+- [x] Create new PortfolioPerformanceCenter component with hedge-fund quality design
+- [x] Add "Institutional-Grade Analytics" subtitle
+- [x] Unify Activity Stats row with consistent emerald/teal theme
+- [x] Create clean KPI row with 6 key metrics
+- [x] Implement three-column layout (Strategy Allocation, Core Metrics, Risk-Adjusted)
+- [x] Add professional typography hierarchy and tabular-nums for aligned numbers
+- [x] Add subtle hover effects and consistent border colors
