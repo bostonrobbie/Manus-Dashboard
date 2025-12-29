@@ -572,7 +572,7 @@ export default function Home() {
             <div className="relative rounded-2xl overflow-hidden border border-gray-800 shadow-2xl shadow-emerald-500/10">
               <img
                 src="/screenshots/overview-all-time.webp"
-                alt="STS Dashboard Overview"
+                alt="STS Futures Trading Dashboard showing portfolio equity curve, performance metrics including Sharpe ratio, total return, and max drawdown for systematic futures strategies"
                 className="w-full"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0f] via-transparent to-transparent" />
@@ -859,7 +859,7 @@ export default function Home() {
             <div className="rounded-2xl overflow-hidden border border-gray-800">
               <img
                 src="/screenshots/strategies-page.webp"
-                alt="Strategy Performance"
+                alt="Futures trading strategy performance comparison showing ES, NQ, CL, GC, and BTC strategies with equity curves and key metrics"
                 className="w-full"
               />
               <div className="bg-gray-900 p-4">
@@ -874,7 +874,7 @@ export default function Home() {
             <div className="rounded-2xl overflow-hidden border border-gray-800">
               <img
                 src="/screenshots/compare-page.webp"
-                alt="Portfolio Comparison"
+                alt="Portfolio builder tool comparing multiple futures trading strategies with combined equity curves and correlation analysis"
                 className="w-full"
               />
               <div className="bg-gray-900 p-4">
