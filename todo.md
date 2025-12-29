@@ -4989,3 +4989,10 @@
 - [x] Add Twitter Card meta tags - already present
 - [x] Add canonical URL - already present
 - [x] Update all domain references from sts-futures.com to stsdashboard.com
+
+## Video Production Support (Dec 29, 2025)
+
+- [x] Find 110 BPM royalty-free music tracks for demo video (Epidemic Sound + Pixabay free options)
+- [x] Create storyboard frame mockups for key scenes (5 frames generated)
+- [x] Find voiceover artists with pricing recommendations (Fiverr, Voices.com, pricing guide)
+- [x] Build video editor brief document (comprehensive brief ready to send)
