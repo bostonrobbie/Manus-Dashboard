@@ -5023,3 +5023,13 @@
 
 - [x] Fix "Set to Zero RoR Capital" button not updating Starting Capital when Micro Contracts is selected (verified working)
 - [x] Verify the button works correctly for both Mini and Micro contract sizes (verified working)
+
+### Bug Fix - Equity Curve Starting Point
+
+- [ ] Fix equity curve to start at the specified Starting Capital value (e.g., $25k should start at $25k)
+- [ ] Ensure the chart Y-axis properly reflects the starting capital baseline
+
+### UI Enhancement - Starting Capital Reference Line
+
+- [x] Add horizontal reference line at starting capital value on equity curve chart
+- [x] Make the reference line clearly visible with label

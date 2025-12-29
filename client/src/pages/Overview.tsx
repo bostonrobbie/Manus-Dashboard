@@ -29,6 +29,7 @@ import {
   Legend,
   ResponsiveContainer,
   ReferenceArea,
+  ReferenceLine,
 } from "recharts";
 import { Loader2, Settings, Clock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -136,17 +137,39 @@ export default function Overview() {
   const { metrics, portfolioEquity, benchmarkEquity } = data;
 
   // Contract size multiplier: micro = 1/10 of mini
+  // Only scale the P&L portion, not the starting capital
   const contractMultiplier = contractSize === "micro" ? 0.1 : 1;
 
+  // Get the starting equity from the first point (should equal startingCapital)
+  const baseEquity =
+    portfolioEquity.length > 0 ? portfolioEquity[0]!.equity : startingCapital;
+
   // Prepare chart data with timestamps for proper domain calculation
-  const chartData = portfolioEquity.map((point, index) => ({
-    date: new Date(point.date).toLocaleDateString(),
-    timestamp: new Date(point.date).getTime(), // Add timestamp for domain
-    portfolio: point.equity * contractMultiplier,
-    benchmark: benchmarkEquity[index]?.equity
-      ? benchmarkEquity[index].equity * contractMultiplier
-      : null,
-  }));
+  // For micro contracts: equity = startingCapital + (P&L * 0.1)
+  // This keeps the starting point at startingCapital and only scales the gains/losses
+  const chartData = portfolioEquity.map((point, index) => {
+    // Calculate P&L from the base equity
+    const pnl = point.equity - baseEquity;
+    // Scale only the P&L portion by the contract multiplier
+    const scaledEquity = startingCapital + pnl * contractMultiplier;
+
+    // For benchmark, also scale only the P&L portion
+    const benchmarkBase =
+      benchmarkEquity.length > 0 ? benchmarkEquity[0]!.equity : startingCapital;
+    const benchmarkPnl = benchmarkEquity[index]?.equity
+      ? benchmarkEquity[index].equity - benchmarkBase
+      : 0;
+    const scaledBenchmark = benchmarkEquity[index]?.equity
+      ? startingCapital + benchmarkPnl * contractMultiplier
+      : null;
+
+    return {
+      date: new Date(point.date).toLocaleDateString(),
+      timestamp: new Date(point.date).getTime(), // Add timestamp for domain
+      portfolio: scaledEquity,
+      benchmark: scaledBenchmark,
+    };
+  });
 
   // Get only the max drawdown period for subtle highlighting (less distracting)
   const maxDrawdownPeriod =
@@ -516,6 +539,20 @@ export default function Overview() {
                     strokeDasharray="3 3"
                   />
                 )}
+                {/* Starting Capital Reference Line */}
+                <ReferenceLine
+                  y={startingCapital}
+                  stroke="#10b981"
+                  strokeWidth={2}
+                  strokeDasharray="8 4"
+                  label={{
+                    value: `Starting Capital: $${(startingCapital / 1000).toFixed(0)}k`,
+                    position: "insideTopRight",
+                    fill: "#10b981",
+                    fontSize: 11,
+                    fontWeight: 500,
+                  }}
+                />
                 <Line
                   type="monotone"
                   dataKey="portfolio"
