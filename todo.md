@@ -5018,3 +5018,8 @@
 - [x] Implement three-column layout (Strategy Allocation, Core Metrics, Risk-Adjusted)
 - [x] Add professional typography hierarchy and tabular-nums for aligned numbers
 - [x] Add subtle hover effects and consistent border colors
+
+### Bug Fix - Zero RoR Button with Micro Contracts
+
+- [x] Fix "Set to Zero RoR Capital" button not updating Starting Capital when Micro Contracts is selected (verified working)
+- [x] Verify the button works correctly for both Mini and Micro contract sizes (verified working)
