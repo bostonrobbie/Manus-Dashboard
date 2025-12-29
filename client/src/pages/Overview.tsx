@@ -40,7 +40,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StrategyCorrelationHeatmap } from "@/components/StrategyCorrelationHeatmap";
 import { RollingMetricsChart } from "@/components/RollingMetricsChart";
 import { TradeAndRiskStats } from "@/components/TradeAndRiskStats";
-// TradeSourceBreakdown and WebhookSignalPerformance moved to Admin page
+// TradeSourceBreakdown and WebhookSignalPerformance imports removed - not currently used
 
 import {
   DropdownMenu,

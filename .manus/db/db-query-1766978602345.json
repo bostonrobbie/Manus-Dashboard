@@ -1,9 +1,0 @@
-{
-  "query": "-- Add composite indexes for performance optimization\n\n-- Trades: composite index for time-range queries by strategy\nCREATE INDEX IF NOT EXISTS idx_trades_strategy_entry_exit ON trades (strategyId, entryDate, exitDate);\n\n-- Trades: index for source filtering  \nCREATE INDEX IF NOT EXISTS idx_trades_source ON trades (source);\n\n-- Webhook logs: composite index for dashboard queries\nCREATE INDEX IF NOT EXISTS idx_webhook_logs_strategy_created ON webhook_logs (strategyId, createdAt);\n\n-- Webhook logs: composite index for status filtering with time\nCREATE INDEX IF NOT EXISTS idx_webhook_logs_status_created ON webhook_logs (status, createdAt);",
-  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2Wv7ueKqB8G6f57.b62a6ae065f5 --database jFmY8c2b9B6TEBRxmcJws8 --execute -- Add composite indexes for performance optimization\n\n-- Trades: composite index for time-range queries by strategy\nCREATE INDEX IF NOT EXISTS idx_trades_strategy_entry_exit ON trades (strategyId, entryDate, exitDate);\n\n-- Trades: index for source filtering  \nCREATE INDEX IF NOT EXISTS idx_trades_source ON trades (source);\n\n-- Webhook logs: composite index for dashboard queries\nCREATE INDEX IF NOT EXISTS idx_webhook_logs_strategy_created ON webhook_logs (strategyId, createdAt);\n\n-- Webhook logs: composite index for status filtering with time\nCREATE INDEX IF NOT EXISTS idx_webhook_logs_status_created ON webhook_logs (status, createdAt);",
-  "rows": [],
-  "messages": [],
-  "stdout": "",
-  "stderr": "",
-  "execution_time_ms": 3883
-}

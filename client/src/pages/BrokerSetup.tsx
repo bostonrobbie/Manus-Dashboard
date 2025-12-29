@@ -1159,6 +1159,8 @@ function IBKRSetupForm() {
   >("idle");
   const [errorMessage, setErrorMessage] = useState("");
 
+  // saveBrokerConnection removed - IBKR uses testIBKRConnection which saves on success
+
   const testIBKRConnection = trpc.broker.testIBKRConnection.useMutation({
     onSuccess: result => {
       if (result.success) {
@@ -1206,6 +1208,8 @@ function IBKRSetupForm() {
       setIsTestingConnection(false);
     }
   };
+
+  // Note: handleSaveConnection removed - using handleTestConnection for IBKR which saves on success
 
   return (
     <div className="space-y-4">

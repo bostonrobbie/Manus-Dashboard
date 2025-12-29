@@ -96,14 +96,6 @@ export const trades = mysqlTable(
       table.strategyId,
       table.exitDate
     ),
-    // Composite index for time-range queries
-    strategyEntryExitIdx: index("idx_trades_strategy_entry_exit").on(
-      table.strategyId,
-      table.entryDate,
-      table.exitDate
-    ),
-    // Index for source filtering
-    sourceIdx: index("idx_trades_source").on(table.source),
   })
 );
 
@@ -170,16 +162,6 @@ export const webhookLogs = mysqlTable(
     statusIdx: index("idx_webhook_logs_status").on(table.status),
     createdIdx: index("idx_webhook_logs_created").on(table.createdAt),
     isTestIdx: index("idx_webhook_logs_is_test").on(table.isTest),
-    // Composite index for dashboard queries
-    strategyCreatedIdx: index("idx_webhook_logs_strategy_created").on(
-      table.strategyId,
-      table.createdAt
-    ),
-    // Composite index for status filtering with time
-    statusCreatedIdx: index("idx_webhook_logs_status_created").on(
-      table.status,
-      table.createdAt
-    ),
   })
 );
 

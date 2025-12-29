@@ -18,9 +18,6 @@ import * as dailyEquityCurve from "./core/dailyEquityCurve";
 import * as paperTrading from "./paperTradingService";
 import { stripeRouter } from "./stripe/stripeRouter";
 import { cache, cacheKeys, cacheTTL } from "./cache";
-import { getDb } from "./db";
-import { users } from "../drizzle/schema";
-import { sql } from "drizzle-orm";
 
 // Time range enum for filtering
 const TimeRange = z.enum(["6M", "YTD", "1Y", "3Y", "5Y", "10Y", "ALL"]);
@@ -28,61 +25,6 @@ const TimeRange = z.enum(["6M", "YTD", "1Y", "3Y", "5Y", "10Y", "ALL"]);
 export const appRouter = router({
   system: systemRouter,
   stripe: stripeRouter,
-
-  // Health check endpoint for monitoring and load balancers
-  health: router({
-    check: publicProcedure.query(async () => {
-      const startTime = Date.now();
-
-      // Check database connectivity
-      let dbHealthy = false;
-      let dbLatencyMs = 0;
-      try {
-        const dbStart = Date.now();
-        const dbInstance = await getDb();
-        if (dbInstance) {
-          // Simple query to verify connection
-          await dbInstance
-            .select({ count: sql<number>`1` })
-            .from(users)
-            .limit(1);
-          dbHealthy = true;
-        }
-        dbLatencyMs = Date.now() - dbStart;
-      } catch (error) {
-        console.error("[Health] Database check failed:", error);
-      }
-
-      // Get cache stats
-      const cacheStats = cache.stats();
-
-      // Calculate overall status
-      const status = dbHealthy ? "healthy" : "degraded";
-
-      return {
-        status,
-        timestamp: new Date().toISOString(),
-        uptime: Math.round(process.uptime()),
-        version: "1.0.0",
-        checks: {
-          database: {
-            status: dbHealthy ? "up" : "down",
-            latencyMs: dbLatencyMs,
-          },
-          cache: {
-            status: "up",
-            entries: cacheStats.size,
-          },
-        },
-        memory: {
-          heapUsed: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
-          heapTotal: Math.round(process.memoryUsage().heapTotal / 1024 / 1024),
-          rss: Math.round(process.memoryUsage().rss / 1024 / 1024),
-        },
-        responseTimeMs: Date.now() - startTime,
-      };
-    }),
-  }),
 
   // Public platform statistics for landing page
   platform: router({

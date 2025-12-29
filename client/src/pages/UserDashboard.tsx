@@ -33,10 +33,6 @@ import {
   Target,
   Activity,
   Scale,
-  Calendar,
-  Sun,
-  Moon,
-  AlertCircle,
 } from "lucide-react";
 import {
   Dialog,
@@ -564,7 +560,7 @@ export default function UserDashboard() {
         />
       )}
 
-      {/* Today's Activity Section - Enhanced with Market Status and Upcoming Signals */}
+      {/* Today's Trades Section - Always visible */}
       <Card className="bg-gradient-to-br from-blue-500/5 to-transparent border-blue-500/20">
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
@@ -572,186 +568,16 @@ export default function UserDashboard() {
               <Zap className="h-5 w-5 text-blue-400" />
               Today's Activity
             </CardTitle>
-            <div className="flex items-center gap-2">
-              {/* Market Status Indicator */}
-              {(() => {
-                const now = new Date();
-                const estHour = new Date(
-                  now.toLocaleString("en-US", { timeZone: "America/New_York" })
-                ).getHours();
-                const estDay = new Date(
-                  now.toLocaleString("en-US", { timeZone: "America/New_York" })
-                ).getDay();
-                const isWeekend = estDay === 0 || estDay === 6;
-                const isMarketHours = estHour >= 9 && estHour < 16;
-                const isPreMarket = estHour >= 4 && estHour < 9;
-                const isAfterHours = estHour >= 16 && estHour < 20;
-
-                if (isWeekend) {
-                  return (
-                    <Badge
-                      variant="outline"
-                      className="text-slate-400 border-slate-400/50 flex items-center gap-1"
-                    >
-                      <Moon className="h-3 w-3" />
-                      Weekend
-                    </Badge>
-                  );
-                } else if (isMarketHours) {
-                  return (
-                    <Badge
-                      variant="outline"
-                      className="text-emerald-400 border-emerald-400/50 flex items-center gap-1 animate-pulse"
-                    >
-                      <Sun className="h-3 w-3" />
-                      Market Open
-                    </Badge>
-                  );
-                } else if (isPreMarket) {
-                  return (
-                    <Badge
-                      variant="outline"
-                      className="text-amber-400 border-amber-400/50 flex items-center gap-1"
-                    >
-                      <Clock className="h-3 w-3" />
-                      Pre-Market
-                    </Badge>
-                  );
-                } else if (isAfterHours) {
-                  return (
-                    <Badge
-                      variant="outline"
-                      className="text-amber-400 border-amber-400/50 flex items-center gap-1"
-                    >
-                      <Clock className="h-3 w-3" />
-                      After Hours
-                    </Badge>
-                  );
-                } else {
-                  return (
-                    <Badge
-                      variant="outline"
-                      className="text-slate-400 border-slate-400/50 flex items-center gap-1"
-                    >
-                      <Moon className="h-3 w-3" />
-                      Market Closed
-                    </Badge>
-                  );
-                }
-              })()}
-              <Badge
-                variant="outline"
-                className="text-blue-400 border-blue-400/50"
-              >
-                {portfolioData?.todayTrades?.length || 0} trade
-                {(portfolioData?.todayTrades?.length || 0) !== 1 ? "s" : ""}
-              </Badge>
-            </div>
+            <Badge
+              variant="outline"
+              className="text-blue-400 border-blue-400/50"
+            >
+              {portfolioData?.todayTrades?.length || 0} trade
+              {(portfolioData?.todayTrades?.length || 0) !== 1 ? "s" : ""}
+            </Badge>
           </div>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Upcoming Activity Windows */}
-          {subscriptions && subscriptions.length > 0 && (
-            <div className="bg-slate-800/30 rounded-lg p-3 border border-slate-700/50">
-              <div className="flex items-center gap-2 mb-2">
-                <Calendar className="h-4 w-4 text-cyan-400" />
-                <span className="text-sm font-medium text-cyan-400">
-                  Expected Activity Windows
-                </span>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 text-xs">
-                {/* ORB Strategies - Trade at market open */}
-                {subscriptions.some((s: any) =>
-                  (s.strategyName || s.strategy?.name || "")
-                    .toLowerCase()
-                    .includes("orb")
-                ) && (
-                  <div className="flex items-center gap-2 bg-emerald-500/10 rounded px-2 py-1.5 border border-emerald-500/20">
-                    <div className="w-2 h-2 rounded-full bg-emerald-400"></div>
-                    <span className="text-muted-foreground">ORB:</span>
-                    <span className="text-emerald-400 font-medium">
-                      9:30 - 10:30 AM ET
-                    </span>
-                  </div>
-                )}
-                {/* Trend Strategies - Can trade anytime during market hours */}
-                {subscriptions.some((s: any) =>
-                  (s.strategyName || s.strategy?.name || "")
-                    .toLowerCase()
-                    .includes("trend")
-                ) && (
-                  <div className="flex items-center gap-2 bg-blue-500/10 rounded px-2 py-1.5 border border-blue-500/20">
-                    <div className="w-2 h-2 rounded-full bg-blue-400"></div>
-                    <span className="text-muted-foreground">Trend:</span>
-                    <span className="text-blue-400 font-medium">
-                      9:30 AM - 4:00 PM ET
-                    </span>
-                  </div>
-                )}
-                {/* CL/GC - Commodities have extended hours */}
-                {subscriptions.some((s: any) => {
-                  const name = (
-                    s.strategyName ||
-                    s.strategy?.name ||
-                    ""
-                  ).toLowerCase();
-                  return (
-                    name.includes("cl") ||
-                    name.includes("gc") ||
-                    name.includes("crude") ||
-                    name.includes("gold")
-                  );
-                }) && (
-                  <div className="flex items-center gap-2 bg-amber-500/10 rounded px-2 py-1.5 border border-amber-500/20">
-                    <div className="w-2 h-2 rounded-full bg-amber-400"></div>
-                    <span className="text-muted-foreground">Commodities:</span>
-                    <span className="text-amber-400 font-medium">
-                      6:00 PM - 5:00 PM ET
-                    </span>
-                  </div>
-                )}
-                {/* BTC - 24/7 */}
-                {subscriptions.some((s: any) =>
-                  (s.strategyName || s.strategy?.name || "")
-                    .toLowerCase()
-                    .includes("btc")
-                ) && (
-                  <div className="flex items-center gap-2 bg-orange-500/10 rounded px-2 py-1.5 border border-orange-500/20">
-                    <div className="w-2 h-2 rounded-full bg-orange-400"></div>
-                    <span className="text-muted-foreground">BTC:</span>
-                    <span className="text-orange-400 font-medium">24/7</span>
-                  </div>
-                )}
-                {/* Default for ES/NQ/YM */}
-                {subscriptions.some((s: any) => {
-                  const name = (
-                    s.strategyName ||
-                    s.strategy?.name ||
-                    ""
-                  ).toLowerCase();
-                  return (
-                    (name.includes("es") ||
-                      name.includes("nq") ||
-                      name.includes("ym")) &&
-                    !name.includes("orb") &&
-                    !name.includes("trend")
-                  );
-                }) && (
-                  <div className="flex items-center gap-2 bg-purple-500/10 rounded px-2 py-1.5 border border-purple-500/20">
-                    <div className="w-2 h-2 rounded-full bg-purple-400"></div>
-                    <span className="text-muted-foreground">
-                      Index Futures:
-                    </span>
-                    <span className="text-purple-400 font-medium">
-                      6:00 PM - 5:00 PM ET
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Today's Trades */}
+        <CardContent>
           {portfolioData?.todayTrades &&
           portfolioData.todayTrades.length > 0 ? (
             <div className="flex gap-3 overflow-x-auto pb-2">
@@ -810,12 +636,8 @@ export default function UserDashboard() {
               ))}
             </div>
           ) : (
-            <div className="flex items-center justify-center gap-3 py-4 text-muted-foreground text-sm">
-              <AlertCircle className="h-4 w-4" />
-              <span>
-                No trades today. Signals will appear here when strategies
-                trigger.
-              </span>
+            <div className="text-center py-4 text-muted-foreground text-sm">
+              No trades today. Signals will appear here when they are generated.
             </div>
           )}
         </CardContent>
@@ -930,12 +752,9 @@ export default function UserDashboard() {
                           tickLine={{ stroke: "rgba(255,255,255,0.3)" }}
                           axisLine={{ stroke: "rgba(255,255,255,0.4)" }}
                           tickFormatter={value =>
-                            value >= 1000000
-                              ? `$${(value / 1000000).toFixed(1)}M`
-                              : `$${(value / 1000).toFixed(0)}k`
+                            `$${(value / 1000).toFixed(0)}k`
                           }
-                          width={70}
-                          domain={["auto", "auto"]}
+                          width={60}
                           label={{
                             value: "Portfolio Value",
                             angle: -90,
@@ -1529,7 +1348,7 @@ export default function UserDashboard() {
                   </div>
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     {/* Left Column - Strategy Allocation */}
-                    <div className="space-y-4 bg-slate-900/30 rounded-xl p-4 border border-slate-700/30 min-h-[420px]">
+                    <div className="space-y-4">
                       <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
                         Strategy Allocation
                       </h3>
@@ -1595,7 +1414,7 @@ export default function UserDashboard() {
                     </div>
 
                     {/* Middle Column - Core Metrics */}
-                    <div className="space-y-4 bg-slate-900/30 rounded-xl p-4 border border-slate-700/30 min-h-[420px]">
+                    <div className="space-y-4">
                       <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
                         Core Metrics
                       </h3>
@@ -1726,7 +1545,7 @@ export default function UserDashboard() {
                     </div>
 
                     {/* Right Column - Risk-Adjusted Metrics */}
-                    <div className="space-y-4 bg-slate-900/30 rounded-xl p-4 border border-slate-700/30 min-h-[420px]">
+                    <div className="space-y-4">
                       <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
                         Risk-Adjusted
                       </h3>
