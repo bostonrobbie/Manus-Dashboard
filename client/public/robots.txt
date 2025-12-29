@@ -1,0 +1,18 @@
+# Robots.txt for STS Futures
+# https://sts-futures.com
+
+User-agent: *
+Allow: /
+
+# Sitemap location
+Sitemap: https://sts-futures.com/sitemap.xml
+
+# Disallow admin and API routes
+Disallow: /admin
+Disallow: /api/
+Disallow: /dashboard
+
+# Allow search engines to crawl public pages
+Allow: /
+Allow: /pricing
+Allow: /strategies
