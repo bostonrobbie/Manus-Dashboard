@@ -24,7 +24,7 @@ import {
 import { getLoginUrl } from "@/const";
 import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 
 // FAQ data
 const faqs = [
@@ -187,6 +187,11 @@ const comparisonFeatures = [
 export default function Home() {
   const { isAuthenticated } = useAuth();
   const { data: stats, isLoading } = trpc.platform.stats.useQuery();
+
+  // SEO: Set document title (30-60 chars)
+  useEffect(() => {
+    document.title = "STS Futures - Systematic Trading Strategies";
+  }, []);
   // Strategies query available for future use
   trpc.subscription.availableStrategies.useQuery(undefined, {
     enabled: isAuthenticated,

@@ -4943,3 +4943,13 @@
 - [x] Allow admin access regardless of subscription
 - [x] Show upgrade prompt for non-subscribers
 - [x] Implement grandfathered pricing (locked rate for continuous subscribers - Stripe handles this automatically)
+
+## SEO Fixes (Dec 29, 2025)
+
+### Landing Page SEO Issues
+
+- [x] Reduce keywords from 20 to 6 focused keywords
+- [x] H1 heading already present ("Systematic Trading Strategies for Futures")
+- [x] H2 headings already present (7 section headings)
+- [x] Title set via document.title (46 chars - within 30-60 range)
+- [x] Meta description shortened to 142 chars (within 50-160 range)
