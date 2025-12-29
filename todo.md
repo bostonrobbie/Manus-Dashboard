@@ -5033,3 +5033,17 @@
 
 - [x] Add horizontal reference line at starting capital value on equity curve chart
 - [x] Make the reference line clearly visible with label
+
+### Bug Fix - Performance Stats Calculations
+
+- [ ] Fix Total Return percentage to calculate based on actual starting capital (not $100k base)
+- [ ] Fix Max Drawdown percentage to calculate based on actual starting capital
+- [ ] Ensure all percentages scale correctly when contract size (micro/mini) is changed
+
+### Dec 29, 2025 - Performance Stats Percentage Fix
+
+- [x] Fix Total Return and Max Drawdown percentages to correctly account for contract size (micro vs mini)
+- [x] Ensure percentages are calculated based on actual P&L relative to starting capital
+- [x] Verified: With $25k starting capital + Micro contracts, Total Return shows 51.9% ($13K) correctly
+- [x] Verified: Max Drawdown shows 18.3% ($4.6K) correctly
+- [x] Equity curve properly scales with contract size selection

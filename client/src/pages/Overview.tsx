@@ -296,132 +296,164 @@ export default function Overview() {
           </div>
 
           {/* Key Metrics Cards - Mobile Optimized Grid */}
-          <div className="grid gap-1.5 sm:gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
-            {/* Total Return */}
-            <div className="bg-muted/30 border border-muted rounded-lg p-2 sm:p-3 md:p-4 text-center overflow-hidden">
-              <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1 sm:mb-2">
-                Total Return
-              </div>
-              <div
-                className={`text-xs sm:text-base md:text-lg lg:text-xl font-bold mb-1 ${
-                  metrics.totalReturn >= 0 ? "text-green-500" : "text-red-500"
-                }`}
-                title={`${metrics.totalReturn >= 0 ? "+" : ""}$${Math.round((metrics.totalReturn / 100) * startingCapital * contractMultiplier).toLocaleString()}`}
-              >
-                {metrics.totalReturn >= 0 ? "+" : ""}$
-                {(() => {
-                  const value = Math.round(
-                    (metrics.totalReturn / 100) *
-                      startingCapital *
-                      contractMultiplier
-                  );
-                  if (Math.abs(value) >= 1000000)
-                    return (value / 1000000).toFixed(1) + "M";
-                  if (Math.abs(value) >= 1000)
-                    return (value / 1000).toFixed(1) + "K";
-                  return value.toLocaleString();
-                })()}
-              </div>
-              <div className="text-[8px] sm:text-[9px] text-muted-foreground">
-                {metrics.totalReturn.toFixed(1)}% (
-                {metrics.annualizedReturn.toFixed(0)}% ann.)
-              </div>
-            </div>
+          {/* Calculate adjusted percentages based on contract size */}
+          {/* For micro contracts, P&L is 1/10th, so percentages need to be recalculated */}
+          {(() => {
+            // Calculate the actual P&L in dollars (scaled for contract size)
+            const actualPnlDollars =
+              (metrics.totalReturn / 100) *
+              startingCapital *
+              contractMultiplier;
+            // Recalculate percentage based on actual P&L and starting capital
+            const adjustedTotalReturnPct =
+              (actualPnlDollars / startingCapital) * 100;
 
-            {/* Max Drawdown */}
-            <div className="bg-muted/30 border border-muted rounded-lg p-2 sm:p-3 md:p-4 text-center overflow-hidden">
-              <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1 sm:mb-2">
-                Max Drawdown
-              </div>
-              <div
-                className="text-xs sm:text-base md:text-lg lg:text-xl font-bold mb-1 text-amber-500"
-                title={`-$${Math.round(metrics.maxDrawdownDollars * contractMultiplier).toLocaleString()}`}
-              >
-                -$
-                {(() => {
-                  const value = Math.round(
-                    metrics.maxDrawdownDollars * contractMultiplier
-                  );
-                  if (Math.abs(value) >= 1000000)
-                    return (value / 1000000).toFixed(1) + "M";
-                  if (Math.abs(value) >= 1000)
-                    return (value / 1000).toFixed(1) + "K";
-                  return value.toLocaleString();
-                })()}
-              </div>
-              <div className="text-[8px] sm:text-[9px] text-muted-foreground">
-                {metrics.maxDrawdown.toFixed(1)}% peak to trough
-              </div>
-            </div>
+            // Calculate adjusted max drawdown percentage
+            const actualDrawdownDollars =
+              metrics.maxDrawdownDollars * contractMultiplier;
+            const adjustedMaxDrawdownPct =
+              (actualDrawdownDollars / startingCapital) * 100;
 
-            {/* Sortino Ratio - Daily (Industry Standard) */}
-            <div className="bg-muted/30 border border-muted rounded-lg p-2 sm:p-3 md:p-4 text-center overflow-hidden">
-              <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1 sm:mb-2 flex items-center justify-center gap-1">
-                <span className="hidden sm:inline">Sortino</span>
-                <span className="sm:hidden">Sortino</span>
-                <Badge
-                  variant="outline"
-                  className="text-[7px] sm:text-[8px] px-1 py-0 h-3 sm:h-4 bg-emerald-500/10 text-emerald-500 border-emerald-500/30"
-                >
-                  Daily
-                </Badge>
-              </div>
-              <div className="text-sm sm:text-lg md:text-xl lg:text-2xl font-bold mb-1">
-                {data.dailyMetrics?.sortino?.toFixed(2) ??
-                  metrics.sortinoRatio.toFixed(2)}
-              </div>
-              <div className="text-[9px] sm:text-[10px] text-muted-foreground truncate">
-                Trade: {metrics.sortinoRatio.toFixed(2)}
-              </div>
-            </div>
+            // Calculate adjusted annualized return
+            // Get the number of years from the data
+            const yearsElapsed =
+              metrics.annualizedReturn !== 0 && metrics.totalReturn !== 0
+                ? Math.log(1 + metrics.annualizedReturn / 100) /
+                  Math.log(1 + metrics.totalReturn / 100)
+                : 1;
+            const adjustedAnnualizedReturn =
+              yearsElapsed > 0
+                ? (Math.pow(
+                    1 + adjustedTotalReturnPct / 100,
+                    1 / yearsElapsed
+                  ) -
+                    1) *
+                  100
+                : adjustedTotalReturnPct;
 
-            {/* Sharpe Ratio - Daily (Industry Standard) */}
-            <div className="bg-muted/30 border border-muted rounded-lg p-2 sm:p-3 md:p-4 text-center overflow-hidden">
-              <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1 sm:mb-2 flex items-center justify-center gap-1">
-                <span className="hidden sm:inline">Sharpe</span>
-                <span className="sm:hidden">Sharpe</span>
-                <Badge
-                  variant="outline"
-                  className="text-[7px] sm:text-[8px] px-1 py-0 h-3 sm:h-4 bg-emerald-500/10 text-emerald-500 border-emerald-500/30"
-                >
-                  Daily
-                </Badge>
-              </div>
-              <div className="text-sm sm:text-lg md:text-xl lg:text-2xl font-bold mb-1">
-                {data.dailyMetrics?.sharpe?.toFixed(2) ??
-                  metrics.sharpeRatio.toFixed(2)}
-              </div>
-              <div className="text-[9px] sm:text-[10px] text-muted-foreground truncate">
-                Trade: {metrics.sharpeRatio.toFixed(2)}
-              </div>
-            </div>
+            return (
+              <div className="grid gap-1.5 sm:gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
+                {/* Total Return */}
+                <div className="bg-muted/30 border border-muted rounded-lg p-2 sm:p-3 md:p-4 text-center overflow-hidden">
+                  <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1 sm:mb-2">
+                    Total Return
+                  </div>
+                  <div
+                    className={`text-xs sm:text-base md:text-lg lg:text-xl font-bold mb-1 ${
+                      actualPnlDollars >= 0 ? "text-green-500" : "text-red-500"
+                    }`}
+                    title={`${actualPnlDollars >= 0 ? "+" : ""}$${Math.round(actualPnlDollars).toLocaleString()}`}
+                  >
+                    {actualPnlDollars >= 0 ? "+" : ""}$
+                    {(() => {
+                      const value = Math.round(actualPnlDollars);
+                      if (Math.abs(value) >= 1000000)
+                        return (value / 1000000).toFixed(1) + "M";
+                      if (Math.abs(value) >= 1000)
+                        return (value / 1000).toFixed(1) + "K";
+                      return value.toLocaleString();
+                    })()}
+                  </div>
+                  <div className="text-[8px] sm:text-[9px] text-muted-foreground">
+                    {adjustedTotalReturnPct.toFixed(1)}% (
+                    {adjustedAnnualizedReturn.toFixed(0)}% ann.)
+                  </div>
+                </div>
 
-            {/* Win Rate */}
-            <div className="bg-muted/30 border border-muted rounded-lg p-2 sm:p-3 md:p-4 text-center overflow-hidden">
-              <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1 sm:mb-2">
-                Win Rate
-              </div>
-              <div className="text-sm sm:text-lg md:text-xl lg:text-2xl font-bold mb-1">
-                {metrics.winRate.toFixed(1)}%
-              </div>
-              <div className="text-[9px] sm:text-[10px] text-muted-foreground truncate">
-                {metrics.totalTrades.toLocaleString()} trades
-              </div>
-            </div>
+                {/* Max Drawdown */}
+                <div className="bg-muted/30 border border-muted rounded-lg p-2 sm:p-3 md:p-4 text-center overflow-hidden">
+                  <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1 sm:mb-2">
+                    Max Drawdown
+                  </div>
+                  <div
+                    className="text-xs sm:text-base md:text-lg lg:text-xl font-bold mb-1 text-amber-500"
+                    title={`-$${Math.round(actualDrawdownDollars).toLocaleString()}`}
+                  >
+                    -$
+                    {(() => {
+                      const value = Math.round(actualDrawdownDollars);
+                      if (Math.abs(value) >= 1000000)
+                        return (value / 1000000).toFixed(1) + "M";
+                      if (Math.abs(value) >= 1000)
+                        return (value / 1000).toFixed(1) + "K";
+                      return value.toLocaleString();
+                    })()}
+                  </div>
+                  <div className="text-[8px] sm:text-[9px] text-muted-foreground">
+                    {adjustedMaxDrawdownPct.toFixed(1)}% peak to trough
+                  </div>
+                </div>
 
-            {/* Calmar Ratio */}
-            <div className="bg-muted/30 border border-muted rounded-lg p-2 sm:p-3 md:p-4 text-center overflow-hidden">
-              <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1 sm:mb-2">
-                Calmar
+                {/* Sortino Ratio - Daily (Industry Standard) */}
+                <div className="bg-muted/30 border border-muted rounded-lg p-2 sm:p-3 md:p-4 text-center overflow-hidden">
+                  <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1 sm:mb-2 flex items-center justify-center gap-1">
+                    <span className="hidden sm:inline">Sortino</span>
+                    <span className="sm:hidden">Sortino</span>
+                    <Badge
+                      variant="outline"
+                      className="text-[7px] sm:text-[8px] px-1 py-0 h-3 sm:h-4 bg-emerald-500/10 text-emerald-500 border-emerald-500/30"
+                    >
+                      Daily
+                    </Badge>
+                  </div>
+                  <div className="text-sm sm:text-lg md:text-xl lg:text-2xl font-bold mb-1">
+                    {data.dailyMetrics?.sortino?.toFixed(2) ??
+                      metrics.sortinoRatio.toFixed(2)}
+                  </div>
+                  <div className="text-[9px] sm:text-[10px] text-muted-foreground truncate">
+                    Trade: {metrics.sortinoRatio.toFixed(2)}
+                  </div>
+                </div>
+
+                {/* Sharpe Ratio - Daily (Industry Standard) */}
+                <div className="bg-muted/30 border border-muted rounded-lg p-2 sm:p-3 md:p-4 text-center overflow-hidden">
+                  <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1 sm:mb-2 flex items-center justify-center gap-1">
+                    <span className="hidden sm:inline">Sharpe</span>
+                    <span className="sm:hidden">Sharpe</span>
+                    <Badge
+                      variant="outline"
+                      className="text-[7px] sm:text-[8px] px-1 py-0 h-3 sm:h-4 bg-emerald-500/10 text-emerald-500 border-emerald-500/30"
+                    >
+                      Daily
+                    </Badge>
+                  </div>
+                  <div className="text-sm sm:text-lg md:text-xl lg:text-2xl font-bold mb-1">
+                    {data.dailyMetrics?.sharpe?.toFixed(2) ??
+                      metrics.sharpeRatio.toFixed(2)}
+                  </div>
+                  <div className="text-[9px] sm:text-[10px] text-muted-foreground truncate">
+                    Trade: {metrics.sharpeRatio.toFixed(2)}
+                  </div>
+                </div>
+
+                {/* Win Rate */}
+                <div className="bg-muted/30 border border-muted rounded-lg p-2 sm:p-3 md:p-4 text-center overflow-hidden">
+                  <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1 sm:mb-2">
+                    Win Rate
+                  </div>
+                  <div className="text-sm sm:text-lg md:text-xl lg:text-2xl font-bold mb-1">
+                    {metrics.winRate.toFixed(1)}%
+                  </div>
+                  <div className="text-[9px] sm:text-[10px] text-muted-foreground truncate">
+                    {metrics.totalTrades.toLocaleString()} trades
+                  </div>
+                </div>
+
+                {/* Calmar Ratio */}
+                <div className="bg-muted/30 border border-muted rounded-lg p-2 sm:p-3 md:p-4 text-center overflow-hidden">
+                  <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1 sm:mb-2">
+                    Calmar
+                  </div>
+                  <div className="text-sm sm:text-lg md:text-xl lg:text-2xl font-bold mb-1">
+                    {metrics.calmarRatio.toFixed(2)}
+                  </div>
+                  <div className="text-[9px] sm:text-[10px] text-muted-foreground truncate">
+                    Return / DD
+                  </div>
+                </div>
               </div>
-              <div className="text-sm sm:text-lg md:text-xl lg:text-2xl font-bold mb-1">
-                {metrics.calmarRatio.toFixed(2)}
-              </div>
-              <div className="text-[9px] sm:text-[10px] text-muted-foreground truncate">
-                Return / DD
-              </div>
-            </div>
-          </div>
+            );
+          })()}
 
           {/* Portfolio Summary removed per user request */}
         </CardContent>
