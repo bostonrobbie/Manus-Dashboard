@@ -4934,3 +4934,35 @@
 - [x] Fix N+1 queries in db.ts with JOINs (getTradesWithStrategy)
 - [x] Add input sanitization utility (server/lib/sanitize.ts)
 - [x] Push database migrations (4 new indexes created)
+
+## My Dashboard Improvements (Dec 28, 2025)
+
+- [x] Fix equity chart starting value bug (chart should start at entered account value)
+- [x] Improve performance section uniformity and visual consistency
+- [x] Enhance Today's Activity with market status and upcoming signals
+
+## My Dashboard Improvements (Dec 28, 2025)
+
+### Equity Chart Bug Fix
+
+- [x] Fix equity chart starting value not matching user input (changed Y-axis domain to auto)
+- [x] Verify equity curve data correctly uses startingCapital parameter
+- [x] Test chart Y-axis scale updates when startingCapital changes
+
+### Performance Section Uniformity
+
+- [x] Make performance metrics cards more visually consistent (already uniform)
+- [x] Align card heights and spacing across all columns (min-h-[420px])
+- [x] Standardize color scheme and gradients (consistent bg-slate-900/30)
+
+### Enhanced Today's Activity Section
+
+- [x] Add market status indicator (open/closed/pre-market/after-hours/weekend)
+- [x] Add upcoming signals preview based on strategy patterns
+- [x] Show expected activity windows for next trading day (ORB, Trend, Commodities, BTC, Index Futures)
+
+### TypeScript Fixes
+
+- [x] Fix unused handleSaveConnection in BrokerSetup.tsx
+- [x] Fix unused saveBrokerConnection in BrokerSetup.tsx
+- [x] Fix accountId type error in BrokerSetup.tsx

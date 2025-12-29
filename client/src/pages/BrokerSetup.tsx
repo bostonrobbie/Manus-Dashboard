@@ -1159,22 +1159,12 @@ function IBKRSetupForm() {
   >("idle");
   const [errorMessage, setErrorMessage] = useState("");
 
-  const saveBrokerConnection = trpc.broker.connect.useMutation({
-    onSuccess: () => {
-      toast.success("IBKR connection saved successfully!");
-      setConnectionStatus("success");
-    },
-    onError: error => {
-      toast.error(error.message);
-      setConnectionStatus("error");
-      setErrorMessage(error.message);
-    },
-  });
-
   const testIBKRConnection = trpc.broker.testIBKRConnection.useMutation({
     onSuccess: result => {
       if (result.success) {
-        toast.success(`Connected! Account: ${result.accountId || "Found"}`);
+        toast.success(
+          `Connected! Account: ${(result as any).accountId || "Found"}`
+        );
         setConnectionStatus("success");
       } else {
         toast.error(result.error || "Connection failed");
@@ -1215,22 +1205,6 @@ function IBKRSetupForm() {
     } finally {
       setIsTestingConnection(false);
     }
-  };
-
-  const handleSaveConnection = () => {
-    if (!gatewayUrl) {
-      toast.error("Please enter your Gateway URL");
-      return;
-    }
-
-    saveBrokerConnection.mutate({
-      broker: "ibkr",
-      credentials: {
-        username: gatewayUrl.replace(/\/$/, ""),
-        accountId: accountId || undefined,
-      },
-      isDemo: false,
-    });
   };
 
   return (
