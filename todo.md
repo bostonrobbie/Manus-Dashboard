@@ -5437,3 +5437,13 @@
 - [x] Disable notifications during test runs
 - [x] Create test data cleanup mechanism
 - [x] Update webhook tests to mark data as test data
+
+## Dec 30, 2025 - Dashboard Data Isolation Fix (CRITICAL)
+
+- [x] Investigate webhook_logs and trades to identify test vs real data
+- [x] Clean up all test data from today (18 fake trades)
+- [x] Find and restore the missing real trade from today (no real webhooks found)
+- [x] Fix dashboard queries to strictly exclude test data
+- [x] Ensure webhook tests mark data with isTest=true
+- [x] Add tests to verify only real data appears on dashboard
+- [x] Verify real TradingView webhooks are properly displayed

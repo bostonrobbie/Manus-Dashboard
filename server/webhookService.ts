@@ -1,12 +1,12 @@
 /**
  * TradingView Webhook Processing Service - Enhanced with Persistent Position Tracking
- * 
+ *
  * Handles incoming webhook notifications from TradingView alerts,
  * validates the payload, processes trades, and updates the database.
- * 
+ *
  * NEW: Uses database-backed open positions for reliable entry/exit tracking
  * that persists across server restarts.
- * 
+ *
  * TradingView Webhook Format (Enhanced):
  * {
  *   "symbol": "ESTrend",
@@ -20,10 +20,10 @@
  * }
  */
 
-import { 
-  getStrategyBySymbol, 
-  insertWebhookLog, 
-  updateWebhookLog, 
+import {
+  getStrategyBySymbol,
+  insertWebhookLog,
+  updateWebhookLog,
   insertTrade,
   checkDuplicateTrade,
   getLastInsertedTradeId,
@@ -38,43 +38,44 @@ import {
   getAllOpenPositions,
   getRecentPositions,
   getPositionStats,
-} from './db';
-import { InsertWebhookLog, InsertOpenPosition } from '../drizzle/schema';
-import { notifyOwnerAsync } from './_core/notification';
-import { cache } from './cache';
+} from "./db";
+import { InsertWebhookLog, InsertOpenPosition } from "../drizzle/schema";
+import { notifyOwnerAsync } from "./_core/notification";
+import { cache } from "./cache";
 
 // TradingView payload format (enhanced with position tracking)
 export interface TradingViewPayload {
-  symbol: string;              // Strategy/instrument symbol (e.g., "BTCUSD", "ES", "NQ")
-  date: string;                // Timestamp from {{timenow}}
-  data: string;                // Action from {{strategy.order.action}} - "buy", "sell", "exit", etc.
-  quantity: number;            // Number of contracts
-  price: string | number;      // Price from {{close}} or {{strategy.order.price}}
-  token?: string;              // Secret token for authentication
-  multiple_accounts?: Array<{  // Optional multi-account support
+  symbol: string; // Strategy/instrument symbol (e.g., "BTCUSD", "ES", "NQ")
+  date: string; // Timestamp from {{timenow}}
+  data: string; // Action from {{strategy.order.action}} - "buy", "sell", "exit", etc.
+  quantity: number; // Number of contracts
+  price: string | number; // Price from {{close}} or {{strategy.order.price}}
+  token?: string; // Secret token for authentication
+  multiple_accounts?: Array<{
+    // Optional multi-account support
     account: string;
     quantity: number;
   }>;
   // Additional fields that may be sent
-  direction?: string;          // "Long" or "Short" (optional, can be inferred from data)
-  entryPrice?: number;         // Entry price for closed trades
-  entryTime?: string;          // Entry timestamp for closed trades
-  pnl?: number;                // P&L if provided by TradingView
-  strategy?: string;           // Strategy name (alternative to symbol)
-  comment?: string;            // Additional trade comment
+  direction?: string; // "Long" or "Short" (optional, can be inferred from data)
+  entryPrice?: number; // Entry price for closed trades
+  entryTime?: string; // Entry timestamp for closed trades
+  pnl?: number; // P&L if provided by TradingView
+  strategy?: string; // Strategy name (alternative to symbol)
+  comment?: string; // Additional trade comment
   quantityMultiplier?: number; // Multiplier for quantity (e.g., 2 = double the signal quantity)
-  isTest?: boolean;            // Flag to indicate test webhook (won't create trades)
+  isTest?: boolean; // Flag to indicate test webhook (won't create trades)
   // NEW: Enhanced position tracking fields
-  position?: string;           // From {{strategy.market_position}} - "long", "short", "flat"
-  signalType?: string;         // Explicit signal type: "entry", "exit", "scale_in", "scale_out"
-  prevPosition?: string;       // Previous position state (for detecting transitions)
+  position?: string; // From {{strategy.market_position}} - "long", "short", "flat"
+  signalType?: string; // Explicit signal type: "entry", "exit", "scale_in", "scale_out"
+  prevPosition?: string; // Previous position state (for detecting transitions)
 }
 
 // Internal normalized payload after parsing
 export interface NormalizedPayload {
   strategySymbol: string;
-  action: 'entry' | 'exit' | 'buy' | 'sell';
-  direction: 'Long' | 'Short';
+  action: "entry" | "exit" | "buy" | "sell";
+  direction: "Long" | "Short";
   price: number;
   quantity: number;
   timestamp: Date;
@@ -83,66 +84,66 @@ export interface NormalizedPayload {
   pnl?: number;
   token?: string;
   // NEW: Enhanced fields
-  signalType: 'entry' | 'exit';  // Determined signal type
-  marketPosition: 'long' | 'short' | 'flat';  // Current market position
-  isTest: boolean;  // Whether this is a test webhook
+  signalType: "entry" | "exit"; // Determined signal type
+  marketPosition: "long" | "short" | "flat"; // Current market position
+  isTest: boolean; // Whether this is a test webhook
 }
 
 export interface WebhookResult {
   success: boolean;
   logId: number;
   tradeId?: number;
-  positionId?: number;  // NEW: Link to open position
+  positionId?: number; // NEW: Link to open position
   message: string;
   error?: string;
   processingTimeMs?: number;
-  signalType?: 'entry' | 'exit';  // NEW: What type of signal was processed
+  signalType?: "entry" | "exit"; // NEW: What type of signal was processed
 }
 
 // Validation errors
 export class WebhookValidationError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = 'WebhookValidationError';
+    this.name = "WebhookValidationError";
   }
 }
 
 // Strategy symbol mapping (TradingView symbols to database symbols)
 const SYMBOL_MAPPING: Record<string, string> = {
   // ES (E-mini S&P 500)
-  'ES': 'ESTrend',
-  'ES1!': 'ESTrend',
-  'ESH2024': 'ESTrend',
-  'ES_TREND': 'ESTrend',
-  'ES_ORB': 'ESORB',
-  'ESTREND': 'ESTrend',
+  ES: "ESTrend",
+  "ES1!": "ESTrend",
+  ESH2024: "ESTrend",
+  ES_TREND: "ESTrend",
+  ES_ORB: "ESORB",
+  ESTREND: "ESTrend",
   // NQ (E-mini Nasdaq)
-  'NQ': 'NQTrend',
-  'NQ1!': 'NQTrend',
-  'NQ_TREND': 'NQTrend',
-  'NQ_ORB': 'NQORB',
-  'NQTREND': 'NQTrend',
+  NQ: "NQTrend",
+  "NQ1!": "NQTrend",
+  NQ_TREND: "NQTrend",
+  NQ_ORB: "NQORB",
+  NQTREND: "NQTrend",
   // CL (Crude Oil)
-  'CL': 'CLTrend',
-  'CL1!': 'CLTrend',
-  'CL_TREND': 'CLTrend',
-  'CLTREND': 'CLTrend',
+  CL: "CLTrend",
+  "CL1!": "CLTrend",
+  CL_TREND: "CLTrend",
+  CLTREND: "CLTrend",
   // BTC (Bitcoin)
-  'BTC': 'BTCTrend',
-  'BTCUSD': 'BTCTrend',
-  'BTC1!': 'BTCTrend',
-  'BTC_TREND': 'BTCTrend',
-  'BTCTREND': 'BTCTrend',
+  BTC: "BTCTrend",
+  BTCUSD: "BTCTrend",
+  "BTC1!": "BTCTrend",
+  BTC_TREND: "BTCTrend",
+  BTCTREND: "BTCTrend",
   // GC (Gold)
-  'GC': 'GCTrend',
-  'GC1!': 'GCTrend',
-  'GC_TREND': 'GCTrend',
-  'GCTREND': 'GCTrend',
+  GC: "GCTrend",
+  "GC1!": "GCTrend",
+  GC_TREND: "GCTrend",
+  GCTREND: "GCTrend",
   // YM (E-mini Dow)
-  'YM': 'YMORB',
-  'YM1!': 'YMORB',
-  'YM_ORB': 'YMORB',
-  'YMORB': 'YMORB',
+  YM: "YMORB",
+  "YM1!": "YMORB",
+  YM_ORB: "YMORB",
+  YMORB: "YMORB",
 };
 
 /**
@@ -154,14 +155,14 @@ export function mapSymbolToStrategy(symbol: string): string {
   if (SYMBOL_MAPPING[upperSymbol]) {
     return SYMBOL_MAPPING[upperSymbol];
   }
-  
+
   // Try partial match (e.g., "ESH2024" -> "ES")
   for (const [key, value] of Object.entries(SYMBOL_MAPPING)) {
     if (upperSymbol.startsWith(key)) {
       return value;
     }
   }
-  
+
   // Return original if no mapping found
   return symbol;
 }
@@ -170,181 +171,232 @@ export function mapSymbolToStrategy(symbol: string): string {
  * Determine signal type from payload
  * Priority: explicit signalType > position change > action inference
  */
-function determineSignalType(payload: Record<string, unknown>): 'entry' | 'exit' {
+function determineSignalType(
+  payload: Record<string, unknown>
+): "entry" | "exit" {
   // 1. Check explicit signalType field
-  if (payload.signalType && typeof payload.signalType === 'string') {
+  if (payload.signalType && typeof payload.signalType === "string") {
     const st = payload.signalType.toLowerCase().trim();
-    if (st === 'entry' || st === 'open' || st === 'enter') return 'entry';
-    if (st === 'exit' || st === 'close' || st === 'flat') return 'exit';
+    if (st === "entry" || st === "open" || st === "enter") return "entry";
+    if (st === "exit" || st === "close" || st === "flat") return "exit";
   }
-  
+
   // 2. Check market position (from {{strategy.market_position}})
-  if (payload.position && typeof payload.position === 'string') {
+  if (payload.position && typeof payload.position === "string") {
     const pos = payload.position.toLowerCase().trim();
     // "flat" means no position = exit signal
-    if (pos === 'flat') return 'exit';
+    if (pos === "flat") return "exit";
     // "long" or "short" with no previous position = entry
     // This is a new position being opened
   }
-  
+
   // 3. Infer from action/data field
   const action = (payload.data || payload.action) as string;
-  if (action && typeof action === 'string') {
+  if (action && typeof action === "string") {
     const actionLower = action.toLowerCase().trim();
     // Exit-related actions
-    if (actionLower.includes('exit') || actionLower.includes('close') || actionLower === 'flat') {
-      return 'exit';
+    if (
+      actionLower.includes("exit") ||
+      actionLower.includes("close") ||
+      actionLower === "flat"
+    ) {
+      return "exit";
     }
     // Entry-related actions (buy/sell are entries)
-    if (actionLower === 'buy' || actionLower === 'sell' || 
-        actionLower === 'long' || actionLower === 'short' ||
-        actionLower.includes('entry')) {
-      return 'entry';
+    if (
+      actionLower === "buy" ||
+      actionLower === "sell" ||
+      actionLower === "long" ||
+      actionLower === "short" ||
+      actionLower.includes("entry")
+    ) {
+      return "entry";
     }
   }
-  
+
   // Default to entry if we can't determine
-  return 'entry';
+  return "entry";
 }
 
 /**
  * Determine market position from payload
  */
-function determineMarketPosition(payload: Record<string, unknown>): 'long' | 'short' | 'flat' {
+function determineMarketPosition(
+  payload: Record<string, unknown>
+): "long" | "short" | "flat" {
   // Check explicit position field first
-  if (payload.position && typeof payload.position === 'string') {
+  if (payload.position && typeof payload.position === "string") {
     const pos = payload.position.toLowerCase().trim();
-    if (pos === 'long') return 'long';
-    if (pos === 'short') return 'short';
-    if (pos === 'flat' || pos === 'none' || pos === '') return 'flat';
+    if (pos === "long") return "long";
+    if (pos === "short") return "short";
+    if (pos === "flat" || pos === "none" || pos === "") return "flat";
   }
-  
+
   // Infer from direction
-  if (payload.direction && typeof payload.direction === 'string') {
+  if (payload.direction && typeof payload.direction === "string") {
     const dir = payload.direction.toLowerCase().trim();
-    if (dir === 'long') return 'long';
-    if (dir === 'short') return 'short';
+    if (dir === "long") return "long";
+    if (dir === "short") return "short";
   }
-  
+
   // Infer from action
   const action = (payload.data || payload.action) as string;
-  if (action && typeof action === 'string') {
+  if (action && typeof action === "string") {
     const actionLower = action.toLowerCase().trim();
-    if (actionLower === 'buy' || actionLower === 'long' || actionLower.includes('entry_long')) {
-      return 'long';
+    if (
+      actionLower === "buy" ||
+      actionLower === "long" ||
+      actionLower.includes("entry_long")
+    ) {
+      return "long";
     }
-    if (actionLower === 'sell' || actionLower === 'short' || actionLower.includes('entry_short')) {
-      return 'short';
+    if (
+      actionLower === "sell" ||
+      actionLower === "short" ||
+      actionLower.includes("entry_short")
+    ) {
+      return "short";
     }
-    if (actionLower.includes('exit') || actionLower === 'flat' || actionLower === 'close') {
-      return 'flat';
+    if (
+      actionLower.includes("exit") ||
+      actionLower === "flat" ||
+      actionLower === "close"
+    ) {
+      return "flat";
     }
   }
-  
-  return 'flat';
+
+  return "flat";
 }
 
 /**
  * Validate and normalize the incoming webhook payload
  */
 export function validatePayload(payload: unknown): NormalizedPayload {
-  if (!payload || typeof payload !== 'object') {
-    throw new WebhookValidationError('Invalid payload: expected JSON object');
+  if (!payload || typeof payload !== "object") {
+    throw new WebhookValidationError("Invalid payload: expected JSON object");
   }
 
   const p = payload as Record<string, unknown>;
 
   // Get strategy symbol (try multiple field names)
   const rawSymbol = p.symbol || p.strategy;
-  if (!rawSymbol || typeof rawSymbol !== 'string') {
-    throw new WebhookValidationError('Missing or invalid "symbol" or "strategy" field');
+  if (!rawSymbol || typeof rawSymbol !== "string") {
+    throw new WebhookValidationError(
+      'Missing or invalid "symbol" or "strategy" field'
+    );
   }
   const strategySymbol = mapSymbolToStrategy(rawSymbol);
 
   // Get action/data (try multiple field names)
   const rawAction = p.data || p.action;
-  if (!rawAction || typeof rawAction !== 'string') {
-    throw new WebhookValidationError('Missing or invalid "data" or "action" field');
+  if (!rawAction || typeof rawAction !== "string") {
+    throw new WebhookValidationError(
+      'Missing or invalid "data" or "action" field'
+    );
   }
-  
+
   // Determine signal type and market position
   const signalType = determineSignalType(p);
   const marketPosition = determineMarketPosition(p);
-  
+
   // Normalize action
   const actionLower = rawAction.toString().toLowerCase().trim();
-  let action: 'entry' | 'exit' | 'buy' | 'sell';
-  let direction: 'Long' | 'Short';
-  
+  let action: "entry" | "exit" | "buy" | "sell";
+  let direction: "Long" | "Short";
+
   // Action aliases for common variations
-  const LONG_ACTIONS = ['buy', 'long', 'entry_long', 'entry', 'enter', 'open', 'open_long'];
-  const SHORT_ACTIONS = ['sell', 'short', 'entry_short', 'open_short'];
-  const EXIT_ACTIONS = ['exit', 'close', 'exit_long', 'exit_short', 'flat', 'close_long', 'close_short', 'cover'];
-  
+  const LONG_ACTIONS = [
+    "buy",
+    "long",
+    "entry_long",
+    "entry",
+    "enter",
+    "open",
+    "open_long",
+  ];
+  const SHORT_ACTIONS = ["sell", "short", "entry_short", "open_short"];
+  const EXIT_ACTIONS = [
+    "exit",
+    "close",
+    "exit_long",
+    "exit_short",
+    "flat",
+    "close_long",
+    "close_short",
+    "cover",
+  ];
+
   if (LONG_ACTIONS.includes(actionLower)) {
-    action = 'buy';
-    direction = 'Long';
+    action = "buy";
+    direction = "Long";
   } else if (SHORT_ACTIONS.includes(actionLower)) {
-    action = 'sell';
-    direction = 'Short';
+    action = "sell";
+    direction = "Short";
   } else if (EXIT_ACTIONS.includes(actionLower)) {
-    action = 'exit';
+    action = "exit";
     // For exits, try to get direction from explicit field or infer from action
-    if (actionLower === 'exit_long') {
-      direction = 'Long';
-    } else if (actionLower === 'exit_short') {
-      direction = 'Short';
+    if (actionLower === "exit_long") {
+      direction = "Long";
+    } else if (actionLower === "exit_short") {
+      direction = "Short";
     } else {
       // Try to get from direction field
       const dirField = p.direction || p.comment;
-      if (dirField && typeof dirField === 'string') {
-        direction = dirField.toLowerCase().includes('long') ? 'Long' : 'Short';
+      if (dirField && typeof dirField === "string") {
+        direction = dirField.toLowerCase().includes("long") ? "Long" : "Short";
       } else {
-        direction = 'Long'; // Default
+        direction = "Long"; // Default
       }
     }
   } else {
     throw new WebhookValidationError(
       `Unknown action: "${rawAction}". ` +
-      `Use "buy" or "long" for long entries, "sell" or "short" for short entries, ` +
-      `or "exit"/"close"/"flat" to close positions. ` +
-      `Also accepted: entry, enter, open, cover.`
+        `Use "buy" or "long" for long entries, "sell" or "short" for short entries, ` +
+        `or "exit"/"close"/"flat" to close positions. ` +
+        `Also accepted: entry, enter, open, cover.`
     );
   }
 
   // Override direction if explicitly provided
   // Handle TradingView's market_position values: "long", "short", "flat"
-  if (p.direction && typeof p.direction === 'string') {
+  if (p.direction && typeof p.direction === "string") {
     const dirLower = p.direction.toLowerCase().trim();
-    if (dirLower === 'long' || dirLower === 'Long') direction = 'Long';
-    else if (dirLower === 'short' || dirLower === 'Short') direction = 'Short';
+    if (dirLower === "long" || dirLower === "Long") direction = "Long";
+    else if (dirLower === "short" || dirLower === "Short") direction = "Short";
     // "flat" means no position - for exit signals this is expected
   }
 
   // Get price
   let price: number;
   if (p.price !== undefined) {
-    price = typeof p.price === 'string' ? parseFloat(p.price) : Number(p.price);
+    price = typeof p.price === "string" ? parseFloat(p.price) : Number(p.price);
     if (isNaN(price)) {
-      throw new WebhookValidationError('Invalid "price" field: must be a number');
+      throw new WebhookValidationError(
+        'Invalid "price" field: must be a number'
+      );
     }
   } else {
     throw new WebhookValidationError('Missing "price" field');
   }
 
   // Get quantity (default to 1) and apply multiplier if provided
-  let quantity = typeof p.quantity === 'number' ? p.quantity : 1;
-  
+  let quantity = typeof p.quantity === "number" ? p.quantity : 1;
+
   // Apply quantity multiplier if provided (e.g., user wants 2x the signal quantity)
-  if (p.quantityMultiplier && typeof p.quantityMultiplier === 'number' && p.quantityMultiplier > 0) {
+  if (
+    p.quantityMultiplier &&
+    typeof p.quantityMultiplier === "number" &&
+    p.quantityMultiplier > 0
+  ) {
     quantity = Math.round(quantity * p.quantityMultiplier);
   }
 
   // Get timestamp
   let timestamp: Date;
-  if (p.date && typeof p.date === 'string') {
+  if (p.date && typeof p.date === "string") {
     timestamp = parseTimestamp(p.date);
-  } else if (p.timestamp && typeof p.timestamp === 'string') {
+  } else if (p.timestamp && typeof p.timestamp === "string") {
     timestamp = parseTimestamp(p.timestamp);
   } else {
     timestamp = new Date(); // Use current time if not provided
@@ -353,26 +405,31 @@ export function validatePayload(payload: unknown): NormalizedPayload {
   // Get entry data for exit trades
   let entryPrice: number | undefined;
   let entryTime: Date | undefined;
-  
+
   if (p.entryPrice !== undefined) {
-    entryPrice = typeof p.entryPrice === 'string' ? parseFloat(p.entryPrice) : Number(p.entryPrice);
+    entryPrice =
+      typeof p.entryPrice === "string"
+        ? parseFloat(p.entryPrice)
+        : Number(p.entryPrice);
   }
-  
-  if (p.entryTime && typeof p.entryTime === 'string') {
+
+  if (p.entryTime && typeof p.entryTime === "string") {
     entryTime = parseTimestamp(p.entryTime);
   }
 
   // Get P&L if provided
   let pnl: number | undefined;
   if (p.pnl !== undefined) {
-    pnl = typeof p.pnl === 'string' ? parseFloat(p.pnl) : Number(p.pnl);
+    pnl = typeof p.pnl === "string" ? parseFloat(p.pnl) : Number(p.pnl);
   }
 
   // Check if this is a test webhook (won't create trades in database)
-  const isTest = p.isTest === true || 
-                 p.isTest === 'true' || 
-                 (typeof p.comment === 'string' && p.comment.toLowerCase().includes('test')) ||
-                 (typeof p.symbol === 'string' && p.symbol.toLowerCase().includes('test'));
+  const isTest =
+    p.isTest === true ||
+    p.isTest === "true" ||
+    (typeof p.comment === "string" &&
+      p.comment.toLowerCase().includes("test")) ||
+    (typeof p.symbol === "string" && p.symbol.toLowerCase().includes("test"));
 
   return {
     strategySymbol,
@@ -384,7 +441,7 @@ export function validatePayload(payload: unknown): NormalizedPayload {
     entryPrice,
     entryTime,
     pnl,
-    token: typeof p.token === 'string' ? p.token : undefined,
+    token: typeof p.token === "string" ? p.token : undefined,
     signalType,
     marketPosition,
     isTest,
@@ -402,13 +459,13 @@ export function parseTimestamp(timestamp: string): Date {
   }
 
   // Try TradingView format: "2024-01-15 14:30:00"
-  date = new Date(timestamp.replace(' ', 'T') + 'Z');
+  date = new Date(timestamp.replace(" ", "T") + "Z");
   if (!isNaN(date.getTime())) {
     return date;
   }
 
   // Try TradingView timenow format: "2024.01.15 14:30:00"
-  const dotFormat = timestamp.replace(/\./g, '-').replace(' ', 'T') + 'Z';
+  const dotFormat = timestamp.replace(/\./g, "-").replace(" ", "T") + "Z";
   date = new Date(dotFormat);
   if (!isNaN(date.getTime())) {
     return date;
@@ -436,7 +493,7 @@ function formatDuration(start: Date, end: Date): string {
   const diffMins = Math.floor(diffMs / 60000);
   const diffHours = Math.floor(diffMins / 60);
   const diffDays = Math.floor(diffHours / 24);
-  
+
   if (diffDays > 0) {
     const hours = diffHours % 24;
     return `${diffDays}d ${hours}h`;
@@ -457,7 +514,7 @@ export function calculatePnL(
   exitPrice: number,
   quantity: number = 1
 ): number {
-  if (direction === 'Long') {
+  if (direction === "Long") {
     return (exitPrice - entryPrice) * quantity;
   } else {
     return (entryPrice - exitPrice) * quantity;
@@ -482,19 +539,34 @@ export async function processWebhook(
       return {
         success: false,
         logId: 0,
-        message: 'Webhook processing is paused',
-        error: 'PAUSED',
+        message: "Webhook processing is paused",
+        error: "PAUSED",
         processingTimeMs: Date.now() - startTime,
       };
     }
 
     // Step 1: Create initial log entry
-    // Check if this is a test webhook
-    const isTestWebhook = typeof rawPayload === 'object' && rawPayload !== null && (rawPayload as any).isTest === true;
-    
+    // Check if this is a test webhook - check payload flag, IP address patterns, and test environment
+    const payloadIsTest =
+      typeof rawPayload === "object" &&
+      rawPayload !== null &&
+      ((rawPayload as any).isTest === true ||
+        (rawPayload as any).isTest === "true");
+    const ipIsTest = !!(
+      ipAddress &&
+      (ipAddress === "test-simulator" ||
+        ipAddress === "::1" ||
+        ipAddress === "127.0.0.1" ||
+        ipAddress === "localhost" ||
+        ipAddress.startsWith("192.168.") ||
+        ipAddress.startsWith("10."))
+    );
+    const isTestWebhook =
+      payloadIsTest || (ipIsTest && process.env.NODE_ENV === "test");
+
     const logEntry: InsertWebhookLog = {
       payload: JSON.stringify(rawPayload),
-      status: 'pending',
+      status: "pending",
       ipAddress: ipAddress || null,
       isTest: isTestWebhook,
     };
@@ -504,11 +576,11 @@ export async function processWebhook(
     logId = (logResult as any)[0]?.insertId || (logResult as any).insertId;
 
     if (!logId) {
-      throw new Error('Failed to create webhook log entry');
+      throw new Error("Failed to create webhook log entry");
     }
 
     // Step 2: Validate payload
-    await updateWebhookLog(logId, { status: 'processing' });
+    await updateWebhookLog(logId, { status: "processing" });
     const payload = validatePayload(rawPayload);
 
     // Update log with parsed strategy symbol
@@ -517,25 +589,31 @@ export async function processWebhook(
     // Step 3: Validate token if configured
     const expectedToken = process.env.TRADINGVIEW_WEBHOOK_TOKEN;
     if (expectedToken && payload.token !== expectedToken) {
-      throw new WebhookValidationError('Invalid or missing authentication token');
+      throw new WebhookValidationError(
+        "Invalid or missing authentication token"
+      );
     }
 
     // Step 4: Find strategy in database
     const strategy = await getStrategyBySymbol(payload.strategySymbol);
     if (!strategy) {
-      throw new WebhookValidationError(`Unknown strategy: ${payload.strategySymbol}`);
+      throw new WebhookValidationError(
+        `Unknown strategy: ${payload.strategySymbol}`
+      );
     }
 
     await updateWebhookLog(logId, { strategyId: strategy.id });
 
     // Step 5: Determine if this is an entry or exit signal
-    const isEntrySignal = payload.signalType === 'entry' || 
-                          (payload.action === 'buy' || payload.action === 'sell') && 
-                          payload.marketPosition !== 'flat';
-    
-    const isExitSignal = payload.signalType === 'exit' || 
-                         payload.action === 'exit' || 
-                         payload.marketPosition === 'flat';
+    const isEntrySignal =
+      payload.signalType === "entry" ||
+      ((payload.action === "buy" || payload.action === "sell") &&
+        payload.marketPosition !== "flat");
+
+    const isExitSignal =
+      payload.signalType === "exit" ||
+      payload.action === "exit" ||
+      payload.marketPosition === "flat";
 
     // Step 6: Handle based on signal type
     if (isEntrySignal && !isExitSignal) {
@@ -546,8 +624,10 @@ export async function processWebhook(
       return await handleExitSignal(logId, payload, strategy, startTime);
     } else {
       // Ambiguous signal - try to determine from existing positions
-      const existingPosition = await getOpenPositionByStrategy(payload.strategySymbol);
-      
+      const existingPosition = await getOpenPositionByStrategy(
+        payload.strategySymbol
+      );
+
       if (existingPosition) {
         // We have an open position, treat this as an exit
         return await handleExitSignal(logId, payload, strategy, startTime);
@@ -556,29 +636,34 @@ export async function processWebhook(
         return await handleEntrySignal(logId, payload, strategy, startTime);
       }
     }
-
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
     const processingTimeMs = Date.now() - startTime;
 
     // Update log with error
     if (logId) {
       await updateWebhookLog(logId, {
-        status: 'failed',
+        status: "failed",
         errorMessage,
         processingTimeMs,
       });
     }
 
     // Try to determine signalType even on error for consistent response structure
-    let signalType: 'entry' | 'exit' | undefined;
+    let signalType: "entry" | "exit" | undefined;
     try {
       const payload = rawPayload as Record<string, unknown>;
-      const action = typeof payload.data === 'string' ? payload.data.toLowerCase() : '';
-      if (['exit', 'close', 'flat', 'cover'].some(a => action.includes(a))) {
-        signalType = 'exit';
-      } else if (['buy', 'sell', 'long', 'short', 'entry', 'enter', 'open'].some(a => action.includes(a))) {
-        signalType = 'entry';
+      const action =
+        typeof payload.data === "string" ? payload.data.toLowerCase() : "";
+      if (["exit", "close", "flat", "cover"].some(a => action.includes(a))) {
+        signalType = "exit";
+      } else if (
+        ["buy", "sell", "long", "short", "entry", "enter", "open"].some(a =>
+          action.includes(a)
+        )
+      ) {
+        signalType = "entry";
       }
     } catch {
       // Ignore errors in signal type detection
@@ -587,7 +672,7 @@ export async function processWebhook(
     return {
       success: false,
       logId: logId || 0,
-      message: 'Webhook processing failed',
+      message: "Webhook processing failed",
       error: errorMessage,
       processingTimeMs,
       signalType,
@@ -605,14 +690,16 @@ async function handleEntrySignal(
   startTime: number
 ): Promise<WebhookResult> {
   const processingTimeMs = Date.now() - startTime;
-  
+
   // Check if there's already an open position for this strategy
-  const existingPosition = await getOpenPositionByStrategy(payload.strategySymbol);
-  
+  const existingPosition = await getOpenPositionByStrategy(
+    payload.strategySymbol
+  );
+
   if (existingPosition) {
     // Already have an open position - this might be a scale-in or duplicate
     await updateWebhookLog(logId, {
-      status: 'duplicate',
+      status: "duplicate",
       direction: payload.direction,
       entryPrice: Math.round(payload.price * 100),
       entryTime: payload.timestamp,
@@ -625,9 +712,9 @@ async function handleEntrySignal(
       logId,
       positionId: existingPosition.id,
       message: `Position already open for ${payload.strategySymbol}. Send an exit signal first to close the existing position, or if you want to add to your position, use signalType: "scale_in" in your webhook payload.`,
-      error: 'POSITION_EXISTS',
+      error: "POSITION_EXISTS",
       processingTimeMs,
-      signalType: 'entry',
+      signalType: "entry",
     };
   }
 
@@ -640,7 +727,7 @@ async function handleEntrySignal(
     quantity: payload.quantity,
     entryTime: payload.timestamp,
     entryWebhookLogId: logId,
-    status: 'open',
+    status: "open",
     isTest: payload.isTest,
   };
 
@@ -648,7 +735,7 @@ async function handleEntrySignal(
 
   // Update webhook log with success
   await updateWebhookLog(logId, {
-    status: 'success',
+    status: "success",
     direction: payload.direction,
     entryPrice: Math.round(payload.price * 100),
     entryTime: payload.timestamp,
@@ -661,12 +748,13 @@ async function handleEntrySignal(
   // The shouldSendNotification function is available for per-user checks.
   notifyOwnerAsync({
     title: `📈 ${payload.direction} Entry: ${payload.strategySymbol}`,
-    content: `New ${payload.direction.toLowerCase()} position opened\n\n` +
+    content:
+      `New ${payload.direction.toLowerCase()} position opened\n\n` +
       `**Strategy:** ${payload.strategySymbol}\n` +
       `**Direction:** ${payload.direction}\n` +
       `**Entry Price:** $${payload.price.toFixed(2)}\n` +
-      `**Quantity:** ${payload.quantity} contract${payload.quantity !== 1 ? 's' : ''}\n` +
-      `**Time:** ${payload.timestamp.toLocaleString()}`
+      `**Quantity:** ${payload.quantity} contract${payload.quantity !== 1 ? "s" : ""}\n` +
+      `**Time:** ${payload.timestamp.toLocaleString()}`,
   });
 
   return {
@@ -675,7 +763,7 @@ async function handleEntrySignal(
     positionId: positionId || undefined,
     message: `Entry signal logged: ${payload.strategySymbol} ${payload.direction} @ $${payload.price.toFixed(2)}`,
     processingTimeMs,
-    signalType: 'entry',
+    signalType: "entry",
   };
 }
 
@@ -694,23 +782,24 @@ async function handleExitSignal(
   if (!openPosition) {
     // No open position found - can't process exit
     const processingTimeMs = Date.now() - startTime;
-    
+
     await updateWebhookLog(logId, {
-      status: 'failed',
+      status: "failed",
       direction: payload.direction,
       exitPrice: Math.round(payload.price * 100),
       exitTime: payload.timestamp,
       processingTimeMs,
-      errorMessage: 'Exit signal received but no matching open position found',
+      errorMessage: "Exit signal received but no matching open position found",
     });
 
     return {
       success: false,
       logId,
-      message: 'No open position found for this strategy. Send an entry signal (buy/long or sell/short) first before sending an exit signal.',
-      error: 'NO_OPEN_POSITION',
+      message:
+        "No open position found for this strategy. Send an entry signal (buy/long or sell/short) first before sending an exit signal.",
+      error: "NO_OPEN_POSITION",
       processingTimeMs: Date.now() - startTime,
-      signalType: 'exit',
+      signalType: "exit",
     };
   }
 
@@ -730,33 +819,35 @@ async function handleExitSignal(
 
   if (isDuplicate) {
     const processingTimeMs = Date.now() - startTime;
-    
+
     await updateWebhookLog(logId, {
-      status: 'duplicate',
+      status: "duplicate",
       direction,
       entryPrice: openPosition.entryPrice,
       exitPrice: Math.round(payload.price * 100),
       entryTime,
       exitTime: payload.timestamp,
       processingTimeMs,
-      errorMessage: 'Duplicate trade detected',
+      errorMessage: "Duplicate trade detected",
     });
 
     return {
       success: false,
       logId,
       positionId: openPosition.id,
-      message: 'This trade appears to be a duplicate (same entry/exit times and direction). If this is intentional, add a unique timestamp or comment field to differentiate signals.',
-      error: 'DUPLICATE',
+      message:
+        "This trade appears to be a duplicate (same entry/exit times and direction). If this is intentional, add a unique timestamp or comment field to differentiate signals.",
+      error: "DUPLICATE",
       processingTimeMs,
-      signalType: 'exit',
+      signalType: "exit",
     };
   }
 
   // Calculate P&L
-  const pnlDollars = payload.pnl !== undefined 
-    ? payload.pnl 
-    : calculatePnL(direction, entryPrice, payload.price, quantity);
+  const pnlDollars =
+    payload.pnl !== undefined
+      ? payload.pnl
+      : calculatePnL(direction, entryPrice, payload.price, quantity);
 
   // Convert to cents for database storage
   const pnlCents = Math.round(pnlDollars * 100);
@@ -769,9 +860,9 @@ async function handleExitSignal(
   // Skip trade insertion for test webhooks
   if (payload.isTest) {
     const processingTimeMs = Date.now() - startTime;
-    
+
     await updateWebhookLog(logId, {
-      status: 'success',
+      status: "success",
       direction,
       entryPrice: entryPriceCents,
       exitPrice: exitPriceCents,
@@ -779,7 +870,7 @@ async function handleExitSignal(
       entryTime,
       exitTime: payload.timestamp,
       processingTimeMs,
-      errorMessage: 'Test webhook - trade not saved to database',
+      errorMessage: "Test webhook - trade not saved to database",
     });
 
     // Close the open position without creating a trade
@@ -796,7 +887,7 @@ async function handleExitSignal(
       positionId: openPosition.id,
       message: `Test exit signal processed (trade not saved): ${payload.strategySymbol} ${direction} closed at $${payload.price.toFixed(2)} (P&L: $${pnlDollars.toFixed(2)})`,
       processingTimeMs,
-      signalType: 'exit',
+      signalType: "exit",
     };
   }
 
@@ -813,7 +904,7 @@ async function handleExitSignal(
     pnlPercent,
     commission: 0,
     isTest: payload.isTest,
-    source: 'webhook',
+    source: "webhook",
   });
 
   // Invalidate portfolio caches after new trade
@@ -833,9 +924,9 @@ async function handleExitSignal(
 
   // Update webhook log with success
   const processingTimeMs = Date.now() - startTime;
-  
+
   await updateWebhookLog(logId, {
-    status: 'success',
+    status: "success",
     tradeId: tradeId || undefined,
     direction,
     entryPrice: entryPriceCents,
@@ -847,19 +938,20 @@ async function handleExitSignal(
   });
 
   // Send async notification for exit signal with P&L (non-blocking)
-  const pnlEmoji = pnlDollars >= 0 ? '✅' : '❌';
-  const pnlSign = pnlDollars >= 0 ? '+' : '';
-  
+  const pnlEmoji = pnlDollars >= 0 ? "✅" : "❌";
+  const pnlSign = pnlDollars >= 0 ? "+" : "";
+
   notifyOwnerAsync({
     title: `${pnlEmoji} Trade Closed: ${payload.strategySymbol} ${pnlSign}$${pnlDollars.toFixed(2)}`,
-    content: `Position closed with ${pnlDollars >= 0 ? 'profit' : 'loss'}\n\n` +
+    content:
+      `Position closed with ${pnlDollars >= 0 ? "profit" : "loss"}\n\n` +
       `**Strategy:** ${payload.strategySymbol}\n` +
       `**Direction:** ${direction}\n` +
       `**Entry Price:** $${entryPrice.toFixed(2)}\n` +
       `**Exit Price:** $${payload.price.toFixed(2)}\n` +
       `**P&L:** ${pnlSign}$${pnlDollars.toFixed(2)}\n` +
-      `**Quantity:** ${quantity} contract${quantity !== 1 ? 's' : ''}\n` +
-      `**Duration:** ${formatDuration(entryTime, payload.timestamp)}`
+      `**Quantity:** ${quantity} contract${quantity !== 1 ? "s" : ""}\n` +
+      `**Duration:** ${formatDuration(entryTime, payload.timestamp)}`,
   });
 
   return {
@@ -867,9 +959,9 @@ async function handleExitSignal(
     logId,
     tradeId: tradeId || undefined,
     positionId: openPosition.id,
-    message: `Trade closed: ${payload.strategySymbol} ${direction} ${pnlDollars >= 0 ? '+' : ''}$${pnlDollars.toFixed(2)}`,
+    message: `Trade closed: ${payload.strategySymbol} ${direction} ${pnlDollars >= 0 ? "+" : ""}$${pnlDollars.toFixed(2)}`,
     processingTimeMs,
-    signalType: 'exit',
+    signalType: "exit",
   };
 }
 
@@ -883,27 +975,33 @@ export function getWebhookUrl(baseUrl: string): string {
 /**
  * Generate the TradingView alert message template for a strategy (Enhanced)
  */
-export function getAlertMessageTemplate(strategySymbol: string, token?: string): string {
+export function getAlertMessageTemplate(
+  strategySymbol: string,
+  token?: string
+): string {
   const template: Record<string, unknown> = {
     symbol: strategySymbol,
     date: "{{timenow}}",
     data: "{{strategy.order.action}}",
-    position: "{{strategy.market_position}}",  // NEW: Track position state
+    position: "{{strategy.market_position}}", // NEW: Track position state
     quantity: "{{strategy.order.contracts}}",
     price: "{{close}}",
   };
-  
+
   if (token) {
     template.token = token;
   }
-  
+
   return JSON.stringify(template, null, 2);
 }
 
 /**
  * Generate entry-specific alert template
  */
-export function getEntryAlertTemplate(strategySymbol: string, token?: string): string {
+export function getEntryAlertTemplate(
+  strategySymbol: string,
+  token?: string
+): string {
   const template: Record<string, unknown> = {
     symbol: strategySymbol,
     signalType: "entry",
@@ -913,18 +1011,21 @@ export function getEntryAlertTemplate(strategySymbol: string, token?: string): s
     quantity: "{{strategy.order.contracts}}",
     price: "{{strategy.order.price}}",
   };
-  
+
   if (token) {
     template.token = token;
   }
-  
+
   return JSON.stringify(template, null, 2);
 }
 
 /**
  * Generate exit-specific alert template
  */
-export function getExitAlertTemplate(strategySymbol: string, token?: string): string {
+export function getExitAlertTemplate(
+  strategySymbol: string,
+  token?: string
+): string {
   const template: Record<string, unknown> = {
     symbol: strategySymbol,
     signalType: "exit",
@@ -934,11 +1035,11 @@ export function getExitAlertTemplate(strategySymbol: string, token?: string): st
     quantity: "{{strategy.order.contracts}}",
     price: "{{strategy.order.price}}",
   };
-  
+
   if (token) {
     template.token = token;
   }
-  
+
   return JSON.stringify(template, null, 2);
 }
 
@@ -953,16 +1054,16 @@ export function getAllStrategyTemplates(token?: string): Array<{
   exitTemplate: string;
 }> {
   const strategies = [
-    { symbol: 'ESTrend', name: 'ES Trend Following' },
-    { symbol: 'ESORB', name: 'ES Opening Range Breakout' },
-    { symbol: 'NQTrend', name: 'NQ Trend Following' },
-    { symbol: 'NQORB', name: 'NQ Opening Range Breakout' },
-    { symbol: 'CLTrend', name: 'CL Trend Following' },
-    { symbol: 'BTCTrend', name: 'BTC Trend Following' },
-    { symbol: 'GCTrend', name: 'GC Trend Following' },
-    { symbol: 'YMORB', name: 'YM Opening Range Breakout' },
+    { symbol: "ESTrend", name: "ES Trend Following" },
+    { symbol: "ESORB", name: "ES Opening Range Breakout" },
+    { symbol: "NQTrend", name: "NQ Trend Following" },
+    { symbol: "NQORB", name: "NQ Opening Range Breakout" },
+    { symbol: "CLTrend", name: "CL Trend Following" },
+    { symbol: "BTCTrend", name: "BTC Trend Following" },
+    { symbol: "GCTrend", name: "GC Trend Following" },
+    { symbol: "YMORB", name: "YM Opening Range Breakout" },
   ];
-  
+
   return strategies.map(s => ({
     ...s,
     template: getAlertMessageTemplate(s.symbol, token),

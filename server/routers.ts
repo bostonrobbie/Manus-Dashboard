@@ -1250,6 +1250,7 @@ export const appRouter = router({
           quantity: input.quantity,
           price: input.price,
           direction: input.direction,
+          isTest: true, // Always mark test webhooks to prevent dashboard pollution
         };
 
         // Add token if requested
