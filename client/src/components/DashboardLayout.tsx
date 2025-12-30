@@ -62,7 +62,7 @@ const baseMenuItems = [
     icon: Link2,
     label: "Broker Setup",
     path: "/broker-setup",
-    adminOnly: false,
+    adminOnly: true,
   },
   { icon: Shield, label: "Admin", path: "/admin", adminOnly: true },
   {

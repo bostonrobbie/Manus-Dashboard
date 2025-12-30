@@ -5329,3 +5329,9 @@
 - [ ] Document broker setup process
 - [ ] Document error codes and troubleshooting
 - [ ] Create production deployment checklist
+
+## Dec 30, 2025 - Homepage Updates Part 2
+
+- [x] Hide broker connections page from navigation for non-admin users
+- [x] Update dashboard screenshots to show 5+ years of data
+- [x] Add Coming Soon teaser for brokerage auto-execution

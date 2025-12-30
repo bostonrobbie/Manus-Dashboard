@@ -940,6 +940,44 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Coming Soon - Brokerage Auto-Execution */}
+      <section className="py-16 border-t border-gray-800/50 bg-gradient-to-b from-amber-950/10 to-transparent">
+        <div className="container">
+          <div className="max-w-3xl mx-auto text-center">
+            <div className="inline-flex items-center gap-2 bg-amber-500/10 border border-amber-500/30 rounded-full px-4 py-2 mb-6">
+              <Zap className="w-4 h-4 text-amber-400" />
+              <span className="text-amber-400 text-sm font-medium">
+                Coming Soon
+              </span>
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-light text-white mb-4">
+              Automated{" "}
+              <span className="font-bold text-amber-400">Trade Execution</span>
+            </h2>
+            <p className="text-gray-400 mb-6">
+              We're building direct brokerage integrations to automatically
+              execute trades from your strategies. Connect your Tradovate,
+              Interactive Brokers, or TradeStation account and let the system
+              handle execution while you focus on what matters.
+            </p>
+            <div className="flex flex-wrap justify-center gap-4 text-sm text-gray-500">
+              <span className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-amber-400/60" />
+                Paper trading available now
+              </span>
+              <span className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-amber-400/60" />
+                Live execution Q1 2025
+              </span>
+              <span className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-amber-400/60" />
+                Free for Pro subscribers
+              </span>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* FAQ Section */}
       <section id="faq" className="py-20 border-t border-gray-800/50">
         <div className="container">
