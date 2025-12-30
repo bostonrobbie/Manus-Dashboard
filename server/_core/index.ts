@@ -21,6 +21,14 @@ import {
   rateLimitMiddleware,
   strictRateLimitMiddleware,
 } from "./rateLimitMiddleware";
+import {
+  configureServerTimeouts,
+  requestTimeoutMiddleware,
+  keepAliveMiddleware,
+  connectionErrorMiddleware,
+  waitForActiveRequests,
+  getActiveRequestCount,
+} from "./connectionMiddleware";
 
 // Server state tracking
 let httpServer: Server | null = null;
@@ -92,8 +100,17 @@ async function startServer() {
   const app = express();
   httpServer = createServer(app);
 
+  // Configure server timeouts for better connection handling
+  configureServerTimeouts(httpServer);
+
   // Sentry request handler must be first
   app.use(sentryRequestHandler());
+
+  // Apply keep-alive headers for persistent connections
+  app.use(keepAliveMiddleware);
+
+  // Apply request timeout middleware (30 second default)
+  app.use(requestTimeoutMiddleware(30000));
 
   // Apply security headers to all responses
   app.use(securityHeadersMiddleware);
@@ -158,6 +175,9 @@ async function startServer() {
   if (port !== preferredPort) {
     console.log(`Port ${preferredPort} is busy, using port ${port} instead`);
   }
+
+  // Connection error middleware - handles connection-specific errors
+  app.use(connectionErrorMiddleware);
 
   // Global error handler for uncaught errors in routes
   app.use(
@@ -224,6 +244,10 @@ async function startServer() {
     isShuttingDown = true;
 
     console.log(`${signal} received, initiating graceful shutdown...`);
+    console.log(`Active requests: ${getActiveRequestCount()}`);
+
+    // Wait for active requests to complete (max 10 seconds)
+    await waitForActiveRequests(10000);
 
     // Stop accepting new connections
     if (httpServer) {

@@ -567,24 +567,25 @@ export default function Strategies() {
         </div>
       </div>
 
-      {/* Fullscreen Chart Modal */}
+      {/* Fullscreen Chart Modal - Optimized for Mobile */}
       {isFullscreen && (
-        <div className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm flex flex-col">
-          <div className="flex items-center justify-between p-4 border-b">
-            <div>
-              <h2 className="text-lg font-semibold">
+        <div className="fixed inset-0 z-50 bg-background flex flex-col">
+          {/* Compact Header */}
+          <div className="flex items-center justify-between px-3 py-2 sm:p-4 border-b bg-background/95 backdrop-blur-sm">
+            <div className="min-w-0 flex-1">
+              <h2 className="text-base sm:text-lg font-semibold truncate">
                 All Strategies Performance
               </h2>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-xs text-muted-foreground hidden sm:block">
                 Pinch to zoom, drag to pan
               </p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-shrink-0">
               <Select
                 value={timeRange}
                 onValueChange={v => setTimeRange(v as TimeRange)}
               >
-                <SelectTrigger className="w-[140px]">
+                <SelectTrigger className="w-[100px] sm:w-[140px] h-9">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -599,17 +600,20 @@ export default function Strategies() {
               <Button
                 variant="outline"
                 size="icon"
+                className="h-9 w-9"
                 onClick={() => setIsFullscreen(false)}
               >
                 <X className="h-4 w-4" />
               </Button>
             </div>
           </div>
-          <div className="flex-1 p-4 min-h-0">
+
+          {/* Chart takes maximum space */}
+          <div className="flex-1 min-h-0 p-2 sm:p-4">
             <ResponsiveContainer width="100%" height="100%" debounce={50}>
               <LineChart
                 data={chartData}
-                margin={{ top: 20, right: 20, left: 10, bottom: 60 }}
+                margin={{ top: 10, right: 10, left: 0, bottom: 40 }}
               >
                 <CartesianGrid
                   strokeDasharray="3 3"
@@ -619,68 +623,33 @@ export default function Strategies() {
                 />
                 <XAxis
                   dataKey="date"
-                  tick={{ fontSize: 11, fill: "#ffffff" }}
+                  tick={{ fontSize: 10, fill: "#ffffff" }}
                   tickLine={{ stroke: "rgba(255,255,255,0.3)" }}
                   axisLine={{ stroke: "rgba(255,255,255,0.3)" }}
                   interval="preserveStartEnd"
-                  tickCount={8}
-                  padding={{ left: 10, right: 10 }}
+                  tickCount={6}
+                  padding={{ left: 5, right: 5 }}
                 />
                 <YAxis
                   domain={["dataMin", "dataMax"]}
-                  tick={{ fontSize: 11, fill: "#ffffff" }}
+                  tick={{ fontSize: 10, fill: "#ffffff" }}
                   tickLine={{ stroke: "rgba(255,255,255,0.3)" }}
                   axisLine={{ stroke: "rgba(255,255,255,0.3)" }}
                   tickFormatter={value => `$${(value / 1000).toFixed(0)}k`}
-                  width={50}
+                  width={45}
                 />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: "hsl(var(--background))",
                     border: "1px solid hsl(var(--border))",
                     borderRadius: "8px",
+                    fontSize: "12px",
                   }}
                   formatter={(value: number) =>
-                    `$${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                    `$${value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
                   }
                 />
-                <Legend
-                  wrapperStyle={{ paddingTop: "10px" }}
-                  content={props => {
-                    const { payload } = props;
-                    return (
-                      <div className="flex flex-wrap justify-center gap-3 pt-4 px-2">
-                        {payload?.map((entry: any, index: number) => {
-                          const isHidden = hiddenStrategies.has(entry.dataKey);
-                          return (
-                            <button
-                              key={`legend-fs-${index}`}
-                              type="button"
-                              className="flex items-center gap-2 cursor-pointer hover:opacity-70 active:scale-95 transition-all py-2 px-3 rounded-md hover:bg-white/5 touch-manipulation min-h-[44px]"
-                              onClick={() => toggleStrategy(entry.dataKey)}
-                              style={{ opacity: isHidden ? 0.4 : 1 }}
-                            >
-                              <div
-                                className="w-5 h-1 rounded-full flex-shrink-0"
-                                style={{ backgroundColor: entry.color }}
-                              />
-                              <span
-                                className="text-sm"
-                                style={{
-                                  textDecoration: isHidden
-                                    ? "line-through"
-                                    : "none",
-                                }}
-                              >
-                                {entry.value}
-                              </span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    );
-                  }}
-                />
+                {/* No Legend inside chart - moved to footer */}
                 {comparisonData?.strategies.map((strat, index) => (
                   <Line
                     key={`fs-${strat.id}`}
@@ -699,13 +668,54 @@ export default function Strategies() {
                 ))}
                 <Brush
                   dataKey="date"
-                  height={35}
+                  height={30}
                   stroke="hsl(var(--primary))"
                   fill="hsl(var(--background))"
                   tickFormatter={() => ""}
                 />
               </LineChart>
             </ResponsiveContainer>
+          </div>
+
+          {/* Compact Legend Footer - Horizontal scrollable on mobile */}
+          <div className="border-t bg-background/95 backdrop-blur-sm px-2 py-2 sm:py-3">
+            <div className="flex flex-wrap sm:flex-wrap justify-center gap-x-1 gap-y-1 sm:gap-x-3 sm:gap-y-2 max-h-[80px] sm:max-h-none overflow-y-auto">
+              {comparisonData?.strategies.map((strat, index) => {
+                const stratKey = strat.symbol || `strategy${index}`;
+                const isHidden = hiddenStrategies.has(stratKey);
+                return (
+                  <button
+                    key={`legend-fs-${strat.id}`}
+                    type="button"
+                    className="flex items-center gap-1 sm:gap-1.5 cursor-pointer hover:opacity-70 active:scale-95 transition-all py-1 px-1.5 sm:px-2 rounded hover:bg-white/5 touch-manipulation"
+                    onClick={() => toggleStrategy(stratKey)}
+                    style={{ opacity: isHidden ? 0.4 : 1 }}
+                  >
+                    <div
+                      className="w-2.5 sm:w-3 h-0.5 rounded-full flex-shrink-0"
+                      style={{
+                        backgroundColor:
+                          STRATEGY_COLORS[index % STRATEGY_COLORS.length],
+                      }}
+                    />
+                    <span
+                      className="text-[9px] sm:text-xs whitespace-nowrap"
+                      style={{
+                        textDecoration: isHidden ? "line-through" : "none",
+                      }}
+                    >
+                      {/* Short name on mobile */}
+                      <span className="sm:hidden">
+                        {strat.symbol || `S${index + 1}`}
+                      </span>
+                      <span className="hidden sm:inline">
+                        {strat.name || strat.symbol || `Strategy ${index + 1}`}
+                      </span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
       )}

@@ -1,5 +1,13 @@
 import { cn } from "@/lib/utils";
-import { AlertTriangle, RotateCcw, Bug, Copy, Check, ChevronDown, ChevronUp } from "lucide-react";
+import {
+  AlertTriangle,
+  RotateCcw,
+  Bug,
+  Copy,
+  Check,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
 import { Component, ReactNode } from "react";
 
 interface Props {
@@ -13,6 +21,7 @@ interface State {
   errorInfo: React.ErrorInfo | null;
   copied: boolean;
   showDetails: boolean;
+  retryCount: number;
 }
 
 /**
@@ -25,12 +34,13 @@ interface State {
 class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
-    this.state = { 
-      hasError: false, 
-      error: null, 
+    this.state = {
+      hasError: false,
+      error: null,
       errorInfo: null,
       copied: false,
-      showDetails: false
+      showDetails: false,
+      retryCount: 0,
     };
   }
 
@@ -40,13 +50,13 @@ class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     this.setState({ errorInfo });
-    
+
     // Log error for debugging
-    console.error('[ErrorBoundary] Caught error:', error);
-    console.error('[ErrorBoundary] Component stack:', errorInfo.componentStack);
-    
+    console.error("[ErrorBoundary] Caught error:", error);
+    console.error("[ErrorBoundary] Component stack:", errorInfo.componentStack);
+
     // Report to error tracking service if available
-    if (typeof window !== 'undefined' && (window as any).reportError) {
+    if (typeof window !== "undefined" && (window as any).reportError) {
       (window as any).reportError(error, errorInfo);
     }
   }
@@ -54,68 +64,81 @@ class ErrorBoundary extends Component<Props, State> {
   /**
    * Analyze error and provide user-friendly message
    */
-  getErrorAnalysis(): { title: string; description: string; suggestion: string } {
+  getErrorAnalysis(): {
+    title: string;
+    description: string;
+    suggestion: string;
+  } {
     const error = this.state.error;
-    const errorMessage = error?.message || '';
-    const errorStack = error?.stack || '';
+    const errorMessage = error?.message || "";
+    const errorStack = error?.stack || "";
 
     // Check for common error patterns
-    if (errorMessage.includes('is not defined')) {
+    if (errorMessage.includes("is not defined")) {
       const match = errorMessage.match(/(\w+) is not defined/);
-      const varName = match?.[1] || 'Variable';
+      const varName = match?.[1] || "Variable";
       return {
-        title: 'Missing Import or Variable',
+        title: "Missing Import or Variable",
         description: `The code tried to use "${varName}" but it wasn't imported or defined.`,
-        suggestion: 'This is usually caused by a missing import statement. The development team has been notified.'
+        suggestion:
+          "This is usually caused by a missing import statement. The development team has been notified.",
       };
     }
 
-    if (errorMessage.includes('Cannot read properties of undefined') || 
-        errorMessage.includes('Cannot read property')) {
+    if (
+      errorMessage.includes("Cannot read properties of undefined") ||
+      errorMessage.includes("Cannot read property")
+    ) {
       return {
-        title: 'Data Not Available',
-        description: 'The page tried to access data that hasn\'t loaded yet or doesn\'t exist.',
-        suggestion: 'Try refreshing the page. If the problem persists, some data may be missing.'
+        title: "Data Not Available",
+        description:
+          "The page tried to access data that hasn't loaded yet or doesn't exist.",
+        suggestion:
+          "Try refreshing the page. If the problem persists, some data may be missing.",
       };
     }
 
-    if (errorMessage.includes('Cannot read properties of null')) {
+    if (errorMessage.includes("Cannot read properties of null")) {
       return {
-        title: 'Missing Component Reference',
-        description: 'A component tried to access something that no longer exists.',
-        suggestion: 'Try refreshing the page. This usually resolves the issue.'
+        title: "Missing Component Reference",
+        description:
+          "A component tried to access something that no longer exists.",
+        suggestion: "Try refreshing the page. This usually resolves the issue.",
       };
     }
 
-    if (errorMessage.includes('Network') || errorMessage.includes('fetch')) {
+    if (errorMessage.includes("Network") || errorMessage.includes("fetch")) {
       return {
-        title: 'Network Error',
-        description: 'There was a problem connecting to the server.',
-        suggestion: 'Check your internet connection and try again.'
+        title: "Network Error",
+        description: "There was a problem connecting to the server.",
+        suggestion: "Check your internet connection and try again.",
       };
     }
 
-    if (errorMessage.includes('Maximum update depth exceeded')) {
+    if (errorMessage.includes("Maximum update depth exceeded")) {
       return {
-        title: 'Infinite Loop Detected',
-        description: 'The page got stuck in a loop while updating.',
-        suggestion: 'This is a bug that needs to be fixed. Please report it to support.'
+        title: "Infinite Loop Detected",
+        description: "The page got stuck in a loop while updating.",
+        suggestion:
+          "This is a bug that needs to be fixed. Please report it to support.",
       };
     }
 
-    if (errorStack.includes('useQuery') || errorStack.includes('useMutation')) {
+    if (errorStack.includes("useQuery") || errorStack.includes("useMutation")) {
       return {
-        title: 'Data Fetching Error',
-        description: 'There was a problem loading or saving data.',
-        suggestion: 'Try refreshing the page. If the problem persists, the server may be experiencing issues.'
+        title: "Data Fetching Error",
+        description: "There was a problem loading or saving data.",
+        suggestion:
+          "Try refreshing the page. If the problem persists, the server may be experiencing issues.",
       };
     }
 
     // Default error message
     return {
-      title: 'Something Went Wrong',
-      description: errorMessage || 'An unexpected error occurred.',
-      suggestion: 'Try refreshing the page. If the problem persists, please contact support.'
+      title: "Something Went Wrong",
+      description: errorMessage || "An unexpected error occurred.",
+      suggestion:
+        "Try refreshing the page. If the problem persists, please contact support.",
     };
   }
 
@@ -125,8 +148,10 @@ class ErrorBoundary extends Component<Props, State> {
   getErrorReport(): string {
     const { error, errorInfo } = this.state;
     const timestamp = new Date().toISOString();
-    const userAgent = typeof navigator !== 'undefined' ? navigator.userAgent : 'Unknown';
-    const url = typeof window !== 'undefined' ? window.location.href : 'Unknown';
+    const userAgent =
+      typeof navigator !== "undefined" ? navigator.userAgent : "Unknown";
+    const url =
+      typeof window !== "undefined" ? window.location.href : "Unknown";
 
     return `
 === Error Report ===
@@ -134,13 +159,13 @@ Time: ${timestamp}
 URL: ${url}
 Browser: ${userAgent}
 
-Error: ${error?.name || 'Unknown'}: ${error?.message || 'No message'}
+Error: ${error?.name || "Unknown"}: ${error?.message || "No message"}
 
 Stack Trace:
-${error?.stack || 'No stack trace'}
+${error?.stack || "No stack trace"}
 
 Component Stack:
-${errorInfo?.componentStack || 'No component stack'}
+${errorInfo?.componentStack || "No component stack"}
 `.trim();
   }
 
@@ -150,12 +175,21 @@ ${errorInfo?.componentStack || 'No component stack'}
       this.setState({ copied: true });
       setTimeout(() => this.setState({ copied: false }), 2000);
     } catch (err) {
-      console.error('Failed to copy error:', err);
+      console.error("Failed to copy error:", err);
     }
   };
 
   handleRetry = () => {
-    this.setState({ hasError: false, error: null, errorInfo: null });
+    this.setState(prev => ({
+      hasError: false,
+      error: null,
+      errorInfo: null,
+      retryCount: prev.retryCount + 1,
+    }));
+  };
+
+  handleGoHome = () => {
+    window.location.href = "/";
   };
 
   render() {
@@ -200,7 +234,7 @@ ${errorInfo?.componentStack || 'No component stack'}
                 <RotateCcw size={16} />
                 Reload Page
               </button>
-              
+
               <button
                 onClick={this.handleRetry}
                 className={cn(
@@ -219,8 +253,12 @@ ${errorInfo?.componentStack || 'No component stack'}
               onClick={() => this.setState({ showDetails: !showDetails })}
               className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4"
             >
-              {showDetails ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-              {showDetails ? 'Hide' : 'Show'} Technical Details
+              {showDetails ? (
+                <ChevronUp size={14} />
+              ) : (
+                <ChevronDown size={14} />
+              )}
+              {showDetails ? "Hide" : "Show"} Technical Details
             </button>
 
             {/* Technical Details */}
@@ -250,14 +288,14 @@ ${errorInfo?.componentStack || 'No component stack'}
                     )}
                   </button>
                 </div>
-                
+
                 <div className="p-4 w-full rounded-lg bg-muted/50 border border-border overflow-auto max-h-64">
                   <pre className="text-xs text-muted-foreground whitespace-pre-wrap break-words font-mono">
                     <span className="text-destructive font-semibold">
                       {this.state.error?.name}: {this.state.error?.message}
                     </span>
-                    {'\n\n'}
-                    {this.state.error?.stack?.split('\n').slice(1).join('\n')}
+                    {"\n\n"}
+                    {this.state.error?.stack?.split("\n").slice(1).join("\n")}
                   </pre>
                 </div>
 
@@ -278,7 +316,8 @@ ${errorInfo?.componentStack || 'No component stack'}
 
             {/* Support Link */}
             <p className="text-xs text-muted-foreground/50 mt-6 text-center">
-              If this keeps happening, please contact support with the error details above.
+              If this keeps happening, please contact support with the error
+              details above.
             </p>
           </div>
         </div>

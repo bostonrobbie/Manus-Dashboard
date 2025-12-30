@@ -5406,3 +5406,21 @@
 - [x] Create chart layout constraint tests
 - [x] Add responsive breakpoint validation tests
 - [x] Document chart layout requirements
+
+## Dec 30, 2025 - Server Reliability & Fetch Error Fixes
+
+- [ ] Diagnose current error handling in tRPC client and server
+- [x] Implement robust client-side fetch retry with exponential backoff
+- [ ] Add connection keep-alive and timeout handling on server
+- [x] Implement graceful degradation for failed requests
+- [ ] Add offline detection and reconnection logic
+- [ ] Create user-friendly error states and retry UI
+- [ ] Add error boundary components for crash recovery
+- [ ] Test reliability under network stress conditions
+
+## Dec 30, 2025 - Fullscreen Chart Modal Fix
+
+- [x] Fix fullscreen chart modal - chart too small, legend too large on mobile
+- [x] Make legend compact/horizontal or collapsible in fullscreen mode
+- [x] Maximize chart area in fullscreen modal
+- [ ] Add tests for fullscreen chart layout
