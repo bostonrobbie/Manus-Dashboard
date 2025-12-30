@@ -18,6 +18,7 @@ import * as dailyEquityCurve from "./core/dailyEquityCurve";
 import * as paperTrading from "./paperTradingService";
 import { stripeRouter } from "./stripe/stripeRouter";
 import { cache, cacheKeys, cacheTTL } from "./cache";
+import { monitorWebhookUrl, checkWebhookUrl } from "./webhookMonitor";
 
 // Time range enum for filtering
 const TimeRange = z.enum(["6M", "YTD", "1Y", "3Y", "5Y", "10Y", "ALL"]);
@@ -1006,25 +1007,63 @@ export const appRouter = router({
 
     /**
      * Get webhook configuration (URL and templates)
+     *
+     * IMPORTANT: The webhook URL must be stable and not change between deployments.
+     * We use WEBHOOK_BASE_URL env var if set, otherwise fall back to the production manus.space domain.
+     * This ensures TradingView alerts always go to the correct endpoint.
      */
     getConfig: adminProcedure.query(({ ctx }) => {
-      // Get the base URL from the request
-      const protocol = ctx.req.headers["x-forwarded-proto"] || "https";
-      const host =
-        ctx.req.headers["x-forwarded-host"] ||
-        ctx.req.headers.host ||
-        "localhost:3000";
-      const baseUrl = `${protocol}://${host}`;
+      // Use configured webhook base URL for stability
+      // Priority: WEBHOOK_BASE_URL env var > production manus.space domain > request-derived URL
+      let baseUrl: string;
+
+      if (process.env.WEBHOOK_BASE_URL) {
+        // Explicit configuration takes priority
+        baseUrl = process.env.WEBHOOK_BASE_URL;
+      } else if (
+        process.env.NODE_ENV === "production" ||
+        process.env.MANUS_APP_DOMAIN
+      ) {
+        // In production, use the stable manus.space domain
+        // The MANUS_APP_DOMAIN is automatically set by the Manus platform
+        const domain =
+          process.env.MANUS_APP_DOMAIN || "intradaydash-jfmy8c2b.manus.space";
+        baseUrl = `https://${domain}`;
+      } else {
+        // In development, derive from request headers
+        const protocol = ctx.req.headers["x-forwarded-proto"] || "https";
+        const host =
+          ctx.req.headers["x-forwarded-host"] ||
+          ctx.req.headers.host ||
+          "localhost:3000";
+        baseUrl = `${protocol}://${host}`;
+      }
 
       // Get the webhook token (masked for display, full for template generation)
       const webhookToken = process.env.TRADINGVIEW_WEBHOOK_TOKEN || "";
       const hasToken = webhookToken.length > 0;
 
+      const webhookUrl = `${baseUrl}/api/webhook/tradingview`;
+
+      // Monitor the webhook URL for changes (async, non-blocking)
+      // This will alert the owner if the URL doesn't match the expected stable URL
+      monitorWebhookUrl(webhookUrl).catch(err => {
+        console.error("[WebhookMonitor] Error monitoring URL:", err);
+      });
+
+      // Check if URL matches expected
+      const urlCheck = checkWebhookUrl(webhookUrl);
+
       return {
-        webhookUrl: `${baseUrl}/api/webhook/tradingview`,
+        webhookUrl,
         webhookToken: webhookToken, // Full token for template generation
         hasToken,
         tokenLength: webhookToken.length,
+        urlStatus: {
+          isCorrect: urlCheck.isCorrect,
+          expectedUrl: urlCheck.expectedUrl,
+          mismatchType: urlCheck.mismatchType,
+        },
       };
     }),
 

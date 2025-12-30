@@ -5474,3 +5474,11 @@
 - [x] Skip notifications for test webhooks (isTest flag) in webhookProcessorV2.ts
 - [x] Skip notifications for test webhooks (isTest flag) in webhookService.ts
 - [x] Add comprehensive tests for Clear All webhook logs functionality
+
+## Dec 30, 2025 - Webhook URL Stability Fix
+
+- [x] Fix webhook URL to always show correct manus.space domain in production
+- [x] Add monitoring/alerting if webhook URL changes
+- [x] Ensure URL does not change on redeployment
+- [x] Add visual warning in UI when URL doesn't match expected production URL
+- [x] Add comprehensive tests for webhook URL monitoring (20 tests)

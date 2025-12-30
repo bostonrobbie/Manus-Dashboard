@@ -1138,6 +1138,29 @@ function SetupTab() {
               )}
             </Button>
           </div>
+          {/* URL Status Warning */}
+          {webhookConfig?.urlStatus && !webhookConfig.urlStatus.isCorrect && (
+            <div className="mt-3 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="h-4 w-4 text-yellow-500 mt-0.5 flex-shrink-0" />
+                <div className="text-sm">
+                  <p className="font-medium text-yellow-500">
+                    URL Mismatch Detected
+                  </p>
+                  <p className="text-muted-foreground mt-1">
+                    This URL differs from the expected production URL. If you're
+                    in development mode, this is normal.
+                  </p>
+                  <p className="text-muted-foreground mt-1">
+                    <strong>Expected:</strong>{" "}
+                    <code className="text-xs bg-muted px-1 py-0.5 rounded">
+                      {webhookConfig.urlStatus.expectedUrl}
+                    </code>
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
