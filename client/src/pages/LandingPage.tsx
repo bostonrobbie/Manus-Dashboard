@@ -148,6 +148,9 @@ export default function LandingPage() {
   });
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [contractSize, setContractSize] = useState<"micro" | "mini">("mini");
+  const [expandedScreenshot, setExpandedScreenshot] = useState<string | null>(
+    null
+  );
 
   // Accurate stats based on Overview page data (All Time view)
   // Mini: $1.1M total return over 15 years = ~$73.3K/year average
@@ -779,52 +782,83 @@ export default function LandingPage() {
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
-            <div className="rounded-2xl overflow-hidden border border-gray-800">
-              <img
-                src="/screenshots/strategies-page.webp"
-                alt="Futures trading strategy performance comparison showing ES, NQ, CL, GC, and BTC strategies with equity curves and key metrics"
-                className="w-full"
-              />
-              <div className="bg-gray-900 p-4">
-                <h4 className="text-white font-medium mb-1">
-                  Strategy Performance
-                </h4>
-                <p className="text-gray-400 text-sm">
-                  Compare all 8 strategies side by side with detailed metrics
-                </p>
+            {/* Screenshot Card Component with Zoom */}
+            {[
+              {
+                src: "/screenshots/strategies-page.webp",
+                alt: "Futures trading strategy performance comparison showing ES, NQ, CL, GC, and BTC strategies with equity curves and key metrics",
+                title: "Strategy Performance",
+                description:
+                  "Compare all 8 strategies side by side with detailed metrics",
+              },
+              {
+                src: "/screenshots/compare-page.webp",
+                alt: "Portfolio builder tool comparing ES and NQ futures trading strategies with combined equity curves over 15 years",
+                title: "Portfolio Builder",
+                description:
+                  "Combine strategies and see combined equity curves",
+              },
+              {
+                src: "/screenshots/my-dashboard.webp",
+                alt: "Personal futures trading dashboard showing customized portfolio performance with 15+ years of data",
+                title: "Personal Dashboard",
+                description:
+                  "Select your strategies and track your personal portfolio",
+              },
+            ].map((screenshot, index) => (
+              <div
+                key={index}
+                className="group rounded-2xl overflow-hidden border border-gray-800 cursor-pointer transition-all hover:border-emerald-500/50 hover:shadow-lg hover:shadow-emerald-500/10"
+                onClick={() => setExpandedScreenshot(screenshot.src)}
+              >
+                <div className="relative overflow-hidden">
+                  <img
+                    src={screenshot.src}
+                    alt={screenshot.alt}
+                    className="w-full transition-transform duration-300 group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                    <span className="opacity-0 group-hover:opacity-100 transition-opacity bg-emerald-500 text-white px-3 py-1 rounded-full text-sm font-medium">
+                      Click to expand
+                    </span>
+                  </div>
+                </div>
+                <div className="bg-gray-900 p-4 h-[88px] flex flex-col justify-center">
+                  <h4 className="text-white font-medium mb-1 text-base">
+                    {screenshot.title}
+                  </h4>
+                  <p className="text-gray-400 text-sm line-clamp-2">
+                    {screenshot.description}
+                  </p>
+                </div>
               </div>
-            </div>
-            <div className="rounded-2xl overflow-hidden border border-gray-800">
-              <img
-                src="/screenshots/compare-page.webp"
-                alt="Portfolio builder tool comparing multiple futures trading strategies with combined equity curves and correlation analysis"
-                className="w-full"
-              />
-              <div className="bg-gray-900 p-4">
-                <h4 className="text-white font-medium mb-1">
-                  Portfolio Builder
-                </h4>
-                <p className="text-gray-400 text-sm">
-                  Combine strategies and see combined equity curves
-                </p>
-              </div>
-            </div>
-            <div className="rounded-2xl overflow-hidden border border-gray-800">
-              <img
-                src="/screenshots/my-dashboard.webp"
-                alt="Personal futures trading dashboard showing customized portfolio performance, selected strategies, and individual equity tracking"
-                className="w-full"
-              />
-              <div className="bg-gray-900 p-4">
-                <h4 className="text-white font-medium mb-1">
-                  Personal Dashboard
-                </h4>
-                <p className="text-gray-400 text-sm">
-                  Select your strategies and track your personal portfolio
-                </p>
-              </div>
-            </div>
+            ))}
           </div>
+
+          {/* Expanded Screenshot Modal */}
+          {expandedScreenshot && (
+            <div
+              className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4 cursor-pointer"
+              onClick={() => setExpandedScreenshot(null)}
+            >
+              <div className="relative max-w-7xl max-h-[90vh] overflow-auto">
+                <img
+                  src={expandedScreenshot}
+                  alt="Expanded screenshot"
+                  className="w-full h-auto rounded-lg"
+                />
+                <button
+                  className="absolute top-4 right-4 bg-gray-900/80 text-white p-2 rounded-full hover:bg-gray-800 transition-colors"
+                  onClick={e => {
+                    e.stopPropagation();
+                    setExpandedScreenshot(null);
+                  }}
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </section>
 

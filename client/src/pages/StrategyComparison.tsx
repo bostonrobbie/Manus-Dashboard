@@ -43,10 +43,12 @@ const COLORS = [
 ];
 
 export default function StrategyComparison() {
-  const [timeRange, setTimeRange] = useState<TimeRange>("1Y");
+  const [timeRange, setTimeRange] = useState<TimeRange>("ALL");
   const [startingCapital, setStartingCapital] = useState(100000);
   const { contractSize, setContractSize } = useContractSize();
-  const [selectedStrategyIds, setSelectedStrategyIds] = useState<number[]>([]);
+  const [selectedStrategyIds, setSelectedStrategyIds] = useState<number[]>([
+    9, 11,
+  ]);
   const [showBenchmark, setShowBenchmark] = useState(false);
 
   const [hiddenStrategies, setHiddenStrategies] = useState<Set<string>>(

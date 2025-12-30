@@ -5335,3 +5335,19 @@
 - [x] Hide broker connections page from navigation for non-admin users
 - [x] Update dashboard screenshots to show 5+ years of data
 - [x] Add Coming Soon teaser for brokerage auto-execution
+
+## Dec 30, 2025 - Screenshot Section Improvements
+
+- [ ] Capture new Compare page screenshot with ES and NQ strategies, 5+ years data
+- [ ] Capture new My Dashboard screenshot with 5+ years data
+- [ ] Update screenshot section CSS for aligned titles and descriptions
+- [ ] Add zoom/expand functionality to screenshots
+- [ ] Add more feature screenshots (Kelly calculator, correlation matrix, etc.)
+
+## Dec 30, 2025 - Screenshot & Homepage Updates
+
+- [x] Update Compare page screenshot with ES and NQ strategies, 5+ years data
+- [x] Update My Dashboard screenshot with 5+ years data
+- [x] Update screenshot section CSS for aligned titles/descriptions (h-[88px] fixed height)
+- [x] Add zoom/expand functionality to screenshots (click to expand modal)
+- [x] Add Personal Dashboard as third screenshot
