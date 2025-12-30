@@ -162,6 +162,32 @@ const brokerOptions: BrokerOption[] = [
     status: "available",
     difficulty: "advanced",
   },
+  {
+    id: "tradestation",
+    name: "TradeStation",
+    logo: "📈",
+    description:
+      "Award-winning platform with powerful futures trading and competitive pricing.",
+    features: [
+      "Full futures support (ES, NQ, CL, GC, etc.)",
+      "Modern OAuth 2.0 API",
+      "Real-time streaming data",
+      "Simulated trading mode",
+      "Advanced charting & analysis",
+    ],
+    requirements: [
+      "Create TradeStation account",
+      "Apply for API access at developer.tradestation.com",
+      "Get Client ID and Secret",
+      "Fund account ($2,000 minimum for futures)",
+    ],
+    setupTime: "1-3 days",
+    minDeposit: "$2,000",
+    apiCost: "Free",
+    recommended: false,
+    status: "available",
+    difficulty: "medium",
+  },
 ];
 
 // ============================================================================
@@ -273,6 +299,9 @@ function BrokerSelectionView({
   }
   if (showApiForm === "tradovate") {
     return <TradovateSetupForm onBack={() => setShowApiForm(null)} />;
+  }
+  if (showApiForm === "tradestation") {
+    return <TradeStationSetupForm onBack={() => setShowApiForm(null)} />;
   }
 
   return (
@@ -517,6 +546,25 @@ function BrokerSelectionViewInner({
                   </div>
                 ) : selectedBroker === "ibkr" ? (
                   <IBKRSetupForm />
+                ) : selectedBroker === "tradestation" ? (
+                  <div className="space-y-2">
+                    <Button
+                      className="w-full"
+                      onClick={() =>
+                        window.open("https://www.tradestation.com/", "_blank")
+                      }
+                    >
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                      Create TradeStation Account
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => onShowApiForm("tradestation")}
+                    >
+                      <ArrowRight className="h-4 w-4 mr-2" />I Have API Keys
+                    </Button>
+                  </div>
                 ) : (
                   <Button disabled className="w-full">
                     <Clock className="h-4 w-4 mr-2" />
@@ -645,6 +693,38 @@ function SetupSteps({ brokerId }: { brokerId: string }) {
         step: 5,
         title: "Test Connection",
         description: "Verify gateway is authenticated",
+        completed: false,
+      },
+    ],
+    tradestation: [
+      {
+        step: 1,
+        title: "Create TradeStation Account",
+        description: "Sign up at tradestation.com",
+        completed: false,
+      },
+      {
+        step: 2,
+        title: "Apply for API Access",
+        description: "Register at developer.tradestation.com",
+        completed: false,
+      },
+      {
+        step: 3,
+        title: "Create API Application",
+        description: "Get Client ID and Client Secret",
+        completed: false,
+      },
+      {
+        step: 4,
+        title: "Enter Credentials",
+        description: "Paste your API keys below",
+        completed: false,
+      },
+      {
+        step: 5,
+        title: "Authorize Connection",
+        description: "Complete OAuth login flow",
         completed: false,
       },
     ],
@@ -1833,6 +1913,262 @@ function TradovateSetupForm({ onBack }: { onBack: () => void }) {
 
         {/* Warning for Live Trading */}
         {!isDemo && (
+          <Card className="bg-amber-500/10 border-amber-500/20">
+            <CardContent className="flex items-start gap-4 pt-4">
+              <AlertTriangle className="h-5 w-5 text-amber-500 flex-shrink-0" />
+              <div>
+                <h4 className="font-semibold text-amber-500 text-sm">
+                  Live Trading Warning
+                </h4>
+                <p className="text-xs text-muted-foreground mt-1">
+                  You are connecting a live trading account. Real money will be
+                  at risk. Make sure you understand the strategies before
+                  enabling auto-execution.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ============================================================================
+// TRADESTATION SETUP FORM
+// ============================================================================
+
+function TradeStationSetupForm({ onBack }: { onBack: () => void }) {
+  const [clientId, setClientId] = useState("");
+  const [clientSecret, setClientSecret] = useState("");
+  const [isSimulated, setIsSimulated] = useState(true);
+  const [isTestingConnection, setIsTestingConnection] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<
+    "idle" | "success" | "error"
+  >("idle");
+  const [errorMessage, setErrorMessage] = useState("");
+
+  const saveBrokerConnection = trpc.broker.connect.useMutation({
+    onSuccess: () => {
+      toast.success("TradeStation connection saved successfully!");
+      setConnectionStatus("success");
+    },
+    onError: error => {
+      toast.error(error.message);
+      setConnectionStatus("error");
+      setErrorMessage(error.message);
+    },
+  });
+
+  const handleSaveConnection = async () => {
+    if (!clientId || !clientSecret) {
+      toast.error("Please enter both Client ID and Client Secret");
+      return;
+    }
+
+    setIsTestingConnection(true);
+    setConnectionStatus("idle");
+    setErrorMessage("");
+
+    try {
+      saveBrokerConnection.mutate({
+        broker: "tradestation",
+        credentials: {
+          clientId: clientId,
+          clientSecret: clientSecret,
+        },
+        isDemo: isSimulated,
+      });
+    } catch (_error) {
+      setConnectionStatus("error");
+      setErrorMessage("Failed to save connection");
+      toast.error("Connection failed");
+    } finally {
+      setIsTestingConnection(false);
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <span className="text-3xl">📈</span>
+            <div>
+              <CardTitle>Connect TradeStation</CardTitle>
+              <CardDescription>
+                Enter your TradeStation API credentials to enable futures
+                trading
+              </CardDescription>
+            </div>
+          </div>
+          <Button variant="ghost" size="sm" onClick={onBack}>
+            ← Back
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {/* Account Type Toggle */}
+        <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
+          <div>
+            <Label className="text-base font-medium">Account Type</Label>
+            <p className="text-sm text-muted-foreground">
+              {isSimulated
+                ? "Simulated trading (paper money)"
+                : "Live trading (real money)"}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <span
+              className={isSimulated ? "text-muted-foreground" : "font-medium"}
+            >
+              Live
+            </span>
+            <Switch checked={isSimulated} onCheckedChange={setIsSimulated} />
+            <span
+              className={isSimulated ? "font-medium" : "text-muted-foreground"}
+            >
+              Simulated
+            </span>
+          </div>
+        </div>
+
+        {/* Client ID Input */}
+        <div className="space-y-2">
+          <Label htmlFor="tsClientId" className="flex items-center gap-2">
+            Client ID
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger>
+                  <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  <p>
+                    Your TradeStation API Client ID from
+                    developer.tradestation.com
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </Label>
+          <Input
+            id="tsClientId"
+            placeholder="your-client-id"
+            value={clientId}
+            onChange={e => setClientId(e.target.value)}
+            className="font-mono"
+          />
+        </div>
+
+        {/* Client Secret Input */}
+        <div className="space-y-2">
+          <Label htmlFor="tsClientSecret" className="flex items-center gap-2">
+            Client Secret
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger>
+                  <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  <p>Your TradeStation API Client Secret</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </Label>
+          <Input
+            id="tsClientSecret"
+            type="password"
+            placeholder="••••••••••••"
+            value={clientSecret}
+            onChange={e => setClientSecret(e.target.value)}
+            className="font-mono"
+          />
+        </div>
+
+        {/* Connection Status */}
+        {connectionStatus === "success" && (
+          <div className="flex items-center gap-2 p-3 rounded-lg bg-green-500/10 border border-green-500/20">
+            <CheckCircle className="h-5 w-5 text-green-500" />
+            <span className="text-green-500 text-sm">
+              TradeStation connection saved! You'll be redirected to authorize.
+            </span>
+          </div>
+        )}
+
+        {connectionStatus === "error" && (
+          <div className="flex items-center gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+            <AlertTriangle className="h-5 w-5 text-red-500" />
+            <span className="text-red-500 text-sm">
+              {errorMessage ||
+                "Connection failed. Please check your credentials."}
+            </span>
+          </div>
+        )}
+
+        {/* Action Buttons */}
+        <div className="space-y-2">
+          <Button
+            className="w-full bg-emerald-600 hover:bg-emerald-700"
+            onClick={handleSaveConnection}
+            disabled={isTestingConnection || !clientId || !clientSecret}
+          >
+            {isTestingConnection ? (
+              <>
+                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                Saving Connection...
+              </>
+            ) : (
+              <>
+                <Zap className="h-4 w-4 mr-2" />
+                Save & Authorize
+              </>
+            )}
+          </Button>
+
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={() =>
+              window.open("https://developer.tradestation.com/", "_blank")
+            }
+          >
+            <ExternalLink className="h-4 w-4 mr-2" />
+            Open TradeStation Developer Portal
+          </Button>
+        </div>
+
+        {/* Help Section */}
+        <Card className="bg-blue-500/10 border-blue-500/20">
+          <CardContent className="pt-4">
+            <h4 className="font-semibold text-blue-400 text-sm mb-2">
+              How to Get Your API Credentials
+            </h4>
+            <ol className="text-xs text-muted-foreground space-y-1 list-decimal list-inside">
+              <li>Go to developer.tradestation.com and sign in</li>
+              <li>Create a new application</li>
+              <li>
+                Set redirect URI to:{" "}
+                <code className="bg-muted px-1 rounded">
+                  https://stsdashboard.com/api/broker/tradestation/callback
+                </code>
+              </li>
+              <li>Copy your Client ID and Client Secret</li>
+              <li>Paste them above and click Save & Authorize</li>
+            </ol>
+            <Button
+              variant="link"
+              className="text-blue-400 p-0 h-auto mt-2 text-xs"
+              onClick={() =>
+                window.open("https://api.tradestation.com/docs/", "_blank")
+              }
+            >
+              View TradeStation API Documentation →
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Warning for Live Trading */}
+        {!isSimulated && (
           <Card className="bg-amber-500/10 border-amber-500/20">
             <CardContent className="flex items-start gap-4 pt-4">
               <AlertTriangle className="h-5 w-5 text-amber-500 flex-shrink-0" />

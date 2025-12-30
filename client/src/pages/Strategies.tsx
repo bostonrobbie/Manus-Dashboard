@@ -27,6 +27,8 @@ import {
   Coins,
   Landmark,
   Activity,
+  Maximize2,
+  X,
 } from "lucide-react";
 import { Link } from "wouter";
 import {
@@ -38,6 +40,7 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
+  Brush,
 } from "recharts";
 
 type TimeRange = "YTD" | "1Y" | "3Y" | "5Y" | "10Y" | "ALL";
@@ -70,6 +73,7 @@ export default function Strategies() {
   const [hiddenStrategies, setHiddenStrategies] = useState<Set<string>>(
     new Set()
   );
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const {
     data: strategies,
     isLoading,
@@ -254,26 +258,40 @@ export default function Strategies() {
                   Compare all strategy equity curves
                 </CardDescription>
               </div>
-              <div className="w-full sm:w-[180px]">
-                <Label htmlFor="chart-time-range" className="sr-only">
-                  Time Range
-                </Label>
-                <Select
-                  value={timeRange}
-                  onValueChange={v => setTimeRange(v as TimeRange)}
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-9 w-9 sm:h-10 sm:w-10 flex-shrink-0"
+                  onClick={() => setIsFullscreen(true)}
+                  title="View fullscreen"
                 >
-                  <SelectTrigger id="chart-time-range" className="h-9 sm:h-10">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="YTD">Year to Date</SelectItem>
-                    <SelectItem value="1Y">1 Year</SelectItem>
-                    <SelectItem value="3Y">3 Years</SelectItem>
-                    <SelectItem value="5Y">5 Years</SelectItem>
-                    <SelectItem value="10Y">10 Years</SelectItem>
-                    <SelectItem value="ALL">All Time</SelectItem>
-                  </SelectContent>
-                </Select>
+                  <Maximize2 className="h-4 w-4" />
+                </Button>
+                <div className="flex-1 sm:w-[180px]">
+                  <Label htmlFor="chart-time-range" className="sr-only">
+                    Time Range
+                  </Label>
+                  <Select
+                    value={timeRange}
+                    onValueChange={v => setTimeRange(v as TimeRange)}
+                  >
+                    <SelectTrigger
+                      id="chart-time-range"
+                      className="h-9 sm:h-10"
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="YTD">Year to Date</SelectItem>
+                      <SelectItem value="1Y">1 Year</SelectItem>
+                      <SelectItem value="3Y">3 Years</SelectItem>
+                      <SelectItem value="5Y">5 Years</SelectItem>
+                      <SelectItem value="10Y">10 Years</SelectItem>
+                      <SelectItem value="ALL">All Time</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
           </CardHeader>
@@ -353,18 +371,19 @@ export default function Strategies() {
                                 entry.dataKey
                               );
                               return (
-                                <div
+                                <button
                                   key={`legend-${index}`}
-                                  className="flex items-center gap-2 cursor-pointer hover:opacity-70 transition-opacity"
+                                  type="button"
+                                  className="flex items-center gap-1.5 sm:gap-2 cursor-pointer hover:opacity-70 active:scale-95 transition-all py-2 px-2 sm:px-3 rounded-md hover:bg-white/5 touch-manipulation min-h-[44px] min-w-[44px]"
                                   onClick={() => toggleStrategy(entry.dataKey)}
                                   style={{ opacity: isHidden ? 0.4 : 1 }}
                                 >
                                   <div
-                                    className="w-4 h-0.5"
+                                    className="w-4 sm:w-5 h-1 sm:h-0.5 rounded-full flex-shrink-0"
                                     style={{ backgroundColor: entry.color }}
                                   />
                                   <span
-                                    className="text-sm"
+                                    className="text-xs sm:text-sm whitespace-nowrap"
                                     style={{
                                       textDecoration: isHidden
                                         ? "line-through"
@@ -373,7 +392,7 @@ export default function Strategies() {
                                   >
                                     {entry.value}
                                   </span>
-                                </div>
+                                </button>
                               );
                             })}
                           </div>
@@ -398,6 +417,14 @@ export default function Strategies() {
                         isAnimationActive={false}
                       />
                     ))}
+                    <Brush
+                      dataKey="date"
+                      height={30}
+                      stroke="hsl(var(--primary))"
+                      fill="hsl(var(--background))"
+                      tickFormatter={() => ""}
+                      className="touch-manipulation"
+                    />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
@@ -534,6 +561,149 @@ export default function Strategies() {
           })}
         </div>
       </div>
+
+      {/* Fullscreen Chart Modal */}
+      {isFullscreen && (
+        <div className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm flex flex-col">
+          <div className="flex items-center justify-between p-4 border-b">
+            <div>
+              <h2 className="text-lg font-semibold">
+                All Strategies Performance
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                Pinch to zoom, drag to pan
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Select
+                value={timeRange}
+                onValueChange={v => setTimeRange(v as TimeRange)}
+              >
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="YTD">Year to Date</SelectItem>
+                  <SelectItem value="1Y">1 Year</SelectItem>
+                  <SelectItem value="3Y">3 Years</SelectItem>
+                  <SelectItem value="5Y">5 Years</SelectItem>
+                  <SelectItem value="10Y">10 Years</SelectItem>
+                  <SelectItem value="ALL">All Time</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setIsFullscreen(false)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+          <div className="flex-1 p-4 min-h-0">
+            <ResponsiveContainer width="100%" height="100%" debounce={50}>
+              <LineChart
+                data={chartData}
+                margin={{ top: 20, right: 20, left: 10, bottom: 60 }}
+              >
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke="hsl(var(--muted-foreground))"
+                  strokeOpacity={0.2}
+                  vertical={false}
+                />
+                <XAxis
+                  dataKey="date"
+                  tick={{ fontSize: 11, fill: "#ffffff" }}
+                  tickLine={{ stroke: "rgba(255,255,255,0.3)" }}
+                  axisLine={{ stroke: "rgba(255,255,255,0.3)" }}
+                  interval="preserveStartEnd"
+                  tickCount={8}
+                  padding={{ left: 10, right: 10 }}
+                />
+                <YAxis
+                  domain={["dataMin", "dataMax"]}
+                  tick={{ fontSize: 11, fill: "#ffffff" }}
+                  tickLine={{ stroke: "rgba(255,255,255,0.3)" }}
+                  axisLine={{ stroke: "rgba(255,255,255,0.3)" }}
+                  tickFormatter={value => `$${(value / 1000).toFixed(0)}k`}
+                  width={50}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "hsl(var(--background))",
+                    border: "1px solid hsl(var(--border))",
+                    borderRadius: "8px",
+                  }}
+                  formatter={(value: number) =>
+                    `$${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                  }
+                />
+                <Legend
+                  wrapperStyle={{ paddingTop: "10px" }}
+                  content={props => {
+                    const { payload } = props;
+                    return (
+                      <div className="flex flex-wrap justify-center gap-3 pt-4 px-2">
+                        {payload?.map((entry: any, index: number) => {
+                          const isHidden = hiddenStrategies.has(entry.dataKey);
+                          return (
+                            <button
+                              key={`legend-fs-${index}`}
+                              type="button"
+                              className="flex items-center gap-2 cursor-pointer hover:opacity-70 active:scale-95 transition-all py-2 px-3 rounded-md hover:bg-white/5 touch-manipulation min-h-[44px]"
+                              onClick={() => toggleStrategy(entry.dataKey)}
+                              style={{ opacity: isHidden ? 0.4 : 1 }}
+                            >
+                              <div
+                                className="w-5 h-1 rounded-full flex-shrink-0"
+                                style={{ backgroundColor: entry.color }}
+                              />
+                              <span
+                                className="text-sm"
+                                style={{
+                                  textDecoration: isHidden
+                                    ? "line-through"
+                                    : "none",
+                                }}
+                              >
+                                {entry.value}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    );
+                  }}
+                />
+                {comparisonData?.strategies.map((strat, index) => (
+                  <Line
+                    key={`fs-${strat.id}`}
+                    type="monotone"
+                    dataKey={strat.symbol || `strategy${index}`}
+                    stroke={STRATEGY_COLORS[index % STRATEGY_COLORS.length]}
+                    strokeWidth={2}
+                    dot={false}
+                    name={strat.name || strat.symbol || `Strategy ${index + 1}`}
+                    hide={hiddenStrategies.has(
+                      strat.symbol || `strategy${index}`
+                    )}
+                    connectNulls={false}
+                    isAnimationActive={false}
+                  />
+                ))}
+                <Brush
+                  dataKey="date"
+                  height={35}
+                  stroke="hsl(var(--primary))"
+                  fill="hsl(var(--background))"
+                  tickFormatter={() => ""}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
     </>
   );
 }

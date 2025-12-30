@@ -1847,7 +1847,7 @@ Please check the Webhooks page in your dashboard for more details.
     createConnection: adminProcedure
       .input(
         z.object({
-          broker: z.enum(["tradovate", "ibkr", "fidelity"]),
+          broker: z.enum(["tradovate", "ibkr", "tradestation", "alpaca"]),
           name: z.string().min(1).max(100),
           accountId: z.string().optional(),
           accountType: z.enum(["live", "paper", "demo"]).optional(),
@@ -1870,19 +1870,23 @@ Please check the Webhooks page in your dashboard for more details.
     connect: adminProcedure
       .input(
         z.object({
-          broker: z.enum(["alpaca", "tradovate", "ibkr", "fidelity"]),
+          broker: z.enum(["tradovate", "ibkr", "tradestation", "alpaca"]),
           credentials: z.object({
             apiKey: z.string().optional(),
             apiSecret: z.string().optional(),
             username: z.string().optional(),
             password: z.string().optional(),
             accountId: z.string().optional(),
+            clientId: z.string().optional(),
+            clientSecret: z.string().optional(),
+            gatewayUrl: z.string().optional(),
           }),
           isDemo: z.boolean().optional().default(true),
         })
       )
       .mutation(async ({ ctx, input }) => {
         // Create the connection with credentials
+        // Note: In production, credentials should be encrypted before storage
         await brokerService.createBrokerConnection({
           userId: ctx.user.id,
           broker: input.broker,
@@ -2160,11 +2164,11 @@ Please check the Webhooks page in your dashboard for more details.
           features: ["stocks", "options", "futures", "forex"],
         },
         {
-          id: "fidelity",
-          name: "Fidelity",
-          description: "Stocks & options broker",
+          id: "tradestation",
+          name: "TradeStation",
+          description: "Futures & equities platform",
           status: "coming-soon",
-          features: ["stocks", "options"],
+          features: ["stocks", "options", "futures"],
         },
       ];
     }),

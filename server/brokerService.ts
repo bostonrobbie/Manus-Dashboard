@@ -20,7 +20,7 @@ import { encrypt, decrypt } from "./utils/encryption";
 // TYPES
 // ============================================================================
 
-export type BrokerType = "tradovate" | "ibkr" | "fidelity" | "alpaca";
+export type BrokerType = "tradovate" | "ibkr" | "tradestation" | "alpaca";
 
 export type ConnectionStatus =
   | "disconnected"
@@ -250,18 +250,18 @@ export class IBKRService implements IBrokerService {
 }
 
 // ============================================================================
-// FIDELITY SERVICE (Placeholder)
+// TRADESTATION SERVICE (Placeholder - To be implemented)
 // ============================================================================
 
-export class FidelityService implements IBrokerService {
-  readonly brokerType: BrokerType = "fidelity";
+export class TradeStationService implements IBrokerService {
+  readonly brokerType: BrokerType = "tradestation";
   private connected = false;
 
   async connect(
     _credentials: BrokerCredentials
   ): Promise<{ success: boolean; error?: string }> {
-    console.log("[Fidelity] Connection not available - coming soon");
-    return { success: false, error: "Fidelity integration coming soon" };
+    console.log("[TradeStation] Connection not available - coming soon");
+    return { success: false, error: "TradeStation integration coming soon" };
   }
 
   async disconnect(): Promise<void> {
@@ -277,7 +277,7 @@ export class FidelityService implements IBrokerService {
   }
 
   async placeOrder(_order: OrderRequest): Promise<OrderResult> {
-    return { success: false, error: "Fidelity integration not available" };
+    return { success: false, error: "TradeStation integration not available" };
   }
 
   async cancelOrder(
@@ -509,8 +509,8 @@ export function createBrokerService(brokerType: BrokerType): IBrokerService {
       return new TradovateService();
     case "ibkr":
       return new IBKRService();
-    case "fidelity":
-      return new FidelityService();
+    case "tradestation":
+      return new TradeStationService();
     case "alpaca":
       return new AlpacaService();
     default:

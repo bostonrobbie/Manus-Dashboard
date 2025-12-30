@@ -180,7 +180,7 @@ export const brokerConnections = mysqlTable(
     broker: mysqlEnum("broker", [
       "tradovate",
       "ibkr",
-      "fidelity",
+      "tradestation",
       "alpaca",
     ]).notNull(),
     name: varchar("name", { length: 100 }).notNull(), // User-friendly name for this connection
