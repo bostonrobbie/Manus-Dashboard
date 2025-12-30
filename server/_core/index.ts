@@ -1,16 +1,25 @@
 import "dotenv/config";
 import express from "express";
-import { createServer } from "http";
+import { createServer, type Server } from "http";
 import net from "net";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { registerOAuthRoutes } from "./oauth";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
-import { serveStatic, setupVite } from "./vite";
+import { serveStatic, setupVite, closeVite } from "./vite";
 import webhookRouter from "../webhooks";
 import stripeWebhookRouter from "../stripe/stripeWebhook";
 import { securityHeadersMiddleware } from "./securityMiddleware";
-import { initSentry, sentryRequestHandler, sentryErrorHandler, flushSentry } from "./sentry";
+import {
+  initSentry,
+  sentryRequestHandler,
+  sentryErrorHandler,
+  flushSentry,
+} from "./sentry";
+
+// Server state tracking
+let httpServer: Server | null = null;
+let isShuttingDown = false;
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -31,39 +40,73 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
   throw new Error(`No available port found starting from ${startPort}`);
 }
 
+// Health check endpoint handler
+function healthCheckHandler(_req: express.Request, res: express.Response) {
+  const healthStatus = {
+    status: isShuttingDown ? "shutting_down" : "healthy",
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    memory: process.memoryUsage(),
+    environment: process.env.NODE_ENV || "development",
+  };
+
+  res.status(isShuttingDown ? 503 : 200).json(healthStatus);
+}
+
 async function startServer() {
   // Initialize Sentry before anything else
   initSentry();
-  
+
   const app = express();
-  const server = createServer(app);
-  
+  httpServer = createServer(app);
+
   // Sentry request handler must be first
   app.use(sentryRequestHandler());
-  
+
   // Apply security headers to all responses
   app.use(securityHeadersMiddleware);
-  
+
+  // Health check endpoint (before body parser for minimal overhead)
+  app.get("/api/health", healthCheckHandler);
+  app.get("/health", healthCheckHandler);
+
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
+
   // OAuth callback under /api/oauth/callback
   registerOAuthRoutes(app);
+
   // Webhook endpoints (mounted at /api/webhook to match UI display)
   app.use("/api/webhook", webhookRouter);
+
   // Stripe webhook (must be before json body parser for raw body access)
   app.use("/api/stripe/webhook", stripeWebhookRouter);
-  // tRPC API
+
+  // tRPC API with error handling
   app.use(
     "/api/trpc",
     createExpressMiddleware({
       router: appRouter,
       createContext,
+      onError: ({ error, path }) => {
+        // Log errors but don't crash the server
+        console.error(`[tRPC Error] ${path}:`, error.message);
+      },
     })
   );
+
   // development mode uses Vite, production mode uses static files
   if (process.env.NODE_ENV === "development") {
-    await setupVite(app, server);
+    try {
+      await setupVite(app, httpServer);
+    } catch (viteError) {
+      console.error(
+        "[Vite] Setup failed, falling back to static serving:",
+        viteError
+      );
+      serveStatic(app);
+    }
   } else {
     serveStatic(app);
   }
@@ -75,19 +118,128 @@ async function startServer() {
     console.log(`Port ${preferredPort} is busy, using port ${port} instead`);
   }
 
+  // Global error handler for uncaught errors in routes
+  app.use(
+    (
+      err: Error,
+      _req: express.Request,
+      res: express.Response,
+      _next: express.NextFunction
+    ) => {
+      console.error("[Server Error]", err.message);
+
+      // Don't crash on WebSocket/HMR errors
+      if (err.message?.includes("websocket") || err.message?.includes("HMR")) {
+        res.status(200).end();
+        return;
+      }
+
+      res.status(500).json({
+        error: "Internal Server Error",
+        message:
+          process.env.NODE_ENV === "development"
+            ? err.message
+            : "An unexpected error occurred",
+      });
+    }
+  );
+
   // Sentry error handler must be after all routes
   app.use(sentryErrorHandler());
-  
-  server.listen(port, () => {
+
+  httpServer.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);
+    console.log(
+      `Health check available at http://localhost:${port}/api/health`
+    );
   });
-  
-  // Graceful shutdown
-  process.on('SIGTERM', async () => {
-    console.log('SIGTERM received, flushing Sentry...');
-    await flushSentry();
-    process.exit(0);
+
+  // Handle server errors
+  httpServer.on("error", (error: NodeJS.ErrnoException) => {
+    if (error.code === "EADDRINUSE") {
+      console.error(`Port ${port} is already in use`);
+    } else {
+      console.error("[Server Error]", error);
+    }
+  });
+
+  // Handle WebSocket upgrade errors gracefully
+  httpServer.on("upgrade", (_request, socket) => {
+    socket.on("error", err => {
+      // Silently handle WebSocket errors (common in proxy environments)
+      console.debug(
+        "[WebSocket] Connection error (expected in proxy):",
+        err.message
+      );
+    });
+  });
+
+  // Graceful shutdown handlers
+  const gracefulShutdown = async (signal: string) => {
+    if (isShuttingDown) return;
+    isShuttingDown = true;
+
+    console.log(`${signal} received, initiating graceful shutdown...`);
+
+    // Stop accepting new connections
+    if (httpServer) {
+      httpServer.close(async () => {
+        console.log("HTTP server closed");
+
+        // Close Vite dev server if running
+        await closeVite();
+
+        // Flush Sentry events
+        await flushSentry();
+
+        console.log("Graceful shutdown complete");
+        process.exit(0);
+      });
+
+      // Force shutdown after 30 seconds
+      setTimeout(() => {
+        console.error("Forced shutdown after timeout");
+        process.exit(1);
+      }, 30000);
+    }
+  };
+
+  process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
+  process.on("SIGINT", () => gracefulShutdown("SIGINT"));
+
+  // Handle uncaught exceptions without crashing
+  process.on("uncaughtException", error => {
+    console.error("[Uncaught Exception]", error);
+    // Don't exit for non-fatal errors
+    if (
+      error.message?.includes("ECONNRESET") ||
+      error.message?.includes("websocket") ||
+      error.message?.includes("socket hang up")
+    ) {
+      console.log("[Recovery] Non-fatal error, continuing...");
+      return;
+    }
+    // For fatal errors, initiate graceful shutdown
+    gracefulShutdown("UNCAUGHT_EXCEPTION");
+  });
+
+  // Handle unhandled promise rejections
+  process.on("unhandledRejection", (reason, _promise) => {
+    console.error("[Unhandled Rejection]", reason);
+    // Log but don't crash for network-related rejections
+    if (
+      reason instanceof Error &&
+      (reason.message?.includes("ECONNRESET") ||
+        reason.message?.includes("websocket") ||
+        reason.message?.includes("fetch"))
+    ) {
+      console.log("[Recovery] Network error, continuing...");
+      return;
+    }
   });
 }
 
-startServer().catch(console.error);
+startServer().catch(error => {
+  console.error("[Server] Failed to start:", error);
+  process.exit(1);
+});

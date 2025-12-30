@@ -6,8 +6,12 @@ import path from "path";
 import { defineConfig } from "vite";
 import { vitePluginManusRuntime } from "vite-plugin-manus-runtime";
 
-
-const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime()];
+const plugins = [
+  react(),
+  tailwindcss(),
+  jsxLocPlugin(),
+  vitePluginManusRuntime(),
+];
 
 export default defineConfig({
   plugins,
@@ -33,12 +37,27 @@ export default defineConfig({
       ".manus-asia.computer",
       ".manuscomputer.ai",
       ".manusvm.computer",
+      ".us2.manus.computer",
       "localhost",
       "127.0.0.1",
     ],
     fs: {
       strict: true,
       deny: ["**/.*"],
+    },
+    // Enhanced HMR configuration for proxy environments
+    hmr: {
+      // Use WebSocket protocol that works through proxies
+      protocol: "wss",
+      // Disable client-side overlay for connection errors (less intrusive)
+      overlay: false,
+      // Increase timeout for slower connections
+      timeout: 30000,
+    },
+    // Watch configuration for better file change detection
+    watch: {
+      usePolling: false,
+      interval: 100,
     },
   },
 });

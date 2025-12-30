@@ -18,6 +18,41 @@ import {
 // Initialize Sentry before anything else
 initSentry();
 
+// Suppress Vite HMR websocket errors in development (expected in proxy environments)
+if (import.meta.env.DEV) {
+  const originalConsoleError = console.error;
+  console.error = (...args: unknown[]) => {
+    const message = args[0];
+    if (
+      typeof message === "string" &&
+      (message.includes("[vite] failed to connect to websocket") ||
+        message.includes("WebSocket connection") ||
+        (message.includes("HMR") && message.includes("failed")))
+    ) {
+      // Silently ignore HMR connection errors in proxy environments
+      console.debug(
+        "[HMR] WebSocket connection issue (expected in proxy environment)"
+      );
+      return;
+    }
+    originalConsoleError.apply(console, args);
+  };
+
+  // Also suppress unhandled promise rejections for WebSocket errors
+  window.addEventListener("unhandledrejection", event => {
+    const reason = event.reason;
+    if (
+      reason instanceof Error &&
+      (reason.message.includes("WebSocket") ||
+        reason.message.includes("websocket") ||
+        reason.message.includes("HMR"))
+    ) {
+      event.preventDefault();
+      console.debug("[HMR] WebSocket error suppressed:", reason.message);
+    }
+  });
+}
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -27,8 +62,14 @@ const queryClient = new QueryClient({
       gcTime: 10 * 60 * 1000,
       // Don't refetch on window focus for better performance
       refetchOnWindowFocus: false,
-      // Retry failed queries once
+      // Retry failed queries with exponential backoff
+      retry: 2,
+      retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
+    },
+    mutations: {
+      // Retry mutations once on network errors
       retry: 1,
+      retryDelay: 1000,
     },
   },
 });
@@ -45,8 +86,11 @@ queryClient.getQueryCache().subscribe(event => {
   if (event.type === "updated" && event.action.type === "error") {
     const error = event.query.state.error;
     redirectToLoginIfUnauthorized(error);
-    console.error("[API Query Error]", error);
-    if (error instanceof Error) captureException(error, { type: "query" });
+    // Only log non-network errors to avoid noise
+    if (error instanceof Error && !isNetworkError(error)) {
+      console.error("[API Query Error]", error);
+      captureException(error, { type: "query" });
+    }
   }
 });
 
@@ -54,10 +98,26 @@ queryClient.getMutationCache().subscribe(event => {
   if (event.type === "updated" && event.action.type === "error") {
     const error = event.mutation.state.error;
     redirectToLoginIfUnauthorized(error);
-    console.error("[API Mutation Error]", error);
-    if (error instanceof Error) captureException(error, { type: "mutation" });
+    // Only log non-network errors to avoid noise
+    if (error instanceof Error && !isNetworkError(error)) {
+      console.error("[API Mutation Error]", error);
+      captureException(error, { type: "mutation" });
+    }
   }
 });
+
+// Helper to identify transient network errors
+function isNetworkError(error: Error): boolean {
+  const message = error.message.toLowerCase();
+  return (
+    message.includes("network") ||
+    message.includes("fetch") ||
+    message.includes("econnreset") ||
+    message.includes("etimedout") ||
+    message.includes("econnrefused") ||
+    message.includes("websocket")
+  );
+}
 
 const trpcClient = trpc.createClient({
   links: [
