@@ -5424,3 +5424,8 @@
 - [x] Make legend compact/horizontal or collapsible in fullscreen mode
 - [x] Maximize chart area in fullscreen modal
 - [ ] Add tests for fullscreen chart layout
+
+## Dec 30, 2025 - Chart Tooltip Simplification
+
+- [x] Simplify fullscreen chart tooltip - too large and distracting
+- [x] Show only hovered strategy value or compact summary

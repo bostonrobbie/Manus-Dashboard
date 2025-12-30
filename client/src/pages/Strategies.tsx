@@ -359,10 +359,29 @@ export default function Strategies() {
                           backgroundColor: "hsl(var(--background))",
                           border: "1px solid hsl(var(--border))",
                           borderRadius: "8px",
+                          fontSize: "11px",
+                          padding: "6px 10px",
+                          maxWidth: "160px",
                         }}
-                        formatter={(value: number) =>
-                          `$${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                        }
+                        itemStyle={{
+                          padding: "1px 0",
+                          fontSize: "10px",
+                        }}
+                        labelStyle={{
+                          fontWeight: "bold",
+                          marginBottom: "4px",
+                          fontSize: "11px",
+                        }}
+                        formatter={(value: number, name: string) => {
+                          // Abbreviate strategy names for compact display
+                          const shortName = name
+                            .replace(" Trend Following", "")
+                            .replace(" Opening Range Breakout", " ORB")
+                            .replace("Trend", "T")
+                            .replace("Opening", "O");
+                          return [`$${(value / 1000).toFixed(0)}k`, shortName];
+                        }}
+                        wrapperStyle={{ zIndex: 1000 }}
                       />
                       <Legend content={() => null} />
                       {comparisonData?.strategies.map((strat, index) => (
@@ -643,11 +662,29 @@ export default function Strategies() {
                     backgroundColor: "hsl(var(--background))",
                     border: "1px solid hsl(var(--border))",
                     borderRadius: "8px",
-                    fontSize: "12px",
+                    fontSize: "11px",
+                    padding: "6px 10px",
+                    maxWidth: "180px",
                   }}
-                  formatter={(value: number) =>
-                    `$${value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
-                  }
+                  itemStyle={{
+                    padding: "1px 0",
+                    fontSize: "10px",
+                  }}
+                  labelStyle={{
+                    fontWeight: "bold",
+                    marginBottom: "4px",
+                    fontSize: "11px",
+                  }}
+                  formatter={(value: number, name: string) => {
+                    // Abbreviate strategy names
+                    const shortName = name
+                      .replace(" Trend Following", "")
+                      .replace(" Opening Range Breakout", " ORB")
+                      .replace("Trend", "T")
+                      .replace("Opening", "O");
+                    return [`$${(value / 1000).toFixed(0)}k`, shortName];
+                  }}
+                  wrapperStyle={{ zIndex: 1000 }}
                 />
                 {/* No Legend inside chart - moved to footer */}
                 {comparisonData?.strategies.map((strat, index) => (
