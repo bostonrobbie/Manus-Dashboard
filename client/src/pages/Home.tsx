@@ -188,9 +188,9 @@ export default function Home() {
   const { isAuthenticated } = useAuth();
   const { data: stats, isLoading } = trpc.platform.stats.useQuery();
 
-  // SEO: Set document title (30-60 chars)
+  // SEO: Set document title (52 chars - within 30-60 recommended range)
   useEffect(() => {
-    document.title = "STS Futures - Systematic Trading Strategies";
+    document.title = "STS Futures | Systematic Trading Strategies Platform";
   }, []);
   // Strategies query available for future use
   trpc.subscription.availableStrategies.useQuery(undefined, {

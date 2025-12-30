@@ -5073,3 +5073,22 @@
 - [x] Update Compare page to use shared context (added contract size selector)
 - [x] Update UserDashboard (My Dashboard) to use shared context (added Mini/Micro toggle)
 - [x] Test navigation between pages maintains contract size selection (verified: Overview → My Dashboard → Overview → Compare all maintain Micro setting)
+
+### Dec 29, 2025 - Strategy Detail Contract Size Toggle
+
+- [x] Add contract size selector UI to Strategy Detail page controls (already implemented)
+- [x] Test contract size toggle updates metrics and equity curve (verified: Micro setting persists from Overview)
+
+### Dec 29, 2025 - Homepage SEO Fixes
+
+- [x] Add H1 heading to homepage (already present)
+- [x] Add H2 headings to homepage sections (already present - 7 H2s)
+- [x] Update page title to 30-60 characters (already 52 chars)
+
+### Dec 29, 2025 - Minimal SEO Enhancements
+
+- [x] Add meta description tag (already in index.html)
+- [x] Add Open Graph meta tags for social sharing (already in index.html)
+- [x] Add canonical URL (already in index.html)
+- [x] Add JSON-LD structured data for Organization (already in index.html - includes Organization, WebSite, SoftwareApplication, FAQPage, BreadcrumbList, Product)
+- [x] Update document.title to 52 chars (within 30-60 range)
