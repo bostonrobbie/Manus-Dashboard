@@ -5351,3 +5351,11 @@
 - [x] Update screenshot section CSS for aligned titles/descriptions (h-[88px] fixed height)
 - [x] Add zoom/expand functionality to screenshots (click to expand modal)
 - [x] Add Personal Dashboard as third screenshot
+
+## Dec 30, 2025 - Trade Data Import
+
+- [x] Import last 90 days of trades from 8 CSV files
+- [x] Map CSV files to correct strategies (ES, NQ, CL, BTC, GC, YM)
+- [x] Delete existing trades in date range before importing
+- [x] Verify trade counts per strategy after import
+- [x] Verify dashboard displays updated data (9,505 total trades)
