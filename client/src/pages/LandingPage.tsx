@@ -212,7 +212,7 @@ export default function LandingPage() {
               href="#why-sts"
               className="text-sm text-gray-400 hover:text-white transition-colors"
             >
-              Savings
+              Why STS
             </a>
             <a
               href="#pricing"

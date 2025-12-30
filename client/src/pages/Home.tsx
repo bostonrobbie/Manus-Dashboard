@@ -254,7 +254,7 @@ export default function Home() {
                 href="#why-sts"
                 className="text-sm text-gray-400 hover:text-white transition-colors"
               >
-                Savings
+                Why STS
               </a>
               <a
                 href="#pricing"
@@ -1163,7 +1163,7 @@ export default function Home() {
                       href="#why-sts"
                       className="text-gray-300 hover:text-white transition-colors"
                     >
-                      Savings
+                      Why STS
                     </a>
                   </li>
                   <li>
