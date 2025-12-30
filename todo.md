@@ -5359,3 +5359,24 @@
 - [x] Delete existing trades in date range before importing
 - [x] Verify trade counts per strategy after import
 - [x] Verify dashboard displays updated data (9,505 total trades)
+
+## Dec 30, 2025 - Account Value Persistence
+
+- [ ] Create AccountValueContext for global state management
+- [ ] Add startingCapital field to users table in database
+- [ ] Create tRPC procedure to save/load user's starting capital
+- [ ] Update Overview page to use persistent account value
+- [ ] Update My Dashboard to use persistent account value
+- [ ] Update Compare page to use persistent account value
+- [ ] Test persistence across pages and sessions
+
+## Dec 30, 2025 - Account Value Persistence (Completed)
+
+- [x] Add startingCapital column to users table
+- [x] Create AccountValueContext for global state management
+- [x] Add user.getStartingCapital and user.setStartingCapital tRPC procedures
+- [x] Update Overview.tsx to use AccountValueContext
+- [x] Update StrategyComparison.tsx to use AccountValueContext
+- [x] Update StrategyDetail.tsx to use AccountValueContext
+- [x] Update UserDashboard.tsx to use AccountValueContext
+- [x] Add AccountValueProvider to main.tsx

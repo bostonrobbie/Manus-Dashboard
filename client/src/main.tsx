@@ -1,5 +1,5 @@
 import { trpc } from "@/lib/trpc";
-import { UNAUTHED_ERR_MSG } from '@shared/const';
+import { UNAUTHED_ERR_MSG } from "@shared/const";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { httpBatchLink, TRPCClientError } from "@trpc/client";
 import { createRoot } from "react-dom/client";
@@ -8,7 +8,12 @@ import App from "./App";
 import { getLoginUrl } from "./const";
 import "./index.css";
 import { ContractSizeProvider } from "@/contexts/ContractSizeContext";
-import { initSentry, captureException, SentryErrorBoundary } from "@/lib/sentry";
+import { AccountValueProvider } from "@/contexts/AccountValueContext";
+import {
+  initSentry,
+  captureException,
+  SentryErrorBoundary,
+} from "@/lib/sentry";
 
 // Initialize Sentry before anything else
 initSentry();
@@ -31,11 +36,8 @@ const queryClient = new QueryClient({
 const redirectToLoginIfUnauthorized = (error: unknown) => {
   if (!(error instanceof TRPCClientError)) return;
   if (typeof window === "undefined") return;
-
   const isUnauthorized = error.message === UNAUTHED_ERR_MSG;
-
   if (!isUnauthorized) return;
-
   window.location.href = getLoginUrl();
 };
 
@@ -44,7 +46,7 @@ queryClient.getQueryCache().subscribe(event => {
     const error = event.query.state.error;
     redirectToLoginIfUnauthorized(error);
     console.error("[API Query Error]", error);
-    if (error instanceof Error) captureException(error, { type: 'query' });
+    if (error instanceof Error) captureException(error, { type: "query" });
   }
 });
 
@@ -53,7 +55,7 @@ queryClient.getMutationCache().subscribe(event => {
     const error = event.mutation.state.error;
     redirectToLoginIfUnauthorized(error);
     console.error("[API Mutation Error]", error);
-    if (error instanceof Error) captureException(error, { type: 'mutation' });
+    if (error instanceof Error) captureException(error, { type: "mutation" });
   }
 });
 
@@ -77,7 +79,9 @@ createRoot(document.getElementById("root")!).render(
     <trpc.Provider client={trpcClient} queryClient={queryClient}>
       <QueryClientProvider client={queryClient}>
         <ContractSizeProvider>
-          <App />
+          <AccountValueProvider>
+            <App />
+          </AccountValueProvider>
         </ContractSizeProvider>
       </QueryClientProvider>
     </trpc.Provider>
@@ -89,9 +93,12 @@ function ErrorFallback() {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="text-center max-w-md">
-        <h1 className="text-2xl font-bold text-foreground mb-4">Something went wrong</h1>
+        <h1 className="text-2xl font-bold text-foreground mb-4">
+          Something went wrong
+        </h1>
         <p className="text-muted-foreground mb-6">
-          We've been notified and are working to fix the issue. Please try refreshing the page.
+          We've been notified and are working to fix the issue. Please try
+          refreshing the page.
         </p>
         <button
           onClick={() => window.location.reload()}

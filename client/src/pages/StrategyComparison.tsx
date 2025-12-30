@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { SEOHead, SEO_CONFIG } from "@/components/SEOHead";
 import { useContractSize } from "@/contexts/ContractSizeContext";
+import { useAccountValue } from "@/contexts/AccountValueContext";
 import { trpc } from "@/lib/trpc";
 import {
   Card,
@@ -44,7 +45,7 @@ const COLORS = [
 
 export default function StrategyComparison() {
   const [timeRange, setTimeRange] = useState<TimeRange>("ALL");
-  const [startingCapital, setStartingCapital] = useState(100000);
+  const { startingCapital, setStartingCapitalInput } = useAccountValue();
   const { contractSize, setContractSize } = useContractSize();
   const [selectedStrategyIds, setSelectedStrategyIds] = useState<number[]>([
     9, 11,
@@ -187,7 +188,7 @@ export default function StrategyComparison() {
               id="starting-capital"
               type="number"
               value={startingCapital}
-              onChange={e => setStartingCapital(Number(e.target.value))}
+              onChange={e => setStartingCapitalInput(e.target.value)}
               className="w-full md:w-[200px] h-9 sm:h-10"
             />
           </div>

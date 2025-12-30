@@ -111,6 +111,22 @@ export const appRouter = router({
     }),
   }),
 
+  // User preferences
+  user: router({
+    getStartingCapital: protectedProcedure.query(async ({ ctx }) => {
+      const user = await db.getUserById(ctx.user.id);
+      return {
+        startingCapital: user?.startingCapital ?? 100000,
+      };
+    }),
+    setStartingCapital: protectedProcedure
+      .input(z.object({ startingCapital: z.number().min(1000).max(100000000) }))
+      .mutation(async ({ ctx, input }) => {
+        await db.updateUserStartingCapital(ctx.user.id, input.startingCapital);
+        return { success: true };
+      }),
+  }),
+
   portfolio: router({
     /**
      * Get portfolio overview with combined performance metrics

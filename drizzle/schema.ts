@@ -30,6 +30,8 @@ export const users = mysqlTable("users", {
   subscriptionStatus: varchar("subscriptionStatus", { length: 50 }).default(
     "active"
   ), // active, canceled, past_due
+  // User preferences
+  startingCapital: int("startingCapital").default(100000).notNull(), // Starting capital in dollars
   // Onboarding
   onboardingCompleted: boolean("onboardingCompleted").default(false).notNull(),
   onboardingDismissed: boolean("onboardingDismissed").default(false).notNull(),

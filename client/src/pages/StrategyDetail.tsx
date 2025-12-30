@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { SEOHead } from "@/components/SEOHead";
 import { useContractSize } from "@/contexts/ContractSizeContext";
+import { useAccountValue } from "@/contexts/AccountValueContext";
 import { useRoute, Link } from "wouter";
 import { trpc } from "@/lib/trpc";
 import {
@@ -46,7 +47,7 @@ export default function StrategyDetail() {
   const strategyId = params?.id ? parseInt(params.id) : 0;
 
   const [timeRange, setTimeRange] = useState<TimeRange>("1Y");
-  const [startingCapital, setStartingCapital] = useState(100000);
+  const { startingCapital, setStartingCapitalInput } = useAccountValue();
   const { contractSize, setContractSize } = useContractSize();
   const [filters, setFilters] = useState<TradeFilterState>({});
   const [showBenchmark, setShowBenchmark] = useState(true);
@@ -269,14 +270,14 @@ export default function StrategyDetail() {
                     <Input
                       type="number"
                       value={startingCapital}
-                      onChange={e => setStartingCapital(Number(e.target.value))}
+                      onChange={e => setStartingCapitalInput(e.target.value)}
                       className="text-lg font-medium"
                     />
                     <div className="flex flex-wrap gap-2">
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setStartingCapital(10000)}
+                        onClick={() => setStartingCapitalInput("10000")}
                         className="text-xs"
                       >
                         $10K
@@ -284,7 +285,7 @@ export default function StrategyDetail() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setStartingCapital(25000)}
+                        onClick={() => setStartingCapitalInput("25000")}
                         className="text-xs"
                       >
                         $25K
@@ -292,7 +293,7 @@ export default function StrategyDetail() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setStartingCapital(50000)}
+                        onClick={() => setStartingCapitalInput("50000")}
                         className="text-xs"
                       >
                         $50K
@@ -300,7 +301,7 @@ export default function StrategyDetail() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setStartingCapital(100000)}
+                        onClick={() => setStartingCapitalInput("100000")}
                         className="text-xs"
                       >
                         $100K

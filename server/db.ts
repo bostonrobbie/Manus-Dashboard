@@ -235,6 +235,40 @@ export async function dismissUserOnboarding(userId: number) {
 }
 
 /**
+ * Get user by ID
+ */
+export async function getUserById(userId: number) {
+  const db = await getDb();
+  if (!db) return null;
+
+  const result = await db
+    .select()
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+
+  return result[0] ?? null;
+}
+
+/**
+ * Update user starting capital
+ */
+export async function updateUserStartingCapital(
+  userId: number,
+  startingCapital: number
+) {
+  const db = await getDb();
+  if (!db) {
+    console.warn(
+      "[Database] Cannot update user starting capital: database not available"
+    );
+    return;
+  }
+
+  await db.update(users).set({ startingCapital }).where(eq(users.id, userId));
+}
+
+/**
  * Get all strategies
  */
 export async function getAllStrategies() {

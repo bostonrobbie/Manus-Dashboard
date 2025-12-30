@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { SEOHead, SEO_CONFIG } from "@/components/SEOHead";
 import { useContractSize } from "@/contexts/ContractSizeContext";
+import { useAccountValue } from "@/contexts/AccountValueContext";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import {
@@ -101,7 +102,7 @@ export default function UserDashboard() {
   const [settingsDialogOpen, setSettingsDialogOpen] = useState(false);
   const [advancedSettingsOpen, setAdvancedSettingsOpen] = useState(false);
   const [timeRange, setTimeRange] = useState<TimeRange>("ALL");
-  const [startingCapital, setStartingCapital] = useState(100000);
+  const { startingCapital, setStartingCapitalInput } = useAccountValue();
   const { contractSize, setContractSize } = useContractSize();
   const [subscriptionSettings, setSubscriptionSettings] = useState({
     notificationsEnabled: true,
@@ -457,7 +458,7 @@ export default function UserDashboard() {
                     type="number"
                     value={startingCapital}
                     onChange={e =>
-                      setStartingCapital(Number(e.target.value) || 100000)
+                      setStartingCapitalInput(e.target.value || "100000")
                     }
                     className="w-20 sm:w-24 h-6 sm:h-7 text-xs sm:text-sm"
                   />
