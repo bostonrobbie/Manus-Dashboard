@@ -5454,3 +5454,23 @@
 - [x] Implement mock database for ALL tests - no real DB writes
 - [x] Add test environment check to block any DB writes during tests
 - [x] Verify no test data can ever reach dashboard
+
+## Dec 30, 2025 - Clear All Button & Test Email Fixes
+
+- [ ] Fix Clear All button on Admin Signal Log tab
+- [ ] Stop emails from being sent during test runs
+- [ ] Add comprehensive tests for Clear All button functionality
+
+## Dec 30, 2025 - Clear All Button & Test Email Fixes
+
+- [ ] Fix Clear All button on Admin Signal Log tab
+- [ ] Stop emails from being sent during test runs
+- [ ] Add comprehensive tests for Clear All button functionality
+
+## Dec 30, 2025 - Clear All Button & Test Notifications Fix
+
+- [x] Fix Clear All button not working on Signal Log tab
+- [x] Replace window.confirm() with AlertDialog component for better UX
+- [x] Skip notifications for test webhooks (isTest flag) in webhookProcessorV2.ts
+- [x] Skip notifications for test webhooks (isTest flag) in webhookService.ts
+- [x] Add comprehensive tests for Clear All webhook logs functionality

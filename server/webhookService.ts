@@ -742,20 +742,22 @@ async function handleEntrySignal(
     processingTimeMs,
   });
 
-  // Send async notification for entry signal (non-blocking)
+  // Send async notification for entry signal (non-blocking) - skip for test webhooks
   // Note: For now, we send to owner. In the future, this could be extended
   // to send to subscribed users based on their notification preferences.
   // The shouldSendNotification function is available for per-user checks.
-  notifyOwnerAsync({
-    title: `📈 ${payload.direction} Entry: ${payload.strategySymbol}`,
-    content:
-      `New ${payload.direction.toLowerCase()} position opened\n\n` +
-      `**Strategy:** ${payload.strategySymbol}\n` +
-      `**Direction:** ${payload.direction}\n` +
-      `**Entry Price:** $${payload.price.toFixed(2)}\n` +
-      `**Quantity:** ${payload.quantity} contract${payload.quantity !== 1 ? "s" : ""}\n` +
-      `**Time:** ${payload.timestamp.toLocaleString()}`,
-  });
+  if (!payload.isTest) {
+    notifyOwnerAsync({
+      title: `📈 ${payload.direction} Entry: ${payload.strategySymbol}`,
+      content:
+        `New ${payload.direction.toLowerCase()} position opened\n\n` +
+        `**Strategy:** ${payload.strategySymbol}\n` +
+        `**Direction:** ${payload.direction}\n` +
+        `**Entry Price:** $${payload.price.toFixed(2)}\n` +
+        `**Quantity:** ${payload.quantity} contract${payload.quantity !== 1 ? "s" : ""}\n` +
+        `**Time:** ${payload.timestamp.toLocaleString()}`,
+    });
+  }
 
   return {
     success: true,
@@ -937,22 +939,24 @@ async function handleExitSignal(
     processingTimeMs,
   });
 
-  // Send async notification for exit signal with P&L (non-blocking)
-  const pnlEmoji = pnlDollars >= 0 ? "✅" : "❌";
-  const pnlSign = pnlDollars >= 0 ? "+" : "";
+  // Send async notification for exit signal with P&L (non-blocking) - skip for test webhooks
+  if (!payload.isTest) {
+    const pnlEmoji = pnlDollars >= 0 ? "✅" : "❌";
+    const pnlSign = pnlDollars >= 0 ? "+" : "";
 
-  notifyOwnerAsync({
-    title: `${pnlEmoji} Trade Closed: ${payload.strategySymbol} ${pnlSign}$${pnlDollars.toFixed(2)}`,
-    content:
-      `Position closed with ${pnlDollars >= 0 ? "profit" : "loss"}\n\n` +
-      `**Strategy:** ${payload.strategySymbol}\n` +
-      `**Direction:** ${direction}\n` +
-      `**Entry Price:** $${entryPrice.toFixed(2)}\n` +
-      `**Exit Price:** $${payload.price.toFixed(2)}\n` +
-      `**P&L:** ${pnlSign}$${pnlDollars.toFixed(2)}\n` +
-      `**Quantity:** ${quantity} contract${quantity !== 1 ? "s" : ""}\n` +
-      `**Duration:** ${formatDuration(entryTime, payload.timestamp)}`,
-  });
+    notifyOwnerAsync({
+      title: `${pnlEmoji} Trade Closed: ${payload.strategySymbol} ${pnlSign}$${pnlDollars.toFixed(2)}`,
+      content:
+        `Position closed with ${pnlDollars >= 0 ? "profit" : "loss"}\n\n` +
+        `**Strategy:** ${payload.strategySymbol}\n` +
+        `**Direction:** ${direction}\n` +
+        `**Entry Price:** $${entryPrice.toFixed(2)}\n` +
+        `**Exit Price:** $${payload.price.toFixed(2)}\n` +
+        `**P&L:** ${pnlSign}$${pnlDollars.toFixed(2)}\n` +
+        `**Quantity:** ${quantity} contract${quantity !== 1 ? "s" : ""}\n` +
+        `**Duration:** ${formatDuration(entryTime, payload.timestamp)}`,
+    });
+  }
 
   return {
     success: true,

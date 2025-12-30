@@ -67,6 +67,17 @@ import {
   Webhook,
 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { useLocation, useSearch } from "wouter";
 import { WebhookSimulator } from "@/components/WebhookSimulator";
 import { PositionManager } from "@/components/PositionManager";
@@ -821,21 +832,36 @@ function ActivityTab() {
                 />
                 Refresh
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-red-400 border-red-500/30 hover:bg-red-500/10"
-                onClick={() => {
-                  if (
-                    confirm("Clear all webhook logs? This cannot be undone.")
-                  ) {
-                    clearLogsMutation.mutate();
-                  }
-                }}
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Clear All
-              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-red-400 border-red-500/30 hover:bg-red-500/10"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Clear All
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Clear All Webhook Logs?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will permanently delete all webhook logs. This action
+                      cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={() => clearLogsMutation.mutate()}
+                      className="bg-red-600 hover:bg-red-700"
+                    >
+                      Clear All Logs
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           </div>
         </CardContent>
@@ -3112,19 +3138,36 @@ function SettingsTab() {
                 {status?.stats?.total || 0} total entries
               </p>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              className="text-red-400 border-red-500/30 hover:bg-red-500/10"
-              onClick={() => {
-                if (confirm("Clear all webhook logs? This cannot be undone.")) {
-                  clearLogsMutation.mutate();
-                }
-              }}
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Clear All
-            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-red-400 border-red-500/30 hover:bg-red-500/10"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Clear All
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Clear All Webhook Logs?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will permanently delete all webhook logs. This action
+                    cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => clearLogsMutation.mutate()}
+                    className="bg-red-600 hover:bg-red-700"
+                  >
+                    Clear All Logs
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         </CardContent>
       </Card>
@@ -3255,7 +3298,7 @@ function TradeUploadSection() {
       ? `This will DELETE all existing trades for this strategy and replace with ${parseResult.trades.length} new trades. Continue?`
       : `This will add ${parseResult.trades.length} trades. Continue?`;
 
-    if (confirm(confirmMsg)) {
+    if (window.confirm(confirmMsg)) {
       uploadMutation.mutate({
         strategyId: parseInt(selectedStrategy),
         trades: parseResult.trades,
