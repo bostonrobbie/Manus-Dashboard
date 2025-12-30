@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { trpc } from "@/lib/trpc";
 import type { PaperOrderResult } from "../../../server/paperTradingService";
@@ -170,6 +170,11 @@ const brokerOptions: BrokerOption[] = [
 export default function BrokerSetup() {
   const [selectedBroker, setSelectedBroker] = useState<string>("paper");
   const [activeView, setActiveView] = useState<"select" | "trade">("select");
+
+  // SEO: Set page-specific title
+  useEffect(() => {
+    document.title = "Broker Setup | Auto-Execute Trades | STS Futures";
+  }, []);
 
   const selectedBrokerData = brokerOptions.find(b => b.id === selectedBroker);
 

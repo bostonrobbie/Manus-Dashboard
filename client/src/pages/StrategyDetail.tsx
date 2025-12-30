@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useContractSize } from "@/contexts/ContractSizeContext";
 import { useRoute, Link } from "wouter";
 import { trpc } from "@/lib/trpc";
@@ -56,6 +56,15 @@ export default function StrategyDetail() {
     startingCapital,
     contractSize,
   });
+
+  // SEO: Set page-specific title with strategy name
+  useEffect(() => {
+    if (data?.strategy?.name) {
+      document.title = `${data.strategy.name} Strategy | Performance Analysis | STS Futures`;
+    } else {
+      document.title = "Strategy Details | STS Futures Trading Platform";
+    }
+  }, [data?.strategy?.name]);
 
   if (isLoading) {
     return (

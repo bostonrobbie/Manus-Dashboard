@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useContractSize } from "@/contexts/ContractSizeContext";
 import { trpc } from "@/lib/trpc";
 import {
@@ -47,6 +47,11 @@ export default function StrategyComparison() {
   const { contractSize, setContractSize } = useContractSize();
   const [selectedStrategyIds, setSelectedStrategyIds] = useState<number[]>([]);
   const [showBenchmark, setShowBenchmark] = useState(false);
+
+  // SEO: Set page-specific title
+  useEffect(() => {
+    document.title = "Compare Strategies | Portfolio Builder | STS Futures";
+  }, []);
   const [hiddenStrategies, setHiddenStrategies] = useState<Set<string>>(
     new Set()
   );

@@ -62,6 +62,11 @@ export default function Overview() {
   const [startingCapitalInput, setStartingCapitalInput] = useState("100000");
   const [startingCapital, setStartingCapital] = useState(100000);
 
+  // SEO: Set page-specific title
+  useEffect(() => {
+    document.title = "Portfolio Overview | STS Futures Trading Dashboard";
+  }, []);
+
   // Debounce starting capital changes - only update after 800ms of no typing
   useEffect(() => {
     const value = Number(startingCapitalInput);

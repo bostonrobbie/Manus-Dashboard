@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useContractSize } from "@/contexts/ContractSizeContext";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
@@ -84,6 +84,12 @@ const CHART_COLORS = [
 
 export default function UserDashboard() {
   const { user } = useAuth();
+
+  // SEO: Set page-specific title
+  useEffect(() => {
+    document.title = "My Dashboard | Personal Portfolio | STS Futures";
+  }, []);
+
   const showToast = (opts: {
     title: string;
     description?: string;
