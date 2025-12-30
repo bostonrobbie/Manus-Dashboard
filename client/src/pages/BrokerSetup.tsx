@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { SEOHead, SEO_CONFIG } from "@/components/SEOHead";
 import DashboardLayout from "@/components/DashboardLayout";
 import { trpc } from "@/lib/trpc";
 import type { PaperOrderResult } from "../../../server/paperTradingService";
@@ -171,83 +172,81 @@ export default function BrokerSetup() {
   const [selectedBroker, setSelectedBroker] = useState<string>("paper");
   const [activeView, setActiveView] = useState<"select" | "trade">("select");
 
-  // SEO: Set page-specific title
-  useEffect(() => {
-    document.title = "Broker Setup | Auto-Execute Trades | STS Futures";
-  }, []);
-
   const selectedBrokerData = brokerOptions.find(b => b.id === selectedBroker);
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold">Broker Setup</h1>
-            <p className="text-muted-foreground mt-1 text-sm sm:text-base">
-              Connect a broker to execute trades automatically from your
-              strategies
-            </p>
+    <>
+      <SEOHead {...SEO_CONFIG.brokerSetup} />
+      <DashboardLayout>
+        <div className="space-y-6">
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold">Broker Setup</h1>
+              <p className="text-muted-foreground mt-1 text-sm sm:text-base">
+                Connect a broker to execute trades automatically from your
+                strategies
+              </p>
+            </div>
+            {selectedBroker === "paper" && activeView === "trade" && (
+              <Button variant="outline" onClick={() => setActiveView("select")}>
+                <ArrowRight className="h-4 w-4 mr-2 rotate-180" />
+                Back to Broker Selection
+              </Button>
+            )}
           </div>
-          {selectedBroker === "paper" && activeView === "trade" && (
-            <Button variant="outline" onClick={() => setActiveView("select")}>
-              <ArrowRight className="h-4 w-4 mr-2 rotate-180" />
-              Back to Broker Selection
-            </Button>
+
+          {/* Quick Start Guide */}
+          <Card className="bg-gradient-to-r from-emerald-500/10 to-cyan-500/10 border-emerald-500/20">
+            <CardContent className="flex items-start gap-4 pt-6">
+              <div className="p-2 rounded-full bg-emerald-500/20">
+                <Info className="h-5 w-5 text-emerald-400" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-emerald-400">
+                  Getting Started
+                </h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  <strong>Step 1:</strong> Start with Paper Trading to test your
+                  strategies risk-free. <strong>Step 2:</strong> Once confident,
+                  connect a live broker. <strong>Step 3:</strong> Enable
+                  auto-execution in your strategy settings.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Main Content */}
+          {activeView === "select" ? (
+            <BrokerSelectionView
+              selectedBroker={selectedBroker}
+              setSelectedBroker={setSelectedBroker}
+              selectedBrokerData={selectedBrokerData}
+              onStartPaperTrading={() => setActiveView("trade")}
+            />
+          ) : (
+            <PaperTradingView onBack={() => setActiveView("select")} />
           )}
+
+          {/* Security Note */}
+          <Card className="bg-blue-500/10 border-blue-500/20">
+            <CardContent className="flex items-start gap-4 pt-6">
+              <Shield className="h-6 w-6 text-blue-500 flex-shrink-0" />
+              <div>
+                <h3 className="font-semibold text-blue-500">
+                  Your Credentials Are Secure
+                </h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  API credentials are encrypted and stored securely. We never
+                  have access to your broker password. You can revoke API access
+                  at any time from your broker's settings.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
         </div>
-
-        {/* Quick Start Guide */}
-        <Card className="bg-gradient-to-r from-emerald-500/10 to-cyan-500/10 border-emerald-500/20">
-          <CardContent className="flex items-start gap-4 pt-6">
-            <div className="p-2 rounded-full bg-emerald-500/20">
-              <Info className="h-5 w-5 text-emerald-400" />
-            </div>
-            <div>
-              <h3 className="font-semibold text-emerald-400">
-                Getting Started
-              </h3>
-              <p className="text-sm text-muted-foreground mt-1">
-                <strong>Step 1:</strong> Start with Paper Trading to test your
-                strategies risk-free. <strong>Step 2:</strong> Once confident,
-                connect a live broker. <strong>Step 3:</strong> Enable
-                auto-execution in your strategy settings.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Main Content */}
-        {activeView === "select" ? (
-          <BrokerSelectionView
-            selectedBroker={selectedBroker}
-            setSelectedBroker={setSelectedBroker}
-            selectedBrokerData={selectedBrokerData}
-            onStartPaperTrading={() => setActiveView("trade")}
-          />
-        ) : (
-          <PaperTradingView onBack={() => setActiveView("select")} />
-        )}
-
-        {/* Security Note */}
-        <Card className="bg-blue-500/10 border-blue-500/20">
-          <CardContent className="flex items-start gap-4 pt-6">
-            <Shield className="h-6 w-6 text-blue-500 flex-shrink-0" />
-            <div>
-              <h3 className="font-semibold text-blue-500">
-                Your Credentials Are Secure
-              </h3>
-              <p className="text-sm text-muted-foreground mt-1">
-                API credentials are encrypted and stored securely. We never have
-                access to your broker password. You can revoke API access at any
-                time from your broker's settings.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    </DashboardLayout>
+      </DashboardLayout>
+    </>
   );
 }
 
@@ -1203,7 +1202,7 @@ function IBKRSetupForm() {
       testIBKRConnection.mutate({
         gatewayUrl: gatewayUrl.replace(/\/$/, ""),
       });
-    } catch (error) {
+    } catch (_error) {
       setConnectionStatus("error");
       setErrorMessage(
         "Could not reach gateway. Make sure it's running and accessible."
@@ -1405,7 +1404,7 @@ function AlpacaSetupForm({ onBack }: { onBack: () => void }) {
         },
         isDemo: isPaperTrading,
       });
-    } catch (error) {
+    } catch (_error) {
       setConnectionStatus("error");
       setErrorMessage("Failed to save connection");
       toast.error("Connection failed");
@@ -1653,7 +1652,7 @@ function TradovateSetupForm({ onBack }: { onBack: () => void }) {
         },
         isDemo: isDemo,
       });
-    } catch (error) {
+    } catch (_error) {
       setConnectionStatus("error");
       setErrorMessage("Failed to save connection");
       toast.error("Connection failed");
