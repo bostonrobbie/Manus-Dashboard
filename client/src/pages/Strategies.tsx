@@ -295,11 +295,11 @@ export default function Strategies() {
                 </p>
               </div>
             ) : (
-              <div className="h-[260px] sm:h-[350px] md:h-[400px] lg:h-[450px] -mx-1 sm:mx-0">
-                <ResponsiveContainer width="100%" height="100%">
+              <div className="h-[260px] sm:h-[350px] md:h-[400px] lg:h-[450px] -mx-1 sm:mx-0 min-w-0">
+                <ResponsiveContainer width="100%" height="100%" debounce={50}>
                   <LineChart
                     data={chartData}
-                    margin={{ top: 10, right: 5, left: 0, bottom: 10 }}
+                    margin={{ top: 10, right: 10, left: 5, bottom: 10 }}
                   >
                     <CartesianGrid
                       strokeDasharray="3 3"
@@ -329,7 +329,8 @@ export default function Strategies() {
                       tickLine={{ stroke: "rgba(255,255,255,0.3)" }}
                       axisLine={{ stroke: "rgba(255,255,255,0.3)" }}
                       tickFormatter={value => `$${(value / 1000).toFixed(0)}k`}
-                      width={45}
+                      width={40}
+                      allowDataOverflow={false}
                     />
                     <Tooltip
                       contentStyle={{
@@ -394,6 +395,7 @@ export default function Strategies() {
                           strat.symbol || `strategy${index}`
                         )}
                         connectNulls={false}
+                        isAnimationActive={false}
                       />
                     ))}
                   </LineChart>

@@ -5152,3 +5152,8 @@
 - Tradovate: FRAMEWORK ONLY - OAuth flow placeholder, no actual order execution
 - IBKR: FRAMEWORK ONLY - Returns "coming soon" error
 - Fidelity: NOT IMPLEMENTED - Returns "coming soon" error
+
+### Dec 29, 2025 - Mobile Chart Bug Fix
+
+- [x] Fix Strategies page chart not rendering lines on mobile (added debounce, min-w-0, isAnimationActive=false, adjusted margins)
+- [x] Test chart responsiveness across different screen sizes (verified on desktop, needs mobile testing)
