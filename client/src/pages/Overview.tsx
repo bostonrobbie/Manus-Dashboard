@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useContractSize } from "@/contexts/ContractSizeContext";
 import { trpc } from "@/lib/trpc";
 import {
   Card,
@@ -72,14 +73,12 @@ export default function Overview() {
 
     return () => clearTimeout(timer);
   }, [startingCapitalInput]);
-  const [contractSize, setContractSize] = useState<"mini" | "micro">("mini");
+  const { contractSize, setContractSize, contractMultiplier } =
+    useContractSize();
   const [calendarPeriodType, setCalendarPeriodType] = useState<
     "daily" | "weekly" | "monthly" | "quarterly" | "yearly"
   >("yearly");
   // S&P 500 benchmark comparison removed per user request
-
-  // Contract size multiplier: micro = 1/10 of mini
-  const contractMultiplier = contractSize === "micro" ? 0.1 : 1;
 
   const { data, isLoading, error } = trpc.portfolio.overview.useQuery(
     {

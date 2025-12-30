@@ -5062,3 +5062,14 @@
 - [x] Updated portfolio.overview API to accept contractMultiplier parameter
 - [x] Updated frontend to pass contractMultiplier to API
 - [x] Verified: With $25k + Micro contracts, Sortino=2.84, Sharpe=1.70 (was -0.46, -0.54)
+
+### Dec 29, 2025 - Contract Size Sync Across Pages
+
+- [x] Create ContractSizeContext for global state management (with localStorage persistence)
+- [x] Add ContractSizeProvider to App.tsx
+- [x] Update Overview page to use shared context
+- [x] Update Strategies page - no contract size needed (uses fixed startingCapital)
+- [x] Update StrategyDetail page to use shared context
+- [x] Update Compare page to use shared context (added contract size selector)
+- [x] Update UserDashboard (My Dashboard) to use shared context (added Mini/Micro toggle)
+- [x] Test navigation between pages maintains contract size selection (verified: Overview → My Dashboard → Overview → Compare all maintain Micro setting)

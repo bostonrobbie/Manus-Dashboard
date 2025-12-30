@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import { ContractSizeProvider } from "./contexts/ContractSizeContext";
 import DashboardLayout from "./components/DashboardLayout";
 import { Loader2 } from "lucide-react";
 
@@ -199,10 +200,12 @@ function App() {
   return (
     <ErrorBoundary>
       <ThemeProvider defaultTheme="dark">
-        <TooltipProvider>
-          <Toaster />
-          <Router />
-        </TooltipProvider>
+        <ContractSizeProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Router />
+          </TooltipProvider>
+        </ContractSizeProvider>
       </ThemeProvider>
     </ErrorBoundary>
   );

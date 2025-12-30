@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useContractSize } from "@/contexts/ContractSizeContext";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import {
@@ -99,6 +100,7 @@ export default function UserDashboard() {
   const [advancedSettingsOpen, setAdvancedSettingsOpen] = useState(false);
   const [timeRange, setTimeRange] = useState<TimeRange>("ALL");
   const [startingCapital, setStartingCapital] = useState(100000);
+  const { contractSize, setContractSize } = useContractSize();
   const [subscriptionSettings, setSubscriptionSettings] = useState({
     notificationsEnabled: true,
     autoExecuteEnabled: false,
@@ -455,6 +457,29 @@ export default function UserDashboard() {
                   }
                   className="w-20 sm:w-24 h-6 sm:h-7 text-xs sm:text-sm"
                 />
+              </div>
+
+              {/* Contract Size Toggle */}
+              <div className="flex items-center gap-1">
+                <Scale className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground" />
+                <div className="flex bg-muted/50 rounded-md p-0.5">
+                  <Button
+                    variant={contractSize === "mini" ? "secondary" : "ghost"}
+                    size="sm"
+                    onClick={() => setContractSize("mini")}
+                    className="h-5 sm:h-6 px-1.5 sm:px-2 text-[10px] sm:text-xs"
+                  >
+                    Mini
+                  </Button>
+                  <Button
+                    variant={contractSize === "micro" ? "secondary" : "ghost"}
+                    size="sm"
+                    onClick={() => setContractSize("micro")}
+                    className="h-5 sm:h-6 px-1.5 sm:px-2 text-[10px] sm:text-xs"
+                  >
+                    Micro
+                  </Button>
+                </div>
               </div>
 
               {/* Refresh */}
