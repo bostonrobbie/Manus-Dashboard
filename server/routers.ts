@@ -120,6 +120,7 @@ export const appRouter = router({
         z.object({
           timeRange: TimeRange.optional(),
           startingCapital: z.number().optional().default(100000),
+          contractMultiplier: z.number().optional().default(1), // 1 for mini, 0.1 for micro
           source: z
             .enum(["csv_import", "webhook", "manual", "all"])
             .optional()
@@ -127,7 +128,8 @@ export const appRouter = router({
         })
       )
       .query(async ({ input }) => {
-        const { timeRange, startingCapital, source } = input;
+        const { timeRange, startingCapital, contractMultiplier, source } =
+          input;
 
         // Calculate date range
         const now = new Date();
@@ -374,9 +376,12 @@ export const appRouter = router({
         );
 
         // Calculate industry-standard daily Sharpe/Sortino using proper daily equity curve
+        // Pass contractMultiplier to scale P&L values for realistic daily returns
         const dailyEquityResult = dailyEquityCurve.calculateDailyEquityCurve(
           allTrades,
-          startingCapital
+          startingCapital,
+          undefined, // calendar
+          contractMultiplier
         );
         const dailySharpe = dailyEquityCurve.calculateDailySharpeRatio(
           dailyEquityResult.dailyReturns

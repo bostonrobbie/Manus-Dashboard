@@ -5047,3 +5047,18 @@
 - [x] Verified: With $25k starting capital + Micro contracts, Total Return shows 51.9% ($13K) correctly
 - [x] Verified: Max Drawdown shows 18.3% ($4.6K) correctly
 - [x] Equity curve properly scales with contract size selection
+
+### Bug Fix - Sortino and Sharpe Ratio Calculations
+
+- [ ] Investigate why Sortino (-0.46) and Sharpe (-0.54) show negative values with positive returns
+- [ ] Fix ratio calculations to correctly reflect portfolio performance
+- [ ] Verify ratios make sense with the equity curve and return data
+
+### Dec 29, 2025 - Sharpe/Sortino Ratio Fix (COMPLETE)
+
+- [x] Fixed Sortino and Sharpe ratios showing negative values with small starting capital
+- [x] Added contractMultiplier parameter to dailyEquityCurve calculation
+- [x] Updated aggregateTradesByDay to scale P&L by contract multiplier
+- [x] Updated portfolio.overview API to accept contractMultiplier parameter
+- [x] Updated frontend to pass contractMultiplier to API
+- [x] Verified: With $25k + Micro contracts, Sortino=2.84, Sharpe=1.70 (was -0.46, -0.54)

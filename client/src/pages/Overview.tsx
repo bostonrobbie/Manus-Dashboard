@@ -78,10 +78,14 @@ export default function Overview() {
   >("yearly");
   // S&P 500 benchmark comparison removed per user request
 
+  // Contract size multiplier: micro = 1/10 of mini
+  const contractMultiplier = contractSize === "micro" ? 0.1 : 1;
+
   const { data, isLoading, error } = trpc.portfolio.overview.useQuery(
     {
       timeRange,
       startingCapital,
+      contractMultiplier,
     },
     {
       staleTime: 5 * 60 * 1000, // Cache for 5 minutes
@@ -93,6 +97,7 @@ export default function Overview() {
     {
       timeRange: "ALL",
       startingCapital,
+      contractMultiplier,
     },
     {
       staleTime: 10 * 60 * 1000, // Cache for 10 minutes (less frequent updates)
@@ -135,10 +140,6 @@ export default function Overview() {
   if (!data) return null;
 
   const { metrics, portfolioEquity, benchmarkEquity } = data;
-
-  // Contract size multiplier: micro = 1/10 of mini
-  // Only scale the P&L portion, not the starting capital
-  const contractMultiplier = contractSize === "micro" ? 0.1 : 1;
 
   // Get the starting equity from the first point (should equal startingCapital)
   const baseEquity =
