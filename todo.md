@@ -5254,3 +5254,78 @@
 - [x] Touch-friendly legend interactions with larger tap targets
 - [x] Chart zoom/pan with Brush component
 - [x] Full screen chart mode with maximize button
+
+## Dec 30, 2025 - Production-Grade Broker System Sprint
+
+### Phase 1: Remove Alpaca (doesn't support futures)
+
+- [ ] Remove Alpaca broker service files
+- [ ] Remove Alpaca from BrokerSetup.tsx UI
+- [ ] Remove Alpaca from database schema/enums
+- [ ] Remove Alpaca tests
+- [ ] Update documentation
+
+### Phase 2: Connection Status Dashboard Widget
+
+- [ ] Create ConnectionStatusWidget component with real-time health
+- [ ] Add reconnect buttons for each broker
+- [ ] Show connection latency and last heartbeat
+- [ ] Add visual indicators (green/yellow/red) for connection quality
+- [ ] Implement auto-reconnect logic
+- [ ] Add to My Dashboard page
+
+### Phase 3: Trade Confirmation Notifications
+
+- [ ] Implement email notifications on trade execution
+- [ ] Implement in-app notifications on trade execution
+- [ ] Add notification preferences (email/push/both/none)
+- [ ] Include trade details (symbol, direction, quantity, price, P&L)
+- [ ] Add error notifications for failed trades
+- [ ] Test notification delivery
+
+### Phase 4: Security Audit
+
+- [ ] Audit credential encryption (AES-256-GCM)
+- [ ] Test for SQL injection vulnerabilities
+- [ ] Test for XSS vulnerabilities
+- [ ] Audit API authentication
+- [ ] Test rate limiting
+- [ ] Audit session management
+- [ ] Test credential storage security
+- [ ] Verify no credentials in logs
+
+### Phase 5: Edge Case & Error Recovery
+
+- [ ] Test broker connection timeout handling
+- [ ] Test broker API rate limiting
+- [ ] Test invalid credential handling
+- [ ] Test network interruption recovery
+- [ ] Test partial order fill handling
+- [ ] Test duplicate order prevention
+- [ ] Test order rejection handling
+- [ ] Test account balance validation
+- [ ] Test position reconciliation
+
+### Phase 6: Latency Optimization
+
+- [ ] Measure webhook-to-execution latency
+- [ ] Optimize database queries
+- [ ] Add connection pooling
+- [ ] Implement request batching where applicable
+- [ ] Add latency monitoring metrics
+
+### Phase 7: End-to-End Integration Testing
+
+- [ ] Create mock broker servers for testing
+- [ ] Test full trade flow: webhook → processing → execution → confirmation
+- [ ] Test failover between brokers
+- [ ] Test concurrent order handling
+- [ ] Test market hours validation
+- [ ] Stress test with rapid signals
+
+### Phase 8: Final QA & Documentation
+
+- [ ] Run full test suite (target: 100% pass rate)
+- [ ] Document broker setup process
+- [ ] Document error codes and troubleshooting
+- [ ] Create production deployment checklist

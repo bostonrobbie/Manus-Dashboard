@@ -35,7 +35,7 @@ const faqs = [
   {
     question: "How do the trading signals work?",
     answer:
-      "Our strategies generate signals via TradingView alerts that are delivered through secure webhooks. When a strategy identifies a trade opportunity, you receive instant notifications with entry price, direction, and position details. Signals can be auto-executed through our brokerage connector to Tradovate or Interactive Brokers.",
+      "Our strategies generate signals via TradingView alerts that are delivered through secure webhooks. When a strategy identifies a trade opportunity, you receive instant notifications with entry price, direction, and position details.",
   },
   {
     question: "What markets do you cover?",
@@ -43,9 +43,9 @@ const faqs = [
       "We focus on futures markets including E-mini S&P 500 (ES), E-mini NASDAQ (NQ), E-mini Dow (YM), Crude Oil (CL), Gold (GC), and Bitcoin (BTC). Each strategy is specifically designed and backtested for its target market.",
   },
   {
-    question: "How much can I save with your brokerage connector?",
+    question: "How accurate is your backtesting data?",
     answer:
-      "Our built-in TradingView to Tradovate/IBKR connector saves you $30-50/month compared to third-party services like TradersPost or Alpaca. That's $360-600/year in savings while getting better execution and full transparency.",
+      "Our backtesting uses 15+ years of tick-level historical data with realistic slippage and commission assumptions. We don't curve-fit or cherry-pick results. All performance metrics are calculated using industry-standard formulas.",
   },
   {
     question: "Is past performance a guarantee of future results?",
@@ -55,17 +55,17 @@ const faqs = [
   {
     question: "What's included in the subscription?",
     answer:
-      "Everything: 8 backtested strategies, real-time TradingView signals, brokerage auto-execution connector, professional analytics dashboard, personal portfolio builder, correlation analysis tools, and priority support. No hidden fees or add-ons.",
+      "Everything: 8 backtested strategies, real-time TradingView signals, professional analytics dashboard, personal portfolio builder, correlation analysis tools, Kelly criterion calculator, and priority support. No hidden fees or add-ons.",
   },
   {
     question: "What makes your strategies different?",
     answer:
-      "Our strategies are built on rigorous backtesting with 14+ years of data, focus on risk-adjusted returns (not just raw profits), and provide full transparency with detailed performance metrics including Sharpe, Sortino, and Calmar ratios. Plus, we include the brokerage connector at no extra cost.",
+      "Our strategies are built on rigorous backtesting with 15+ years of data, focus on risk-adjusted returns (not just raw profits), and provide full transparency with detailed performance metrics including Sharpe, Sortino, and Calmar ratios. Every trade is logged and verifiable.",
   },
   {
-    question: "Do you offer refunds?",
+    question: "Do I get access to new strategies?",
     answer:
-      "Yes, we offer a 7-day money-back guarantee. If you're not satisfied with the platform within 7 days of your subscription, contact us for a full refund. No questions asked.",
+      "Yes! As a subscriber, you get access to all future strategies we deploy and release to the dashboard at no additional cost. We're constantly developing and testing new systematic strategies across different markets and timeframes.",
   },
   {
     question: "Will prices increase?",
@@ -89,10 +89,10 @@ const comparisonFeatures = [
     diy: "Build yourself",
   },
   {
-    feature: "Brokerage auto-execution",
+    feature: "Kelly criterion position sizing",
     sts: true,
     discretionary: false,
-    diy: "$30-50/mo extra",
+    diy: "Build yourself",
   },
   {
     feature: "Risk-adjusted metrics (Sharpe, Sortino)",
@@ -148,15 +148,6 @@ export default function LandingPage() {
   });
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [contractSize, setContractSize] = useState<"micro" | "mini">("mini");
-
-  // Calculate savings
-  const savingsData = useMemo(() => {
-    const thirdPartyMonthly = 40; // Average cost of TradersPost, Alpaca, etc.
-    const ourCost = 0; // Included in subscription
-    const monthlySavings = thirdPartyMonthly - ourCost;
-    const yearlySavings = monthlySavings * 12;
-    return { monthlySavings, yearlySavings, thirdPartyMonthly };
-  }, []);
 
   // Accurate stats based on Overview page data (All Time view)
   // Mini: $1.1M total return over 15 years = ~$73.3K/year average
@@ -218,7 +209,7 @@ export default function LandingPage() {
               Compare
             </a>
             <a
-              href="#savings"
+              href="#why-sts"
               className="text-sm text-gray-400 hover:text-white transition-colors"
             >
               Savings
@@ -360,7 +351,7 @@ export default function LandingPage() {
               </span>{" "}
               with 15+ years of data, real-time TradingView signals, and{" "}
               <span className="text-emerald-400 font-medium">
-                built-in brokerage execution
+                professional-grade analytics
               </span>
               .
             </p>
@@ -394,11 +385,11 @@ export default function LandingPage() {
             <div className="flex flex-wrap justify-center gap-6 text-sm text-gray-300">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                <span>7-day money-back guarantee</span>
+                <span>Access to all future strategies</span>
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                <span>Brokerage connector included</span>
+                <span>15+ years backtested data</span>
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-500" />
@@ -465,11 +456,12 @@ export default function LandingPage() {
                   <Zap className="w-6 h-6 text-purple-400" />
                 </div>
                 <h3 className="text-lg font-semibold text-white mb-2">
-                  Brokerage Auto-Execution
+                  Kelly Criterion Calculator
                 </h3>
                 <p className="text-gray-400 text-sm">
-                  Built-in connector to Tradovate and Interactive Brokers.
-                  Execute trades automatically — no third-party service needed.
+                  Optimal position sizing based on your win rate and
+                  risk/reward. Maximize growth while managing risk
+                  scientifically.
                 </p>
               </CardContent>
             </Card>
@@ -651,25 +643,22 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Savings Section */}
-      <section id="savings" className="py-20 border-t border-gray-800/50">
+      {/* Why Choose STS Section */}
+      <section id="why-sts" className="py-20 border-t border-gray-800/50">
         <div className="container">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-light text-white mb-4">
-              Save{" "}
-              <span className="font-bold text-emerald-400">
-                ${savingsData.yearlySavings}+
-              </span>{" "}
-              on Trading Automation
+              Why Choose{" "}
+              <span className="font-bold text-emerald-400">STS Platform</span>
             </h2>
             <p className="text-gray-400 max-w-2xl mx-auto">
-              Our brokerage connector alone saves you more than most third-party
-              services charge.
+              Everything you need to trade futures systematically, backed by 15+
+              years of data.
             </p>
           </div>
 
           <div className="max-w-4xl mx-auto grid md:grid-cols-2 gap-8">
-            {/* Third Party Cost */}
+            {/* DIY Approach */}
             <div className="bg-red-950/20 border border-red-500/30 rounded-2xl p-8">
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-12 h-12 rounded-xl bg-red-500/10 flex items-center justify-center">
@@ -677,38 +666,42 @@ export default function LandingPage() {
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold text-white">
-                    Third-Party Connectors
+                    Building It Yourself
                   </h3>
-                  <p className="text-red-400 text-sm">
-                    TradersPost, Alpaca, etc.
-                  </p>
+                  <p className="text-red-400 text-sm">The hard way</p>
                 </div>
               </div>
               <div className="space-y-4">
                 <div className="flex justify-between items-center py-3 border-b border-red-900/30">
-                  <span className="text-gray-400">Monthly Subscription</span>
-                  <span className="text-red-400 font-semibold">$30-50/mo</span>
-                </div>
-                <div className="flex justify-between items-center py-3 border-b border-red-900/30">
-                  <span className="text-gray-400">Per-Trade Fees</span>
-                  <span className="text-red-400 font-semibold">$0.10-0.50</span>
-                </div>
-                <div className="flex justify-between items-center py-3 border-b border-red-900/30">
-                  <span className="text-gray-400">Custom Development</span>
+                  <span className="text-gray-400">Strategy Development</span>
                   <span className="text-red-400 font-semibold">
-                    $1000+ once
+                    6-12 months
+                  </span>
+                </div>
+                <div className="flex justify-between items-center py-3 border-b border-red-900/30">
+                  <span className="text-gray-400">Historical Data</span>
+                  <span className="text-red-400 font-semibold">
+                    $500-2000/yr
+                  </span>
+                </div>
+                <div className="flex justify-between items-center py-3 border-b border-red-900/30">
+                  <span className="text-gray-400">Backtesting Platform</span>
+                  <span className="text-red-400 font-semibold">
+                    $100-300/mo
                   </span>
                 </div>
                 <div className="flex justify-between items-center py-3">
-                  <span className="text-white font-medium">Annual Cost</span>
+                  <span className="text-white font-medium">
+                    Total Investment
+                  </span>
                   <span className="text-red-400 font-bold text-xl">
-                    ~$480/year
+                    $5000+ & 1 year
                   </span>
                 </div>
               </div>
             </div>
 
-            {/* STS Cost */}
+            {/* STS Platform */}
             <div className="bg-emerald-950/20 border border-emerald-500/30 rounded-2xl p-8">
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center">
@@ -719,50 +712,51 @@ export default function LandingPage() {
                     STS Platform
                   </h3>
                   <p className="text-emerald-400 text-sm">
-                    Connector included free
+                    Ready to trade today
                   </p>
                 </div>
               </div>
               <div className="space-y-4">
                 <div className="flex justify-between items-center py-3 border-b border-emerald-900/30">
-                  <span className="text-gray-400">8 Backtested Strategies</span>
+                  <span className="text-gray-400">8 Proven Strategies</span>
                   <span className="text-emerald-400 font-semibold">
                     Included
                   </span>
                 </div>
                 <div className="flex justify-between items-center py-3 border-b border-emerald-900/30">
-                  <span className="text-gray-400">Real-Time Signals</span>
+                  <span className="text-gray-400">15+ Years Data</span>
                   <span className="text-emerald-400 font-semibold">
                     Included
                   </span>
                 </div>
                 <div className="flex justify-between items-center py-3 border-b border-emerald-900/30">
-                  <span className="text-gray-400">Brokerage Connector</span>
+                  <span className="text-gray-400">Professional Analytics</span>
                   <span className="text-emerald-400 font-semibold">
                     Included
                   </span>
                 </div>
                 <div className="flex justify-between items-center py-3">
-                  <span className="text-white font-medium">Connector Cost</span>
+                  <span className="text-white font-medium">Get Started</span>
                   <span className="text-emerald-400 font-bold text-xl">
-                    $0/year
+                    $50/month
                   </span>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Savings Highlight */}
+          {/* Value Highlight */}
           <div className="mt-8 bg-gradient-to-r from-emerald-500/10 to-blue-500/10 border border-emerald-500/20 rounded-2xl p-8 text-center max-w-4xl mx-auto">
             <div className="text-5xl font-bold text-emerald-400 mb-2">
-              ${savingsData.yearlySavings}+
+              15+ Years
             </div>
             <div className="text-gray-400 mb-4">
-              Annual savings on brokerage connector alone
+              of backtested performance data at your fingertips
             </div>
             <p className="text-sm text-gray-300 max-w-xl mx-auto">
-              Plus you get 8 backtested strategies, professional analytics, and
-              portfolio tools — things you'd spend months building yourself.
+              Skip the months of development and years of data collection. Get
+              instant access to proven strategies with transparent, verifiable
+              track records.
             </p>
           </div>
         </div>
@@ -884,7 +878,7 @@ export default function LandingPage() {
                   <li className="flex items-start gap-3">
                     <Check className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
                     <span className="text-gray-300">
-                      Brokerage connector (Tradovate & IBKR)
+                      Kelly criterion position sizing calculator
                     </span>
                   </li>
                   <li className="flex items-start gap-3">
@@ -928,7 +922,7 @@ export default function LandingPage() {
                   </a>
                 )}
                 <p className="text-center text-sm text-gray-300 mt-4">
-                  7-day money-back guarantee. Cancel anytime.
+                  Access to all future strategies. Cancel anytime.
                 </p>
               </CardContent>
             </Card>
@@ -1025,8 +1019,8 @@ export default function LandingPage() {
             </a>
           )}
           <p className="text-sm text-gray-300 mt-4">
-            7-day money-back guarantee • Brokerage connector included • Lock in
-            your rate for life
+            Access to all future strategies • 15+ years data • Lock in your rate
+            for life
           </p>
         </div>
       </section>

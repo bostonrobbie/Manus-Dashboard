@@ -13,7 +13,7 @@ import { TradeStationClient } from "./tradestation";
 // TYPES
 // ============================================================================
 
-export type BrokerType = "tradovate" | "ibkr" | "tradestation" | "alpaca";
+export type BrokerType = "tradovate" | "ibkr" | "tradestation";
 
 export interface BrokerConnectionStatus {
   broker: BrokerType;

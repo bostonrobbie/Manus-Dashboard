@@ -115,17 +115,10 @@ export interface TradeStationCredentials {
   isSimulated: boolean;
 }
 
-export interface AlpacaCredentials {
-  apiKey: string;
-  secretKey: string;
-  isPaper: boolean;
-}
-
 export type BrokerCredentials =
   | { broker: "tradovate"; credentials: TradovateCredentials }
   | { broker: "ibkr"; credentials: IBKRCredentials }
-  | { broker: "tradestation"; credentials: TradeStationCredentials }
-  | { broker: "alpaca"; credentials: AlpacaCredentials };
+  | { broker: "tradestation"; credentials: TradeStationCredentials };
 
 /**
  * Encrypts broker credentials for storage
@@ -172,11 +165,6 @@ export function validateCredentials(
     case "tradestation":
       if (!credentials.clientId) errors.push("Client ID is required");
       if (!credentials.clientSecret) errors.push("Client Secret is required");
-      break;
-
-    case "alpaca":
-      if (!credentials.apiKey) errors.push("API Key is required");
-      if (!credentials.secretKey) errors.push("Secret Key is required");
       break;
 
     default:

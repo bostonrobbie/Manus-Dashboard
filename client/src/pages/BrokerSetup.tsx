@@ -92,26 +92,7 @@ const brokerOptions: BrokerOption[] = [
     status: "available",
     difficulty: "easy",
   },
-  {
-    id: "alpaca",
-    name: "Alpaca",
-    logo: "🦙",
-    description:
-      "Commission-free trading with modern API. Great for stocks and ETFs.",
-    features: [
-      "Commission-free trading",
-      "Modern REST + WebSocket API",
-      "Paper trading mode included",
-      "Real-time market data",
-    ],
-    requirements: ["Create free Alpaca account", "Generate API key and secret"],
-    setupTime: "5-10 minutes",
-    minDeposit: "$0",
-    apiCost: "Free",
-    recommended: false,
-    status: "available",
-    difficulty: "easy",
-  },
+
   {
     id: "tradovate",
     name: "Tradovate",
@@ -294,9 +275,6 @@ function BrokerSelectionView({
   const [showApiForm, setShowApiForm] = useState<string | null>(null);
 
   // If showing API form, render that instead
-  if (showApiForm === "alpaca") {
-    return <AlpacaSetupForm onBack={() => setShowApiForm(null)} />;
-  }
   if (showApiForm === "tradovate") {
     return <TradovateSetupForm onBack={() => setShowApiForm(null)} />;
   }
@@ -503,28 +481,6 @@ function BrokerSelectionViewInner({
                     <PlayCircle className="h-4 w-4 mr-2" />
                     Start Paper Trading
                   </Button>
-                ) : selectedBroker === "alpaca" ? (
-                  <div className="space-y-2">
-                    <Button
-                      className="w-full"
-                      onClick={() =>
-                        window.open(
-                          "https://app.alpaca.markets/signup",
-                          "_blank"
-                        )
-                      }
-                    >
-                      <ExternalLink className="h-4 w-4 mr-2" />
-                      Create Alpaca Account
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="w-full"
-                      onClick={() => onShowApiForm("alpaca")}
-                    >
-                      <ArrowRight className="h-4 w-4 mr-2" />I Have API Keys
-                    </Button>
-                  </div>
                 ) : selectedBroker === "tradovate" ? (
                   <div className="space-y-2">
                     <Button
@@ -603,32 +559,6 @@ function SetupSteps({ brokerId }: { brokerId: string }) {
         step: 3,
         title: "Place Your First Trade",
         description: "Test your strategies risk-free",
-        completed: false,
-      },
-    ],
-    alpaca: [
-      {
-        step: 1,
-        title: "Create Free Account",
-        description: "Sign up at alpaca.markets",
-        completed: false,
-      },
-      {
-        step: 2,
-        title: "Generate API Keys",
-        description: "Go to API Keys section",
-        completed: false,
-      },
-      {
-        step: 3,
-        title: "Enter Keys Here",
-        description: "Paste your API key and secret",
-        completed: false,
-      },
-      {
-        step: 4,
-        title: "Test Connection",
-        description: "Verify with a paper trade",
         completed: false,
       },
     ],
@@ -1435,255 +1365,6 @@ function IBKRSetupForm() {
         </CardContent>
       </Card>
     </div>
-  );
-}
-
-// ============================================================================
-// ALPACA SETUP FORM
-// ============================================================================
-
-function AlpacaSetupForm({ onBack }: { onBack: () => void }) {
-  const [apiKey, setApiKey] = useState("");
-  const [apiSecret, setApiSecret] = useState("");
-  const [isPaperTrading, setIsPaperTrading] = useState(true);
-  const [isTestingConnection, setIsTestingConnection] = useState(false);
-  const [connectionStatus, setConnectionStatus] = useState<
-    "idle" | "success" | "error"
-  >("idle");
-  const [errorMessage, setErrorMessage] = useState("");
-
-  const saveBrokerConnection = trpc.broker.connect.useMutation({
-    onSuccess: () => {
-      toast.success("Alpaca connection saved successfully!");
-      setConnectionStatus("success");
-    },
-    onError: error => {
-      toast.error(error.message);
-      setConnectionStatus("error");
-      setErrorMessage(error.message);
-    },
-  });
-
-  const handleSaveConnection = async () => {
-    if (!apiKey || !apiSecret) {
-      toast.error("Please enter both API Key and Secret");
-      return;
-    }
-
-    setIsTestingConnection(true);
-    setConnectionStatus("idle");
-    setErrorMessage("");
-
-    try {
-      // Save the connection
-      saveBrokerConnection.mutate({
-        broker: "alpaca",
-        credentials: {
-          apiKey: apiKey,
-          apiSecret: apiSecret,
-        },
-        isDemo: isPaperTrading,
-      });
-    } catch (_error) {
-      setConnectionStatus("error");
-      setErrorMessage("Failed to save connection");
-      toast.error("Connection failed");
-    } finally {
-      setIsTestingConnection(false);
-    }
-  };
-
-  return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <span className="text-3xl">🦙</span>
-            <div>
-              <CardTitle>Connect Alpaca</CardTitle>
-              <CardDescription>
-                Enter your Alpaca API credentials to enable trading
-              </CardDescription>
-            </div>
-          </div>
-          <Button variant="ghost" size="sm" onClick={onBack}>
-            ← Back
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Account Type Toggle */}
-        <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
-          <div>
-            <Label className="text-base font-medium">Account Type</Label>
-            <p className="text-sm text-muted-foreground">
-              {isPaperTrading
-                ? "Paper trading (simulated, no real money)"
-                : "Live trading (real money)"}
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <span
-              className={
-                isPaperTrading ? "text-muted-foreground" : "font-medium"
-              }
-            >
-              Live
-            </span>
-            <Switch
-              checked={isPaperTrading}
-              onCheckedChange={setIsPaperTrading}
-            />
-            <span
-              className={
-                isPaperTrading ? "font-medium" : "text-muted-foreground"
-              }
-            >
-              Paper
-            </span>
-          </div>
-        </div>
-
-        {/* API Key Input */}
-        <div className="space-y-2">
-          <Label htmlFor="alpacaApiKey" className="flex items-center gap-2">
-            API Key ID
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger>
-                  <HelpCircle className="h-4 w-4 text-muted-foreground" />
-                </TooltipTrigger>
-                <TooltipContent className="max-w-xs">
-                  <p>
-                    Find this in your Alpaca dashboard under API Keys. Use paper
-                    keys for testing.
-                  </p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </Label>
-          <Input
-            id="alpacaApiKey"
-            placeholder="PKXXXXXXXXXXXXXXXX"
-            value={apiKey}
-            onChange={e => setApiKey(e.target.value)}
-            className="font-mono"
-          />
-        </div>
-
-        {/* API Secret Input */}
-        <div className="space-y-2">
-          <Label htmlFor="alpacaApiSecret" className="flex items-center gap-2">
-            Secret Key
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger>
-                  <HelpCircle className="h-4 w-4 text-muted-foreground" />
-                </TooltipTrigger>
-                <TooltipContent className="max-w-xs">
-                  <p>
-                    Your secret key is only shown once when created. Generate a
-                    new one if needed.
-                  </p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </Label>
-          <Input
-            id="alpacaApiSecret"
-            type="password"
-            placeholder="••••••••••••••••••••••••••••••••"
-            value={apiSecret}
-            onChange={e => setApiSecret(e.target.value)}
-            className="font-mono"
-          />
-        </div>
-
-        {/* Connection Status */}
-        {connectionStatus === "success" && (
-          <div className="flex items-center gap-2 p-3 rounded-lg bg-green-500/10 border border-green-500/20">
-            <CheckCircle className="h-5 w-5 text-green-500" />
-            <span className="text-green-500 text-sm">
-              Alpaca connection saved successfully! You can now use
-              auto-execution.
-            </span>
-          </div>
-        )}
-
-        {connectionStatus === "error" && (
-          <div className="flex items-center gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
-            <AlertTriangle className="h-5 w-5 text-red-500" />
-            <span className="text-red-500 text-sm">
-              {errorMessage ||
-                "Connection failed. Please check your credentials."}
-            </span>
-          </div>
-        )}
-
-        {/* Action Buttons */}
-        <div className="space-y-2">
-          <Button
-            className="w-full bg-emerald-600 hover:bg-emerald-700"
-            onClick={handleSaveConnection}
-            disabled={isTestingConnection || !apiKey || !apiSecret}
-          >
-            {isTestingConnection ? (
-              <>
-                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                Saving Connection...
-              </>
-            ) : (
-              <>
-                <Zap className="h-4 w-4 mr-2" />
-                Save & Connect
-              </>
-            )}
-          </Button>
-
-          <Button
-            variant="outline"
-            className="w-full"
-            onClick={() =>
-              window.open(
-                "https://app.alpaca.markets/paper/dashboard/overview",
-                "_blank"
-              )
-            }
-          >
-            <ExternalLink className="h-4 w-4 mr-2" />
-            Open Alpaca Dashboard
-          </Button>
-        </div>
-
-        {/* Help Section */}
-        <Card className="bg-blue-500/10 border-blue-500/20">
-          <CardContent className="pt-4">
-            <h4 className="font-semibold text-blue-400 text-sm mb-2">
-              How to Get Your API Keys
-            </h4>
-            <ol className="text-xs text-muted-foreground space-y-1 list-decimal list-inside">
-              <li>Log in to your Alpaca account</li>
-              <li>Go to Paper Trading → API Keys (for testing)</li>
-              <li>Click "Generate New Key"</li>
-              <li>Copy both the Key ID and Secret Key</li>
-              <li>Paste them above and click Save & Connect</li>
-            </ol>
-            <Button
-              variant="link"
-              className="text-blue-400 p-0 h-auto mt-2 text-xs"
-              onClick={() =>
-                window.open(
-                  "https://alpaca.markets/docs/trading/getting_started/",
-                  "_blank"
-                )
-              }
-            >
-              View Alpaca API Documentation →
-            </Button>
-          </CardContent>
-        </Card>
-      </CardContent>
-    </Card>
   );
 }
 

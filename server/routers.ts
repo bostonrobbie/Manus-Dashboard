@@ -1847,7 +1847,7 @@ Please check the Webhooks page in your dashboard for more details.
     createConnection: adminProcedure
       .input(
         z.object({
-          broker: z.enum(["tradovate", "ibkr", "tradestation", "alpaca"]),
+          broker: z.enum(["tradovate", "ibkr", "tradestation"]),
           name: z.string().min(1).max(100),
           accountId: z.string().optional(),
           accountType: z.enum(["live", "paper", "demo"]).optional(),
@@ -1870,7 +1870,7 @@ Please check the Webhooks page in your dashboard for more details.
     connect: adminProcedure
       .input(
         z.object({
-          broker: z.enum(["tradovate", "ibkr", "tradestation", "alpaca"]),
+          broker: z.enum(["tradovate", "ibkr", "tradestation"]),
           credentials: z.object({
             apiKey: z.string().optional(),
             apiSecret: z.string().optional(),
