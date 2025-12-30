@@ -479,6 +479,7 @@ export async function getWebhookLogs(
         startDate?: Date;
         endDate?: Date;
         limit?: number;
+        includeTest?: boolean; // Set to true to include test data
       }
     | number
 ) {
@@ -490,13 +491,26 @@ export async function getWebhookLogs(
     return await db
       .select()
       .from(webhookLogs)
+      .where(eq(webhookLogs.isTest, false)) // Exclude test data by default
       .orderBy(desc(webhookLogs.createdAt))
       .limit(params);
   }
 
-  const { status, startDate, endDate, limit = 100 } = params || {};
+  const {
+    status,
+    startDate,
+    endDate,
+    limit = 100,
+    includeTest = false,
+  } = params || {};
 
   const conditions = [];
+
+  // Exclude test data unless explicitly requested
+  if (!includeTest) {
+    conditions.push(eq(webhookLogs.isTest, false));
+  }
+
   if (status) {
     conditions.push(eq(webhookLogs.status, status as any));
   }
@@ -858,26 +872,46 @@ export async function getOpenPositionById(
 
 /**
  * Get all open positions (for dashboard display)
+ * @param includeTest - Set to true to include test data (default: false)
  */
-export async function getAllOpenPositions(): Promise<OpenPosition[]> {
+export async function getAllOpenPositions(
+  includeTest: boolean = false
+): Promise<OpenPosition[]> {
   const db = await getDb();
   if (!db) return [];
+
+  const conditions = [eq(openPositions.status, "open")];
+  if (!includeTest) {
+    conditions.push(eq(openPositions.isTest, false));
+  }
 
   return await db
     .select()
     .from(openPositions)
-    .where(eq(openPositions.status, "open"))
+    .where(and(...conditions))
     .orderBy(desc(openPositions.entryTime));
 }
 
 /**
  * Get all positions (open and recently closed) for dashboard
+ * @param limit - Maximum number of positions to return
+ * @param includeTest - Set to true to include test data (default: false)
  */
 export async function getRecentPositions(
-  limit: number = 50
+  limit: number = 50,
+  includeTest: boolean = false
 ): Promise<OpenPosition[]> {
   const db = await getDb();
   if (!db) return [];
+
+  if (!includeTest) {
+    return await db
+      .select()
+      .from(openPositions)
+      .where(eq(openPositions.isTest, false))
+      .orderBy(desc(openPositions.updatedAt))
+      .limit(limit);
+  }
 
   return await db
     .select()
@@ -959,8 +993,10 @@ export async function clearOpenPositionsForStrategy(
 
 /**
  * Get position counts by status for dashboard stats
+ * Excludes test data by default
+ * @param includeTest - Set to true to include test data (default: false)
  */
-export async function getPositionStats(): Promise<{
+export async function getPositionStats(includeTest: boolean = false): Promise<{
   open: number;
   closedToday: number;
   totalPnlToday: number;
@@ -969,25 +1005,33 @@ export async function getPositionStats(): Promise<{
   if (!db) return { open: 0, closedToday: 0, totalPnlToday: 0 };
 
   try {
-    // Get open positions count
+    // Get open positions count (excluding test data)
+    const openConditions = [eq(openPositions.status, "open")];
+    if (!includeTest) {
+      openConditions.push(eq(openPositions.isTest, false));
+    }
+
     const openResult = await db
       .select()
       .from(openPositions)
-      .where(eq(openPositions.status, "open"));
+      .where(and(...openConditions));
 
-    // Get today's closed positions
+    // Get today's closed positions (excluding test data)
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+
+    const closedConditions = [
+      eq(openPositions.status, "closed"),
+      gte(openPositions.exitTime!, today),
+    ];
+    if (!includeTest) {
+      closedConditions.push(eq(openPositions.isTest, false));
+    }
 
     const closedResult = await db
       .select()
       .from(openPositions)
-      .where(
-        and(
-          eq(openPositions.status, "closed"),
-          gte(openPositions.exitTime!, today)
-        )
-      );
+      .where(and(...closedConditions));
 
     // Calculate total P&L for today
     const totalPnlToday = closedResult.reduce(

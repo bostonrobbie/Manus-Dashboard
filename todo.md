@@ -4186,7 +4186,7 @@
 
 - [ ] Add isTest flag to webhook payloads for test data marking
 - [ ] Add isTest column to webhook_logs, open_positions, and trades tables
-- [ ] Create test data cleanup utility (delete all isTest=true records)
+- [x] Create test data cleanup utility (delete all isTest=true records)
 - [ ] Ensure test data never appears in production dashboards/analytics
 
 ### E2E Webhook Test Suite
@@ -5429,3 +5429,11 @@
 
 - [x] Simplify fullscreen chart tooltip - too large and distracting
 - [x] Show only hovered strategy value or compact summary
+
+## Dec 30, 2025 - Test Data Isolation
+
+- [x] Add isTest flag to trades/signals to separate test data from real data
+- [x] Filter test data from dashboard queries
+- [x] Disable notifications during test runs
+- [x] Create test data cleanup mechanism
+- [x] Update webhook tests to mark data as test data

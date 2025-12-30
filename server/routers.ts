@@ -3549,6 +3549,51 @@ Please check the Webhooks page in your dashboard for more details.
       return paperTrading.resetPaperAccount(ctx.user.id);
     }),
   }),
+
+  // Test data management (admin only)
+  testData: router({
+    /**
+     * Get counts of test data in the database
+     */
+    getCounts: adminProcedure.query(async () => {
+      const { getTestDataCounts } = await import("./testDataCleanup");
+      return getTestDataCounts();
+    }),
+
+    /**
+     * Clean up all test data
+     */
+    cleanupAll: adminProcedure.mutation(async () => {
+      const { cleanupAllTestData } = await import("./testDataCleanup");
+      return cleanupAllTestData();
+    }),
+
+    /**
+     * Clean up test data older than specified hours
+     */
+    cleanupOld: adminProcedure
+      .input(z.object({ hoursOld: z.number().min(1).default(24) }))
+      .mutation(async ({ input }) => {
+        const { cleanupOldTestData } = await import("./testDataCleanup");
+        return cleanupOldTestData(input.hoursOld);
+      }),
+
+    /**
+     * Mark specific records as test data
+     */
+    markAsTest: adminProcedure
+      .input(
+        z.object({
+          tradeIds: z.array(z.number()).optional(),
+          webhookLogIds: z.array(z.number()).optional(),
+          positionIds: z.array(z.number()).optional(),
+        })
+      )
+      .mutation(async ({ input }) => {
+        const { markDataAsTest } = await import("./testDataCleanup");
+        return markDataAsTest(input);
+      }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;

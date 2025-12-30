@@ -1,6 +1,14 @@
 import { TRPCError } from "@trpc/server";
 import { ENV } from "./env";
 
+/**
+ * Check if we're running in test mode
+ * Notifications are skipped during tests to avoid spamming
+ */
+function isTestMode(): boolean {
+  return process.env.NODE_ENV === "test" || process.env.VITEST === "true";
+}
+
 export type NotificationPayload = {
   title: string;
   content: string;
@@ -14,9 +22,7 @@ const isNonEmptyString = (value: unknown): value is string =>
   typeof value === "string" && value.trim().length > 0;
 
 const buildEndpointUrl = (baseUrl: string): string => {
-  const normalizedBase = baseUrl.endsWith("/")
-    ? baseUrl
-    : `${baseUrl}/`;
+  const normalizedBase = baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
   return new URL(
     "webdevtoken.v1.WebDevService/SendNotification",
     normalizedBase
@@ -69,15 +75,27 @@ const validatePayload = (input: NotificationPayload): NotificationPayload => {
  * Logs errors but doesn't throw.
  */
 export function notifyOwnerAsync(payload: NotificationPayload): void {
+  // Skip notifications in test mode
+  if (isTestMode()) {
+    console.debug("[Notification] Skipped in test mode:", payload.title);
+    return;
+  }
+
   // Fire and forget - don't await
-  notifyOwner(payload).catch((error) => {
-    console.warn('[Notification] Async notification failed:', error);
+  notifyOwner(payload).catch(error => {
+    console.warn("[Notification] Async notification failed:", error);
   });
 }
 
 export async function notifyOwner(
   payload: NotificationPayload
 ): Promise<boolean> {
+  // Skip notifications in test mode
+  if (isTestMode()) {
+    console.debug("[Notification] Skipped in test mode:", payload.title);
+    return true; // Return success to not break test flows
+  }
+
   const { title, content } = validatePayload(payload);
 
   if (!ENV.forgeApiUrl) {
