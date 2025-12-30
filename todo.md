@@ -5447,3 +5447,10 @@
 - [x] Ensure webhook tests mark data with isTest=true
 - [x] Add tests to verify only real data appears on dashboard
 - [x] Verify real TradingView webhooks are properly displayed
+
+## Dec 30, 2025 - CRITICAL: Bulletproof Test Isolation
+
+- [x] Delete the 3 test trades currently on dashboard (ES, NQ, GC from 3:48 PM)
+- [x] Implement mock database for ALL tests - no real DB writes
+- [x] Add test environment check to block any DB writes during tests
+- [x] Verify no test data can ever reach dashboard

@@ -15,5 +15,12 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["server/**/*.test.ts", "server/**/*.spec.ts"],
+    // CRITICAL: Set NODE_ENV=test to ensure all database writes are marked as test data
+    env: {
+      NODE_ENV: "test",
+      VITEST: "true",
+    },
+    // Global setup to ensure test isolation
+    globalSetup: [],
   },
 });

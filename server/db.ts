@@ -390,7 +390,15 @@ export async function insertTrade(trade: {
     throw new Error("Database not available");
   }
 
-  const result = await db.insert(trades).values(trade);
+  // CRITICAL: Force isTest=true in test environment to prevent dashboard pollution
+  const isTestEnv =
+    process.env.NODE_ENV === "test" || process.env.VITEST === "true";
+  const tradeData = {
+    ...trade,
+    isTest: isTestEnv ? true : (trade.isTest ?? false),
+  };
+
+  const result = await db.insert(trades).values(tradeData);
   return result;
 }
 
@@ -450,7 +458,15 @@ export async function insertWebhookLog(log: InsertWebhookLog) {
     throw new Error("Database not available");
   }
 
-  const result = await db.insert(webhookLogs).values(log);
+  // CRITICAL: Force isTest=true in test environment to prevent dashboard pollution
+  const isTestEnv =
+    process.env.NODE_ENV === "test" || process.env.VITEST === "true";
+  const logData = {
+    ...log,
+    isTest: isTestEnv ? true : (log.isTest ?? false),
+  };
+
+  const result = await db.insert(webhookLogs).values(logData);
   return result;
 }
 
@@ -817,8 +833,16 @@ export async function createOpenPosition(
     throw new Error("Database not available");
   }
 
+  // CRITICAL: Force isTest=true in test environment to prevent dashboard pollution
+  const isTestEnv =
+    process.env.NODE_ENV === "test" || process.env.VITEST === "true";
+  const positionData = {
+    ...position,
+    isTest: isTestEnv ? true : (position.isTest ?? false),
+  };
+
   try {
-    const result = await db.insert(openPositions).values(position);
+    const result = await db.insert(openPositions).values(positionData);
     // MySQL returns insertId in the result
     const insertId = (result as any)[0]?.insertId || (result as any).insertId;
     return insertId || null;
