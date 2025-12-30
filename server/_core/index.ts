@@ -16,6 +16,11 @@ import {
   sentryErrorHandler,
   flushSentry,
 } from "./sentry";
+import { getHealthStatus } from "./monitoring";
+import {
+  rateLimitMiddleware,
+  strictRateLimitMiddleware,
+} from "./rateLimitMiddleware";
 
 // Server state tracking
 let httpServer: Server | null = null;
@@ -40,17 +45,44 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
   throw new Error(`No available port found starting from ${startPort}`);
 }
 
-// Health check endpoint handler
-function healthCheckHandler(_req: express.Request, res: express.Response) {
-  const healthStatus = {
-    status: isShuttingDown ? "shutting_down" : "healthy",
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    memory: process.memoryUsage(),
-    environment: process.env.NODE_ENV || "development",
-  };
+// Enhanced health check endpoint handler with database metrics
+async function healthCheckHandler(
+  _req: express.Request,
+  res: express.Response
+) {
+  try {
+    const healthStatus = await getHealthStatus();
 
-  res.status(isShuttingDown ? 503 : 200).json(healthStatus);
+    // Override status if shutting down
+    if (isShuttingDown) {
+      healthStatus.status = "unhealthy";
+    }
+
+    const statusCode =
+      healthStatus.status === "healthy"
+        ? 200
+        : healthStatus.status === "degraded"
+          ? 200
+          : 503;
+
+    res.status(statusCode).json(healthStatus);
+  } catch (error) {
+    console.error("[Health Check] Error:", error);
+    res.status(503).json({
+      status: "unhealthy",
+      timestamp: new Date().toISOString(),
+      error: "Failed to retrieve health status",
+    });
+  }
+}
+
+// Simple health check for load balancers (minimal overhead)
+function livelinessCheckHandler(_req: express.Request, res: express.Response) {
+  if (isShuttingDown) {
+    res.status(503).send("shutting_down");
+  } else {
+    res.status(200).send("ok");
+  }
 }
 
 async function startServer() {
@@ -66,9 +98,18 @@ async function startServer() {
   // Apply security headers to all responses
   app.use(securityHeadersMiddleware);
 
-  // Health check endpoint (before body parser for minimal overhead)
+  // Health check endpoints (before rate limiting and body parser for minimal overhead)
   app.get("/api/health", healthCheckHandler);
   app.get("/health", healthCheckHandler);
+  app.get("/api/live", livelinessCheckHandler);
+  app.get("/live", livelinessCheckHandler);
+
+  // Apply rate limiting to API routes (after health checks)
+  app.use("/api/trpc", rateLimitMiddleware);
+
+  // Stricter rate limiting for sensitive endpoints
+  app.use("/api/webhook", strictRateLimitMiddleware);
+  app.use("/api/oauth", strictRateLimitMiddleware);
 
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
@@ -151,6 +192,9 @@ async function startServer() {
     console.log(`Server running on http://localhost:${port}/`);
     console.log(
       `Health check available at http://localhost:${port}/api/health`
+    );
+    console.log(
+      `Liveliness check available at http://localhost:${port}/api/live`
     );
   });
 
