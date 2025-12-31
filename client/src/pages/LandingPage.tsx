@@ -930,11 +930,11 @@ export default function LandingPage() {
                     </span>
                   </div>
                 </div>
-                <div className="bg-gray-900 p-4 h-[88px] flex flex-col justify-center">
-                  <h4 className="text-white font-medium mb-1 text-base">
+                <div className="bg-gray-900 p-4">
+                  <h4 className="text-white font-medium mb-2 text-base">
                     {screenshot.title}
                   </h4>
-                  <p className="text-gray-400 text-sm line-clamp-2">
+                  <p className="text-gray-400 text-sm">
                     {screenshot.description}
                   </p>
                 </div>
