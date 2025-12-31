@@ -23,6 +23,44 @@ import { monitorWebhookUrl, checkWebhookUrl } from "./webhookMonitor";
 // Time range enum for filtering
 const TimeRange = z.enum(["6M", "YTD", "1Y", "3Y", "5Y", "10Y", "ALL"]);
 
+// Helper function to sample equity curve for mobile app (reduce data points)
+function sampleEquityCurve(
+  curve: analytics.EquityPoint[],
+  maxPoints: number
+): { date: string; equity: number; drawdown: number }[] {
+  if (curve.length <= maxPoints) {
+    return curve.map(p => ({
+      date: p.date.toISOString(),
+      equity: Math.round(p.equity * 100) / 100,
+      drawdown: Math.round(p.drawdown * 100) / 100,
+    }));
+  }
+
+  const step = Math.ceil(curve.length / maxPoints);
+  const sampled: { date: string; equity: number; drawdown: number }[] = [];
+
+  for (let i = 0; i < curve.length; i += step) {
+    const point = curve[i]!;
+    sampled.push({
+      date: point.date.toISOString(),
+      equity: Math.round(point.equity * 100) / 100,
+      drawdown: Math.round(point.drawdown * 100) / 100,
+    });
+  }
+
+  // Always include the last point
+  const lastPoint = curve[curve.length - 1]!;
+  if (sampled[sampled.length - 1]?.date !== lastPoint.date.toISOString()) {
+    sampled.push({
+      date: lastPoint.date.toISOString(),
+      equity: Math.round(lastPoint.equity * 100) / 100,
+      drawdown: Math.round(lastPoint.drawdown * 100) / 100,
+    });
+  }
+
+  return sampled;
+}
+
 export const appRouter = router({
   system: systemRouter,
   stripe: stripeRouter,
@@ -91,6 +129,356 @@ export const appRouter = router({
         cacheTTL.platformStats
       );
     }),
+  }),
+
+  // ============================================================================
+  // PUBLIC API ENDPOINTS FOR MOBILE APP
+  // These endpoints allow unauthenticated users to browse strategies and view
+  // platform performance before signing up.
+  // ============================================================================
+  publicApi: router({
+    /**
+     * Public portfolio overview - returns aggregate platform performance
+     * Similar to portfolio.overview but without authentication requirement
+     */
+    overview: publicProcedure
+      .input(
+        z.object({
+          timeRange: TimeRange.optional(),
+          startingCapital: z.number().optional().default(100000),
+          contractMultiplier: z.number().optional().default(1),
+        })
+      )
+      .query(async ({ input }) => {
+        const { timeRange, startingCapital, contractMultiplier } = input;
+
+        // Use cache for public overview (5 minute TTL)
+        const cacheKey = `public_overview_${timeRange || "ALL"}_${startingCapital}_${contractMultiplier}`;
+
+        return cache.getOrCompute(
+          cacheKey,
+          async () => {
+            // Calculate date range
+            const now = new Date();
+            let startDate: Date | undefined;
+
+            if (timeRange) {
+              const year = now.getFullYear();
+              switch (timeRange) {
+                case "6M":
+                  startDate = new Date(now);
+                  startDate.setMonth(now.getMonth() - 6);
+                  break;
+                case "YTD":
+                  startDate = new Date(year, 0, 1);
+                  break;
+                case "1Y":
+                  startDate = new Date(now);
+                  startDate.setFullYear(year - 1);
+                  break;
+                case "3Y":
+                  startDate = new Date(now);
+                  startDate.setFullYear(year - 3);
+                  break;
+                case "5Y":
+                  startDate = new Date(now);
+                  startDate.setFullYear(year - 5);
+                  break;
+                case "10Y":
+                  startDate = new Date(now);
+                  startDate.setFullYear(year - 10);
+                  break;
+                case "ALL":
+                  startDate = undefined;
+                  break;
+              }
+            }
+
+            // Get all strategies
+            const strategies = await db.getAllStrategies();
+            const strategyIds = strategies.map(s => s.id);
+
+            // Get trades for all strategies
+            const allTrades = await db.getTrades({
+              strategyIds,
+              startDate,
+              endDate: now,
+            });
+
+            // Calculate metrics
+            const metrics = analytics.calculatePerformanceMetrics(
+              allTrades,
+              startingCapital
+            );
+
+            // Calculate equity curve
+            const rawPortfolioEquity = analytics.calculateEquityCurve(
+              allTrades,
+              startingCapital
+            );
+
+            // Forward-fill equity curve
+            const equityStartDate =
+              startDate ||
+              (rawPortfolioEquity.length > 0
+                ? rawPortfolioEquity[0]!.date
+                : new Date());
+            const portfolioEquity = analytics.forwardFillEquityCurve(
+              rawPortfolioEquity,
+              equityStartDate,
+              now
+            );
+
+            // Sample equity curve for mobile (reduce data points)
+            const sampledEquity = sampleEquityCurve(portfolioEquity, 100);
+
+            // Calculate daily metrics
+            const dailyEquityResult =
+              dailyEquityCurve.calculateDailyEquityCurve(
+                allTrades,
+                startingCapital,
+                undefined,
+                contractMultiplier
+              );
+            const dailySharpe = dailyEquityCurve.calculateDailySharpeRatio(
+              dailyEquityResult.dailyReturns
+            );
+            const dailySortino = dailyEquityCurve.calculateDailySortinoRatio(
+              dailyEquityResult.dailyReturns
+            );
+
+            return {
+              metrics: {
+                totalReturn: metrics.totalReturn,
+                annualizedReturn: metrics.annualizedReturn,
+                sharpeRatio: metrics.sharpeRatio,
+                sortinoRatio: metrics.sortinoRatio,
+                maxDrawdown: metrics.maxDrawdown,
+                maxDrawdownDollars: metrics.maxDrawdownDollars,
+                winRate: metrics.winRate,
+                profitFactor: metrics.profitFactor,
+                totalTrades: metrics.totalTrades,
+                avgWin: metrics.avgWin,
+                avgLoss: metrics.avgLoss,
+              },
+              dailyMetrics: {
+                sharpe: dailySharpe,
+                sortino: dailySortino,
+                tradingDays: dailyEquityResult.tradingDays,
+              },
+              equityCurve: sampledEquity,
+              strategyCount: strategies.length,
+            };
+          },
+          cacheTTL.platformStats
+        );
+      }),
+
+    /**
+     * Public list of all strategies with metrics
+     * Allows browsing strategies without authentication
+     */
+    listStrategies: publicProcedure.query(async () => {
+      // Use cache for strategy list (5 minute TTL)
+      return cache.getOrCompute(
+        "public_strategies_list",
+        async () => {
+          const strategies = await db.getAllStrategies();
+
+          const strategiesWithMetrics = await Promise.all(
+            strategies.map(async strategy => {
+              const trades = await db.getTrades({ strategyIds: [strategy.id] });
+
+              if (trades.length === 0) {
+                return {
+                  id: strategy.id,
+                  name: strategy.name,
+                  symbol: strategy.symbol,
+                  market: strategy.market,
+                  description: strategy.description,
+                  totalReturn: 0,
+                  maxDrawdown: 0,
+                  sharpeRatio: 0,
+                  winRate: 0,
+                  totalTrades: 0,
+                  firstTradeDate: null,
+                  lastTradeDate: null,
+                };
+              }
+
+              const metrics = analytics.calculatePerformanceMetrics(
+                trades,
+                100000
+              );
+              const totalReturnDollars = (metrics.totalReturn / 100) * 100000;
+
+              const sortedTrades = [...trades].sort(
+                (a, b) =>
+                  new Date(a.entryDate).getTime() -
+                  new Date(b.entryDate).getTime()
+              );
+
+              return {
+                id: strategy.id,
+                name: strategy.name,
+                symbol: strategy.symbol,
+                market: strategy.market,
+                description: strategy.description,
+                totalReturn: totalReturnDollars,
+                maxDrawdown: metrics.maxDrawdownDollars,
+                sharpeRatio: metrics.sharpeRatio,
+                winRate: metrics.winRate,
+                totalTrades: metrics.totalTrades,
+                firstTradeDate: sortedTrades[0]?.entryDate ?? null,
+                lastTradeDate:
+                  sortedTrades[sortedTrades.length - 1]?.exitDate ?? null,
+              };
+            })
+          );
+
+          return strategiesWithMetrics;
+        },
+        cacheTTL.platformStats
+      );
+    }),
+
+    /**
+     * Public strategy detail - returns detailed info for a single strategy
+     */
+    strategyDetail: publicProcedure
+      .input(
+        z.object({
+          strategyId: z.number(),
+          timeRange: TimeRange.optional(),
+          startingCapital: z.number().optional().default(100000),
+        })
+      )
+      .query(async ({ input }) => {
+        const { strategyId, timeRange, startingCapital } = input;
+
+        // Use cache for strategy detail (5 minute TTL)
+        const cacheKey = `public_strategy_${strategyId}_${timeRange || "ALL"}_${startingCapital}`;
+
+        return cache.getOrCompute(
+          cacheKey,
+          async () => {
+            const strategy = await db.getStrategyById(strategyId);
+            if (!strategy) {
+              throw new Error("Strategy not found");
+            }
+
+            // Calculate date range
+            const now = new Date();
+            let startDate: Date | undefined;
+
+            if (timeRange) {
+              const year = now.getFullYear();
+              switch (timeRange) {
+                case "6M":
+                  startDate = new Date(now);
+                  startDate.setMonth(now.getMonth() - 6);
+                  break;
+                case "YTD":
+                  startDate = new Date(year, 0, 1);
+                  break;
+                case "1Y":
+                  startDate = new Date(now);
+                  startDate.setFullYear(year - 1);
+                  break;
+                case "3Y":
+                  startDate = new Date(now);
+                  startDate.setFullYear(year - 3);
+                  break;
+                case "5Y":
+                  startDate = new Date(now);
+                  startDate.setFullYear(year - 5);
+                  break;
+                case "10Y":
+                  startDate = new Date(now);
+                  startDate.setFullYear(year - 10);
+                  break;
+                case "ALL":
+                  startDate = undefined;
+                  break;
+              }
+            }
+
+            // Get trades
+            const trades = await db.getTrades({
+              strategyIds: [strategyId],
+              startDate,
+              endDate: now,
+            });
+
+            // Calculate metrics
+            const metrics = analytics.calculatePerformanceMetrics(
+              trades,
+              startingCapital
+            );
+
+            // Calculate equity curve
+            const rawEquityCurve = analytics.calculateEquityCurve(
+              trades,
+              startingCapital
+            );
+
+            const equityStartDate =
+              startDate ||
+              (rawEquityCurve.length > 0
+                ? rawEquityCurve[0]!.date
+                : new Date());
+
+            const equityCurve = analytics.forwardFillEquityCurve(
+              rawEquityCurve,
+              equityStartDate,
+              now
+            );
+
+            // Sample equity curve for mobile
+            const sampledEquity = sampleEquityCurve(equityCurve, 100);
+
+            // Get recent trades (last 20 for mobile)
+            const recentTrades = [...trades]
+              .sort((a, b) => b.exitDate.getTime() - a.exitDate.getTime())
+              .slice(0, 20)
+              .map(t => ({
+                id: t.id,
+                entryDate: t.entryDate,
+                exitDate: t.exitDate,
+                direction: t.direction,
+                pnl: t.pnl,
+                entryPrice: t.entryPrice,
+                exitPrice: t.exitPrice,
+              }));
+
+            return {
+              strategy: {
+                id: strategy.id,
+                name: strategy.name,
+                symbol: strategy.symbol,
+                market: strategy.market,
+                description: strategy.description,
+              },
+              metrics: {
+                totalReturn: metrics.totalReturn,
+                annualizedReturn: metrics.annualizedReturn,
+                sharpeRatio: metrics.sharpeRatio,
+                sortinoRatio: metrics.sortinoRatio,
+                maxDrawdown: metrics.maxDrawdown,
+                maxDrawdownDollars: metrics.maxDrawdownDollars,
+                winRate: metrics.winRate,
+                profitFactor: metrics.profitFactor,
+                totalTrades: metrics.totalTrades,
+                avgWin: metrics.avgWin,
+                avgLoss: metrics.avgLoss,
+              },
+              equityCurve: sampledEquity,
+              recentTrades,
+            };
+          },
+          cacheTTL.platformStats
+        );
+      }),
   }),
 
   auth: router({

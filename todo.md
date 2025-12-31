@@ -5482,3 +5482,11 @@
 - [x] Ensure URL does not change on redeployment
 - [x] Add visual warning in UI when URL doesn't match expected production URL
 - [x] Add comprehensive tests for webhook URL monitoring (20 tests)
+
+## Dec 30, 2025 - Mobile App API Integration
+
+- [x] Add CORS middleware to Express server for mobile app requests
+- [x] Create publicApi.overview endpoint (public)
+- [x] Create publicApi.listStrategies endpoint (public)
+- [x] Create publicApi.strategyDetail endpoint (public)
+- [x] Add tests for new public endpoints (17 tests)

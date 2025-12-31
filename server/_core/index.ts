@@ -1,5 +1,6 @@
 import "dotenv/config";
 import express from "express";
+import cors from "cors";
 import { createServer, type Server } from "http";
 import net from "net";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
@@ -114,6 +115,24 @@ async function startServer() {
 
   // Apply security headers to all responses
   app.use(securityHeadersMiddleware);
+
+  // CORS configuration for mobile app and cross-origin requests
+  app.use(
+    cors({
+      origin: [
+        /\.manus\.computer$/, // All Manus dev subdomains
+        /\.manus\.space$/, // All Manus production subdomains
+        /\.manusvm\.computer$/, // Manus VM subdomains
+        "http://localhost:8081", // Expo local development
+        "http://localhost:19006", // Expo web
+        "http://localhost:3000", // Local web development
+        "exp://localhost:8081", // Expo Go
+      ],
+      credentials: true,
+      methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+      allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+    })
+  );
 
   // Health check endpoints (before rate limiting and body parser for minimal overhead)
   app.get("/api/health", healthCheckHandler);
