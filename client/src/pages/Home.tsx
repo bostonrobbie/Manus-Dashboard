@@ -1407,13 +1407,36 @@ export default function Home() {
                 <h4 className="text-gray-300 font-medium mb-4">Legal</h4>
                 <ul className="space-y-2 text-sm">
                   <li>
-                    <span className="text-gray-300">Terms of Service</span>
+                    <a
+                      href="/terms-of-service.html"
+                      className="text-gray-300 hover:text-white transition-colors"
+                    >
+                      Terms of Service
+                    </a>
                   </li>
                   <li>
-                    <span className="text-gray-300">Privacy Policy</span>
+                    <a
+                      href="/privacy-policy.html"
+                      className="text-gray-300 hover:text-white transition-colors"
+                    >
+                      Privacy Policy
+                    </a>
                   </li>
                   <li>
-                    <span className="text-gray-300">Risk Disclosure</span>
+                    <a
+                      href="/risk-disclosure.html"
+                      className="text-gray-300 hover:text-white transition-colors"
+                    >
+                      Risk Disclosure
+                    </a>
+                  </li>
+                  <li>
+                    <a
+                      href="/refund-policy.html"
+                      className="text-gray-300 hover:text-white transition-colors"
+                    >
+                      Refund Policy
+                    </a>
                   </li>
                 </ul>
               </div>

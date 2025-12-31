@@ -5588,3 +5588,13 @@
 - [x] Fix data pipeline between webhook processing and user dashboard display
 - [x] Test real-time trade display with existing BTC trade data
 - [x] Ensure low-latency trade visibility for users
+
+## Legal Compliance & Business Setup (Dec 31, 2025)
+
+- [x] Add footer links to Terms of Service and Privacy Policy on all pages
+- [x] Create Risk Disclaimer / Trading Disclosure document (required for financial services)
+- [x] Add cookie consent banner for GDPR/CCPA compliance
+- [x] Create Refund Policy for subscription services
+- [x] Add SEC/CFTC disclaimer (not investment advice) - included in Risk Disclosure
+- [x] Ensure all legal links are accessible from checkout/payment pages
+- [x] Push daily backup to GitHub (Dec 31, 2025)

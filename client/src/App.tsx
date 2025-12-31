@@ -6,6 +6,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { ContractSizeProvider } from "./contexts/ContractSizeContext";
 import DashboardLayout from "./components/DashboardLayout";
+import { CookieConsent } from "./components/CookieConsent";
 import { Loader2 } from "lucide-react";
 
 // Lazy load page components for better initial load performance
@@ -216,6 +217,7 @@ function App() {
           <TooltipProvider>
             <Toaster />
             <Router />
+            <CookieConsent />
           </TooltipProvider>
         </ContractSizeProvider>
       </ThemeProvider>
