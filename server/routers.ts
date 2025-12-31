@@ -3006,9 +3006,24 @@ Please check the Webhooks page in your dashboard for more details.
             .map((log: any) => log.tradeId)
         );
 
+        // Get today's open positions (active trades waiting for exit signals)
+        // These are REAL positions from webhooks that haven't closed yet
+        const allOpenPositions = await db.getAllOpenPositions();
+        const todayOpenPositions = allOpenPositions.filter((pos: any) => {
+          // Only include positions that:
+          // 1. Were created today
+          // 2. Belong to a strategy the user is subscribed to
+          const posCreatedAt = new Date(pos.entryTime);
+          return (
+            posCreatedAt >= todayStart &&
+            posCreatedAt <= todayEnd &&
+            strategyIds.includes(pos.strategyId)
+          );
+        });
+
         // Filter allTrades to ONLY include those created by today's webhooks
         // Do NOT include backtest data based on createdAt - only real webhook trades
-        const todayTrades = allTrades
+        const closedTodayTrades = allTrades
           .filter((t: any) => {
             // ONLY include trades that were created by a webhook today
             // This ensures backtest data (which has recent createdAt from import) is excluded
@@ -3021,16 +3036,39 @@ Please check the Webhooks page in your dashboard for more details.
               strategyId: t.strategyId,
               strategyName:
                 (sub as any)?.strategy?.name || `Strategy ${t.strategyId}`,
-              symbol: t.symbol,
+              symbol:
+                (sub as any)?.strategy?.symbol || `Strategy ${t.strategyId}`,
               direction: t.direction,
               entryDate: t.entryDate,
               entryPrice: t.entryPrice / 100, // Convert from cents to dollars
               exitDate: t.exitDate,
               exitPrice: t.exitPrice ? t.exitPrice / 100 : null, // Convert from cents to dollars
               pnl: (t.pnl / 100) * (Number(sub?.quantityMultiplier) || 1), // Convert from cents to dollars
-              isActive: !t.exitDate, // Active if no exit date yet
+              isActive: false, // Closed trades are not active
             };
           });
+
+        // Convert open positions to the same format as trades
+        const openPositionTrades = todayOpenPositions.map((pos: any) => {
+          const sub = subscriptions.find(s => s.strategyId === pos.strategyId);
+          return {
+            id: `open-${pos.id}`, // Prefix to distinguish from trade IDs
+            strategyId: pos.strategyId,
+            strategyName:
+              (sub as any)?.strategy?.name || `Strategy ${pos.strategyId}`,
+            symbol: pos.strategySymbol,
+            direction: pos.direction,
+            entryDate: pos.entryTime,
+            entryPrice: pos.entryPrice / 100, // Convert from cents to dollars
+            exitDate: null,
+            exitPrice: null,
+            pnl: 0, // No P&L yet for open positions
+            isActive: true, // Open positions are active
+          };
+        });
+
+        // Combine open positions and closed trades, with open positions first
+        const todayTrades = [...openPositionTrades, ...closedTodayTrades];
 
         // Get S&P 500 benchmark data
         const benchmarkData = await db.getBenchmarkData({

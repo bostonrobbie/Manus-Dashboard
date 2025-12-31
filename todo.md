@@ -5573,3 +5573,18 @@
 - [x] Build CEO dashboard/admin tools for business management
 - [x] Ensure all launch infrastructure is complete
 - [x] Document everything needed for autonomous business operation
+
+## Launch Preparation - Legal & Marketing (Dec 31, 2025)
+
+- [ ] Create Terms of Service legal document
+- [ ] Create Privacy Policy legal document
+- [ ] Set up Twitter/X account for STS Futures
+- [ ] Create initial Twitter content strategy and posts
+- [ ] Create demo video script and preparation materials
+
+## Bug Fix - Webhook Trade Display (Dec 31, 2025)
+
+- [x] Investigate why webhook trades show on admin but not user dashboard
+- [x] Fix data pipeline between webhook processing and user dashboard display
+- [x] Test real-time trade display with existing BTC trade data
+- [x] Ensure low-latency trade visibility for users
