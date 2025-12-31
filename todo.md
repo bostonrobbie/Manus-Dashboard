@@ -5524,3 +5524,15 @@
 - [x] Set budget to $10/day (~$300/month)
 - [ ] Complete Google identity verification to publish campaign
 - [ ] Enable campaign when ready to spend
+
+## Account Settings Persistence (Dec 31, 2025)
+
+### Save Account Settings to Database
+
+- [x] Add user_preferences table to database schema (startingCapital, contractSize)
+- [x] Create getUserPreferences tRPC endpoint
+- [x] Create updateUserPreferences tRPC endpoint
+- [x] Update Overview page to load saved preferences on mount
+- [x] Update Overview page to save preferences when changed
+- [x] Remove "Set to Zero RoR Capital" button from Account Settings dropdown
+- [x] Test preferences persist across page refreshes and sessions

@@ -28,23 +28,23 @@ export function AccountValueProvider({ children }: { children: ReactNode }) {
     useState("100000");
   const [isInitialized, setIsInitialized] = useState(false);
 
-  // Fetch user's saved starting capital
-  const { data: userData, isLoading: userDataLoading } =
-    trpc.user.getStartingCapital.useQuery(undefined, {
+  // Fetch user's saved preferences (includes startingCapital)
+  const { data: prefsData, isLoading: prefsLoading } =
+    trpc.user.getPreferences.useQuery(undefined, {
       enabled: !!user && !authLoading,
     });
 
-  // Mutation to save starting capital
-  const saveCapitalMutation = trpc.user.setStartingCapital.useMutation();
+  // Mutation to save preferences
+  const savePreferencesMutation = trpc.user.setPreferences.useMutation();
 
   // Initialize from database when user data loads
   useEffect(() => {
-    if (userData?.startingCapital && !isInitialized) {
-      setStartingCapital(userData.startingCapital);
-      setStartingCapitalInputState(userData.startingCapital.toString());
+    if (prefsData?.startingCapital && !isInitialized) {
+      setStartingCapital(prefsData.startingCapital);
+      setStartingCapitalInputState(prefsData.startingCapital.toString());
       setIsInitialized(true);
     }
-  }, [userData, isInitialized]);
+  }, [prefsData, isInitialized]);
 
   // Debounce and save starting capital changes
   useEffect(() => {
@@ -57,7 +57,7 @@ export function AccountValueProvider({ children }: { children: ReactNode }) {
 
         // Save to database if user is logged in
         if (user) {
-          saveCapitalMutation.mutate({ startingCapital: value });
+          savePreferencesMutation.mutate({ startingCapital: value });
         }
       }
     }, 800);
@@ -69,8 +69,8 @@ export function AccountValueProvider({ children }: { children: ReactNode }) {
     setStartingCapitalInputState(value);
   }, []);
 
-  const isLoading = authLoading || userDataLoading;
-  const isSaving = saveCapitalMutation.isPending;
+  const isLoading = authLoading || prefsLoading;
+  const isSaving = savePreferencesMutation.isPending;
 
   return (
     <AccountValueContext.Provider

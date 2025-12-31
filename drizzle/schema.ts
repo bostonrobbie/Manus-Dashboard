@@ -32,6 +32,9 @@ export const users = mysqlTable("users", {
   ), // active, canceled, past_due
   // User preferences
   startingCapital: int("startingCapital").default(100000).notNull(), // Starting capital in dollars
+  contractSize: mysqlEnum("contractSize", ["mini", "micro"])
+    .default("micro")
+    .notNull(), // Preferred contract size
   // Onboarding
   onboardingCompleted: boolean("onboardingCompleted").default(false).notNull(),
   onboardingDismissed: boolean("onboardingDismissed").default(false).notNull(),

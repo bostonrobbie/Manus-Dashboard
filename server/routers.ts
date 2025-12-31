@@ -514,6 +514,23 @@ export const appRouter = router({
         await db.updateUserStartingCapital(ctx.user.id, input.startingCapital);
         return { success: true };
       }),
+    // Get user preferences (starting capital and contract size)
+    getPreferences: protectedProcedure.query(async ({ ctx }) => {
+      const prefs = await db.getUserPreferences(ctx.user.id);
+      return prefs;
+    }),
+    // Update user preferences (starting capital and/or contract size)
+    setPreferences: protectedProcedure
+      .input(
+        z.object({
+          startingCapital: z.number().min(1000).max(100000000).optional(),
+          contractSize: z.enum(["mini", "micro"]).optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        await db.updateUserPreferences(ctx.user.id, input);
+        return { success: true };
+      }),
   }),
 
   portfolio: router({

@@ -5,6 +5,8 @@ import {
   useEffect,
   ReactNode,
 } from "react";
+import { trpc } from "@/lib/trpc";
+import { useAuth } from "@/_core/hooks/useAuth";
 
 export type ContractSize = "mini" | "micro";
 
@@ -13,41 +15,54 @@ interface ContractSizeContextType {
   setContractSize: (size: ContractSize) => void;
   toggleContractSize: () => void;
   contractMultiplier: number;
+  isLoading: boolean;
+  isSaving: boolean;
 }
-
-const STORAGE_KEY = "sts-contract-size";
 
 const ContractSizeContext = createContext<ContractSizeContextType | undefined>(
   undefined
 );
 
 export function ContractSizeProvider({ children }: { children: ReactNode }) {
-  // Initialize from localStorage or default to 'mini'
-  const [contractSize, setContractSizeState] = useState<ContractSize>(() => {
-    if (typeof window !== "undefined") {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored === "mini" || stored === "micro") {
-        return stored;
-      }
-    }
-    return "mini";
-  });
+  const { user, loading: authLoading } = useAuth();
+  const [contractSize, setContractSizeState] = useState<ContractSize>("micro");
+  const [isInitialized, setIsInitialized] = useState(false);
 
-  // Persist to localStorage when changed
+  // Fetch user's saved preferences
+  const { data: prefsData, isLoading: prefsLoading } =
+    trpc.user.getPreferences.useQuery(undefined, {
+      enabled: !!user && !authLoading,
+    });
+
+  // Mutation to save preferences
+  const savePreferencesMutation = trpc.user.setPreferences.useMutation();
+
+  // Initialize from database when user data loads
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, contractSize);
-  }, [contractSize]);
+    if (prefsData?.contractSize && !isInitialized) {
+      setContractSizeState(prefsData.contractSize);
+      setIsInitialized(true);
+    }
+  }, [prefsData, isInitialized]);
 
   const setContractSize = (size: ContractSize) => {
     setContractSizeState(size);
+    // Save to database if user is logged in
+    if (user) {
+      savePreferencesMutation.mutate({ contractSize: size });
+    }
   };
 
   const toggleContractSize = () => {
-    setContractSizeState(prev => (prev === "mini" ? "micro" : "mini"));
+    const newSize = contractSize === "mini" ? "micro" : "mini";
+    setContractSize(newSize);
   };
 
   // Contract size multiplier: micro = 1/10 of mini
   const contractMultiplier = contractSize === "micro" ? 0.1 : 1;
+
+  const isLoading = authLoading || prefsLoading;
+  const isSaving = savePreferencesMutation.isPending;
 
   return (
     <ContractSizeContext.Provider
@@ -56,6 +71,8 @@ export function ContractSizeProvider({ children }: { children: ReactNode }) {
         setContractSize,
         toggleContractSize,
         contractMultiplier,
+        isLoading,
+        isSaving,
       }}
     >
       {children}

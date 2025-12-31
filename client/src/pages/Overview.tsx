@@ -48,7 +48,6 @@ import { TradeAndRiskStats } from "@/components/TradeAndRiskStats";
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
@@ -258,33 +257,6 @@ export default function Overview() {
                         </Select>
                       </div>
                     </div>
-                    <DropdownMenuSeparator />
-                    {data.tradeStats?.riskOfRuinDetails
-                      ?.minBalanceForZeroRisk && (
-                      <DropdownMenuItem
-                        onClick={() => {
-                          const minBalance = Math.ceil(
-                            data.tradeStats.riskOfRuinDetails!
-                              .minBalanceForZeroRisk
-                          );
-                          setStartingCapitalInput(String(minBalance));
-                        }}
-                        className="cursor-pointer"
-                      >
-                        <div className="flex flex-col gap-1">
-                          <span className="text-xs font-medium">
-                            Set to Zero RoR Capital
-                          </span>
-                          <span className="text-[10px] text-muted-foreground">
-                            $
-                            {Math.ceil(
-                              data.tradeStats.riskOfRuinDetails
-                                .minBalanceForZeroRisk
-                            ).toLocaleString()}
-                          </span>
-                        </div>
-                      </DropdownMenuItem>
-                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>

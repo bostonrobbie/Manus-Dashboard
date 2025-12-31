@@ -269,6 +269,65 @@ export async function updateUserStartingCapital(
 }
 
 /**
+ * Update user preferences (starting capital and contract size)
+ */
+export async function updateUserPreferences(
+  userId: number,
+  preferences: { startingCapital?: number; contractSize?: "mini" | "micro" }
+) {
+  const db = await getDb();
+  if (!db) {
+    console.warn(
+      "[Database] Cannot update user preferences: database not available"
+    );
+    return;
+  }
+
+  const updateData: {
+    startingCapital?: number;
+    contractSize?: "mini" | "micro";
+  } = {};
+  if (preferences.startingCapital !== undefined) {
+    updateData.startingCapital = preferences.startingCapital;
+  }
+  if (preferences.contractSize !== undefined) {
+    updateData.contractSize = preferences.contractSize;
+  }
+
+  if (Object.keys(updateData).length > 0) {
+    await db.update(users).set(updateData).where(eq(users.id, userId));
+  }
+}
+
+/**
+ * Get user preferences (starting capital and contract size)
+ */
+export async function getUserPreferences(userId: number) {
+  const db = await getDb();
+  if (!db) {
+    return { startingCapital: 100000, contractSize: "micro" as const };
+  }
+
+  const result = await db
+    .select({
+      startingCapital: users.startingCapital,
+      contractSize: users.contractSize,
+    })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+
+  if (result.length > 0) {
+    return {
+      startingCapital: result[0].startingCapital,
+      contractSize: result[0].contractSize,
+    };
+  }
+
+  return { startingCapital: 100000, contractSize: "micro" as const };
+}
+
+/**
  * Get all strategies
  */
 export async function getAllStrategies() {
