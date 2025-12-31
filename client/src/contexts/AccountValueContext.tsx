@@ -8,6 +8,7 @@ import React, {
 } from "react";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { toast } from "sonner";
 
 interface AccountValueContextType {
   startingCapital: number;
@@ -34,8 +35,17 @@ export function AccountValueProvider({ children }: { children: ReactNode }) {
       enabled: !!user && !authLoading,
     });
 
-  // Mutation to save preferences
-  const savePreferencesMutation = trpc.user.setPreferences.useMutation();
+  // Mutation to save preferences with toast notification
+  const savePreferencesMutation = trpc.user.setPreferences.useMutation({
+    onSuccess: () => {
+      toast.success("Starting capital saved", {
+        duration: 2000,
+      });
+    },
+    onError: error => {
+      toast.error(`Failed to save: ${error.message}`);
+    },
+  });
 
   // Initialize from database when user data loads
   useEffect(() => {

@@ -627,9 +627,14 @@ export default function Overview() {
                           lastBenchmarkDrawdown = benchmarkDrawdown;
                         }
 
+                        // Apply contract multiplier to drawdown percentage
+                        // For micro contracts (0.1x), drawdowns are 1/10th the size
+                        const adjustedDrawdown =
+                          point.drawdownPercent * contractMultiplier;
+
                         return {
                           date: displayDate,
-                          drawdown: point.drawdownPercent,
+                          drawdown: adjustedDrawdown,
                           benchmarkDrawdown: lastBenchmarkDrawdown,
                         };
                       });

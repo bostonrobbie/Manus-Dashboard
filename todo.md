@@ -5536,3 +5536,12 @@
 - [x] Update Overview page to save preferences when changed
 - [x] Remove "Set to Zero RoR Capital" button from Account Settings dropdown
 - [x] Test preferences persist across page refreshes and sessions
+
+## Save Confirmation Toast (Dec 31, 2025)
+
+- [x] Add toast notification when starting capital is saved
+- [x] Add toast notification when contract size is saved
+
+## Underwater Equity Curve Fix (Dec 31, 2025)
+
+- [x] Apply contract size multiplier to underwater equity curve drawdown percentages

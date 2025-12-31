@@ -7,6 +7,7 @@ import {
 } from "react";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { toast } from "sonner";
 
 export type ContractSize = "mini" | "micro";
 
@@ -34,8 +35,20 @@ export function ContractSizeProvider({ children }: { children: ReactNode }) {
       enabled: !!user && !authLoading,
     });
 
-  // Mutation to save preferences
-  const savePreferencesMutation = trpc.user.setPreferences.useMutation();
+  // Mutation to save preferences with toast notification
+  const savePreferencesMutation = trpc.user.setPreferences.useMutation({
+    onSuccess: (_data, variables) => {
+      if (variables.contractSize) {
+        const sizeLabel = variables.contractSize === "micro" ? "Micro" : "Mini";
+        toast.success(`Contract size saved: ${sizeLabel}`, {
+          duration: 2000,
+        });
+      }
+    },
+    onError: error => {
+      toast.error(`Failed to save: ${error.message}`);
+    },
+  });
 
   // Initialize from database when user data loads
   useEffect(() => {
