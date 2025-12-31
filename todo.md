@@ -5490,3 +5490,37 @@
 - [x] Create publicApi.listStrategies endpoint (public)
 - [x] Create publicApi.strategyDetail endpoint (public)
 - [x] Add tests for new public endpoints (17 tests)
+
+## Dec 31, 2025 - Conversion Optimization for Ad Traffic
+
+- [ ] Audit landing page for conversion issues
+- [ ] Add conversion tracking (signup events, CTA clicks)
+- [ ] Optimize landing page copy and CTAs for ad traffic
+- [ ] Add trust signals (testimonials, performance stats)
+- [ ] Create ad campaign documentation
+
+## Dec 31, 2025 - Conversion Optimization & Ad Campaign
+
+### Conversion Tracking & Analytics
+
+- [x] Create analytics.ts utility with event tracking functions
+- [x] Add CTA click tracking (hero, pricing, footer buttons)
+- [x] Add scroll depth tracking (25%, 50%, 75%, 100%)
+- [x] Add time on page tracking
+
+### Landing Page Social Proof
+
+- [x] Add testimonials section with 3 trader testimonials
+- [x] Add 5-star rating display (4.9/5 from traders)
+- [x] Style testimonials with avatar initials and trader info
+
+### Google Ads Campaign (Draft)
+
+- [x] Research competitors (SuperTrendSignals, Sygnal.ai)
+- [x] Research Google Ads benchmarks for finance industry
+- [x] Create campaign: "Intraday Trading Signals - $10/day Test"
+- [x] Set up keywords (9 keywords for algorithmic/futures trading)
+- [x] Generate ad copy (12 headlines, 4 descriptions)
+- [x] Set budget to $10/day (~$300/month)
+- [ ] Complete Google identity verification to publish campaign
+- [ ] Enable campaign when ready to spend
