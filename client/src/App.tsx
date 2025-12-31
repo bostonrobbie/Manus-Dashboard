@@ -22,6 +22,7 @@ const Onboarding = lazy(() => import("./pages/Onboarding"));
 const CheckoutSuccess = lazy(() => import("./pages/CheckoutSuccess"));
 const Checkout = lazy(() => import("./pages/Checkout"));
 const BrokerSetup = lazy(() => import("./pages/BrokerSetup"));
+const ContactMessages = lazy(() => import("./pages/admin/ContactMessages"));
 // QADashboard available for future use
 // const QADashboard = lazy(() => import("./pages/QADashboard"));
 
@@ -133,6 +134,17 @@ function Router() {
             <DashboardLayout>
               <Suspense fallback={<PageLoader />}>
                 <Admin />
+              </Suspense>
+            </DashboardLayout>
+          )}
+        />
+
+        <Route
+          path="/admin/messages"
+          component={() => (
+            <DashboardLayout>
+              <Suspense fallback={<PageLoader />}>
+                <ContactMessages />
               </Suspense>
             </DashboardLayout>
           )}

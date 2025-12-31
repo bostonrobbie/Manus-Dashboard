@@ -19,6 +19,12 @@ import {
   StrategyNotificationSetting,
   stagingTrades,
   StagingTrade,
+  contactMessages,
+  contactResponses,
+  ContactMessage,
+  InsertContactMessage,
+  ContactResponse,
+  InsertContactResponse,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
@@ -1925,4 +1931,308 @@ export async function getTestDataCounts(): Promise<{
     openPositions: openPositionsCount,
     total: webhookLogsCount + tradesCount + openPositionsCount,
   };
+}
+
+// ============================================================================
+// Contact Messages Functions
+// ============================================================================
+
+/**
+ * Create a new contact message
+ */
+export async function createContactMessage(
+  message: Omit<InsertContactMessage, "id" | "createdAt" | "updatedAt">
+): Promise<number | null> {
+  const db = await getDb();
+  if (!db) return null;
+
+  try {
+    const result = await db.insert(contactMessages).values(message);
+    const insertedId = (result as any)[0]?.insertId;
+    console.log(`[Database] Created contact message ${insertedId}`);
+    return insertedId || null;
+  } catch (error) {
+    console.error("[Database] Failed to create contact message:", error);
+    return null;
+  }
+}
+
+/**
+ * Get all contact messages with optional filters
+ */
+export async function getContactMessages(params?: {
+  status?: ContactMessage["status"];
+  category?: ContactMessage["category"];
+  limit?: number;
+  offset?: number;
+}): Promise<ContactMessage[]> {
+  const db = await getDb();
+  if (!db) return [];
+
+  const { status, category, limit = 50, offset = 0 } = params || {};
+
+  try {
+    const conditions = [];
+    if (status) {
+      conditions.push(eq(contactMessages.status, status));
+    }
+    if (category) {
+      conditions.push(eq(contactMessages.category, category));
+    }
+
+    if (conditions.length > 0) {
+      return await db
+        .select()
+        .from(contactMessages)
+        .where(and(...conditions))
+        .orderBy(desc(contactMessages.createdAt))
+        .limit(limit)
+        .offset(offset);
+    }
+
+    return await db
+      .select()
+      .from(contactMessages)
+      .orderBy(desc(contactMessages.createdAt))
+      .limit(limit)
+      .offset(offset);
+  } catch (error) {
+    console.error("[Database] Failed to get contact messages:", error);
+    return [];
+  }
+}
+
+/**
+ * Get a single contact message by ID
+ */
+export async function getContactMessageById(
+  id: number
+): Promise<ContactMessage | null> {
+  const db = await getDb();
+  if (!db) return null;
+
+  try {
+    const result = await db
+      .select()
+      .from(contactMessages)
+      .where(eq(contactMessages.id, id))
+      .limit(1);
+    return result[0] || null;
+  } catch (error) {
+    console.error("[Database] Failed to get contact message:", error);
+    return null;
+  }
+}
+
+/**
+ * Update a contact message
+ */
+export async function updateContactMessage(
+  id: number,
+  updates: Partial<InsertContactMessage>
+): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+
+  try {
+    await db
+      .update(contactMessages)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(contactMessages.id, id));
+    return true;
+  } catch (error) {
+    console.error("[Database] Failed to update contact message:", error);
+    return false;
+  }
+}
+
+/**
+ * Get contact message statistics
+ */
+export async function getContactMessageStats(): Promise<{
+  new: number;
+  read: number;
+  inProgress: number;
+  awaitingResponse: number;
+  resolved: number;
+  closed: number;
+  total: number;
+}> {
+  const db = await getDb();
+  if (!db)
+    return {
+      new: 0,
+      read: 0,
+      inProgress: 0,
+      awaitingResponse: 0,
+      resolved: 0,
+      closed: 0,
+      total: 0,
+    };
+
+  try {
+    const allMessages = await db.select().from(contactMessages);
+
+    return {
+      new: allMessages.filter(m => m.status === "new").length,
+      read: allMessages.filter(m => m.status === "read").length,
+      inProgress: allMessages.filter(m => m.status === "in_progress").length,
+      awaitingResponse: allMessages.filter(
+        m => m.status === "awaiting_response"
+      ).length,
+      resolved: allMessages.filter(m => m.status === "resolved").length,
+      closed: allMessages.filter(m => m.status === "closed").length,
+      total: allMessages.length,
+    };
+  } catch (error) {
+    console.error("[Database] Failed to get contact message stats:", error);
+    return {
+      new: 0,
+      read: 0,
+      inProgress: 0,
+      awaitingResponse: 0,
+      resolved: 0,
+      closed: 0,
+      total: 0,
+    };
+  }
+}
+
+// ============================================================================
+// Contact Responses Functions
+// ============================================================================
+
+/**
+ * Create a new contact response
+ */
+export async function createContactResponse(
+  response: Omit<InsertContactResponse, "id" | "createdAt">
+): Promise<number | null> {
+  const db = await getDb();
+  if (!db) return null;
+
+  try {
+    const result = await db.insert(contactResponses).values(response);
+    const insertedId = (result as any)[0]?.insertId;
+    console.log(`[Database] Created contact response ${insertedId}`);
+    return insertedId || null;
+  } catch (error) {
+    console.error("[Database] Failed to create contact response:", error);
+    return null;
+  }
+}
+
+/**
+ * Get responses for a contact message
+ */
+export async function getContactResponses(
+  messageId: number
+): Promise<ContactResponse[]> {
+  const db = await getDb();
+  if (!db) return [];
+
+  try {
+    return await db
+      .select()
+      .from(contactResponses)
+      .where(eq(contactResponses.messageId, messageId))
+      .orderBy(desc(contactResponses.createdAt));
+  } catch (error) {
+    console.error("[Database] Failed to get contact responses:", error);
+    return [];
+  }
+}
+
+/**
+ * Get a single contact response by ID
+ */
+export async function getContactResponseById(
+  id: number
+): Promise<ContactResponse | null> {
+  const db = await getDb();
+  if (!db) return null;
+
+  try {
+    const result = await db
+      .select()
+      .from(contactResponses)
+      .where(eq(contactResponses.id, id))
+      .limit(1);
+    return result[0] || null;
+  } catch (error) {
+    console.error("[Database] Failed to get contact response:", error);
+    return null;
+  }
+}
+
+/**
+ * Update a contact response (for approval workflow)
+ */
+export async function updateContactResponse(
+  id: number,
+  updates: Partial<InsertContactResponse>
+): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+
+  try {
+    await db
+      .update(contactResponses)
+      .set(updates)
+      .where(eq(contactResponses.id, id));
+    return true;
+  } catch (error) {
+    console.error("[Database] Failed to update contact response:", error);
+    return false;
+  }
+}
+
+/**
+ * Approve a contact response
+ */
+export async function approveContactResponse(
+  responseId: number,
+  approvedBy: number
+): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+
+  try {
+    await db
+      .update(contactResponses)
+      .set({
+        approvedBy,
+        approvedAt: new Date(),
+        deliveryStatus: "approved",
+      })
+      .where(eq(contactResponses.id, responseId));
+    return true;
+  } catch (error) {
+    console.error("[Database] Failed to approve contact response:", error);
+    return false;
+  }
+}
+
+/**
+ * Mark a contact response as sent
+ */
+export async function markContactResponseSent(
+  responseId: number
+): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+
+  try {
+    await db
+      .update(contactResponses)
+      .set({
+        sentAt: new Date(),
+        deliveryStatus: "sent",
+      })
+      .where(eq(contactResponses.id, responseId));
+    return true;
+  } catch (error) {
+    console.error("[Database] Failed to mark contact response as sent:", error);
+    return false;
+  }
 }

@@ -10,6 +10,13 @@ function getQueryParam(req: Request, key: string): string | undefined {
 }
 
 export function registerOAuthRoutes(app: Express) {
+  // Explicitly handle /overview to prevent any route conflicts
+  // This ensures /overview always serves the React app
+  app.get("/overview", (_req: Request, _res: Response, next: Function) => {
+    // Let the Vite/static handler serve the React app
+    next();
+  });
+
   app.get("/api/oauth/callback", async (req: Request, res: Response) => {
     const code = getQueryParam(req, "code");
     const state = getQueryParam(req, "state");
@@ -43,7 +50,10 @@ export function registerOAuthRoutes(app: Express) {
       });
 
       const cookieOptions = getSessionCookieOptions(req);
-      res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+      res.cookie(COOKIE_NAME, sessionToken, {
+        ...cookieOptions,
+        maxAge: ONE_YEAR_MS,
+      });
 
       // Redirect to the intended page or dashboard overview by default
       // Validate returnTo to prevent open redirect vulnerabilities
@@ -51,7 +61,7 @@ export function registerOAuthRoutes(app: Express) {
       if (returnTo && returnTo.startsWith("/") && !returnTo.startsWith("//")) {
         redirectUrl = returnTo;
       }
-      
+
       console.log("[OAuth] Login successful, redirecting to:", redirectUrl);
       res.redirect(302, redirectUrl);
     } catch (error) {

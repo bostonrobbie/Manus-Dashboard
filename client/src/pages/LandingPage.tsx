@@ -20,7 +20,9 @@ import {
   Play,
   LayoutDashboard,
   Star,
+  MessageSquare,
 } from "lucide-react";
+import { ContactForm } from "@/components/ContactForm";
 import {
   trackCTAClick,
   initTimeTracking,
@@ -1221,12 +1223,14 @@ export default function LandingPage() {
               <a href="#" className="hover:text-white transition-colors">
                 Privacy
               </a>
-              <a
-                href="mailto:support@ststrading.com"
-                className="hover:text-white transition-colors"
-              >
-                Contact
-              </a>
+              <ContactForm
+                trigger={
+                  <button className="hover:text-white transition-colors flex items-center gap-1">
+                    <MessageSquare className="w-3 h-3" />
+                    Contact
+                  </button>
+                }
+              />
             </div>
             <p className="text-sm text-gray-300">
               © 2025 STS. All rights reserved.

@@ -1216,3 +1216,99 @@ export const paperTrades = mysqlTable(
 
 export type PaperTrade = typeof paperTrades.$inferSelect;
 export type InsertPaperTrade = typeof paperTrades.$inferInsert;
+
+/**
+ * Contact messages table
+ * Stores messages from users/visitors through the contact form
+ */
+export const contactMessages = mysqlTable(
+  "contact_messages",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    // Sender info
+    name: varchar("name", { length: 100 }).notNull(),
+    email: varchar("email", { length: 320 }).notNull(),
+    userId: int("userId"), // Optional - linked user if logged in
+    // Message content
+    subject: varchar("subject", { length: 200 }).notNull(),
+    message: text("message").notNull(),
+    category: mysqlEnum("category", [
+      "general",
+      "support",
+      "billing",
+      "feature_request",
+      "bug_report",
+      "partnership",
+    ])
+      .default("general")
+      .notNull(),
+    // Status tracking
+    status: mysqlEnum("status", [
+      "new",
+      "read",
+      "in_progress",
+      "awaiting_response",
+      "resolved",
+      "closed",
+    ])
+      .default("new")
+      .notNull(),
+    priority: mysqlEnum("priority", ["low", "normal", "high", "urgent"])
+      .default("normal")
+      .notNull(),
+    // AI response
+    aiSuggestedResponse: text("aiSuggestedResponse"), // LLM-generated response suggestion
+    aiResponseGeneratedAt: datetime("aiResponseGeneratedAt"),
+    // Metadata
+    ipAddress: varchar("ipAddress", { length: 45 }),
+    userAgent: text("userAgent"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  table => ({
+    statusIdx: index("idx_contact_messages_status").on(table.status),
+    emailIdx: index("idx_contact_messages_email").on(table.email),
+    createdIdx: index("idx_contact_messages_created").on(table.createdAt),
+  })
+);
+
+export type ContactMessage = typeof contactMessages.$inferSelect;
+export type InsertContactMessage = typeof contactMessages.$inferInsert;
+
+/**
+ * Contact responses table
+ * Stores responses sent to contact messages
+ */
+export const contactResponses = mysqlTable(
+  "contact_responses",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    messageId: int("messageId").notNull(), // Foreign key to contact_messages
+    // Response content
+    responseText: text("responseText").notNull(),
+    // Approval workflow
+    isAiGenerated: boolean("isAiGenerated").default(false).notNull(),
+    approvedBy: int("approvedBy"), // User ID who approved (null if not yet approved)
+    approvedAt: datetime("approvedAt"),
+    // Delivery status
+    sentAt: datetime("sentAt"),
+    deliveryStatus: mysqlEnum("deliveryStatus", [
+      "draft",
+      "approved",
+      "sent",
+      "failed",
+    ])
+      .default("draft")
+      .notNull(),
+    errorMessage: text("errorMessage"),
+    // Metadata
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  table => ({
+    messageIdx: index("idx_contact_responses_message").on(table.messageId),
+    statusIdx: index("idx_contact_responses_status").on(table.deliveryStatus),
+  })
+);
+
+export type ContactResponse = typeof contactResponses.$inferSelect;
+export type InsertContactResponse = typeof contactResponses.$inferInsert;

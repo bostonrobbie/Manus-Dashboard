@@ -5545,3 +5545,22 @@
 ## Underwater Equity Curve Fix (Dec 31, 2025)
 
 - [x] Apply contract size multiplier to underwater equity curve drawdown percentages
+
+## OAuth Sign-in Error Fix (Dec 31, 2025)
+
+- [ ] Fix OAuth callback redirect - "code and state are required" error when signing in
+
+## Contact Form Feature (Dec 31, 2025)
+
+- [x] Create contact_messages table in database schema
+- [x] Create contact_responses table for tracking responses
+- [x] Add tRPC endpoint for submitting contact messages (public)
+- [x] Add tRPC endpoint for listing contact messages (admin only)
+- [x] Add tRPC endpoint for generating AI response suggestions
+- [x] Add tRPC endpoint for approving and sending responses
+- [x] Build contact form UI on landing page (footer or dedicated section)
+- [x] Build admin panel for managing contact messages
+- [x] Add owner notification when new message is received
+- [x] Integrate LLM for generating response suggestions
+- [x] Add Messages link to admin sidebar
+- [x] Write unit tests for contact database functions

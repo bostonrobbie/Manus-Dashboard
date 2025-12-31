@@ -4039,6 +4039,312 @@ Please check the Webhooks page in your dashboard for more details.
         return markDataAsTest(input);
       }),
   }),
+
+  // Contact form router for user inquiries
+  contact: router({
+    /**
+     * Submit a new contact message (public - no auth required)
+     */
+    submit: publicProcedure
+      .input(
+        z.object({
+          name: z.string().min(1).max(100),
+          email: z.string().email().max(320),
+          subject: z.string().min(1).max(200),
+          message: z.string().min(10).max(5000),
+          category: z
+            .enum([
+              "general",
+              "support",
+              "billing",
+              "feature_request",
+              "bug_report",
+              "partnership",
+            ])
+            .optional()
+            .default("general"),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const { notifyOwner } = await import("./_core/notification");
+        const { invokeLLM } = await import("./_core/llm");
+
+        // Create the contact message
+        const messageId = await db.createContactMessage({
+          name: input.name,
+          email: input.email,
+          subject: input.subject,
+          message: input.message,
+          category: input.category,
+          userId: ctx.user?.id || null,
+          status: "new",
+          priority: "normal",
+        });
+
+        if (!messageId) {
+          return { success: false, error: "Failed to save message" };
+        }
+
+        // Generate AI response suggestion
+        try {
+          const aiResponse = await invokeLLM({
+            messages: [
+              {
+                role: "system",
+                content: `You are a helpful customer support assistant for an intraday trading strategies dashboard platform. 
+Generate a professional, friendly response to the following customer inquiry. 
+Be concise but thorough. Address their specific concerns.
+Do not make promises about features or timelines you cannot guarantee.
+Sign off as "The Intraday Strategies Team".`,
+              },
+              {
+                role: "user",
+                content: `Category: ${input.category}\nSubject: ${input.subject}\n\nMessage:\n${input.message}`,
+              },
+            ],
+          });
+
+          const rawContent = aiResponse.choices?.[0]?.message?.content;
+          const suggestedResponse =
+            typeof rawContent === "string" ? rawContent : null;
+
+          if (suggestedResponse) {
+            await db.updateContactMessage(messageId, {
+              aiSuggestedResponse: suggestedResponse,
+              aiResponseGeneratedAt: new Date(),
+            });
+          }
+        } catch (error) {
+          console.error("[Contact] Failed to generate AI response:", error);
+        }
+
+        // Notify the owner
+        try {
+          await notifyOwner({
+            title: `New Contact: ${input.subject}`,
+            content: `From: ${input.name} (${input.email})\nCategory: ${input.category}\n\n${input.message.substring(0, 500)}${input.message.length > 500 ? "..." : ""}`,
+          });
+        } catch (error) {
+          console.error("[Contact] Failed to notify owner:", error);
+        }
+
+        return { success: true, messageId };
+      }),
+
+    /**
+     * Get all contact messages (admin only)
+     */
+    list: adminProcedure
+      .input(
+        z.object({
+          status: z
+            .enum([
+              "new",
+              "read",
+              "in_progress",
+              "awaiting_response",
+              "resolved",
+              "closed",
+            ])
+            .optional(),
+          category: z
+            .enum([
+              "general",
+              "support",
+              "billing",
+              "feature_request",
+              "bug_report",
+              "partnership",
+            ])
+            .optional(),
+          limit: z.number().min(1).max(100).optional().default(50),
+          offset: z.number().min(0).optional().default(0),
+        })
+      )
+      .query(async ({ input }) => {
+        const messages = await db.getContactMessages(input);
+        const stats = await db.getContactMessageStats();
+        return { messages, stats };
+      }),
+
+    /**
+     * Get a single contact message with responses (admin only)
+     */
+    get: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input }) => {
+        const message = await db.getContactMessageById(input.id);
+        if (!message) {
+          return { message: null, responses: [] };
+        }
+
+        // Mark as read if new
+        if (message.status === "new") {
+          await db.updateContactMessage(input.id, { status: "read" });
+        }
+
+        const responses = await db.getContactResponses(input.id);
+        return { message, responses };
+      }),
+
+    /**
+     * Update contact message status (admin only)
+     */
+    updateStatus: adminProcedure
+      .input(
+        z.object({
+          id: z.number(),
+          status: z.enum([
+            "new",
+            "read",
+            "in_progress",
+            "awaiting_response",
+            "resolved",
+            "closed",
+          ]),
+          priority: z.enum(["low", "normal", "high", "urgent"]).optional(),
+        })
+      )
+      .mutation(async ({ input }) => {
+        const success = await db.updateContactMessage(input.id, {
+          status: input.status,
+          priority: input.priority,
+        });
+        return { success };
+      }),
+
+    /**
+     * Create a draft response (admin only)
+     */
+    createResponse: adminProcedure
+      .input(
+        z.object({
+          messageId: z.number(),
+          responseText: z.string().min(1),
+          isAiGenerated: z.boolean().optional().default(false),
+        })
+      )
+      .mutation(async ({ input }) => {
+        const responseId = await db.createContactResponse({
+          messageId: input.messageId,
+          responseText: input.responseText,
+          isAiGenerated: input.isAiGenerated,
+          deliveryStatus: "draft",
+        });
+
+        // Update message status
+        await db.updateContactMessage(input.messageId, {
+          status: "awaiting_response",
+        });
+
+        return { success: !!responseId, responseId };
+      }),
+
+    /**
+     * Approve and send a response (admin only)
+     */
+    approveAndSend: adminProcedure
+      .input(
+        z.object({
+          responseId: z.number(),
+          responseText: z.string().optional(), // Allow editing before sending
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        // Get the response and message
+        const response = await db.getContactResponseById(input.responseId);
+        if (!response) {
+          return { success: false, error: "Response not found" };
+        }
+
+        const message = await db.getContactMessageById(response.messageId);
+        if (!message) {
+          return { success: false, error: "Message not found" };
+        }
+
+        // Update response text if provided
+        if (input.responseText) {
+          await db.updateContactResponse(input.responseId, {
+            responseText: input.responseText,
+          });
+        }
+
+        // Mark as approved
+        await db.approveContactResponse(input.responseId, ctx.user.id);
+
+        // TODO: Actually send the email here using a notification service
+        // For now, just mark as sent
+        await db.markContactResponseSent(input.responseId);
+
+        // Update message status to resolved
+        await db.updateContactMessage(response.messageId, {
+          status: "resolved",
+        });
+
+        return { success: true };
+      }),
+
+    /**
+     * Regenerate AI response suggestion (admin only)
+     */
+    regenerateAiResponse: adminProcedure
+      .input(z.object({ messageId: z.number() }))
+      .mutation(async ({ input }) => {
+        const { invokeLLM } = await import("./_core/llm");
+
+        const message = await db.getContactMessageById(input.messageId);
+        if (!message) {
+          return { success: false, error: "Message not found" };
+        }
+
+        try {
+          const aiResponse = await invokeLLM({
+            messages: [
+              {
+                role: "system",
+                content: `You are a helpful customer support assistant for an intraday trading strategies dashboard platform. 
+Generate a professional, friendly response to the following customer inquiry. 
+Be concise but thorough. Address their specific concerns.
+Do not make promises about features or timelines you cannot guarantee.
+Sign off as "The Intraday Strategies Team".`,
+              },
+              {
+                role: "user",
+                content: `Category: ${message.category}\nSubject: ${message.subject}\n\nMessage:\n${message.message}`,
+              },
+            ],
+          });
+
+          const rawContent = aiResponse.choices?.[0]?.message?.content;
+          const suggestedResponse =
+            typeof rawContent === "string" ? rawContent : null;
+
+          if (suggestedResponse) {
+            await db.updateContactMessage(input.messageId, {
+              aiSuggestedResponse: suggestedResponse,
+              aiResponseGeneratedAt: new Date(),
+            });
+            return { success: true, suggestedResponse };
+          }
+
+          return { success: false, error: "Failed to generate response" };
+        } catch (error) {
+          console.error("[Contact] Failed to regenerate AI response:", error);
+          return {
+            success: false,
+            error:
+              error instanceof Error ? error.message : "Failed to generate",
+          };
+        }
+      }),
+
+    /**
+     * Get contact message statistics (admin only)
+     */
+    stats: adminProcedure.query(async () => {
+      return db.getContactMessageStats();
+    }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;

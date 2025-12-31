@@ -32,6 +32,7 @@ import {
   User,
   Home,
   Link2,
+  MessageSquare,
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
@@ -65,6 +66,12 @@ const baseMenuItems = [
     adminOnly: true,
   },
   { icon: Shield, label: "Admin", path: "/admin", adminOnly: true },
+  {
+    icon: MessageSquare,
+    label: "Messages",
+    path: "/admin/messages",
+    adminOnly: true,
+  },
   {
     icon: Home,
     label: "Homepage",
