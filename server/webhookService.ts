@@ -41,6 +41,7 @@ import {
 } from "./db";
 import { InsertWebhookLog, InsertOpenPosition } from "../drizzle/schema";
 import { notifyOwnerAsync } from "./_core/notification";
+import { broadcastTradeNotification } from "./sseNotifications";
 import { cache } from "./cache";
 
 // TradingView payload format (enhanced with position tracking)
@@ -586,9 +587,17 @@ export async function processWebhook(
     // Update log with parsed strategy symbol
     await updateWebhookLog(logId, { strategySymbol: payload.strategySymbol });
 
-    // Step 3: Validate token if configured
+    // Step 3: Validate token if configured (skip for internal admin-authenticated calls)
     const expectedToken = process.env.TRADINGVIEW_WEBHOOK_TOKEN;
-    if (expectedToken && payload.token !== expectedToken) {
+    const isInternalSimulation =
+      (rawPayload as Record<string, unknown>)?._internalSimulation === true;
+
+    // Skip token validation for internal simulation calls (already admin-authenticated via tRPC)
+    if (
+      !isInternalSimulation &&
+      expectedToken &&
+      payload.token !== expectedToken
+    ) {
       throw new WebhookValidationError(
         "Invalid or missing authentication token"
       );
@@ -779,6 +788,17 @@ async function handleEntrySignal(
         `**Time:** ${payload.timestamp.toLocaleString()}`,
     });
   }
+
+  // Broadcast real-time notification to connected clients
+  broadcastTradeNotification({
+    type: "entry",
+    strategySymbol: payload.strategySymbol,
+    direction: payload.direction,
+    price: payload.price,
+    positionId: positionId || undefined,
+    timestamp: payload.timestamp,
+    message: `New ${payload.direction} entry: ${payload.strategySymbol} @ $${payload.price.toFixed(2)}`,
+  });
 
   return {
     success: true,
@@ -978,6 +998,19 @@ async function handleExitSignal(
         `**Duration:** ${formatDuration(entryTime, payload.timestamp)}`,
     });
   }
+
+  // Broadcast real-time notification to connected clients
+  broadcastTradeNotification({
+    type: "exit",
+    strategySymbol: payload.strategySymbol,
+    direction: direction as "Long" | "Short",
+    price: payload.price,
+    pnl: pnlDollars,
+    tradeId: tradeId || undefined,
+    positionId: openPosition.id,
+    timestamp: payload.timestamp,
+    message: `Trade closed: ${payload.strategySymbol} ${direction} ${pnlDollars >= 0 ? "+" : ""}$${pnlDollars.toFixed(2)}`,
+  });
 
   return {
     success: true,

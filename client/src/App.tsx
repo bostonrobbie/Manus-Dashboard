@@ -5,6 +5,7 @@ import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { ContractSizeProvider } from "./contexts/ContractSizeContext";
+import { TradeNotificationProvider } from "./contexts/TradeNotificationContext";
 import DashboardLayout from "./components/DashboardLayout";
 import { CookieConsent } from "./components/CookieConsent";
 import { Loader2 } from "lucide-react";
@@ -214,11 +215,13 @@ function App() {
     <ErrorBoundary>
       <ThemeProvider defaultTheme="dark">
         <ContractSizeProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Router />
-            <CookieConsent />
-          </TooltipProvider>
+          <TradeNotificationProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Router />
+              <CookieConsent />
+            </TooltipProvider>
+          </TradeNotificationProvider>
         </ContractSizeProvider>
       </ThemeProvider>
     </ErrorBoundary>

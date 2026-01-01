@@ -9,6 +9,10 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite, closeVite } from "./vite";
 import webhookRouter from "../webhooks";
+import {
+  registerSSEClient,
+  getConnectedClientCount,
+} from "../sseNotifications";
 import stripeWebhookRouter from "../stripe/stripeWebhook";
 import { securityHeadersMiddleware } from "./securityMiddleware";
 import {
@@ -156,6 +160,21 @@ async function startServer() {
 
   // Webhook endpoints (mounted at /api/webhook to match UI display)
   app.use("/api/webhook", webhookRouter);
+
+  // SSE endpoint for real-time trade notifications
+  app.get("/api/notifications/stream", (req, res) => {
+    console.log("[SSE] New client connection request");
+    const userId = (req as any).user?.id; // Optional: get user ID from session
+    registerSSEClient(res, userId);
+  });
+
+  // SSE status endpoint
+  app.get("/api/notifications/status", (_req, res) => {
+    res.json({
+      connectedClients: getConnectedClientCount(),
+      timestamp: new Date().toISOString(),
+    });
+  });
 
   // Stripe webhook (must be before json body parser for raw body access)
   app.use("/api/stripe/webhook", stripeWebhookRouter);

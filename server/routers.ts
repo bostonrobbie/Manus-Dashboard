@@ -2654,14 +2654,28 @@ Please check the Webhooks page in your dashboard for more details.
         const correlationId = `sim_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         const startTime = Date.now();
 
+        // Map entry/exit to buy/sell for the webhook processor
+        // For entry: use direction (long->buy, short->sell)
+        // For exit: use 'exit' action
+        let webhookAction: string;
+        if (input.action === "entry") {
+          webhookAction = input.direction === "long" ? "buy" : "sell";
+        } else {
+          webhookAction = "exit";
+        }
+
+        const tokenFromEnv = process.env.TRADINGVIEW_WEBHOOK_TOKEN;
+
         const payload = {
           symbol: input.symbol,
-          action: input.action,
+          data: webhookAction, // Use 'data' field as expected by validatePayload
           direction: input.direction,
           price: input.price,
           quantity: input.quantity,
-          timestamp: new Date().toISOString(),
+          date: new Date().toISOString(),
           isTest: input.isTest,
+          token: tokenFromEnv || "", // Include token for internal simulation
+          _internalSimulation: true, // Flag to skip token validation for admin-authenticated calls
         };
 
         try {

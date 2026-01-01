@@ -5604,3 +5604,14 @@
 - [x] Investigate why close signals are being marked as duplicates
 - [x] Fix webhook processor to recognize close/exit signals vs true duplicates
 - [x] Test with BTC position close scenario
+
+## Real-Time Trade Notifications (Completed)
+
+- [x] Create SSE notification service (server/sseNotifications.ts)
+- [x] Add SSE endpoint to server (/api/notifications/stream)
+- [x] Integrate SSE broadcast with webhook processing (entry and exit signals)
+- [x] Create TradeNotificationContext for global notification state
+- [x] Create TradeNotificationBanner component for visual alerts
+- [x] Add notification banner to DashboardLayout
+- [x] Fix webhook simulator token authentication (skip validation for internal admin calls)
+- [x] Test real-time notifications with webhook signals

@@ -9,6 +9,10 @@ export const ENV = {
   forgeApiKey: process.env.BUILT_IN_FORGE_API_KEY ?? "",
   // Email configuration
   RESEND_API_KEY: process.env.RESEND_API_KEY ?? "",
-  EMAIL_FROM: process.env.EMAIL_FROM ?? "IntraDay Strategies <noreply@intradaystrategies.com>",
+  EMAIL_FROM:
+    process.env.EMAIL_FROM ??
+    "IntraDay Strategies <noreply@intradaystrategies.com>",
   VITE_APP_URL: process.env.VITE_APP_URL ?? "",
+  // Webhook authentication
+  TRADINGVIEW_WEBHOOK_TOKEN: process.env.TRADINGVIEW_WEBHOOK_TOKEN ?? "",
 };
