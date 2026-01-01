@@ -697,7 +697,28 @@ async function handleEntrySignal(
   );
 
   if (existingPosition) {
-    // Already have an open position - this might be a scale-in or duplicate
+    // Check if this is an opposite direction signal (which means close the existing position)
+    // e.g., if we have a Short position and receive a "buy" signal, it's closing the short
+    const isOppositeDirection =
+      (existingPosition.direction === "Short" &&
+        payload.direction === "Long") ||
+      (existingPosition.direction === "Long" && payload.direction === "Short");
+
+    if (isOppositeDirection) {
+      // This is actually an exit signal - the opposite direction closes the existing position
+      // Create a modified payload that treats this as an exit
+      const exitPayload: NormalizedPayload = {
+        ...payload,
+        direction: existingPosition.direction as "Long" | "Short", // Use the original position's direction
+        signalType: "exit",
+        action: "exit",
+      };
+
+      // Route to exit handler instead
+      return await handleExitSignal(logId, exitPayload, strategy, startTime);
+    }
+
+    // Same direction - this is a true duplicate (trying to enter same direction twice)
     await updateWebhookLog(logId, {
       status: "duplicate",
       direction: payload.direction,

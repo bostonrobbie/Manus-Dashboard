@@ -5598,3 +5598,9 @@
 - [x] Add SEC/CFTC disclaimer (not investment advice) - included in Risk Disclosure
 - [x] Ensure all legal links are accessible from checkout/payment pages
 - [x] Push daily backup to GitHub (Dec 31, 2025)
+
+## Bug Fix - Duplicate Detection for Close Signals (Dec 31, 2025)
+
+- [x] Investigate why close signals are being marked as duplicates
+- [x] Fix webhook processor to recognize close/exit signals vs true duplicates
+- [x] Test with BTC position close scenario
