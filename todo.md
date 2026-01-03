@@ -5615,3 +5615,29 @@
 - [x] Add notification banner to DashboardLayout
 - [x] Fix webhook simulator token authentication (skip validation for internal admin calls)
 - [x] Test real-time notifications with webhook signals
+
+## Bug Tracking: Webhook Processing Issues (Jan 2, 2026)
+
+### Critical Bugs
+
+- [ ] Exit signals not connecting to entry positions (treated as separate or rejected)
+- [x] Incorrect tick values in webhook trades vs TradingView CSV
+- [x] P&L calculations inflated/incorrect on equity curve
+- [ ] Entry/exit signal matching logic needs review
+- [x] Contract tick value multipliers may be wrong
+
+### Investigation Tasks
+
+- [ ] Analyze failed webhook log (NQTrend 10:15:01 AM - Failed)
+- [ ] Review webhook payload structure for exit signals
+- [ ] Compare webhook P&L vs TradingView exported CSV
+- [ ] Verify contract specifications (tick size, tick value) for each instrument
+- [x] Document correct TradingView JSON alert format
+
+### Fixes Required
+
+- [ ] Fix exit signal detection in webhookService.ts
+- [ ] Fix position matching logic (find open position for exit)
+- [x] Fix P&L calculation formula
+- [ ] Add webhook debugging endpoint for testing
+- [ ] Create webhook payload validator/tester

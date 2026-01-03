@@ -507,19 +507,67 @@ function formatDuration(start: Date, end: Date): string {
 }
 
 /**
- * Calculate P&L based on entry/exit prices and direction
+ * Contract point values for futures instruments
+ * These are the dollar values per point movement for MINI contracts
+ */
+export const CONTRACT_POINT_VALUES: Record<string, number> = {
+  ES: 50, // E-mini S&P 500: $50 per point
+  NQ: 20, // E-mini Nasdaq 100: $20 per point
+  CL: 1000, // Crude Oil: $1000 per point (actually per barrel)
+  BTC: 5, // Bitcoin futures: $5 per point (CME Micro BTC is $5/point)
+  GC: 100, // Gold: $100 per point
+  YM: 5, // E-mini Dow: $5 per point
+  RTY: 50, // E-mini Russell 2000: $50 per point
+  MES: 5, // Micro E-mini S&P 500: $5 per point
+  MNQ: 2, // Micro E-mini Nasdaq: $2 per point
+  MCL: 100, // Micro Crude Oil: $100 per point
+  MGC: 10, // Micro Gold: $10 per point
+  MYM: 0.5, // Micro E-mini Dow: $0.50 per point
+};
+
+/**
+ * Get the contract point value for a market
+ * @param market Market symbol (e.g., "ES", "NQ", "CL")
+ * @returns Point value in dollars, defaults to 1 if unknown
+ */
+export function getContractPointValue(
+  market: string | null | undefined
+): number {
+  if (!market) return 1;
+  // Try exact match first
+  if (CONTRACT_POINT_VALUES[market]) {
+    return CONTRACT_POINT_VALUES[market];
+  }
+  // Try to find market in strategy symbol (e.g., "ESTrend" -> "ES")
+  for (const [key, value] of Object.entries(CONTRACT_POINT_VALUES)) {
+    if (market.toUpperCase().startsWith(key)) {
+      return value;
+    }
+  }
+  return 1; // Default to 1:1 if unknown
+}
+
+/**
+ * Calculate P&L based on entry/exit prices, direction, and contract specifications
+ * @param direction "Long" or "Short"
+ * @param entryPrice Entry price in dollars
+ * @param exitPrice Exit price in dollars
+ * @param quantity Number of contracts
+ * @param market Market symbol for point value lookup (optional)
+ * @returns P&L in dollars
  */
 export function calculatePnL(
   direction: string,
   entryPrice: number,
   exitPrice: number,
-  quantity: number = 1
+  quantity: number = 1,
+  market?: string | null
 ): number {
-  if (direction === "Long") {
-    return (exitPrice - entryPrice) * quantity;
-  } else {
-    return (entryPrice - exitPrice) * quantity;
-  }
+  const pointValue = getContractPointValue(market);
+  const priceDiff =
+    direction === "Long" ? exitPrice - entryPrice : entryPrice - exitPrice;
+
+  return priceDiff * quantity * pointValue;
 }
 
 /**
@@ -886,11 +934,18 @@ async function handleExitSignal(
     };
   }
 
-  // Calculate P&L
+  // Calculate P&L with proper contract multiplier
+  // Use the strategy symbol to look up the market's point value
   const pnlDollars =
     payload.pnl !== undefined
       ? payload.pnl
-      : calculatePnL(direction, entryPrice, payload.price, quantity);
+      : calculatePnL(
+          direction,
+          entryPrice,
+          payload.price,
+          quantity,
+          payload.strategySymbol
+        );
 
   // Convert to cents for database storage
   const pnlCents = Math.round(pnlDollars * 100);
