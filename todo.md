@@ -119,6 +119,16 @@
 
 ---
 
+## Webhook Troubleshooting (Jan 5, 2026) - COMPLETED
+
+- [x] Analyzed why GC Trend morning entry failed (malformed JSON with extra quote)
+- [x] Investigated why afternoon exit webhook never arrived (malformed JSON)
+- [x] Cleared problematic open positions and webhook logs
+- [x] Created clean JSON templates for TradingView alerts
+- [x] Verified webhook endpoint is working (tested entry/exit with correct P&L)
+
+---
+
 ## Future Enhancements (Backlog)
 
 - [ ] Add regime analysis (bull/bear/sideways market conditions)
