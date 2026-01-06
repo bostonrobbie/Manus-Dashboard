@@ -382,7 +382,16 @@ export function validatePayload(payload: unknown): NormalizedPayload {
   }
 
   // Get quantity (default to 1) and apply multiplier if provided
-  let quantity = typeof p.quantity === "number" ? p.quantity : 1;
+  let quantity = 1;
+  if (p.quantity !== undefined) {
+    quantity =
+      typeof p.quantity === "string"
+        ? parseInt(p.quantity, 10)
+        : Number(p.quantity);
+    if (isNaN(quantity) || quantity < 1) {
+      quantity = 1; // Default to 1 if invalid
+    }
+  }
 
   // Apply quantity multiplier if provided (e.g., user wants 2x the signal quantity)
   if (
@@ -408,10 +417,18 @@ export function validatePayload(payload: unknown): NormalizedPayload {
   let entryTime: Date | undefined;
 
   if (p.entryPrice !== undefined) {
-    entryPrice =
-      typeof p.entryPrice === "string"
-        ? parseFloat(p.entryPrice)
-        : Number(p.entryPrice);
+    // Ignore unresolved TradingView template variables like "{{strategy.position_avg_price}}"
+    const entryPriceStr = String(p.entryPrice);
+    if (!entryPriceStr.includes("{{")) {
+      entryPrice =
+        typeof p.entryPrice === "string"
+          ? parseFloat(p.entryPrice)
+          : Number(p.entryPrice);
+      // Set to undefined if NaN
+      if (isNaN(entryPrice)) {
+        entryPrice = undefined;
+      }
+    }
   }
 
   if (p.entryTime && typeof p.entryTime === "string") {
@@ -421,7 +438,15 @@ export function validatePayload(payload: unknown): NormalizedPayload {
   // Get P&L if provided
   let pnl: number | undefined;
   if (p.pnl !== undefined) {
-    pnl = typeof p.pnl === "string" ? parseFloat(p.pnl) : Number(p.pnl);
+    // Ignore unresolved TradingView template variables like "{{strategy.order.profit}}"
+    const pnlStr = String(p.pnl);
+    if (!pnlStr.includes("{{")) {
+      pnl = typeof p.pnl === "string" ? parseFloat(p.pnl) : Number(p.pnl);
+      // Set to undefined if NaN so we calculate it ourselves
+      if (isNaN(pnl)) {
+        pnl = undefined;
+      }
+    }
   }
 
   // Check if this is a test webhook (won't create trades in database)

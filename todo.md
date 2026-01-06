@@ -127,6 +127,13 @@
 - [x] Created clean JSON templates for TradingView alerts
 - [x] Verified webhook endpoint is working (tested entry/exit with correct P&L)
 
+## Webhook Fix (Jan 6, 2026) - COMPLETED
+
+- [x] Fixed NaN error on exit signals caused by unresolved TradingView template variables
+- [x] Added handling for string quantity values (e.g., "3" instead of 3)
+- [x] Webhook now ignores {{strategy.position_avg_price}} and {{strategy.order.profit}} template strings
+- [x] P&L is calculated from stored entry price instead of relying on webhook payload)
+
 ---
 
 ## Future Enhancements (Backlog)
