@@ -5658,3 +5658,8 @@
 - [x] Fix P&L calculation formula
 - [ ] Add webhook debugging endpoint for testing
 - [ ] Create webhook payload validator/tester
+
+## Home Page Cleanup (Jan 6, 2026)
+
+- [x] Remove "Start 7-Day Trial" button and checkmarks section
+- [x] Remove testimonials section (fake testimonials)

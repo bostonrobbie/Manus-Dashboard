@@ -26,12 +26,7 @@ import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useState, useMemo, useEffect } from "react";
 import { SEOHead, SEO_CONFIG } from "@/components/SEOHead";
-import {
-  trackCTAClick,
-  initTimeTracking,
-  trackScrollDepth,
-} from "@/lib/analytics";
-import { Star } from "lucide-react";
+import { initTimeTracking, trackScrollDepth } from "@/lib/analytics";
 
 // FAQ data
 const faqs = [
@@ -425,129 +420,6 @@ export default function Home() {
                   >
                     Mini
                   </button>
-                </div>
-              </div>
-
-              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center mb-8 sm:mb-12 px-4 sm:px-0">
-                {isAuthenticated ? (
-                  <Link href="/overview">
-                    <Button
-                      size="lg"
-                      className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 sm:px-10 py-5 sm:py-6 text-base sm:text-lg rounded-full transition-all duration-300 hover:shadow-lg hover:shadow-emerald-500/25 w-full sm:w-auto min-h-[52px]"
-                      onClick={() => trackCTAClick("hero", "Go to Dashboard")}
-                    >
-                      Go to Dashboard
-                      <ArrowRight className="ml-2 h-4 w-4 sm:h-5 sm:w-5" />
-                    </Button>
-                  </Link>
-                ) : (
-                  <a
-                    href={getLoginUrl()}
-                    onClick={() => trackCTAClick("hero", "Start Free Trial")}
-                  >
-                    <Button
-                      size="lg"
-                      className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 sm:px-10 py-5 sm:py-6 text-base sm:text-lg rounded-full transition-all duration-300 hover:shadow-lg hover:shadow-emerald-500/25 w-full sm:w-auto min-h-[52px]"
-                    >
-                      Start Free Trial
-                      <ArrowRight className="ml-2 h-4 w-4 sm:h-5 sm:w-5" />
-                    </Button>
-                  </a>
-                )}
-              </div>
-
-              {/* Trust Badges - Mobile Optimized */}
-              <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-3 sm:gap-6 text-xs sm:text-sm text-gray-300 px-4 sm:px-0 mb-8">
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                  <span>No credit card required</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                  <span>15+ years backtested data</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                  <span>Access to all future strategies</span>
-                </div>
-              </div>
-
-              {/* Social Proof - Testimonials */}
-              <div className="mt-8 pt-8 border-t border-gray-800/50">
-                <div className="flex flex-col items-center gap-4">
-                  <div className="flex items-center gap-1">
-                    {[1, 2, 3, 4, 5].map(i => (
-                      <Star
-                        key={i}
-                        className="w-5 h-5 fill-yellow-400 text-yellow-400"
-                      />
-                    ))}
-                    <span className="ml-2 text-sm text-gray-400">
-                      4.9/5 from traders
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl">
-                    <div className="bg-gray-900/50 border border-gray-800 rounded-lg p-4 text-left">
-                      <p className="text-gray-300 text-sm italic mb-3">
-                        "Finally, a platform that shows real backtested data
-                        without the hype. The Sharpe ratios and drawdown metrics
-                        helped me size my positions properly."
-                      </p>
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 text-sm font-medium">
-                          M
-                        </div>
-                        <div>
-                          <p className="text-white text-sm font-medium">
-                            Mike T.
-                          </p>
-                          <p className="text-gray-500 text-xs">
-                            Futures Trader, 5 years
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="bg-gray-900/50 border border-gray-800 rounded-lg p-4 text-left">
-                      <p className="text-gray-300 text-sm italic mb-3">
-                        "The TradingView integration is seamless. I get alerts
-                        the moment a strategy triggers and can execute in
-                        seconds."
-                      </p>
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400 text-sm font-medium">
-                          S
-                        </div>
-                        <div>
-                          <p className="text-white text-sm font-medium">
-                            Sarah K.
-                          </p>
-                          <p className="text-gray-500 text-xs">
-                            Day Trader, NQ & ES
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="bg-gray-900/50 border border-gray-800 rounded-lg p-4 text-left">
-                      <p className="text-gray-300 text-sm italic mb-3">
-                        "I spent months trying to build my own backtesting
-                        system. STS gave me everything I needed in minutes.
-                        Worth every penny."
-                      </p>
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center text-purple-400 text-sm font-medium">
-                          J
-                        </div>
-                        <div>
-                          <p className="text-white text-sm font-medium">
-                            James R.
-                          </p>
-                          <p className="text-gray-500 text-xs">
-                            Algorithmic Trader
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
                 </div>
               </div>
             </div>
