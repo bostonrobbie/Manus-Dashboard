@@ -5663,3 +5663,9 @@
 
 - [x] Remove "Start 7-Day Trial" button and checkmarks section
 - [x] Remove testimonials section (fake testimonials)
+
+## Bug Fixes (Jan 7, 2026)
+
+- [x] Fix NQ Trend P&L showing $416,400 instead of correct value - Root cause: test position from Jan 6 with $5,000 entry was closed by real exit signal
+- [x] Fix false duplicate detection for NQ entry at 9:40 AM - Test positions now excluded when checking for duplicates on real signals
+- [x] Remove testimonials and trial button from home page - Already removed in code, production needs fresh deployment

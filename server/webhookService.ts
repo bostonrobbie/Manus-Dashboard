@@ -706,8 +706,10 @@ export async function processWebhook(
       return await handleExitSignal(logId, payload, strategy, startTime);
     } else {
       // Ambiguous signal - try to determine from existing positions
+      // For real signals, only check real positions
       const existingPosition = await getOpenPositionByStrategy(
-        payload.strategySymbol
+        payload.strategySymbol,
+        { excludeTest: !payload.isTest }
       );
 
       if (existingPosition) {
@@ -774,8 +776,11 @@ async function handleEntrySignal(
   const processingTimeMs = Date.now() - startTime;
 
   // Check if there's already an open position for this strategy
+  // For real signals, we only check for real open positions (exclude test positions)
+  // For test signals, we check all positions including test ones
   const existingPosition = await getOpenPositionByStrategy(
-    payload.strategySymbol
+    payload.strategySymbol,
+    { excludeTest: !payload.isTest }
   );
 
   if (existingPosition) {
@@ -893,7 +898,11 @@ async function handleExitSignal(
   startTime: number
 ): Promise<WebhookResult> {
   // Find the open position for this strategy
-  const openPosition = await getOpenPositionByStrategy(payload.strategySymbol);
+  // For real signals, we only look for real open positions (exclude test positions)
+  // For test signals, we look for test positions
+  const openPosition = await getOpenPositionByStrategy(payload.strategySymbol, {
+    excludeTest: !payload.isTest,
+  });
 
   if (!openPosition) {
     // No open position found - can't process exit

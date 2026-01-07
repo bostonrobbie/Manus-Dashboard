@@ -919,22 +919,31 @@ export async function createOpenPosition(
 
 /**
  * Get open position for a strategy (there should only be one open position per strategy at a time)
+ * @param strategySymbol - The strategy symbol to look up
+ * @param options - Optional settings
+ * @param options.excludeTest - If true, excludes test positions from the search (default: false)
  */
 export async function getOpenPositionByStrategy(
-  strategySymbol: string
+  strategySymbol: string,
+  options?: { excludeTest?: boolean }
 ): Promise<OpenPosition | null> {
   const db = await getDb();
   if (!db) return null;
 
+  const conditions = [
+    eq(openPositions.strategySymbol, strategySymbol),
+    eq(openPositions.status, "open"),
+  ];
+
+  // If excludeTest is true, only return non-test positions
+  if (options?.excludeTest) {
+    conditions.push(eq(openPositions.isTest, false));
+  }
+
   const result = await db
     .select()
     .from(openPositions)
-    .where(
-      and(
-        eq(openPositions.strategySymbol, strategySymbol),
-        eq(openPositions.status, "open")
-      )
-    )
+    .where(and(...conditions))
     .orderBy(desc(openPositions.createdAt))
     .limit(1);
 
