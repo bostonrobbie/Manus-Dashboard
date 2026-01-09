@@ -547,11 +547,17 @@ export const appRouter = router({
             .enum(["csv_import", "webhook", "manual", "all"])
             .optional()
             .default("all"),
+          strategyIds: z.array(z.number()).optional(), // Optional: filter to specific strategies
         })
       )
       .query(async ({ input }) => {
-        const { timeRange, startingCapital, contractMultiplier, source } =
-          input;
+        const {
+          timeRange,
+          startingCapital,
+          contractMultiplier,
+          source,
+          strategyIds: inputStrategyIds,
+        } = input;
 
         // Calculate date range
         const now = new Date();
@@ -589,8 +595,12 @@ export const appRouter = router({
           }
         }
 
-        // Get all strategies
-        const strategies = await db.getAllStrategies();
+        // Get all strategies (or filter to specific ones if provided)
+        const allStrategies = await db.getAllStrategies();
+        const strategies =
+          inputStrategyIds && inputStrategyIds.length > 0
+            ? allStrategies.filter(s => inputStrategyIds.includes(s.id))
+            : allStrategies;
         const strategyIds = strategies.map(s => s.id);
 
         // Get trades for all strategies (filtered by time range and source)

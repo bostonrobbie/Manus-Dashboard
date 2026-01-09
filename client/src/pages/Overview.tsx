@@ -57,9 +57,12 @@ import { DistributionSnapshot } from "@/components/DistributionSnapshot";
 import { SEOHead, SEO_CONFIG } from "@/components/SEOHead";
 
 type TimeRange = "6M" | "YTD" | "1Y" | "3Y" | "5Y" | "10Y" | "ALL";
+type StrategyFilter = "all" | "unleveraged" | "leveraged";
 
 export default function Overview() {
   const [timeRange, setTimeRange] = useState<TimeRange>("1Y");
+  const [strategyFilter, setStrategyFilter] =
+    useState<StrategyFilter>("unleveraged"); // Default to unleveraged
   const { startingCapital, startingCapitalInput, setStartingCapitalInput } =
     useAccountValue();
   const { contractSize, setContractSize, contractMultiplier } =
@@ -69,14 +72,34 @@ export default function Overview() {
   >("yearly");
   // S&P 500 benchmark comparison removed per user request
 
+  // Fetch available strategies to get IDs
+  const { data: strategies } = trpc.portfolio.listStrategies.useQuery();
+
+  // Get strategy IDs based on filter
+  const selectedStrategyIds = (() => {
+    if (!strategies) return undefined;
+    if (strategyFilter === "all") return undefined; // All strategies
+    if (strategyFilter === "unleveraged") {
+      const unleveraged = strategies.find(s => s.symbol === "NQTrend");
+      return unleveraged ? [unleveraged.id] : undefined;
+    }
+    if (strategyFilter === "leveraged") {
+      const leveraged = strategies.find(s => s.symbol === "NQTrendLeveraged");
+      return leveraged ? [leveraged.id] : undefined;
+    }
+    return undefined;
+  })();
+
   const { data, isLoading, error } = trpc.portfolio.overview.useQuery(
     {
       timeRange,
       startingCapital,
       contractMultiplier,
+      strategyIds: selectedStrategyIds,
     },
     {
       staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+      enabled: strategies !== undefined, // Wait for strategies to load
     }
   );
 
@@ -86,9 +109,11 @@ export default function Overview() {
       timeRange: "ALL",
       startingCapital,
       contractMultiplier,
+      strategyIds: selectedStrategyIds,
     },
     {
       staleTime: 10 * 60 * 1000, // Cache for 10 minutes (less frequent updates)
+      enabled: strategies !== undefined,
     }
   );
 
@@ -259,6 +284,32 @@ export default function Overview() {
                     </div>
                   </DropdownMenuContent>
                 </DropdownMenu>
+              </div>
+            </div>
+
+            {/* Strategy Filter Toggle */}
+            <div className="flex justify-center">
+              <div className="inline-flex rounded-lg border border-muted bg-muted/30 p-1">
+                <button
+                  onClick={() => setStrategyFilter("unleveraged")}
+                  className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded-md transition-colors ${
+                    strategyFilter === "unleveraged"
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  Unleveraged
+                </button>
+                <button
+                  onClick={() => setStrategyFilter("leveraged")}
+                  className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded-md transition-colors ${
+                    strategyFilter === "leveraged"
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  Leveraged
+                </button>
               </div>
             </div>
 

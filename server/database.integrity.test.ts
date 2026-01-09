@@ -2,69 +2,46 @@
  * Database Integrity Tests
  * Verify data completeness, consistency, and relationships
  */
-import { describe, it, expect, beforeAll } from 'vitest';
-import * as db from './db';
+import { describe, it, expect, beforeAll } from "vitest";
+import * as db from "./db";
 
-describe('Database Integrity - Strategies', () => {
+describe("Database Integrity - Strategies", () => {
   let strategies: Awaited<ReturnType<typeof db.getAllStrategies>>;
 
   beforeAll(async () => {
     strategies = await db.getAllStrategies();
   });
 
-  it('should have exactly 8 strategies', () => {
-    expect(strategies).toHaveLength(8);
+  it("should have exactly 2 active strategies (NQ Trend variants)", () => {
+    expect(strategies).toHaveLength(2);
   });
 
-  it('should have all expected strategy names', () => {
-    const expectedNames = [
-      'ES Trend Following',
-      'ES Opening Range Breakout',
-      'NQ Trend Following',
-      'NQ Opening Range Breakout',
-      'CL Trend Following',
-      'BTC Trend Following',
-      'GC Trend Following',
-      'YM Opening Range Breakout',
-    ];
+  it("should have all expected strategy names", () => {
+    const expectedNames = ["NQ Trend", "NQ Trend (Leveraged)"];
 
     const actualNames = strategies.map(s => s.name).sort();
     expect(actualNames).toEqual(expectedNames.sort());
   });
 
-  it('should have all expected markets', () => {
-    const expectedMarkets = ['ES', 'NQ', 'CL', 'BTC', 'GC', 'YM'];
-    const actualMarkets = [...new Set(strategies.map(s => s.market).filter(Boolean))].sort();
-    
-    // All expected markets should be present
-    for (const market of expectedMarkets) {
-      expect(actualMarkets).toContain(market);
-    }
+  it("should have NQ market for all active strategies", () => {
+    const actualMarkets = [
+      ...new Set(strategies.map(s => s.market).filter(Boolean)),
+    ];
+
+    // All active strategies should be NQ market
+    expect(actualMarkets).toEqual(["NQ"]);
   });
 
-  it('should have valid micro to mini ratios', () => {
+  it("should have valid micro to mini ratios", () => {
     for (const strategy of strategies) {
       expect(strategy.microToMiniRatio).toBeGreaterThan(0);
-      // Should be either 10:1 or 50:1
-      expect([10, 50]).toContain(strategy.microToMiniRatio);
-    }
-  });
-
-  it('should have BTC with 50:1 ratio', () => {
-    const btcStrategy = strategies.find(s => s.market === 'BTC');
-    expect(btcStrategy).toBeDefined();
-    expect(btcStrategy!.microToMiniRatio).toBe(50);
-  });
-
-  it('should have other strategies with 10:1 ratio', () => {
-    const nonBtcStrategies = strategies.filter(s => s.market !== 'BTC');
-    for (const strategy of nonBtcStrategies) {
+      // NQ strategies have 10:1 ratio
       expect(strategy.microToMiniRatio).toBe(10);
     }
   });
 });
 
-describe('Database Integrity - Trades', () => {
+describe("Database Integrity - Trades", () => {
   let strategies: Awaited<ReturnType<typeof db.getAllStrategies>>;
   let allTrades: Awaited<ReturnType<typeof db.getTrades>>;
 
@@ -74,110 +51,111 @@ describe('Database Integrity - Trades', () => {
     allTrades = await db.getTrades({ strategyIds });
   });
 
-  it('should have expected number of trades (9,356)', () => {
-    // Allow variance in case of data updates
-    expect(allTrades.length).toBeGreaterThan(9300);
-    expect(allTrades.length).toBeLessThan(10000);
+  it("should have expected number of trades (~8,828 for 2 NQ strategies)", () => {
+    // 4,414 trades per strategy * 2 strategies = 8,828 trades
+    expect(allTrades.length).toBeGreaterThan(8800);
+    expect(allTrades.length).toBeLessThan(9000);
   });
 
-  it('should have trades for all 8 strategies', () => {
+  it("should have trades for all active strategies (NQ Trend variants)", () => {
     const strategyIds = new Set(allTrades.map(t => t.strategyId));
-    expect(strategyIds.size).toBe(8);
+    expect(strategyIds.size).toBe(2); // NQ Trend (Unleveraged) and NQ Trend (Leveraged)
   });
 
-  it('should have valid trade data structure', () => {
-    for (const trade of allTrades.slice(0, 100)) { // Check first 100 for performance
+  it("should have valid trade data structure", () => {
+    for (const trade of allTrades.slice(0, 100)) {
+      // Check first 100 for performance
       // Required fields
       expect(trade.id).toBeGreaterThan(0);
       expect(trade.strategyId).toBeGreaterThan(0);
       expect(trade.entryDate).toBeInstanceOf(Date);
       expect(trade.exitDate).toBeInstanceOf(Date);
-      
+
       // Exit date should be after or equal to entry date (intraday trades can have same time)
       // Note: Some trades may have exit time before entry time due to timezone/data issues
       // expect(trade.exitDate.getTime()).toBeGreaterThanOrEqual(trade.entryDate.getTime());
-      
+
       // Direction should be 'long' or 'short' (case-insensitive)
-      expect(['long', 'short']).toContain(trade.direction.toLowerCase());
-      
+      expect(["long", "short"]).toContain(trade.direction.toLowerCase());
+
       // Prices should be positive
       expect(trade.entryPrice).toBeGreaterThan(0);
       expect(trade.exitPrice).toBeGreaterThan(0);
-      
+
       // Quantity should be positive
       expect(trade.quantity).toBeGreaterThan(0);
-      
+
       // P&L can be positive or negative
-      expect(typeof trade.pnl).toBe('number');
-      expect(typeof trade.pnlPercent).toBe('number');
-      
+      expect(typeof trade.pnl).toBe("number");
+      expect(typeof trade.pnlPercent).toBe("number");
+
       // Commission should be non-negative
       expect(trade.commission).toBeGreaterThanOrEqual(0);
     }
   });
 
-  it('should have trades spanning 2010-2025', () => {
+  it("should have trades spanning 2010-2025", () => {
     const dates = allTrades.map(t => t.exitDate);
     const minDate = new Date(Math.min(...dates.map(d => d.getTime())));
     const maxDate = new Date(Math.max(...dates.map(d => d.getTime())));
-    
+
     expect(minDate.getFullYear()).toBeGreaterThanOrEqual(2010);
     expect(minDate.getFullYear()).toBeLessThanOrEqual(2011);
     expect(maxDate.getFullYear()).toBeGreaterThanOrEqual(2024);
     expect(maxDate.getFullYear()).toBeLessThanOrEqual(2100);
   });
 
-  it('should have trades distributed across all strategies', () => {
+  it("should have trades distributed across all strategies", () => {
     const tradesByStrategy = new Map<number, number>();
-    
+
     for (const trade of allTrades) {
       const count = tradesByStrategy.get(trade.strategyId) || 0;
       tradesByStrategy.set(trade.strategyId, count + 1);
     }
-    
+
     // Each strategy should have at least 500 trades
     for (const [strategyId, count] of tradesByStrategy.entries()) {
       expect(count).toBeGreaterThan(500);
     }
   });
 
-  it('should have valid foreign key relationships', async () => {
+  it("should have valid foreign key relationships", async () => {
     const strategyIds = new Set(strategies.map(s => s.id));
-    
+
     // All trade strategyIds should reference existing strategies
     for (const trade of allTrades) {
       expect(strategyIds.has(trade.strategyId)).toBe(true);
     }
   });
 
-  it('should have consistent P&L calculations', () => {
+  it("should have consistent P&L calculations", () => {
     // Check a sample of trades for P&L consistency
     for (const trade of allTrades.slice(0, 100)) {
       // P&L should be in cents
       expect(Math.abs(trade.pnl)).toBeLessThan(1000000); // Less than $10k per trade
-      
+
       // P&L percent should be reasonable
       expect(Math.abs(trade.pnlPercent)).toBeLessThan(100000); // Less than 100% in basis points
     }
   });
 
-  it('should have no duplicate trades', () => {
+  it("should have no duplicate trades", () => {
     const tradeIds = allTrades.map(t => t.id);
     const uniqueIds = new Set(tradeIds);
     expect(uniqueIds.size).toBe(tradeIds.length);
   });
 
-  it('should return all trades when no limit specified', async () => {
+  it("should return all trades when no limit specified", async () => {
     const strategyIds = strategies.map(s => s.id);
     const allTradesQuery = await db.getTrades({ strategyIds });
-    
+
     // Should return all trades (use >= since new trades may be added during test run)
     expect(allTradesQuery.length).toBeGreaterThanOrEqual(allTrades.length);
   });
 });
 
-describe('Database Integrity - Benchmark Data', () => {
-  it('should have S&P 500 benchmark data', async () => {
+describe("Database Integrity - Benchmark Data", () => {
+  it("should have S&P 500 benchmark data", async () => {
     const now = new Date();
     const oneYearAgo = new Date(now);
     oneYearAgo.setFullYear(now.getFullYear() - 1);
@@ -190,7 +168,7 @@ describe('Database Integrity - Benchmark Data', () => {
     expect(benchmarkData.length).toBeGreaterThan(0);
   });
 
-  it('should have valid benchmark data structure', async () => {
+  it("should have valid benchmark data structure", async () => {
     const now = new Date();
     const oneYearAgo = new Date(now);
     oneYearAgo.setFullYear(now.getFullYear() - 1);
@@ -209,7 +187,7 @@ describe('Database Integrity - Benchmark Data', () => {
     }
   });
 
-  it('should have benchmark data sorted by date', async () => {
+  it("should have benchmark data sorted by date", async () => {
     const now = new Date();
     const oneYearAgo = new Date(now);
     oneYearAgo.setFullYear(now.getFullYear() - 1);
@@ -226,7 +204,7 @@ describe('Database Integrity - Benchmark Data', () => {
     }
   });
 
-  it('should have recent benchmark data', async () => {
+  it("should have recent benchmark data", async () => {
     const now = new Date();
     const thirtyDaysAgo = new Date(now);
     thirtyDaysAgo.setDate(now.getDate() - 30);
@@ -237,52 +215,61 @@ describe('Database Integrity - Benchmark Data', () => {
     });
 
     expect(benchmarkData.length).toBeGreaterThan(0);
-    
+
     // Should have data within the last 30 days
     const lastDate = benchmarkData[benchmarkData.length - 1]!.date;
-    const daysSinceLastData = (now.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24);
+    const daysSinceLastData =
+      (now.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24);
     expect(daysSinceLastData).toBeLessThan(10); // Within last 10 days
   });
 });
 
-describe('Database Integrity - Data Consistency', () => {
-  it('should have consistent strategy IDs across tables', async () => {
+describe("Database Integrity - Data Consistency", () => {
+  it("should have consistent strategy IDs across tables", async () => {
     const strategies = await db.getAllStrategies();
     const strategyIds = strategies.map(s => s.id);
     const allTrades = await db.getTrades({ strategyIds });
-    
+
     const tradeStrategyIds = new Set(allTrades.map(t => t.strategyId));
-    
+
     // All trade strategy IDs should exist in strategies table
     for (const id of tradeStrategyIds) {
       expect(strategyIds).toContain(id);
     }
   });
 
-  it('should have no orphaned trades', async () => {
+  it("should have no orphaned trades", async () => {
     const strategies = await db.getAllStrategies();
     const strategyIds = new Set(strategies.map(s => s.id));
-    const allTrades = await db.getTrades({ strategyIds: strategies.map(s => s.id) });
-    
+    const allTrades = await db.getTrades({
+      strategyIds: strategies.map(s => s.id),
+    });
+
     // All trades should reference existing strategies
     for (const trade of allTrades) {
       expect(strategyIds.has(trade.strategyId)).toBe(true);
     }
   });
 
-  it('should have trades within reasonable time bounds', async () => {
+  it("should have trades within reasonable time bounds", async () => {
     const strategies = await db.getAllStrategies();
-    const allTrades = await db.getTrades({ strategyIds: strategies.map(s => s.id) });
-    
+    const allTrades = await db.getTrades({
+      strategyIds: strategies.map(s => s.id),
+    });
+
     const now = new Date();
-    const minDate = new Date('2010-01-01');
+    const minDate = new Date("2010-01-01");
     const maxDate = new Date(now);
     maxDate.setFullYear(2100); // Allow up to 1 year in future
-    
+
     for (const trade of allTrades) {
-      expect(trade.entryDate.getTime()).toBeGreaterThanOrEqual(minDate.getTime());
+      expect(trade.entryDate.getTime()).toBeGreaterThanOrEqual(
+        minDate.getTime()
+      );
       expect(trade.entryDate.getTime()).toBeLessThanOrEqual(maxDate.getTime());
-      expect(trade.exitDate.getTime()).toBeGreaterThanOrEqual(minDate.getTime());
+      expect(trade.exitDate.getTime()).toBeGreaterThanOrEqual(
+        minDate.getTime()
+      );
       expect(trade.exitDate.getTime()).toBeLessThanOrEqual(maxDate.getTime());
     }
   });

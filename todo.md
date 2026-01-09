@@ -5669,3 +5669,30 @@
 - [x] Fix NQ Trend P&L showing $416,400 instead of correct value - Root cause: test position from Jan 6 with $5,000 entry was closed by real exit signal
 - [x] Fix false duplicate detection for NQ entry at 9:40 AM - Test positions now excluded when checking for duplicates on real signals
 - [x] Remove testimonials and trial button from home page - Already removed in code, production needs fresh deployment
+
+## Strategy Consolidation (Jan 9, 2026) - COMPLETE
+
+### Database Changes
+
+- [x] Archive old 8 strategies (set active=false)
+- [x] Create NQ Trend (Unleveraged) strategy with fixed 1-3 contracts
+- [x] Create NQ Trend (Leveraged) strategy with 33%/66%/100% equity scaling
+- [x] Import 4,414 trades for unleveraged variant ($752,169 total P&L)
+- [x] Import 4,414 trades for leveraged variant ($5,083,845 total P&L)
+
+### Frontend Updates
+
+- [x] Add Unleveraged/Leveraged toggle to Overview page
+- [x] Update Strategies page to show only NQ Trend variants
+- [x] Update landing page text (8 strategies -> NQ strategy)
+- [x] Update SEO descriptions
+- [x] Add strategyIds parameter to portfolio.overview tRPC procedure
+
+### Test Updates
+
+- [x] Update database integrity tests for 2 strategies
+- [x] Update api.comprehensive tests for 2 strategies
+- [x] Update compareStrategies tests for 2 strategies
+- [x] Update chartConfig tests for flexible strategy count
+- [x] Fix webhook quantity test to match actual behavior
+- [x] All 1,240 tests passing

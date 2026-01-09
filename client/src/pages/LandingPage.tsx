@@ -37,7 +37,7 @@ const faqs = [
   {
     question: "What is STS Systematic Trading Strategies?",
     answer:
-      "A professional analytics platform for tracking and analyzing algorithmic futures trading strategies. We provide real-time signals, comprehensive performance metrics, and risk management tools based on 14+ years of backtested data across ES, NQ, YM, CL, GC, and BTC futures.",
+      "A professional analytics platform for tracking and analyzing our NQ Trend algorithmic futures trading strategy. We provide real-time signals, comprehensive performance metrics, and risk management tools based on 14+ years of backtested data on NASDAQ-100 E-mini futures.",
   },
   {
     question: "How do the trading signals work?",
@@ -62,7 +62,7 @@ const faqs = [
   {
     question: "What's included in the subscription?",
     answer:
-      "Everything: 8 backtested strategies, real-time TradingView signals, professional analytics dashboard, personal portfolio builder, correlation analysis tools, Kelly criterion calculator, and priority support. No hidden fees or add-ons.",
+      "Everything: NQ Trend strategy with leveraged and unleveraged variants, real-time TradingView signals, professional analytics dashboard, personal portfolio builder, risk analysis tools, Kelly criterion calculator, and priority support. No hidden fees or add-ons.",
   },
   {
     question: "What makes your strategies different?",
@@ -376,7 +376,7 @@ export default function LandingPage() {
             <p className="text-lg text-gray-400 mb-10 max-w-2xl mx-auto font-light leading-relaxed">
               Get access to{" "}
               <span className="text-white font-medium">
-                8 backtested futures strategies
+                our NQ Trend strategy
               </span>{" "}
               with 15+ years of data, real-time TradingView signals, and{" "}
               <span className="text-emerald-400 font-medium">
@@ -458,12 +458,12 @@ export default function LandingPage() {
                   <Database className="w-6 h-6 text-emerald-400" />
                 </div>
                 <h3 className="text-lg font-semibold text-white mb-2">
-                  8 Backtested Strategies
+                  NQ Trend Strategy
                 </h3>
                 <p className="text-gray-400 text-sm">
-                  ES, NQ, YM, CL, GC, and BTC futures strategies with 14+ years
-                  of historical data. Trend following and opening range breakout
-                  systems.
+                  NQ Trend strategy with leveraged and unleveraged variants, 14+
+                  years of historical data. Trend following and opening range
+                  breakout systems.
                 </p>
               </CardContent>
             </Card>
@@ -819,7 +819,7 @@ export default function LandingPage() {
                 alt: "Futures trading strategy performance comparison showing ES, NQ, CL, GC, and BTC strategies with equity curves and key metrics",
                 title: "Strategy Performance",
                 description:
-                  "Compare all 8 strategies side by side with detailed metrics",
+                  "Compare leveraged vs unleveraged variants with detailed metrics",
               },
               {
                 src: "/screenshots/compare-page.webp",
@@ -930,7 +930,7 @@ export default function LandingPage() {
                   <li className="flex items-start gap-3">
                     <Check className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
                     <span className="text-gray-300">
-                      8 backtested strategies (14+ years data)
+                      NQ Trend strategy with 2 variants (14+ years data)
                     </span>
                   </li>
                   <li className="flex items-start gap-3">
