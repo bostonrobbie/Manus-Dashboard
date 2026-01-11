@@ -109,18 +109,28 @@ export type InsertTrade = typeof trades.$inferInsert;
 
 /**
  * Benchmark data table
- * Stores daily OHLC data for S&P 500 benchmark
+ * Stores daily OHLC data for market benchmarks (SPY, QQQ, IWM, GLD)
  */
-export const benchmarks = mysqlTable("benchmarks", {
-  id: int("id").autoincrement().primaryKey(),
-  date: datetime("date").notNull().unique(), // Trading date
-  open: int("open").notNull(), // Open price in cents
-  high: int("high").notNull(), // High price in cents
-  low: int("low").notNull(), // Low price in cents
-  close: int("close").notNull(), // Close price in cents
-  volume: int("volume"), // Trading volume
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-});
+export const benchmarks = mysqlTable(
+  "benchmarks",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    symbol: varchar("symbol", { length: 10 }).notNull().default("SPY"), // Benchmark symbol: SPY, QQQ, IWM, GLD
+    date: datetime("date").notNull(), // Trading date
+    open: int("open").notNull(), // Open price in cents
+    high: int("high").notNull(), // High price in cents
+    low: int("low").notNull(), // Low price in cents
+    close: int("close").notNull(), // Close price in cents
+    volume: int("volume"), // Trading volume
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  table => ({
+    symbolDateIdx: index("idx_benchmarks_symbol_date").on(
+      table.symbol,
+      table.date
+    ),
+  })
+);
 
 export type Benchmark = typeof benchmarks.$inferSelect;
 export type InsertBenchmark = typeof benchmarks.$inferInsert;

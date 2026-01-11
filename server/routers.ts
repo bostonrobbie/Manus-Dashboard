@@ -621,10 +621,28 @@ export const appRouter = router({
           source,
         });
 
-        // Get benchmark data
+        // Get benchmark data (SPY is default)
         const benchmarkData = await db.getBenchmarkData({
           startDate,
           endDate: now,
+          symbol: "SPY",
+        });
+
+        // Get additional benchmark data for correlation matrix
+        const qqqBenchmarkData = await db.getBenchmarkData({
+          startDate,
+          endDate: now,
+          symbol: "QQQ",
+        });
+        const iwmBenchmarkData = await db.getBenchmarkData({
+          startDate,
+          endDate: now,
+          symbol: "IWM",
+        });
+        const gldBenchmarkData = await db.getBenchmarkData({
+          startDate,
+          endDate: now,
+          symbol: "GLD",
         });
 
         // Calculate average conversion ratio for portfolio (weighted by trade count)
@@ -793,8 +811,60 @@ export const appRouter = router({
           }
         }
 
-        // Add benchmark to correlation matrix (removed Portfolio since we only have 1 strategy)
+        // Add benchmarks to correlation matrix
         strategyEquityCurves.set("S&P 500", benchmarkEquity);
+
+        // Add additional benchmarks if data is available
+        if (qqqBenchmarkData.length > 0) {
+          const rawQqqEquity = analytics.calculateBenchmarkEquityCurve(
+            qqqBenchmarkData,
+            startingCapital
+          );
+          if (rawQqqEquity.length > 0) {
+            const qqqStartDate = rawQqqEquity[0]!.date;
+            const qqqEndDate = rawQqqEquity[rawQqqEquity.length - 1]!.date;
+            const qqqEquity = analytics.forwardFillEquityCurve(
+              rawQqqEquity,
+              qqqStartDate,
+              qqqEndDate
+            );
+            strategyEquityCurves.set("QQQ", qqqEquity);
+          }
+        }
+
+        if (iwmBenchmarkData.length > 0) {
+          const rawIwmEquity = analytics.calculateBenchmarkEquityCurve(
+            iwmBenchmarkData,
+            startingCapital
+          );
+          if (rawIwmEquity.length > 0) {
+            const iwmStartDate = rawIwmEquity[0]!.date;
+            const iwmEndDate = rawIwmEquity[rawIwmEquity.length - 1]!.date;
+            const iwmEquity = analytics.forwardFillEquityCurve(
+              rawIwmEquity,
+              iwmStartDate,
+              iwmEndDate
+            );
+            strategyEquityCurves.set("IWM", iwmEquity);
+          }
+        }
+
+        if (gldBenchmarkData.length > 0) {
+          const rawGldEquity = analytics.calculateBenchmarkEquityCurve(
+            gldBenchmarkData,
+            startingCapital
+          );
+          if (rawGldEquity.length > 0) {
+            const gldStartDate = rawGldEquity[0]!.date;
+            const gldEndDate = rawGldEquity[rawGldEquity.length - 1]!.date;
+            const gldEquity = analytics.forwardFillEquityCurve(
+              rawGldEquity,
+              gldStartDate,
+              gldEndDate
+            );
+            strategyEquityCurves.set("GLD", gldEquity);
+          }
+        }
 
         const strategyCorrelationMatrix =
           analytics.calculateStrategyCorrelationMatrix(strategyEquityCurves);

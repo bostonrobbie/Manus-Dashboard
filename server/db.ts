@@ -404,16 +404,21 @@ export async function getTrades(params: {
 }
 
 /**
- * Get benchmark data with optional date filtering
+ * Get benchmark data with optional date and symbol filtering
  */
 export async function getBenchmarkData(params?: {
   startDate?: Date;
   endDate?: Date;
+  symbol?: string; // SPY, QQQ, IWM, GLD - defaults to SPY
 }) {
   const db = await getDb();
   if (!db) return [];
 
   const conditions = [];
+
+  // Default to SPY if no symbol specified (backwards compatible)
+  const symbol = params?.symbol || "SPY";
+  conditions.push(eq(benchmarks.symbol, symbol));
 
   if (params?.startDate) {
     conditions.push(gte(benchmarks.date, params.startDate));
@@ -423,14 +428,50 @@ export async function getBenchmarkData(params?: {
     conditions.push(lte(benchmarks.date, params.endDate));
   }
 
-  if (conditions.length === 0) {
-    return await db.select().from(benchmarks);
-  }
-
   return await db
     .select()
     .from(benchmarks)
-    .where(and(...conditions));
+    .where(and(...conditions))
+    .orderBy(benchmarks.date);
+}
+
+/**
+ * Get all available benchmark symbols
+ */
+export async function getAvailableBenchmarks(): Promise<string[]> {
+  const db = await getDb();
+  if (!db) return ["SPY"];
+
+  const result = await db
+    .selectDistinct({ symbol: benchmarks.symbol })
+    .from(benchmarks);
+
+  return result.map(r => r.symbol);
+}
+
+/**
+ * Insert benchmark data (for seeding)
+ */
+export async function insertBenchmarkData(
+  data: {
+    symbol: string;
+    date: Date;
+    open: number;
+    high: number;
+    low: number;
+    close: number;
+    volume?: number;
+  }[]
+) {
+  const db = await getDb();
+  if (!db) return;
+
+  // Insert in batches of 500
+  const batchSize = 500;
+  for (let i = 0; i < data.length; i += batchSize) {
+    const batch = data.slice(i, i + batchSize);
+    await db.insert(benchmarks).values(batch);
+  }
 }
 
 /**

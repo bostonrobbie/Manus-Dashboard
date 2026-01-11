@@ -5878,3 +5878,28 @@
 - [x] Verified both modes now show accurate drawdown percentages matching header values
   - Unleveraged: ~37% max drawdown (matching -$3.7K / $100K base)
   - Leveraged: ~33% max drawdown (matching -32.9% from peak)
+
+### Sprint 6 - Index Benchmarks in Correlation Matrix (Jan 11, 2026)
+
+- [ ] Research data sources for QQQ, IWM, GLD historical prices
+- [ ] Create database schema for additional benchmarks
+- [ ] Seed historical data for QQQ (NASDAQ-100 ETF)
+- [ ] Seed historical data for IWM (Russell 2000 ETF)
+- [ ] Seed historical data for GLD (Gold ETF)
+- [ ] Update correlation matrix calculation to include index benchmarks
+- [ ] Update frontend correlation heatmap to display new benchmarks
+- [ ] Test correlation values are accurate
+- [ ] Verify heatmap displays correctly with additional indices
+
+### Sprint 6 - Index Benchmarks & Screenshots (Jan 11, 2026) - COMPLETED
+
+- [x] Create database schema for multiple benchmarks (added symbol column)
+- [x] Fetch historical data for QQQ, IWM, GLD (10 years daily data)
+- [x] Seed benchmark data into database (2515 records each)
+- [x] Update correlation matrix calculation to include index benchmarks
+- [x] Update frontend to display new benchmarks in correlation heatmap
+- [x] Test correlation matrix with new benchmarks (QQQ-IWM correlation: 0.76-0.82)
+- [x] Update overview-all-time.webp screenshot
+- [x] Update strategies-page.webp screenshot
+- [x] Update compare-page.webp screenshot
+- [x] Update my-dashboard.webp screenshot
