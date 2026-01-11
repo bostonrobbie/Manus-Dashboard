@@ -753,10 +753,19 @@ export const appRouter = router({
         );
 
         // Calculate underwater data for portfolio and benchmark
-        const underwater =
-          analytics.calculatePortfolioUnderwater(portfolioEquity);
-        const benchmarkUnderwater =
-          analytics.calculatePortfolioUnderwater(benchmarkEquity);
+        // Pass isLeveraged flag so drawdown calculation uses appropriate method:
+        // - Unleveraged: drawdown as % of base capital ($100K)
+        // - Leveraged: drawdown as % from peak equity (traditional)
+        const underwater = analytics.calculatePortfolioUnderwater(
+          portfolioEquity,
+          100000,
+          isLeveraged
+        );
+        const benchmarkUnderwater = analytics.calculatePortfolioUnderwater(
+          benchmarkEquity,
+          100000,
+          false
+        );
         const dayOfWeekBreakdown =
           analytics.calculateDayOfWeekBreakdown(allTrades);
         const weekOfMonthBreakdown =

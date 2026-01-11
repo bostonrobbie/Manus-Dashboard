@@ -99,7 +99,8 @@ export interface EquityPoint {
  */
 export function calculateEquityCurve(
   trades: Trade[],
-  startingCapital: number = 100000
+  startingCapital: number = 100000,
+  baseCapital: number = 100000 // Base capital for drawdown % calculation (default $100K for mini contracts)
 ): EquityPoint[] {
   const sortedTrades = [...trades].sort(
     (a, b) => a.exitDate.getTime() - b.exitDate.getTime()
@@ -108,6 +109,12 @@ export function calculateEquityCurve(
   const points: EquityPoint[] = [];
   let equity = startingCapital;
   let peak = startingCapital;
+
+  // Track P&L relative to base capital for consistent drawdown calculation
+  // This ensures drawdowns are calculated as % of the backtest capital ($100K)
+  // not the user's starting capital, matching the leveraged mode behavior
+  let basePnL = 0; // Cumulative P&L in dollars
+  let basePeak = 0; // Peak P&L in dollars
 
   // Add starting point
   if (sortedTrades.length > 0) {
@@ -123,7 +130,17 @@ export function calculateEquityCurve(
     const pnlDollars = trade.pnl / 100;
     equity += pnlDollars;
     peak = Math.max(peak, equity);
-    const drawdown = peak > 0 ? ((peak - equity) / peak) * 100 : 0;
+
+    // Track P&L for base capital drawdown calculation
+    basePnL += pnlDollars;
+    basePeak = Math.max(basePeak, basePnL);
+
+    // Calculate drawdown as percentage of base capital (not user's starting capital)
+    // This gives consistent drawdown percentages regardless of account size
+    // e.g., a $10K drawdown is always -10% (relative to $100K base), not -100% (relative to $10K account)
+    const drawdownDollars = basePeak - basePnL;
+    const drawdown =
+      baseCapital > 0 ? (drawdownDollars / baseCapital) * 100 : 0;
 
     points.push({
       date: trade.exitDate,
@@ -1861,33 +1878,73 @@ export interface UnderwaterMetrics {
 }
 
 export function calculateUnderwaterCurve(
-  equityCurve: EquityPoint[]
+  equityCurve: EquityPoint[],
+  baseCapital: number = 100000, // Base capital for consistent drawdown % calculation
+  isLeveraged: boolean = false // Whether to use leveraged (% from peak) or unleveraged (% of base capital) calculation
 ): UnderwaterPoint[] {
   if (equityCurve.length === 0) return [];
 
   const underwater: UnderwaterPoint[] = [];
-  let peak = equityCurve[0]!.equity;
+
+  // Get starting equity to calculate P&L-based drawdowns
+  const startingEquity = equityCurve[0]!.equity;
+  let peakPnL = 0; // Track peak P&L (not peak equity)
+  let peakEquity = startingEquity; // Track peak equity for leveraged mode
   let lastPeakDate = equityCurve[0]!.date;
 
   for (const point of equityCurve) {
-    if (point.equity >= peak) {
-      peak = point.equity;
-      lastPeakDate = point.date;
+    // Calculate current P&L from starting equity
+    const currentPnL = point.equity - startingEquity;
+
+    if (isLeveraged) {
+      // Leveraged mode: track peak equity for percentage-based drawdown
+      if (point.equity >= peakEquity) {
+        peakEquity = point.equity;
+        lastPeakDate = point.date;
+      }
+
+      // Calculate drawdown as percentage from peak equity (traditional drawdown)
+      // This is the correct calculation for compounding returns
+      const drawdownPercent =
+        peakEquity > 0 && point.equity < peakEquity
+          ? -((peakEquity - point.equity) / peakEquity) * 100
+          : 0;
+
+      const daysUnderwater = Math.floor(
+        (point.date.getTime() - lastPeakDate.getTime()) / (1000 * 60 * 60 * 24)
+      );
+
+      underwater.push({
+        date: point.date,
+        drawdownPercent,
+        daysUnderwater,
+      });
+    } else {
+      // Unleveraged mode: track peak P&L for base capital percentage
+      if (currentPnL >= peakPnL) {
+        peakPnL = currentPnL;
+        lastPeakDate = point.date;
+      }
+
+      // Calculate drawdown as percentage of BASE CAPITAL (not current equity or starting equity)
+      // This ensures consistent drawdown percentages regardless of account size
+      // e.g., a $10K drawdown from peak is always -10% (relative to $100K base)
+      const drawdownDollars = peakPnL - currentPnL;
+      const drawdownPercent =
+        baseCapital > 0 && drawdownDollars > 0
+          ? -(drawdownDollars / baseCapital) * 100
+          : 0;
+
+      const daysUnderwater = Math.floor(
+        (point.date.getTime() - lastPeakDate.getTime()) / (1000 * 60 * 60 * 24)
+      );
+
+      underwater.push({
+        date: point.date,
+        drawdownPercent,
+        daysUnderwater,
+      });
     }
-
-    const drawdownPercent =
-      peak > 0 && point.equity < peak
-        ? -((peak - point.equity) / peak) * 100
-        : 0;
-    const daysUnderwater = Math.floor(
-      (point.date.getTime() - lastPeakDate.getTime()) / (1000 * 60 * 60 * 24)
-    );
-
-    underwater.push({
-      date: point.date,
-      drawdownPercent,
-      daysUnderwater,
-    });
   }
 
   return underwater;
@@ -1897,9 +1954,11 @@ export function calculateUnderwaterCurve(
  * Calculate underwater metrics including duration statistics
  */
 export function calculateUnderwaterMetrics(
-  equityCurve: EquityPoint[]
+  equityCurve: EquityPoint[],
+  baseCapital: number = 100000,
+  isLeveraged: boolean = false
 ): UnderwaterMetrics {
-  const curve = calculateUnderwaterCurve(equityCurve);
+  const curve = calculateUnderwaterCurve(equityCurve, baseCapital, isLeveraged);
 
   if (curve.length === 0) {
     return {
@@ -1974,9 +2033,11 @@ export function calculateUnderwaterMetrics(
  * Calculate underwater metrics for portfolio only
  */
 export function calculatePortfolioUnderwater(
-  portfolioEquity: EquityPoint[]
+  portfolioEquity: EquityPoint[],
+  baseCapital: number = 100000,
+  isLeveraged: boolean = false
 ): UnderwaterMetrics {
-  return calculateUnderwaterMetrics(portfolioEquity);
+  return calculateUnderwaterMetrics(portfolioEquity, baseCapital, isLeveraged);
 }
 
 /**

@@ -5859,3 +5859,22 @@
 - [ ] Add IWM (Russell 2000) benchmark to correlation matrix (requires schema changes)
 - [ ] Add GLD (Gold) benchmark to correlation matrix (requires schema changes)
 - [x] Starting capital input field already exists in Overview page settings
+
+### Sprint 5 Continued - Underwater Drawdown Fix (Jan 11, 2026)
+
+- [ ] Analyze why unleveraged underwater DD shows different pattern than leveraged
+- [ ] Fix underwater DD calculation to use consistent % from peak logic
+- [ ] Ensure both modes show accurate drawdown percentages
+
+### Sprint 5 Underwater DD Fix COMPLETED (Jan 11, 2026)
+
+- [x] Analyzed underwater DD calculation differences between leveraged and unleveraged modes
+- [x] Fixed calculateUnderwaterCurve to support both modes:
+  - Unleveraged: drawdown as % of base capital ($100K) - consistent regardless of account size
+  - Leveraged: drawdown as % from peak equity (traditional) - appropriate for compounding returns
+- [x] Updated calculateUnderwaterMetrics to pass isLeveraged parameter
+- [x] Updated calculatePortfolioUnderwater to pass isLeveraged parameter
+- [x] Updated routers.ts to pass isLeveraged flag to underwater calculation
+- [x] Verified both modes now show accurate drawdown percentages matching header values
+  - Unleveraged: ~37% max drawdown (matching -$3.7K / $100K base)
+  - Leveraged: ~33% max drawdown (matching -32.9% from peak)
