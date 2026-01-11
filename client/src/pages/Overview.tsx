@@ -724,11 +724,14 @@ export default function Overview() {
                         }
 
                         // Drawdown percentage is already relative to running peak
-                        // No need to apply contract multiplier to percentages
+                        // Cap at -100% for display (leveraged strategies can exceed this theoretically)
                         return {
                           date: displayDate,
-                          drawdown: point.drawdownPercent,
-                          benchmarkDrawdown: lastBenchmarkDrawdown,
+                          drawdown: Math.max(point.drawdownPercent, -100),
+                          benchmarkDrawdown: Math.max(
+                            lastBenchmarkDrawdown,
+                            -100
+                          ),
                         };
                       });
                     })()}
@@ -886,7 +889,13 @@ export default function Overview() {
         )}
 
         {/* Trade & Risk Statistics - Moved below Calendar P&L */}
-        {data.tradeStats && <TradeAndRiskStats tradeStats={data.tradeStats} />}
+        {data.tradeStats && (
+          <TradeAndRiskStats
+            tradeStats={data.tradeStats}
+            isLeveraged={strategyFilter === "leveraged"}
+            startingCapital={startingCapital}
+          />
+        )}
 
         {/* Portfolio Sizing Calculator */}
         <Card>
@@ -914,14 +923,9 @@ export default function Overview() {
                         Max Drawdown:
                       </span>
                       <span className="font-semibold text-red-600">
-                        $
-                        {(
-                          (allTimeData?.metrics.maxDrawdownDollars ??
-                            metrics.maxDrawdownDollars) / 10
-                        ).toLocaleString(undefined, {
-                          minimumFractionDigits: 0,
-                          maximumFractionDigits: 0,
-                        })}
+                        {strategyFilter === "leveraged"
+                          ? `${(((allTimeData?.metrics.maxDrawdownDollars ?? metrics.maxDrawdownDollars) / 10 / startingCapital) * 100).toFixed(1)}%`
+                          : `$${((allTimeData?.metrics.maxDrawdownDollars ?? metrics.maxDrawdownDollars) / 10).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
@@ -971,14 +975,9 @@ export default function Overview() {
                         Max Drawdown:
                       </span>
                       <span className="font-semibold text-red-600">
-                        $
-                        {(
-                          allTimeData?.metrics.maxDrawdownDollars ??
-                          metrics.maxDrawdownDollars
-                        ).toLocaleString(undefined, {
-                          minimumFractionDigits: 0,
-                          maximumFractionDigits: 0,
-                        })}
+                        {strategyFilter === "leveraged"
+                          ? `${(((allTimeData?.metrics.maxDrawdownDollars ?? metrics.maxDrawdownDollars) / startingCapital) * 100).toFixed(1)}%`
+                          : `$${(allTimeData?.metrics.maxDrawdownDollars ?? metrics.maxDrawdownDollars).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
                       </span>
                     </div>
                     <div className="flex justify-between items-center">

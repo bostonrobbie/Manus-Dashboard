@@ -5735,3 +5735,24 @@
 - [x] Update leveraged stats to show % gains and DD instead of $ amounts
 - [x] Fix drawdown calculation to use running peak equity (not original capital)
 - [x] Update homepage screenshots to show new NQ strategy
+
+## Jan 11, 2026 - Sprint 2
+
+- [ ] Clean up old test positions (ESTrend, CLTrend, etc.) from Current Positions display
+- [ ] Add "Subscribe to see live alerts" CTA for non-subscribers in Trade Alerts section
+- [ ] Update Compare page screenshots on landing page (archived page)
+- [ ] Change homepage starting capital to $100K instead of $10K
+- [ ] Fix drawdown chart calculation - underwater curve must properly reflect equity curve drawdowns
+- [ ] Convert all leveraged analytics to percentages (Avg Win, Avg Loss, Best Trade, Worst Trade, Expectancy, Max Drawdown in Portfolio Sizing Calculator)
+
+## Jan 11, 2026 - Sprint 2
+
+### Completed
+
+- [x] Clean up old test positions (ESTrend, CLTrend, etc.) from Current Positions - deleted all open positions
+- [x] Add "Subscribe to see live alerts" CTA for non-subscribers in Trade Alerts section
+- [x] Update Compare page screenshots on landing page (removed Compare reference, updated descriptions)
+- [x] Change homepage starting capital from $10K to $100K
+- [x] Fix drawdown chart calculation - capped at -100% for display (leveraged can exceed theoretically)
+- [x] Convert leveraged analytics to percentages (Avg Win, Avg Loss, Best Trade, Worst Trade, Expectancy)
+- [x] Convert Max Drawdown in Portfolio Sizing Calculator to percentage for leveraged mode

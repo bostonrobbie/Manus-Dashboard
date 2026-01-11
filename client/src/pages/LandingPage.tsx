@@ -887,10 +887,11 @@ export default function LandingPage() {
                   "Compare both variants side-by-side with full analytics",
               },
               {
-                src: "/screenshots/compare-page.webp",
-                alt: "Calendar P&L view showing daily, weekly, and monthly trading performance",
-                title: "Calendar P&L",
-                description: "View performance by day, week, month, or year",
+                src: "/screenshots/my-dashboard.webp",
+                alt: "Personal trading dashboard with portfolio performance, equity curve, and risk metrics",
+                title: "Personal Dashboard",
+                description:
+                  "Your personalized portfolio with performance tracking",
               },
             ].map((screenshot, index) => (
               <div

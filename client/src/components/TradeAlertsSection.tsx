@@ -15,7 +15,6 @@ import {
   TrendingDown,
   Clock,
   Activity,
-  Lock,
   Bell,
   CheckCircle2,
 } from "lucide-react";
@@ -42,23 +41,51 @@ export function TradeAlertsSection({ className }: TradeAlertsSectionProps) {
     user?.subscriptionStatus === "active" ||
     user?.role === "admin";
 
-  // If not a paid member, show locked state
+  // If not a paid member, show locked state with compelling CTA
   if (!isPaidMember) {
     return (
-      <Card className={cn("border-dashed border-2 border-muted", className)}>
-        <CardHeader className="text-center pb-2">
-          <div className="mx-auto mb-3 p-3 rounded-full bg-muted/50">
-            <Lock className="h-6 w-6 text-muted-foreground" />
+      <Card
+        className={cn(
+          "border-2 border-emerald-500/30 bg-gradient-to-br from-emerald-500/5 to-transparent",
+          className
+        )}
+      >
+        <CardHeader className="text-center pb-3">
+          <div className="mx-auto mb-3 p-4 rounded-full bg-emerald-500/10 ring-2 ring-emerald-500/20">
+            <Bell className="h-8 w-8 text-emerald-400" />
           </div>
-          <CardTitle className="text-lg">Live Trade Alerts</CardTitle>
-          <CardDescription>
-            Subscribe to unlock real-time trade signals and position tracking
+          <CardTitle className="text-xl font-bold">
+            Get Live Trade Alerts
+          </CardTitle>
+          <CardDescription className="text-base mt-2">
+            Receive real-time notifications when the NQ Trend strategy enters
+            and exits trades
           </CardDescription>
         </CardHeader>
-        <CardContent className="text-center pb-6">
-          <Button variant="default" asChild>
-            <a href="/#pricing">View Pricing</a>
+        <CardContent className="text-center pb-6 space-y-4">
+          <div className="flex flex-wrap justify-center gap-3 text-sm text-muted-foreground">
+            <div className="flex items-center gap-1.5">
+              <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+              <span>Instant TradingView signals</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+              <span>Position tracking</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+              <span>P&L notifications</span>
+            </div>
+          </div>
+          <Button
+            variant="default"
+            size="lg"
+            className="bg-emerald-600 hover:bg-emerald-700"
+            asChild
+          >
+            <a href="/#pricing">Subscribe to See Live Alerts</a>
           </Button>
+          <p className="text-xs text-muted-foreground">Starting at $50/month</p>
         </CardContent>
       </Card>
     );

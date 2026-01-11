@@ -40,7 +40,7 @@ export function LandingEquityChart({
     {
       strategyId: strategyId!,
       timeRange: "ALL",
-      startingCapital: 10000,
+      startingCapital: 100000,
     },
     {
       enabled: !!strategyId,
@@ -79,7 +79,7 @@ export function LandingEquityChart({
     );
   }
 
-  const startingCapital = 10000;
+  const startingCapital = 100000;
   const isLeveraged = strategyVariant === "leveraged";
 
   return (
@@ -97,7 +97,7 @@ export function LandingEquityChart({
         </div>
         <div className="text-right">
           <div className="text-sm text-gray-400">Starting Capital</div>
-          <div className="text-lg font-semibold text-emerald-400">$10,000</div>
+          <div className="text-lg font-semibold text-emerald-400">$100,000</div>
         </div>
       </div>
 
