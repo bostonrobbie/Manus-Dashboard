@@ -6,7 +6,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { NotificationBell } from "@/components/NotificationBell";
 import { TradeNotificationBanner } from "@/components/TradeNotificationBanner";
 import {
   Sidebar,
@@ -316,7 +315,6 @@ function DashboardLayoutContent({
             </div>
             <div className="flex items-center gap-2">
               <TradeNotificationBanner />
-              <NotificationBell />
             </div>
           </div>
         )}
@@ -325,7 +323,6 @@ function DashboardLayoutContent({
           <div className="flex h-14 items-center justify-end px-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:backdrop-blur sticky top-0 z-40">
             <div className="flex items-center gap-3">
               <TradeNotificationBanner />
-              <NotificationBell />
             </div>
           </div>
         )}

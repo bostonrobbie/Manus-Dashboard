@@ -5727,3 +5727,11 @@
 - [ ] Allow non-subscribers to view dashboard
 - [x] Hide live trade alerts from non-paying members
 - [ ] Keep alerts visible for paying subscribers only
+
+## UI/UX Fixes (Jan 11)
+
+- [x] Remove duplicate notification icon from header (keep only 1)
+- [ ] Update homepage equity chart with Leveraged/Unleveraged toggle
+- [x] Update leveraged stats to show % gains and DD instead of $ amounts
+- [x] Fix drawdown calculation to use running peak equity (not original capital)
+- [x] Update homepage screenshots to show new NQ strategy

@@ -350,6 +350,9 @@ export default function Overview() {
                     100
                   : adjustedTotalReturnPct;
 
+              // For leveraged strategy, show % instead of $ amounts
+              const isLeveraged = strategyFilter === "leveraged";
+
               return (
                 <div className="grid gap-1.5 sm:gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
                   {/* Total Return */}
@@ -357,28 +360,51 @@ export default function Overview() {
                     <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1 sm:mb-2">
                       Total Return
                     </div>
-                    <div
-                      className={`text-xs sm:text-base md:text-lg lg:text-xl font-bold mb-1 ${
-                        actualPnlDollars >= 0
-                          ? "text-green-500"
-                          : "text-red-500"
-                      }`}
-                      title={`${actualPnlDollars >= 0 ? "+" : ""}$${Math.round(actualPnlDollars).toLocaleString()}`}
-                    >
-                      {actualPnlDollars >= 0 ? "+" : ""}$
-                      {(() => {
-                        const value = Math.round(actualPnlDollars);
-                        if (Math.abs(value) >= 1000000)
-                          return (value / 1000000).toFixed(1) + "M";
-                        if (Math.abs(value) >= 1000)
-                          return (value / 1000).toFixed(1) + "K";
-                        return value.toLocaleString();
-                      })()}
-                    </div>
-                    <div className="text-[8px] sm:text-[9px] text-muted-foreground">
-                      {adjustedTotalReturnPct.toFixed(1)}% (
-                      {adjustedAnnualizedReturn.toFixed(0)}% ann.)
-                    </div>
+                    {isLeveraged ? (
+                      // Leveraged: Show % as primary
+                      <>
+                        <div
+                          className={`text-xs sm:text-base md:text-lg lg:text-xl font-bold mb-1 ${
+                            adjustedTotalReturnPct >= 0
+                              ? "text-green-500"
+                              : "text-red-500"
+                          }`}
+                          title={`${adjustedTotalReturnPct >= 0 ? "+" : ""}${adjustedTotalReturnPct.toFixed(1)}%`}
+                        >
+                          {adjustedTotalReturnPct >= 0 ? "+" : ""}
+                          {adjustedTotalReturnPct.toFixed(1)}%
+                        </div>
+                        <div className="text-[8px] sm:text-[9px] text-muted-foreground">
+                          {adjustedAnnualizedReturn.toFixed(0)}% annualized
+                        </div>
+                      </>
+                    ) : (
+                      // Unleveraged: Show $ as primary
+                      <>
+                        <div
+                          className={`text-xs sm:text-base md:text-lg lg:text-xl font-bold mb-1 ${
+                            actualPnlDollars >= 0
+                              ? "text-green-500"
+                              : "text-red-500"
+                          }`}
+                          title={`${actualPnlDollars >= 0 ? "+" : ""}$${Math.round(actualPnlDollars).toLocaleString()}`}
+                        >
+                          {actualPnlDollars >= 0 ? "+" : ""}$
+                          {(() => {
+                            const value = Math.round(actualPnlDollars);
+                            if (Math.abs(value) >= 1000000)
+                              return (value / 1000000).toFixed(1) + "M";
+                            if (Math.abs(value) >= 1000)
+                              return (value / 1000).toFixed(1) + "K";
+                            return value.toLocaleString();
+                          })()}
+                        </div>
+                        <div className="text-[8px] sm:text-[9px] text-muted-foreground">
+                          {adjustedTotalReturnPct.toFixed(1)}% (
+                          {adjustedAnnualizedReturn.toFixed(0)}% ann.)
+                        </div>
+                      </>
+                    )}
                   </div>
 
                   {/* Max Drawdown */}
@@ -386,23 +412,41 @@ export default function Overview() {
                     <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1 sm:mb-2">
                       Max Drawdown
                     </div>
-                    <div
-                      className="text-xs sm:text-base md:text-lg lg:text-xl font-bold mb-1 text-amber-500"
-                      title={`-$${Math.round(actualDrawdownDollars).toLocaleString()}`}
-                    >
-                      -$
-                      {(() => {
-                        const value = Math.round(actualDrawdownDollars);
-                        if (Math.abs(value) >= 1000000)
-                          return (value / 1000000).toFixed(1) + "M";
-                        if (Math.abs(value) >= 1000)
-                          return (value / 1000).toFixed(1) + "K";
-                        return value.toLocaleString();
-                      })()}
-                    </div>
-                    <div className="text-[8px] sm:text-[9px] text-muted-foreground">
-                      {adjustedMaxDrawdownPct.toFixed(1)}% peak to trough
-                    </div>
+                    {isLeveraged ? (
+                      // Leveraged: Show % as primary
+                      <>
+                        <div
+                          className="text-xs sm:text-base md:text-lg lg:text-xl font-bold mb-1 text-amber-500"
+                          title={`-${adjustedMaxDrawdownPct.toFixed(1)}%`}
+                        >
+                          -{adjustedMaxDrawdownPct.toFixed(1)}%
+                        </div>
+                        <div className="text-[8px] sm:text-[9px] text-muted-foreground">
+                          peak to trough
+                        </div>
+                      </>
+                    ) : (
+                      // Unleveraged: Show $ as primary
+                      <>
+                        <div
+                          className="text-xs sm:text-base md:text-lg lg:text-xl font-bold mb-1 text-amber-500"
+                          title={`-$${Math.round(actualDrawdownDollars).toLocaleString()}`}
+                        >
+                          -$
+                          {(() => {
+                            const value = Math.round(actualDrawdownDollars);
+                            if (Math.abs(value) >= 1000000)
+                              return (value / 1000000).toFixed(1) + "M";
+                            if (Math.abs(value) >= 1000)
+                              return (value / 1000).toFixed(1) + "K";
+                            return value.toLocaleString();
+                          })()}
+                        </div>
+                        <div className="text-[8px] sm:text-[9px] text-muted-foreground">
+                          {adjustedMaxDrawdownPct.toFixed(1)}% peak to trough
+                        </div>
+                      </>
+                    )}
                   </div>
 
                   {/* Sortino Ratio - Daily (Industry Standard) */}
@@ -679,14 +723,11 @@ export default function Overview() {
                           lastBenchmarkDrawdown = benchmarkDrawdown;
                         }
 
-                        // Apply contract multiplier to drawdown percentage
-                        // For micro contracts (0.1x), drawdowns are 1/10th the size
-                        const adjustedDrawdown =
-                          point.drawdownPercent * contractMultiplier;
-
+                        // Drawdown percentage is already relative to running peak
+                        // No need to apply contract multiplier to percentages
                         return {
                           date: displayDate,
-                          drawdown: adjustedDrawdown,
+                          drawdown: point.drawdownPercent,
                           benchmarkDrawdown: lastBenchmarkDrawdown,
                         };
                       });

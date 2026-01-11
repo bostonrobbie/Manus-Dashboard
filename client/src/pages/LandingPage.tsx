@@ -22,6 +22,7 @@ import {
   MessageSquare,
 } from "lucide-react";
 import { ContactForm } from "@/components/ContactForm";
+import { LandingEquityChart } from "@/components/LandingEquityChart";
 import {
   trackCTAClick,
   initTimeTracking,
@@ -177,36 +178,59 @@ export default function LandingPage() {
   const [expandedScreenshot, setExpandedScreenshot] = useState<string | null>(
     null
   );
+  const [strategyVariant, setStrategyVariant] = useState<
+    "unleveraged" | "leveraged"
+  >("unleveraged");
 
-  // Accurate stats based on Overview page data (All Time view)
-  // Mini: $1.1M total return over 15 years = ~$73.3K/year average
-  // Micro: 1/10th of dollar values = ~$7.3K/year
-  // Max DD: Mini -$48.8K, Micro -$4.9K
+  // Stats based on actual database data
+  // Unleveraged: Fixed 1-3 contracts, $752K total return
+  // Leveraged: 33%/66%/100% equity scaling, $5.1M total return
   const displayStats = useMemo(() => {
     const isMicro = contractSize === "micro";
-    // $1.1M total over 15 years = $73.3K/year average (Mini)
-    // $110K total over 15 years = $7.3K/year average (Micro)
+    const isLeveraged = strategyVariant === "leveraged";
+
+    if (isLeveraged) {
+      // Leveraged strategy - show % instead of $ amounts
+      return {
+        totalReturn: "+5,084%",
+        totalReturnLabel: "TOTAL RETURN (% EQUITY SCALING)",
+        totalReturnPct: "5,083.8%",
+        avgReturnPerYear: "+362%",
+        avgReturnPerYearLabel: "AVG RETURN/YEAR (%)",
+        maxDrawdown: "-52.5%",
+        maxDrawdownLabel: "MAX DRAWDOWN (%)",
+        maxDrawdownPct: "52.5%",
+        sharpe: "2.58",
+        sortino: "4.25",
+        winRate: "44.4%",
+        trades: "4,414",
+        calmar: "142.54",
+        yearsData: "14+",
+      };
+    }
+
+    // Unleveraged strategy - show $ amounts
     return {
-      totalReturn: isMicro ? "+$110K" : "+$1.1M",
-      totalReturnLabel: "TOTAL RETURN (1-2 CONTRACTS MAX/TRADE)",
-      totalReturnPct: "1111.5%",
-      avgReturnPerYear: isMicro ? "+$7.3K" : "+$73.3K",
+      totalReturn: isMicro ? "+$75K" : "+$752K",
+      totalReturnLabel: "TOTAL RETURN (1-3 CONTRACTS/TRADE)",
+      totalReturnPct: "752.2%",
+      avgReturnPerYear: isMicro ? "+$5.4K" : "+$53.7K",
       avgReturnPerYearLabel: isMicro
-        ? "AVG RETURN/YEAR (1 CONTRACT)"
-        : "AVG RETURN/YEAR (2 CONTRACTS)",
-      maxDrawdown: isMicro ? "-$4.9K" : "-$48.8K",
+        ? "AVG RETURN/YEAR (MICRO)"
+        : "AVG RETURN/YEAR (MINI)",
+      maxDrawdown: isMicro ? "-$3.7K" : "-$37.3K",
       maxDrawdownLabel: isMicro
-        ? "MAX DRAWDOWN (1 CONTRACT)"
-        : "MAX DRAWDOWN (2 CONTRACTS)",
-      maxDrawdownPct: "18.6%",
-      sharpe: "1.50",
-      sortino: "2.33",
-      winRate: "38.9%",
-      trades: "9,376",
-      calmar: "0.97",
-      yearsData: "15+",
+        ? "MAX DRAWDOWN (MICRO)"
+        : "MAX DRAWDOWN (MINI)",
+      maxDrawdownPct: "37.3%",
+      sharpe: "2.01",
+      sortino: "3.21",
+      winRate: "44.4%",
+      trades: "4,414",
+      calmar: "13.91",
+      yearsData: "14+",
     };
-  }, [contractSize]);
+  }, [contractSize, strategyVariant]);
 
   return (
     <div className="min-h-screen bg-[#0a0a0f]">
@@ -301,32 +325,61 @@ export default function LandingPage() {
               <span className="text-white">for Futures.</span>
             </h1>
 
-            {/* Contract Size Toggle - Moved up */}
-            <div className="flex items-center justify-center gap-2 mb-6">
-              <span className="text-sm text-gray-300">Contract Size:</span>
+            {/* Strategy Variant Toggle */}
+            <div className="flex items-center justify-center gap-2 mb-4">
+              <span className="text-sm text-gray-300">Strategy:</span>
               <div className="inline-flex bg-gray-900 rounded-lg p-1">
                 <button
-                  onClick={() => setContractSize("micro")}
+                  onClick={() => setStrategyVariant("unleveraged")}
                   className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
-                    contractSize === "micro"
+                    strategyVariant === "unleveraged"
                       ? "bg-emerald-600 text-white"
                       : "text-gray-400 hover:text-white"
                   }`}
                 >
-                  Micro
+                  Unleveraged
                 </button>
                 <button
-                  onClick={() => setContractSize("mini")}
+                  onClick={() => setStrategyVariant("leveraged")}
                   className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
-                    contractSize === "mini"
+                    strategyVariant === "leveraged"
                       ? "bg-emerald-600 text-white"
                       : "text-gray-400 hover:text-white"
                   }`}
                 >
-                  Mini
+                  Leveraged
                 </button>
               </div>
             </div>
+
+            {/* Contract Size Toggle - Only show for unleveraged */}
+            {strategyVariant === "unleveraged" && (
+              <div className="flex items-center justify-center gap-2 mb-6">
+                <span className="text-sm text-gray-300">Contract Size:</span>
+                <div className="inline-flex bg-gray-900 rounded-lg p-1">
+                  <button
+                    onClick={() => setContractSize("micro")}
+                    className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+                      contractSize === "micro"
+                        ? "bg-emerald-600 text-white"
+                        : "text-gray-400 hover:text-white"
+                    }`}
+                  >
+                    Micro
+                  </button>
+                  <button
+                    onClick={() => setContractSize("mini")}
+                    className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+                      contractSize === "mini"
+                        ? "bg-emerald-600 text-white"
+                        : "text-gray-400 hover:text-white"
+                    }`}
+                  >
+                    Mini
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Key Stats - Now updates based on contract size */}
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3 max-w-4xl mx-auto mb-8">
@@ -415,19 +468,24 @@ export default function LandingPage() {
             </div>
 
             {/* Trust Badges */}
-            <div className="flex flex-wrap justify-center gap-6 text-sm text-gray-300">
+            <div className="flex flex-wrap justify-center gap-6 text-sm text-gray-300 mb-12">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                 <span>Access to all future strategies</span>
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                <span>15+ years backtested data</span>
+                <span>14+ years backtested data</span>
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                 <span>Lock in your rate for life</span>
               </div>
+            </div>
+
+            {/* Live Equity Chart */}
+            <div className="max-w-4xl mx-auto">
+              <LandingEquityChart strategyVariant={strategyVariant} />
             </div>
           </div>
         </div>
