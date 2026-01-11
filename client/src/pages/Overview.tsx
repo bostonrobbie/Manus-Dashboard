@@ -77,18 +77,13 @@ export default function Overview() {
   const { data: strategies } = trpc.portfolio.listStrategies.useQuery();
 
   // Get strategy IDs based on filter
+  // For leveraged mode, we use the SAME NQTrend strategy but calculate with pnlPercent
   const selectedStrategyIds = (() => {
     if (!strategies) return undefined;
     if (strategyFilter === "all") return undefined; // All strategies
-    if (strategyFilter === "unleveraged") {
-      const unleveraged = strategies.find(s => s.symbol === "NQTrend");
-      return unleveraged ? [unleveraged.id] : undefined;
-    }
-    if (strategyFilter === "leveraged") {
-      const leveraged = strategies.find(s => s.symbol === "NQTrendLeveraged");
-      return leveraged ? [leveraged.id] : undefined;
-    }
-    return undefined;
+    // Both unleveraged and leveraged use NQTrend - the difference is in the calculation method
+    const nqTrend = strategies.find(s => s.symbol === "NQTrend");
+    return nqTrend ? [nqTrend.id] : undefined;
   })();
 
   const { data, isLoading, error } = trpc.portfolio.overview.useQuery(
@@ -97,6 +92,7 @@ export default function Overview() {
       startingCapital,
       contractMultiplier,
       strategyIds: selectedStrategyIds,
+      isLeveraged: strategyFilter === "leveraged",
     },
     {
       staleTime: 5 * 60 * 1000, // Cache for 5 minutes
@@ -111,6 +107,7 @@ export default function Overview() {
       startingCapital,
       contractMultiplier,
       strategyIds: selectedStrategyIds,
+      isLeveraged: strategyFilter === "leveraged",
     },
     {
       staleTime: 10 * 60 * 1000, // Cache for 10 minutes (less frequent updates)
@@ -328,10 +325,14 @@ export default function Overview() {
                 (actualPnlDollars / startingCapital) * 100;
 
               // Calculate adjusted max drawdown percentage
+              // For leveraged mode, use the actual % drawdown from equity curve (metrics.maxDrawdown)
+              // For unleveraged mode, calculate from dollar drawdown
               const actualDrawdownDollars =
                 metrics.maxDrawdownDollars * contractMultiplier;
               const adjustedMaxDrawdownPct =
-                (actualDrawdownDollars / startingCapital) * 100;
+                strategyFilter === "leveraged"
+                  ? metrics.maxDrawdown // Use actual % from equity curve for leveraged
+                  : (actualDrawdownDollars / startingCapital) * 100; // Calculate from dollars for unleveraged
 
               // Calculate adjusted annualized return
               // Get the number of years from the data

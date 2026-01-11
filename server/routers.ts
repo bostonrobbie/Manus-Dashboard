@@ -548,6 +548,7 @@ export const appRouter = router({
             .optional()
             .default("all"),
           strategyIds: z.array(z.number()).optional(), // Optional: filter to specific strategies
+          isLeveraged: z.boolean().optional().default(false), // Use leveraged calculation (pnlPercent)
         })
       )
       .query(async ({ input }) => {
@@ -557,6 +558,7 @@ export const appRouter = router({
           contractMultiplier,
           source,
           strategyIds: inputStrategyIds,
+          isLeveraged,
         } = input;
 
         // Calculate date range
@@ -644,17 +646,24 @@ export const appRouter = router({
         // Average ratio available for future use
         // const avgRatio = _totalTrades > 0 ? _totalRatio / _totalTrades : 10;
 
-        // Calculate portfolio metrics (mini contracts)
-        const metrics = analytics.calculatePerformanceMetrics(
-          allTrades,
-          startingCapital
-        );
+        // Calculate portfolio metrics (use leveraged or standard calculation)
+        const metrics = isLeveraged
+          ? analytics.calculateLeveragedPerformanceMetrics(
+              allTrades,
+              startingCapital
+            )
+          : analytics.calculatePerformanceMetrics(allTrades, startingCapital);
 
         // Calculate full history equity curve first to get all-time peak
-        const rawPortfolioEquityFull = analytics.calculateEquityCurve(
-          allTradesFullHistory,
-          startingCapital
-        );
+        const rawPortfolioEquityFull = isLeveraged
+          ? analytics.calculateLeveragedEquityCurve(
+              allTradesFullHistory,
+              startingCapital
+            )
+          : analytics.calculateEquityCurve(
+              allTradesFullHistory,
+              startingCapital
+            );
 
         // Find all-time peak from full history
         const allTimePeak =
@@ -662,11 +671,10 @@ export const appRouter = router({
             ? Math.max(...rawPortfolioEquityFull.map(p => p.equity))
             : startingCapital;
 
-        // Calculate equity curves for selected time range (mini contracts)
-        const rawPortfolioEquityTemp = analytics.calculateEquityCurve(
-          allTrades,
-          startingCapital
-        );
+        // Calculate equity curves for selected time range (use leveraged or standard)
+        const rawPortfolioEquityTemp = isLeveraged
+          ? analytics.calculateLeveragedEquityCurve(allTrades, startingCapital)
+          : analytics.calculateEquityCurve(allTrades, startingCapital);
 
         // Recalculate drawdowns using all-time peak (not just peak within time range)
         const rawPortfolioEquity = analytics.recalculateDrawdownsWithPeak(
@@ -2783,6 +2791,8 @@ Please check the Webhooks page in your dashboard for more details.
           autoExecuteEnabled: z.boolean().optional(),
           quantityMultiplier: z.number().optional(),
           maxPositionSize: z.number().nullable().optional(),
+          accountValue: z.number().nullable().optional(),
+          useLeveraged: z.boolean().optional(),
         })
       )
       .mutation(async ({ ctx, input }) => {
@@ -3268,6 +3278,8 @@ Please check the Webhooks page in your dashboard for more details.
           autoExecuteEnabled: z.boolean().optional(),
           quantityMultiplier: z.number().optional(),
           maxPositionSize: z.number().nullable().optional(),
+          accountValue: z.number().nullable().optional(),
+          useLeveraged: z.boolean().optional(),
         })
       )
       .mutation(async ({ ctx, input }) => {

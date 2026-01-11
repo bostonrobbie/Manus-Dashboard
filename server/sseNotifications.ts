@@ -30,6 +30,15 @@ export interface TradeNotification {
   positionId?: number;
   timestamp: Date;
   message: string;
+  // Position sizing information (for user-specific alerts)
+  positionSizing?: {
+    baseQuantity: number; // Original signal quantity
+    userQuantity: number; // Scaled quantity for user's account
+    contractType: "mini" | "micro"; // Contract type
+    accountValue: number; // User's account value
+    scalingFactor: number; // accountValue / backtestCapital
+    isLeveraged: boolean; // Whether using leveraged sizing
+  };
 }
 
 /**

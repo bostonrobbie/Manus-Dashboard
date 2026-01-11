@@ -578,12 +578,12 @@ export default function LandingPage() {
                   <LayoutDashboard className="w-6 h-6 text-rose-400" />
                 </div>
                 <h3 className="text-lg font-semibold text-white mb-2">
-                  Personal Dashboard
+                  Real-Time Trade Alerts
                 </h3>
                 <p className="text-gray-400 text-sm">
-                  Build your own portfolio by selecting strategies that match
-                  your goals. Track your personal equity curve and performance
-                  metrics.
+                  Get instant notifications when trades are executed. See live
+                  positions, entry prices, and P&L updated in real-time on your
+                  dashboard.
                 </p>
               </CardContent>
             </Card>
@@ -594,11 +594,12 @@ export default function LandingPage() {
                   <Target className="w-6 h-6 text-cyan-400" />
                 </div>
                 <h3 className="text-lg font-semibold text-white mb-2">
-                  Portfolio Builder
+                  Account-Based Position Sizing
                 </h3>
                 <p className="text-gray-400 text-sm">
-                  Combine strategies for diversification. See combined equity
-                  curves, correlations, and risk metrics in real-time.
+                  Enter your account size and get exact contract quantities for
+                  each trade. Works with both leveraged (% equity) and
+                  unleveraged (fixed) strategies.
                 </p>
               </CardContent>
             </Card>
@@ -608,10 +609,11 @@ export default function LandingPage() {
           <div className="max-w-5xl mx-auto">
             <div className="text-center mb-8">
               <h3 className="text-2xl font-light text-white mb-2">
-                See Your Dashboard
+                Professional Analytics Dashboard
               </h3>
               <p className="text-gray-400">
-                Full transparency into every trade and metric
+                Track performance, analyze risk metrics, and get real-time trade
+                alerts — all in one place
               </p>
             </div>
             <div className="relative rounded-2xl overflow-hidden border border-gray-800 shadow-2xl shadow-emerald-500/10">
@@ -888,10 +890,10 @@ export default function LandingPage() {
               },
               {
                 src: "/screenshots/my-dashboard.webp",
-                alt: "Personal trading dashboard with portfolio performance, equity curve, and risk metrics",
-                title: "Personal Dashboard",
+                alt: "Real-time trade alerts dashboard showing live positions and P&L",
+                title: "Real-Time Trade Alerts",
                 description:
-                  "Your personalized portfolio with performance tracking",
+                  "Live positions, entry prices, and instant notifications when trades execute",
               },
             ].map((screenshot, index) => (
               <div

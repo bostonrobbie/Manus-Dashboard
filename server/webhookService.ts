@@ -42,6 +42,8 @@ import {
 import { InsertWebhookLog, InsertOpenPosition } from "../drizzle/schema";
 import { notifyOwnerAsync } from "./_core/notification";
 import { broadcastTradeNotification } from "./sseNotifications";
+import { calculateUserPositionSize } from "./positionSizingService";
+import * as subscriptionService from "./subscriptionService";
 import { cache } from "./cache";
 
 // TradingView payload format (enhanced with position tracking)
@@ -837,10 +839,36 @@ async function handleEntrySignal(
   });
 
   // Send async notification for entry signal (non-blocking) - skip for test webhooks
-  // Note: For now, we send to owner. In the future, this could be extended
-  // to send to subscribed users based on their notification preferences.
-  // The shouldSendNotification function is available for per-user checks.
+  // Now includes position sizing information for subscribed users
   if (!payload.isTest) {
+    // Get subscribed users for this strategy to include position sizing info
+    const subscribedUsers = await subscriptionService.getStrategySubscribers(
+      strategy.id
+    );
+
+    // Build position sizing summary for notification
+    let positionSizingInfo = "";
+    if (subscribedUsers.length > 0) {
+      // Show example position sizing for different account sizes
+      const exampleSizes = [50000, 100000, 200000];
+      const sizingExamples = exampleSizes
+        .map(accountValue => {
+          const sizing = calculateUserPositionSize(
+            {
+              accountValue,
+              useLeveraged: true,
+              quantityMultiplier: "1",
+              maxPositionSize: null,
+            },
+            "micro",
+            "NQ"
+          );
+          return `$${(accountValue / 1000).toFixed(0)}K → ${sizing.recommendedMicroContracts} micro`;
+        })
+        .join(" | ");
+      positionSizingInfo = `\n\n**Position Sizing (Leveraged):**\n${sizingExamples}`;
+    }
+
     notifyOwnerAsync({
       title: `📈 ${payload.direction} Entry: ${payload.strategySymbol}`,
       content:
@@ -848,8 +876,9 @@ async function handleEntrySignal(
         `**Strategy:** ${payload.strategySymbol}\n` +
         `**Direction:** ${payload.direction}\n` +
         `**Entry Price:** $${payload.price.toFixed(2)}\n` +
-        `**Quantity:** ${payload.quantity} contract${payload.quantity !== 1 ? "s" : ""}\n` +
-        `**Time:** ${payload.timestamp.toLocaleString()}`,
+        `**Base Quantity:** ${payload.quantity} contract${payload.quantity !== 1 ? "s" : ""}\n` +
+        `**Time:** ${payload.timestamp.toLocaleString()}` +
+        positionSizingInfo,
     });
   }
 
@@ -1107,6 +1136,14 @@ export function getWebhookUrl(baseUrl: string): string {
 
 /**
  * Generate the TradingView alert message template for a strategy (Enhanced)
+ *
+ * Position Sizing Notes:
+ * - The webhook receives the base quantity from TradingView
+ * - User-specific position sizing is calculated server-side based on:
+ *   - User's accountValue setting
+ *   - useLeveraged flag (% equity scaling vs fixed)
+ *   - contractType preference (mini vs micro)
+ * - The calculated position size is included in alert notifications
  */
 export function getAlertMessageTemplate(
   strategySymbol: string,
@@ -1116,9 +1153,11 @@ export function getAlertMessageTemplate(
     symbol: strategySymbol,
     date: "{{timenow}}",
     data: "{{strategy.order.action}}",
-    position: "{{strategy.market_position}}", // NEW: Track position state
-    quantity: "{{strategy.order.contracts}}",
+    position: "{{strategy.market_position}}", // Track position state: "long", "short", "flat"
+    quantity: "{{strategy.order.contracts}}", // Base quantity from strategy
     price: "{{close}}",
+    // Note: User-specific position sizing is calculated server-side
+    // based on accountValue and useLeveraged settings
   };
 
   if (token) {

@@ -7,7 +7,7 @@ import {
   calculateDailyEquityCurve as calculateDailyEquityCurveSync,
   calculateDailySharpeRatio as calculateDailySharpeRatioSync,
   calculateDailySortinoRatio as calculateDailySortinoRatioSync,
-} from './core/dailyEquityCurve';
+} from "./core/dailyEquityCurve";
 
 export interface Trade {
   id: number;
@@ -49,7 +49,8 @@ export interface TradeStats {
   // Professional risk metrics
   payoffRatio: number; // avgWin / avgLoss
   riskOfRuin: number; // percentage
-  riskOfRuinDetails: { // NEW: Detailed RoR breakdown
+  riskOfRuinDetails: {
+    // NEW: Detailed RoR breakdown
     capitalUnits: number; // Account balance / avg loss
     tradingAdvantage: number; // (WinRate * PayoffRatio - LossRate) / PayoffRatio
     minBalanceForZeroRisk: number; // Minimum balance for <0.01% RoR (mini contracts)
@@ -92,6 +93,7 @@ export interface EquityPoint {
 
 /**
  * Calculate equity curve from trades (mini contracts only)
+ * Uses fixed dollar P&L - suitable for unleveraged strategies
  * @param trades Array of trades
  * @param startingCapital Starting capital in dollars
  */
@@ -99,8 +101,8 @@ export function calculateEquityCurve(
   trades: Trade[],
   startingCapital: number = 100000
 ): EquityPoint[] {
-  const sortedTrades = [...trades].sort((a, b) => 
-    a.exitDate.getTime() - b.exitDate.getTime()
+  const sortedTrades = [...trades].sort(
+    (a, b) => a.exitDate.getTime() - b.exitDate.getTime()
   );
 
   const points: EquityPoint[] = [];
@@ -134,6 +136,60 @@ export function calculateEquityCurve(
 }
 
 /**
+ * Calculate equity curve using percentage returns (leveraged strategies)
+ * Calculates P&L as percentage of base capital, then compounds with user's starting capital
+ * This simulates scaling position size proportionally with account size
+ * @param trades Array of trades
+ * @param startingCapital Starting capital in dollars (user's account size)
+ * @param baseCapital Base capital used for calculating percentage returns (default $100K for mini contracts)
+ */
+export function calculateLeveragedEquityCurve(
+  trades: Trade[],
+  startingCapital: number = 10000,
+  baseCapital: number = 100000 // The capital the original P&L was calculated on (1 mini contract)
+): EquityPoint[] {
+  const sortedTrades = [...trades].sort(
+    (a, b) => a.exitDate.getTime() - b.exitDate.getTime()
+  );
+
+  const points: EquityPoint[] = [];
+  let equity = startingCapital;
+  let peak = startingCapital;
+
+  // Add starting point
+  if (sortedTrades.length > 0) {
+    points.push({
+      date: sortedTrades[0]!.entryDate,
+      equity: startingCapital,
+      drawdown: 0,
+    });
+  }
+
+  for (const trade of sortedTrades) {
+    // Convert P&L from cents to dollars
+    const pnlDollars = trade.pnl / 100;
+
+    // Calculate percentage return relative to base capital
+    // This represents the return if trading 1 mini contract with $100K
+    const pnlPercent = pnlDollars / baseCapital;
+
+    // Apply the percentage return to current equity (compounding)
+    // This scales the return proportionally to the user's account size
+    equity = equity * (1 + pnlPercent);
+    peak = Math.max(peak, equity);
+    const drawdown = peak > 0 ? ((peak - equity) / peak) * 100 : 0;
+
+    points.push({
+      date: trade.exitDate,
+      equity,
+      drawdown,
+    });
+  }
+
+  return points;
+}
+
+/**
  * Recalculate drawdowns in an equity curve using a specific peak value
  * This is used to calculate drawdowns relative to all-time peak, not just peak within the time range
  */
@@ -143,7 +199,8 @@ export function recalculateDrawdownsWithPeak(
 ): EquityPoint[] {
   return equityCurve.map(point => ({
     ...point,
-    drawdown: allTimePeak > 0 ? ((allTimePeak - point.equity) / allTimePeak) * 100 : 0,
+    drawdown:
+      allTimePeak > 0 ? ((allTimePeak - point.equity) / allTimePeak) * 100 : 0,
   }));
 }
 
@@ -159,7 +216,7 @@ export function forwardFillEquityCurve(
 
   const filled: EquityPoint[] = [];
   let currentIndex = 0;
-  
+
   const start = new Date(startDate);
   start.setHours(0, 0, 0, 0);
   const end = new Date(endDate);
@@ -167,7 +224,7 @@ export function forwardFillEquityCurve(
 
   for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
     const currentDate = new Date(d);
-    
+
     // Find the most recent point before or on this date
     while (
       currentIndex < points.length - 1 &&
@@ -194,7 +251,10 @@ export function forwardFillEquityCurve(
 /**
  * Calculate enhanced trade statistics
  */
-export function calculateTradeStats(trades: Trade[], startingCapital: number = 100000): TradeStats {
+export function calculateTradeStats(
+  trades: Trade[],
+  startingCapital: number = 100000
+): TradeStats {
   if (trades.length === 0) {
     return {
       totalTrades: 0,
@@ -233,26 +293,34 @@ export function calculateTradeStats(trades: Trade[], startingCapital: number = 1
   // P&L statistics
   const pnlValues = trades.map(t => t.pnl / 100); // Convert to dollars
   const sortedPnl = [...pnlValues].sort((a, b) => a - b);
-  const averageTradePnL = pnlValues.reduce((sum, p) => sum + p, 0) / pnlValues.length;
+  const averageTradePnL =
+    pnlValues.reduce((sum, p) => sum + p, 0) / pnlValues.length;
   const medianTradePnL = sortedPnl[Math.floor(sortedPnl.length / 2)]!;
   const bestTradePnL = Math.max(...pnlValues);
   const worstTradePnL = Math.min(...pnlValues);
 
   // Profit factor
-  const totalWins = winningTrades.reduce((sum, t) => sum + (t.pnl / 100), 0);
-  const totalLosses = Math.abs(losingTrades.reduce((sum, t) => sum + (t.pnl / 100), 0));
-  const profitFactor = totalLosses > 0 ? totalWins / totalLosses : totalWins > 0 ? Infinity : 0;
+  const totalWins = winningTrades.reduce((sum, t) => sum + t.pnl / 100, 0);
+  const totalLosses = Math.abs(
+    losingTrades.reduce((sum, t) => sum + t.pnl / 100, 0)
+  );
+  const profitFactor =
+    totalLosses > 0 ? totalWins / totalLosses : totalWins > 0 ? Infinity : 0;
 
   // Average win/loss
-  const avgWin = winningTrades.length > 0 ? totalWins / winningTrades.length : 0;
-  const avgLoss = losingTrades.length > 0 ? totalLosses / losingTrades.length : 0;
+  const avgWin =
+    winningTrades.length > 0 ? totalWins / winningTrades.length : 0;
+  const avgLoss =
+    losingTrades.length > 0 ? totalLosses / losingTrades.length : 0;
 
   // Expectancy
-  const expectancyPnL = (avgWin * (winRate / 100)) - (avgLoss * ((100 - winRate) / 100));
-  
+  const expectancyPnL =
+    avgWin * (winRate / 100) - avgLoss * ((100 - winRate) / 100);
+
   // Expectancy percentage (based on average trade size)
   const avgTradeSize = Math.abs(averageTradePnL);
-  const expectancyPct = avgTradeSize > 0 ? (expectancyPnL / avgTradeSize) * 100 : 0;
+  const expectancyPct =
+    avgTradeSize > 0 ? (expectancyPnL / avgTradeSize) * 100 : 0;
 
   // Holding time statistics
   const holdingTimes = trades.map(t => {
@@ -260,9 +328,11 @@ export function calculateTradeStats(trades: Trade[], startingCapital: number = 1
     const exitTime = t.exitDate.getTime();
     return (exitTime - entryTime) / (1000 * 60); // Minutes
   });
-  const averageHoldingTimeMinutes = holdingTimes.reduce((sum, t) => sum + t, 0) / holdingTimes.length;
+  const averageHoldingTimeMinutes =
+    holdingTimes.reduce((sum, t) => sum + t, 0) / holdingTimes.length;
   const sortedHoldingTimes = [...holdingTimes].sort((a, b) => a - b);
-  const medianHoldingTimeMinutes = sortedHoldingTimes[Math.floor(sortedHoldingTimes.length / 2)]!;
+  const medianHoldingTimeMinutes =
+    sortedHoldingTimes[Math.floor(sortedHoldingTimes.length / 2)]!;
 
   // Win/Loss streaks
   let longestWinStreak = 0;
@@ -270,7 +340,9 @@ export function calculateTradeStats(trades: Trade[], startingCapital: number = 1
   let currentWinStreak = 0;
   let currentLossStreak = 0;
 
-  const sortedTrades = [...trades].sort((a, b) => a.exitDate.getTime() - b.exitDate.getTime());
+  const sortedTrades = [...trades].sort(
+    (a, b) => a.exitDate.getTime() - b.exitDate.getTime()
+  );
   for (const trade of sortedTrades) {
     if (trade.pnl > 0) {
       currentWinStreak++;
@@ -285,27 +357,31 @@ export function calculateTradeStats(trades: Trade[], startingCapital: number = 1
 
   // Professional risk metrics
   const payoffRatio = avgLoss > 0 ? avgWin / avgLoss : 0;
-  
+
   // Risk of Ruin with detailed breakdown
   // Formula: RoR = ((1 - A) / (1 + A))^U
   // where A = trading advantage, U = capital units
   const winProb = winRate / 100;
   const lossProb = 1 - winProb;
-  
+
   let riskOfRuin = 100;
-  let riskOfRuinDetails: TradeStats['riskOfRuinDetails'] = null;
-  
+  let riskOfRuinDetails: TradeStats["riskOfRuinDetails"] = null;
+
   if (payoffRatio > 0 && winProb > 0 && avgLoss > 0) {
     // Trading Advantage: A = (WinRate * PayoffRatio - LossRate) / PayoffRatio
     const tradingAdvantage = (winProb * payoffRatio - lossProb) / payoffRatio;
-    
+
     // Capital Units: U = Account Balance / Average Loss
     const capitalUnits = startingCapital / avgLoss;
-    
+
     // Calculate RoR
     if (tradingAdvantage > 0) {
       // Positive expectancy: RoR approaches 0 as capital units increase
-      riskOfRuin = Math.pow((1 - tradingAdvantage) / (1 + tradingAdvantage), capitalUnits) * 100;
+      riskOfRuin =
+        Math.pow(
+          (1 - tradingAdvantage) / (1 + tradingAdvantage),
+          capitalUnits
+        ) * 100;
     } else if (tradingAdvantage < 0) {
       // Negative expectancy: RoR is 100%
       riskOfRuin = 100;
@@ -313,11 +389,11 @@ export function calculateTradeStats(trades: Trade[], startingCapital: number = 1
       // Zero expectancy: RoR is 50%
       riskOfRuin = 50;
     }
-    
+
     // Calculate minimum balance for <0.01% RoR
     // This needs to account for BOTH the mathematical RoR formula AND the historical max drawdown
     // The true minimum should be the MAX of both to ensure survival
-    
+
     // First, calculate the equity curve to get max drawdown in dollars
     const tempEquityCurve = calculateEquityCurve(trades, startingCapital);
     let tempPeak = startingCapital;
@@ -327,38 +403,40 @@ export function calculateTradeStats(trades: Trade[], startingCapital: number = 1
       const dd = tempPeak - point.equity;
       maxDrawdownDollars = Math.max(maxDrawdownDollars, dd);
     }
-    
+
     // Margin requirements (approximate IBKR values for portfolio of futures)
     const marginMini = 5000; // Approximate margin for mini contracts
     const marginMicro = 500; // Approximate margin for micro contracts
-    
+
     let minBalanceForZeroRisk = 0;
     let minBalanceForZeroRiskMicro = 0;
-    
+
     if (tradingAdvantage > 0) {
       // Solve for U where RoR = 0.0001 (0.01%)
       // 0.0001 = ((1-A)/(1+A))^U
       // U = ln(0.0001) / ln((1-A)/(1+A))
       const targetRoR = 0.0001;
-      const requiredUnits = Math.log(targetRoR) / Math.log((1 - tradingAdvantage) / (1 + tradingAdvantage));
-      
+      const requiredUnits =
+        Math.log(targetRoR) /
+        Math.log((1 - tradingAdvantage) / (1 + tradingAdvantage));
+
       // Mathematical RoR-based minimum
       const rorBasedMinMini = requiredUnits * avgLoss;
       const rorBasedMinMicro = requiredUnits * (avgLoss / 10);
-      
+
       // Drawdown-based minimum (max drawdown + margin requirement)
       const ddBasedMinMini = maxDrawdownDollars + marginMini;
-      const ddBasedMinMicro = (maxDrawdownDollars / 10) + marginMicro;
-      
+      const ddBasedMinMicro = maxDrawdownDollars / 10 + marginMicro;
+
       // Take the MAX of both to ensure true 0% risk of ruin
       minBalanceForZeroRisk = Math.max(rorBasedMinMini, ddBasedMinMini);
       minBalanceForZeroRiskMicro = Math.max(rorBasedMinMicro, ddBasedMinMicro);
     } else {
       // If no positive edge, minimum is just max drawdown + margin
       minBalanceForZeroRisk = maxDrawdownDollars + marginMini;
-      minBalanceForZeroRiskMicro = (maxDrawdownDollars / 10) + marginMicro;
+      minBalanceForZeroRiskMicro = maxDrawdownDollars / 10 + marginMicro;
     }
-    
+
     riskOfRuinDetails = {
       capitalUnits,
       tradingAdvantage,
@@ -366,17 +444,18 @@ export function calculateTradeStats(trades: Trade[], startingCapital: number = 1
       minBalanceForZeroRiskMicro,
     };
   }
-  
+
   // Kelly Criterion: f* = (p * b - q) / b, where p = win rate, q = loss rate, b = payoff ratio
-  const kellyPercentage = payoffRatio > 0 
-    ? Math.max(0, ((winProb * payoffRatio - lossProb) / payoffRatio) * 100)
-    : 0;
-  
+  const kellyPercentage =
+    payoffRatio > 0
+      ? Math.max(0, ((winProb * payoffRatio - lossProb) / payoffRatio) * 100)
+      : 0;
+
   // Calculate equity curve for additional metrics
   const equityCurve = calculateEquityCurve(trades, 100000);
   const finalEquity = equityCurve[equityCurve.length - 1]?.equity || 100000;
   const netProfit = finalEquity - 100000;
-  
+
   // Max drawdown in dollars
   let peak = 100000;
   let maxDD = 0;
@@ -385,41 +464,58 @@ export function calculateTradeStats(trades: Trade[], startingCapital: number = 1
     const dd = peak - point.equity;
     maxDD = Math.max(maxDD, dd);
   }
-  
+
   // Recovery Factor: Net Profit / Max Drawdown
   const recoveryFactor = maxDD > 0 ? netProfit / maxDD : 0;
-  
+
   // Ulcer Index: sqrt(mean(drawdown^2))
   const drawdownSquares = equityCurve.map(p => Math.pow(p.drawdown, 2));
-  const meanDrawdownSquare = drawdownSquares.reduce((sum, d) => sum + d, 0) / drawdownSquares.length;
+  const meanDrawdownSquare =
+    drawdownSquares.reduce((sum, d) => sum + d, 0) / drawdownSquares.length;
   const ulcerIndex = Math.sqrt(meanDrawdownSquare);
-  
+
   // MAR Ratio: Annualized Return / Max Drawdown %
-  const totalDays = equityCurve.length > 0 
-    ? (equityCurve[equityCurve.length - 1]!.date.getTime() - equityCurve[0]!.date.getTime()) / (1000 * 60 * 60 * 24)
-    : 1;
+  const totalDays =
+    equityCurve.length > 0
+      ? (equityCurve[equityCurve.length - 1]!.date.getTime() -
+          equityCurve[0]!.date.getTime()) /
+        (1000 * 60 * 60 * 24)
+      : 1;
   const totalReturnPct = ((finalEquity - 100000) / 100000) * 100;
-  const annualizedReturn = (Math.pow(1 + totalReturnPct / 100, 365 / totalDays) - 1) * 100;
-  const maxDrawdownPct = equityCurve.reduce((max, p) => Math.max(max, p.drawdown), 0);
+  const annualizedReturn =
+    (Math.pow(1 + totalReturnPct / 100, 365 / totalDays) - 1) * 100;
+  const maxDrawdownPct = equityCurve.reduce(
+    (max, p) => Math.max(max, p.drawdown),
+    0
+  );
   const marRatio = maxDrawdownPct > 0 ? annualizedReturn / maxDrawdownPct : 0;
-  
+
   // Monthly/Quarterly consistency
   const monthlyPnL = new Map<string, number>();
   const quarterlyPnL = new Map<string, number>();
-  
+
   for (const trade of trades) {
-    const monthKey = `${trade.exitDate.getFullYear()}-${String(trade.exitDate.getMonth() + 1).padStart(2, '0')}`;
+    const monthKey = `${trade.exitDate.getFullYear()}-${String(trade.exitDate.getMonth() + 1).padStart(2, "0")}`;
     const quarter = Math.floor(trade.exitDate.getMonth() / 3) + 1;
     const quarterKey = `${trade.exitDate.getFullYear()}-Q${quarter}`;
-    
-    monthlyPnL.set(monthKey, (monthlyPnL.get(monthKey) || 0) + (trade.pnl / 100));
-    quarterlyPnL.set(quarterKey, (quarterlyPnL.get(quarterKey) || 0) + (trade.pnl / 100));
+
+    monthlyPnL.set(monthKey, (monthlyPnL.get(monthKey) || 0) + trade.pnl / 100);
+    quarterlyPnL.set(
+      quarterKey,
+      (quarterlyPnL.get(quarterKey) || 0) + trade.pnl / 100
+    );
   }
-  
-  const profitableMonths = Array.from(monthlyPnL.values()).filter(p => p > 0).length;
-  const profitableQuarters = Array.from(quarterlyPnL.values()).filter(p => p > 0).length;
-  const monthlyConsistency = monthlyPnL.size > 0 ? (profitableMonths / monthlyPnL.size) * 100 : 0;
-  const quarterlyConsistency = quarterlyPnL.size > 0 ? (profitableQuarters / quarterlyPnL.size) * 100 : 0;
+
+  const profitableMonths = Array.from(monthlyPnL.values()).filter(
+    p => p > 0
+  ).length;
+  const profitableQuarters = Array.from(quarterlyPnL.values()).filter(
+    p => p > 0
+  ).length;
+  const monthlyConsistency =
+    monthlyPnL.size > 0 ? (profitableMonths / monthlyPnL.size) * 100 : 0;
+  const quarterlyConsistency =
+    quarterlyPnL.size > 0 ? (profitableQuarters / quarterlyPnL.size) * 100 : 0;
 
   return {
     totalTrades: trades.length,
@@ -485,36 +581,43 @@ export function calculatePerformanceMetrics(
     };
   }
 
-  const sortedTrades = [...trades].sort((a, b) => 
-    a.exitDate.getTime() - b.exitDate.getTime()
+  const sortedTrades = [...trades].sort(
+    (a, b) => a.exitDate.getTime() - b.exitDate.getTime()
   );
 
   // Calculate total P&L (mini contracts)
-  const totalPnl = trades.reduce((sum, t) => sum + (t.pnl / 100), 0);
+  const totalPnl = trades.reduce((sum, t) => sum + t.pnl / 100, 0);
   const totalReturn = (totalPnl / startingCapital) * 100;
 
   // Calculate period length in years
   const firstDate = sortedTrades[0]!.exitDate;
   const lastDate = sortedTrades[sortedTrades.length - 1]!.exitDate;
-  const daysElapsed = daysInPeriod || 
+  const daysElapsed =
+    daysInPeriod ||
     (lastDate.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24);
   const yearsElapsed = daysElapsed / 365.25;
 
   // Annualized return
-  const annualizedReturn = yearsElapsed > 0
-    ? (Math.pow(1 + totalReturn / 100, 1 / yearsElapsed) - 1) * 100
-    : totalReturn;
+  const annualizedReturn =
+    yearsElapsed > 0
+      ? (Math.pow(1 + totalReturn / 100, 1 / yearsElapsed) - 1) * 100
+      : totalReturn;
 
   // Win/Loss statistics
   const winningTrades = trades.filter(t => t.pnl > 0);
   const losingTrades = trades.filter(t => t.pnl < 0);
   const winRate = (winningTrades.length / trades.length) * 100;
 
-  const totalWins = winningTrades.reduce((sum, t) => sum + (t.pnl / 100), 0);
-  const totalLosses = Math.abs(losingTrades.reduce((sum, t) => sum + (t.pnl / 100), 0));
-  const avgWin = winningTrades.length > 0 ? totalWins / winningTrades.length : 0;
-  const avgLoss = losingTrades.length > 0 ? totalLosses / losingTrades.length : 0;
-  const profitFactor = totalLosses > 0 ? totalWins / totalLosses : totalWins > 0 ? Infinity : 0;
+  const totalWins = winningTrades.reduce((sum, t) => sum + t.pnl / 100, 0);
+  const totalLosses = Math.abs(
+    losingTrades.reduce((sum, t) => sum + t.pnl / 100, 0)
+  );
+  const avgWin =
+    winningTrades.length > 0 ? totalWins / winningTrades.length : 0;
+  const avgLoss =
+    losingTrades.length > 0 ? totalLosses / losingTrades.length : 0;
+  const profitFactor =
+    totalLosses > 0 ? totalWins / totalLosses : totalWins > 0 ? Infinity : 0;
 
   // Calculate equity curve for drawdown (trade-by-trade for display)
   const equityCurve = calculateEquityCurve(trades, startingCapital);
@@ -545,44 +648,57 @@ export function calculatePerformanceMetrics(
     tradeReturns.push(tradeReturn);
   }
 
-  const avgTradeReturn = tradeReturns.length > 0
-    ? tradeReturns.reduce((sum, r) => sum + r, 0) / tradeReturns.length
-    : 0;
+  const avgTradeReturn =
+    tradeReturns.length > 0
+      ? tradeReturns.reduce((sum, r) => sum + r, 0) / tradeReturns.length
+      : 0;
 
-  const tradeStdDev = tradeReturns.length > 1
-    ? Math.sqrt(
-        tradeReturns.reduce((sum, r) => sum + Math.pow(r - avgTradeReturn, 2), 0) /
-          (tradeReturns.length - 1)
-      )
-    : 0;
+  const tradeStdDev =
+    tradeReturns.length > 1
+      ? Math.sqrt(
+          tradeReturns.reduce(
+            (sum, r) => sum + Math.pow(r - avgTradeReturn, 2),
+            0
+          ) /
+            (tradeReturns.length - 1)
+        )
+      : 0;
 
-  const tradeBasedSharpe = tradeStdDev > 0
-    ? (avgTradeReturn / tradeStdDev) * Math.sqrt(252)
-    : 0;
+  const tradeBasedSharpe =
+    tradeStdDev > 0 ? (avgTradeReturn / tradeStdDev) * Math.sqrt(252) : 0;
 
   const downsideTradeReturns = tradeReturns.filter(r => r < 0);
-  const downsideTradeStdDev = downsideTradeReturns.length > 1
-    ? Math.sqrt(
-        downsideTradeReturns.reduce((sum, r) => sum + Math.pow(r, 2), 0) /
-          (downsideTradeReturns.length - 1)
-      )
-    : 0;
+  const downsideTradeStdDev =
+    downsideTradeReturns.length > 1
+      ? Math.sqrt(
+          downsideTradeReturns.reduce((sum, r) => sum + Math.pow(r, 2), 0) /
+            (downsideTradeReturns.length - 1)
+        )
+      : 0;
 
-  const tradeBasedSortino = downsideTradeStdDev > 0
-    ? (avgTradeReturn / downsideTradeStdDev) * Math.sqrt(252)
-    : tradeBasedSharpe;
+  const tradeBasedSortino =
+    downsideTradeStdDev > 0
+      ? (avgTradeReturn / downsideTradeStdDev) * Math.sqrt(252)
+      : tradeBasedSharpe;
 
   // ============================================================
   // INDUSTRY-STANDARD SHARPE/SORTINO CALCULATION
   // Uses proper daily equity curve with forward-filling
   // ============================================================
-  
+
   // Calculate proper daily equity curve
-  const dailyEquityResult = calculateDailyEquityCurveSync(trades, startingCapital);
-  
+  const dailyEquityResult = calculateDailyEquityCurveSync(
+    trades,
+    startingCapital
+  );
+
   // Use proper daily returns for Sharpe/Sortino
-  const sharpeRatio = calculateDailySharpeRatioSync(dailyEquityResult.dailyReturns);
-  const sortinoRatio = calculateDailySortinoRatioSync(dailyEquityResult.dailyReturns);
+  const sharpeRatio = calculateDailySharpeRatioSync(
+    dailyEquityResult.dailyReturns
+  );
+  const sortinoRatio = calculateDailySortinoRatioSync(
+    dailyEquityResult.dailyReturns
+  );
 
   // Calmar ratio: annualized return / max drawdown
   const calmarRatio = maxDrawdown > 0 ? annualizedReturn / maxDrawdown : 0;
@@ -613,6 +729,337 @@ export function calculatePerformanceMetrics(
 }
 
 /**
+ * Calculate comprehensive performance metrics for leveraged strategies
+ * Uses pnlPercent for compounding returns instead of fixed dollar P&L
+ * @param trades Array of trades
+ * @param startingCapital Starting capital in dollars
+ * @param daysInPeriod Optional period length in days
+ */
+export function calculateLeveragedPerformanceMetrics(
+  trades: Trade[],
+  startingCapital: number = 10000,
+  daysInPeriod?: number
+): PerformanceMetrics {
+  if (trades.length === 0) {
+    return {
+      totalReturn: 0,
+      annualizedReturn: 0,
+      sharpeRatio: 0,
+      sortinoRatio: 0,
+      tradeBasedSharpe: 0,
+      tradeBasedSortino: 0,
+      calmarRatio: 0,
+      maxDrawdown: 0,
+      maxDrawdownDollars: 0,
+      winRate: 0,
+      profitFactor: 0,
+      avgWin: 0,
+      avgLoss: 0,
+      totalTrades: 0,
+      winningTrades: 0,
+      losingTrades: 0,
+      tradingDays: 0,
+      tradeStats: calculateTradeStats([], startingCapital),
+    };
+  }
+
+  const sortedTrades = [...trades].sort(
+    (a, b) => a.exitDate.getTime() - b.exitDate.getTime()
+  );
+
+  // Calculate equity curve using percentage returns (leveraged)
+  const equityCurve = calculateLeveragedEquityCurve(trades, startingCapital);
+  const finalEquity = equityCurve[equityCurve.length - 1]!.equity;
+  const totalReturn = ((finalEquity - startingCapital) / startingCapital) * 100;
+
+  // Calculate period length in years
+  const firstDate = sortedTrades[0]!.exitDate;
+  const lastDate = sortedTrades[sortedTrades.length - 1]!.exitDate;
+  const daysElapsed =
+    daysInPeriod ||
+    (lastDate.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24);
+  const yearsElapsed = daysElapsed / 365.25;
+
+  // Annualized return (using CAGR formula)
+  const annualizedReturn =
+    yearsElapsed > 0
+      ? (Math.pow(finalEquity / startingCapital, 1 / yearsElapsed) - 1) * 100
+      : totalReturn;
+
+  // Win/Loss statistics using pnl (since pnlPercent may be 0 in database)
+  const winningTrades = trades.filter(t => t.pnl > 0);
+  const losingTrades = trades.filter(t => t.pnl < 0);
+  const winRate = (winningTrades.length / trades.length) * 100;
+
+  // Calculate avg win/loss in dollars, then convert to percentage of starting capital
+  const avgWinDollars =
+    winningTrades.length > 0
+      ? winningTrades.reduce((sum, t) => sum + t.pnl / 100, 0) /
+        winningTrades.length
+      : 0;
+  const avgLossDollars =
+    losingTrades.length > 0
+      ? Math.abs(losingTrades.reduce((sum, t) => sum + t.pnl / 100, 0)) /
+        losingTrades.length
+      : 0;
+
+  // These are the actual dollar amounts
+  const avgWin = avgWinDollars;
+  const avgLoss = avgLossDollars;
+
+  const totalWinsDollars = winningTrades.reduce(
+    (sum, t) => sum + t.pnl / 100,
+    0
+  );
+  const totalLossesDollars = Math.abs(
+    losingTrades.reduce((sum, t) => sum + t.pnl / 100, 0)
+  );
+  const profitFactor =
+    totalLossesDollars > 0
+      ? totalWinsDollars / totalLossesDollars
+      : totalWinsDollars > 0
+        ? Infinity
+        : 0;
+
+  // Max drawdown from equity curve (already calculated as % from peak)
+  const maxDrawdown = Math.max(...equityCurve.map(p => p.drawdown), 0);
+
+  // Calculate max drawdown in dollars (peak to trough)
+  let maxEquity = equityCurve[0]!.equity;
+  let maxDrawdownDollars = 0;
+  for (const point of equityCurve) {
+    if (point.equity > maxEquity) {
+      maxEquity = point.equity;
+    }
+    const drawdownDollars = maxEquity - point.equity;
+    if (drawdownDollars > maxDrawdownDollars) {
+      maxDrawdownDollars = drawdownDollars;
+    }
+  }
+
+  // Trade-based Sharpe/Sortino using percentage returns
+  const tradeReturns = trades.map(t => t.pnlPercent / 10000);
+  const avgTradeReturn =
+    tradeReturns.reduce((sum, r) => sum + r, 0) / tradeReturns.length;
+
+  const tradeStdDev =
+    tradeReturns.length > 1
+      ? Math.sqrt(
+          tradeReturns.reduce(
+            (sum, r) => sum + Math.pow(r - avgTradeReturn, 2),
+            0
+          ) /
+            (tradeReturns.length - 1)
+        )
+      : 0;
+
+  const tradeBasedSharpe =
+    tradeStdDev > 0 ? (avgTradeReturn / tradeStdDev) * Math.sqrt(252) : 0;
+
+  const downsideTradeReturns = tradeReturns.filter(r => r < 0);
+  const downsideTradeStdDev =
+    downsideTradeReturns.length > 1
+      ? Math.sqrt(
+          downsideTradeReturns.reduce((sum, r) => sum + Math.pow(r, 2), 0) /
+            (downsideTradeReturns.length - 1)
+        )
+      : 0;
+
+  const tradeBasedSortino =
+    downsideTradeStdDev > 0
+      ? (avgTradeReturn / downsideTradeStdDev) * Math.sqrt(252)
+      : tradeBasedSharpe;
+
+  // Daily Sharpe/Sortino (use trade-based for leveraged since daily returns compound)
+  const sharpeRatio = tradeBasedSharpe;
+  const sortinoRatio = tradeBasedSortino;
+
+  // Calmar ratio: annualized return / max drawdown
+  const calmarRatio = maxDrawdown > 0 ? annualizedReturn / maxDrawdown : 0;
+
+  // Calculate enhanced trade statistics (using leveraged metrics)
+  const tradeStats = calculateLeveragedTradeStats(trades, startingCapital);
+
+  return {
+    totalReturn,
+    annualizedReturn,
+    sharpeRatio,
+    sortinoRatio,
+    tradeBasedSharpe: Number(tradeBasedSharpe.toFixed(2)),
+    tradeBasedSortino: Number(tradeBasedSortino.toFixed(2)),
+    calmarRatio,
+    maxDrawdown,
+    maxDrawdownDollars,
+    winRate,
+    profitFactor,
+    avgWin,
+    avgLoss,
+    totalTrades: trades.length,
+    winningTrades: winningTrades.length,
+    losingTrades: losingTrades.length,
+    tradingDays: Math.ceil(daysElapsed),
+    tradeStats,
+  };
+}
+
+/**
+ * Calculate trade statistics for leveraged strategies using pnlPercent
+ */
+function calculateLeveragedTradeStats(
+  trades: Trade[],
+  startingCapital: number
+): TradeStats {
+  if (trades.length === 0) {
+    return {
+      totalTrades: 0,
+      winningTrades: 0,
+      losingTrades: 0,
+      winRate: 0,
+      averageTradePnL: 0,
+      medianTradePnL: 0,
+      bestTradePnL: 0,
+      worstTradePnL: 0,
+      profitFactor: 0,
+      expectancyPnL: 0,
+      expectancyPct: 0,
+      averageHoldingTimeMinutes: 0,
+      medianHoldingTimeMinutes: 0,
+      longestWinStreak: 0,
+      longestLossStreak: 0,
+      avgWin: 0,
+      avgLoss: 0,
+      payoffRatio: 0,
+      riskOfRuin: 0,
+      riskOfRuinDetails: null,
+      kellyPercentage: 0,
+      recoveryFactor: 0,
+      ulcerIndex: 0,
+      marRatio: 0,
+      monthlyConsistency: 0,
+      quarterlyConsistency: 0,
+    };
+  }
+
+  // Use pnlPercent for all calculations
+  const pnlPercentages = trades.map(t => t.pnlPercent / 10000); // Convert to decimal
+  const pnlDollars = pnlPercentages.map(p => p * startingCapital); // Convert to dollars for display
+
+  const winningTrades = trades.filter(t => t.pnlPercent > 0);
+  const losingTrades = trades.filter(t => t.pnlPercent < 0);
+  const winRate = (winningTrades.length / trades.length) * 100;
+
+  const sortedPnl = [...pnlDollars].sort((a, b) => a - b);
+  const medianPnl =
+    sortedPnl.length % 2 === 0
+      ? (sortedPnl[sortedPnl.length / 2 - 1]! +
+          sortedPnl[sortedPnl.length / 2]!) /
+        2
+      : sortedPnl[Math.floor(sortedPnl.length / 2)]!;
+
+  const avgWinPct =
+    winningTrades.length > 0
+      ? winningTrades.reduce((sum, t) => sum + t.pnlPercent / 10000, 0) /
+        winningTrades.length
+      : 0;
+  const avgLossPct =
+    losingTrades.length > 0
+      ? Math.abs(
+          losingTrades.reduce((sum, t) => sum + t.pnlPercent / 10000, 0)
+        ) / losingTrades.length
+      : 0;
+
+  const avgWin = avgWinPct * startingCapital;
+  const avgLoss = avgLossPct * startingCapital;
+
+  const totalWinsPct = winningTrades.reduce(
+    (sum, t) => sum + t.pnlPercent / 10000,
+    0
+  );
+  const totalLossesPct = Math.abs(
+    losingTrades.reduce((sum, t) => sum + t.pnlPercent / 10000, 0)
+  );
+  const profitFactor =
+    totalLossesPct > 0
+      ? totalWinsPct / totalLossesPct
+      : totalWinsPct > 0
+        ? Infinity
+        : 0;
+
+  // Expectancy in percentage terms
+  const expectancyPct =
+    (pnlPercentages.reduce((sum, p) => sum + p, 0) / trades.length) * 100;
+  const expectancyPnL = (expectancyPct / 100) * startingCapital;
+
+  // Holding times
+  const holdingTimes = trades.map(
+    t => (t.exitDate.getTime() - t.entryDate.getTime()) / (1000 * 60)
+  );
+  const avgHoldingTime =
+    holdingTimes.reduce((sum, t) => sum + t, 0) / holdingTimes.length;
+  const sortedHoldingTimes = [...holdingTimes].sort((a, b) => a - b);
+  const medianHoldingTime =
+    sortedHoldingTimes.length % 2 === 0
+      ? (sortedHoldingTimes[sortedHoldingTimes.length / 2 - 1]! +
+          sortedHoldingTimes[sortedHoldingTimes.length / 2]!) /
+        2
+      : sortedHoldingTimes[Math.floor(sortedHoldingTimes.length / 2)]!;
+
+  // Win/Loss streaks
+  let currentWinStreak = 0,
+    maxWinStreak = 0;
+  let currentLossStreak = 0,
+    maxLossStreak = 0;
+  for (const trade of trades) {
+    if (trade.pnlPercent > 0) {
+      currentWinStreak++;
+      maxWinStreak = Math.max(maxWinStreak, currentWinStreak);
+      currentLossStreak = 0;
+    } else if (trade.pnlPercent < 0) {
+      currentLossStreak++;
+      maxLossStreak = Math.max(maxLossStreak, currentLossStreak);
+      currentWinStreak = 0;
+    }
+  }
+
+  // Professional metrics
+  const payoffRatio =
+    avgLossPct > 0 ? avgWinPct / avgLossPct : avgWinPct > 0 ? Infinity : 0;
+  const kellyPercentage =
+    payoffRatio > 0
+      ? (winRate / 100 - (1 - winRate / 100) / payoffRatio) * 100
+      : 0;
+
+  return {
+    totalTrades: trades.length,
+    winningTrades: winningTrades.length,
+    losingTrades: losingTrades.length,
+    winRate,
+    averageTradePnL: pnlDollars.reduce((sum, p) => sum + p, 0) / trades.length,
+    medianTradePnL: medianPnl,
+    bestTradePnL: Math.max(...pnlDollars),
+    worstTradePnL: Math.min(...pnlDollars),
+    profitFactor,
+    expectancyPnL,
+    expectancyPct,
+    averageHoldingTimeMinutes: avgHoldingTime,
+    medianHoldingTimeMinutes: medianHoldingTime,
+    longestWinStreak: maxWinStreak,
+    longestLossStreak: maxLossStreak,
+    avgWin,
+    avgLoss,
+    payoffRatio,
+    riskOfRuin: 0, // Simplified for leveraged
+    riskOfRuinDetails: null,
+    kellyPercentage,
+    recoveryFactor: 0, // Calculate if needed
+    ulcerIndex: 0, // Calculate if needed
+    marRatio: 0, // Calculate if needed
+    monthlyConsistency: 0, // Calculate if needed
+    quarterlyConsistency: 0, // Calculate if needed
+  };
+}
+
+/**
  * Calculate benchmark equity curve from OHLC data
  */
 export function calculateBenchmarkEquityCurve(
@@ -621,8 +1068,8 @@ export function calculateBenchmarkEquityCurve(
 ): EquityPoint[] {
   if (benchmarkData.length === 0) return [];
 
-  const sorted = [...benchmarkData].sort((a, b) => 
-    a.date.getTime() - b.date.getTime()
+  const sorted = [...benchmarkData].sort(
+    (a, b) => a.date.getTime() - b.date.getTime()
   );
 
   const startPrice = sorted[0]!.close / 100; // Convert cents to dollars
@@ -657,7 +1104,7 @@ export function calculateCorrelation(
   // to get enough overlapping data points
   const weeklyReturns1 = new Map<string, number>();
   const weeklyReturns2 = new Map<string, number>();
-  
+
   // Helper to get week key from date
   const getWeekKey = (date: Date): string => {
     const d = new Date(date);
@@ -666,9 +1113,9 @@ export function calculateCorrelation(
     const day = d.getDay();
     const diff = d.getDate() - day + (day === 0 ? -6 : 1);
     d.setDate(diff);
-    return d.toISOString().split('T')[0]!;
+    return d.toISOString().split("T")[0]!;
   };
-  
+
   // Calculate weekly returns for curve1
   for (let i = 1; i < curve1.length; i++) {
     const prevEquity = curve1[i - 1]!.equity;
@@ -679,7 +1126,7 @@ export function calculateCorrelation(
       weeklyReturns1.set(weekKey, (weeklyReturns1.get(weekKey) || 0) + r);
     }
   }
-  
+
   // Calculate weekly returns for curve2
   for (let i = 1; i < curve2.length; i++) {
     const prevEquity = curve2[i - 1]!.equity;
@@ -689,12 +1136,15 @@ export function calculateCorrelation(
       weeklyReturns2.set(weekKey, (weeklyReturns2.get(weekKey) || 0) + r);
     }
   }
-  
+
   // Find common weeks - for weeks where one strategy has no trades, use 0 return
-  const allWeeks = new Set([...Array.from(weeklyReturns1.keys()), ...Array.from(weeklyReturns2.keys())]);
+  const allWeeks = new Set([
+    ...Array.from(weeklyReturns1.keys()),
+    ...Array.from(weeklyReturns2.keys()),
+  ]);
   const returns1: number[] = [];
   const returns2: number[] = [];
-  
+
   for (const week of Array.from(allWeeks).sort()) {
     const r1 = weeklyReturns1.get(week) || 0;
     const r2 = weeklyReturns2.get(week) || 0;
@@ -742,7 +1192,9 @@ export function calculateStrategyCorrelationMatrix(
 ): CorrelationMatrix {
   const labels = Array.from(strategiesData.keys());
   const n = labels.length;
-  const matrix: number[][] = Array(n).fill(0).map(() => Array(n).fill(0));
+  const matrix: number[][] = Array(n)
+    .fill(0)
+    .map(() => Array(n).fill(0));
 
   // Calculate daily returns for each strategy
   const returnsMap = new Map<string, number[]>();
@@ -766,7 +1218,7 @@ export function calculateStrategyCorrelationMatrix(
       } else {
         const returns1 = returnsMap.get(labels[i]!)!;
         const returns2 = returnsMap.get(labels[j]!)!;
-        
+
         // Use minimum length to handle different curve lengths
         const minLen = Math.min(returns1.length, returns2.length);
         if (minLen === 0) {
@@ -834,7 +1286,7 @@ export interface PeriodPerformance {
 
 export function calculatePerformanceByPeriod(
   trades: Trade[],
-  periodType: 'day' | 'week' | 'month' | 'quarter' | 'year'
+  periodType: "day" | "week" | "month" | "quarter" | "year"
 ): PeriodPerformance[] {
   if (trades.length === 0) return [];
 
@@ -845,22 +1297,22 @@ export function calculatePerformanceByPeriod(
     let key: string;
 
     switch (periodType) {
-      case 'day':
-        key = date.toISOString().split('T')[0]!;
+      case "day":
+        key = date.toISOString().split("T")[0]!;
         break;
-      case 'week':
+      case "week":
         const weekStart = new Date(date);
         weekStart.setDate(date.getDate() - date.getDay());
-        key = weekStart.toISOString().split('T')[0]!;
+        key = weekStart.toISOString().split("T")[0]!;
         break;
-      case 'month':
-        key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      case "month":
+        key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
         break;
-      case 'quarter':
+      case "quarter":
         const quarter = Math.floor(date.getMonth() / 3) + 1;
         key = `${date.getFullYear()}-Q${quarter}`;
         break;
-      case 'year':
+      case "year":
         key = String(date.getFullYear());
         break;
     }
@@ -874,7 +1326,10 @@ export function calculatePerformanceByPeriod(
   const results: PeriodPerformance[] = [];
 
   for (const [period, periodTrades] of Array.from(periods.entries())) {
-    const totalPnl = periodTrades.reduce((sum: number, t: Trade) => sum + t.pnl / 100, 0);
+    const totalPnl = periodTrades.reduce(
+      (sum: number, t: Trade) => sum + t.pnl / 100,
+      0
+    );
     const winningTrades = periodTrades.filter((t: Trade) => t.pnl > 0).length;
     const winRate = (winningTrades / periodTrades.length) * 100;
 
@@ -894,7 +1349,7 @@ export function calculatePerformanceByPeriod(
  */
 export interface TimePeriodPerformance {
   period: string;
-  periodType: 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly';
+  periodType: "daily" | "weekly" | "monthly" | "quarterly" | "yearly";
   startDate: Date;
   endDate: Date;
   trades: number;
@@ -926,7 +1381,7 @@ export interface PerformanceBreakdownData {
 export function calculatePerformanceBreakdown(
   trades: Trade[],
   startingCapital: number,
-  contractSize: 'mini' | 'micro' = 'mini',
+  contractSize: "mini" | "micro" = "mini",
   conversionRatio: number = 10
 ): PerformanceBreakdownData {
   if (trades.length === 0) {
@@ -940,11 +1395,41 @@ export function calculatePerformanceBreakdown(
   }
 
   return {
-    daily: calculatePeriodBreakdown(trades, startingCapital, 'daily', contractSize, conversionRatio),
-    weekly: calculatePeriodBreakdown(trades, startingCapital, 'weekly', contractSize, conversionRatio),
-    monthly: calculatePeriodBreakdown(trades, startingCapital, 'monthly', contractSize, conversionRatio),
-    quarterly: calculatePeriodBreakdown(trades, startingCapital, 'quarterly', contractSize, conversionRatio),
-    yearly: calculatePeriodBreakdown(trades, startingCapital, 'yearly', contractSize, conversionRatio),
+    daily: calculatePeriodBreakdown(
+      trades,
+      startingCapital,
+      "daily",
+      contractSize,
+      conversionRatio
+    ),
+    weekly: calculatePeriodBreakdown(
+      trades,
+      startingCapital,
+      "weekly",
+      contractSize,
+      conversionRatio
+    ),
+    monthly: calculatePeriodBreakdown(
+      trades,
+      startingCapital,
+      "monthly",
+      contractSize,
+      conversionRatio
+    ),
+    quarterly: calculatePeriodBreakdown(
+      trades,
+      startingCapital,
+      "quarterly",
+      contractSize,
+      conversionRatio
+    ),
+    yearly: calculatePeriodBreakdown(
+      trades,
+      startingCapital,
+      "yearly",
+      contractSize,
+      conversionRatio
+    ),
   };
 }
 
@@ -954,8 +1439,8 @@ export function calculatePerformanceBreakdown(
 function calculatePeriodBreakdown(
   trades: Trade[],
   startingCapital: number,
-  periodType: 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly',
-  contractSize: 'mini' | 'micro' = 'mini',
+  periodType: "daily" | "weekly" | "monthly" | "quarterly" | "yearly",
+  contractSize: "mini" | "micro" = "mini",
   conversionRatio: number = 10
 ): TimePeriodPerformance[] {
   // Group trades by period
@@ -968,12 +1453,23 @@ function calculatePeriodBreakdown(
     let endDate: Date;
 
     switch (periodType) {
-      case 'daily':
-        key = date.toISOString().split('T')[0]!;
-        startDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-        endDate = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59);
+      case "daily":
+        key = date.toISOString().split("T")[0]!;
+        startDate = new Date(
+          date.getFullYear(),
+          date.getMonth(),
+          date.getDate()
+        );
+        endDate = new Date(
+          date.getFullYear(),
+          date.getMonth(),
+          date.getDate(),
+          23,
+          59,
+          59
+        );
         break;
-      case 'weekly':
+      case "weekly":
         const weekStart = new Date(date);
         weekStart.setDate(date.getDate() - date.getDay());
         weekStart.setHours(0, 0, 0, 0);
@@ -984,19 +1480,33 @@ function calculatePeriodBreakdown(
         startDate = weekStart;
         endDate = weekEnd;
         break;
-      case 'monthly':
-        key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      case "monthly":
+        key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
         startDate = new Date(date.getFullYear(), date.getMonth(), 1);
-        endDate = new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59);
+        endDate = new Date(
+          date.getFullYear(),
+          date.getMonth() + 1,
+          0,
+          23,
+          59,
+          59
+        );
         break;
-      case 'quarterly':
+      case "quarterly":
         const quarter = Math.floor(date.getMonth() / 3) + 1;
         key = `${date.getFullYear()}-Q${quarter}`;
         const quarterStartMonth = (quarter - 1) * 3;
         startDate = new Date(date.getFullYear(), quarterStartMonth, 1);
-        endDate = new Date(date.getFullYear(), quarterStartMonth + 3, 0, 23, 59, 59);
+        endDate = new Date(
+          date.getFullYear(),
+          quarterStartMonth + 3,
+          0,
+          23,
+          59,
+          59
+        );
         break;
-      case 'yearly':
+      case "yearly":
         key = String(date.getFullYear());
         startDate = new Date(date.getFullYear(), 0, 1);
         endDate = new Date(date.getFullYear(), 11, 31, 23, 59, 59);
@@ -1018,14 +1528,14 @@ function calculatePeriodBreakdown(
   const results: TimePeriodPerformance[] = [];
 
   for (const [period, periodTrades] of Array.from(periods.entries())) {
-    if (period.endsWith('_dates')) continue;
+    if (period.endsWith("_dates")) continue;
 
     const dates = (periods as any).get(`${period}_dates`);
-    
+
     // Apply contract conversion to P&L
     const totalPnL = periodTrades.reduce((sum, t) => {
       let pnl = t.pnl / 100;
-      if (contractSize === 'micro') {
+      if (contractSize === "micro") {
         pnl = pnl / conversionRatio;
       }
       return sum + pnl;
@@ -1037,22 +1547,27 @@ function calculatePeriodBreakdown(
 
     const totalWins = winningTradesList.reduce((sum, t) => {
       let pnl = t.pnl / 100;
-      if (contractSize === 'micro') {
+      if (contractSize === "micro") {
         pnl = pnl / conversionRatio;
       }
       return sum + pnl;
     }, 0);
-    const totalLosses = Math.abs(losingTradesList.reduce((sum, t) => {
-      let pnl = t.pnl / 100;
-      if (contractSize === 'micro') {
-        pnl = pnl / conversionRatio;
-      }
-      return sum + pnl;
-    }, 0));
+    const totalLosses = Math.abs(
+      losingTradesList.reduce((sum, t) => {
+        let pnl = t.pnl / 100;
+        if (contractSize === "micro") {
+          pnl = pnl / conversionRatio;
+        }
+        return sum + pnl;
+      }, 0)
+    );
 
-    const avgWin = winningTradesList.length > 0 ? totalWins / winningTradesList.length : 0;
-    const avgLoss = losingTradesList.length > 0 ? totalLosses / losingTradesList.length : 0;
-    const profitFactor = totalLosses > 0 ? totalWins / totalLosses : (totalWins > 0 ? Infinity : 0);
+    const avgWin =
+      winningTradesList.length > 0 ? totalWins / winningTradesList.length : 0;
+    const avgLoss =
+      losingTradesList.length > 0 ? totalLosses / losingTradesList.length : 0;
+    const profitFactor =
+      totalLosses > 0 ? totalWins / totalLosses : totalWins > 0 ? Infinity : 0;
 
     results.push({
       period,
@@ -1079,13 +1594,14 @@ function calculatePeriodBreakdown(
  * Get ISO week number for a date
  */
 function getWeekNumber(date: Date): number {
-  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const d = new Date(
+    Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())
+  );
   const dayNum = d.getUTCDay() || 7;
   d.setUTCDate(d.getUTCDate() + 4 - dayNum);
   const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-  return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+  return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
 }
-
 
 /**
  * Get top N performing periods by return percentage
@@ -1143,13 +1659,24 @@ export function getWorstPerformers(
  * Analyze performance by day of week (0=Sunday, 6=Saturday)
  */
 export function getDayOfWeekAnalysis(trades: Trade[], startingCapital: number) {
-  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-  const dayStats: Record<number, {
-    trades: Trade[];
-    totalPnL: number;
-    winningTrades: number;
-    losingTrades: number;
-  }> = {};
+  const dayNames = [
+    "Sunday",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+  ];
+  const dayStats: Record<
+    number,
+    {
+      trades: Trade[];
+      totalPnL: number;
+      winningTrades: number;
+      losingTrades: number;
+    }
+  > = {};
 
   // Initialize all days
   for (let i = 0; i < 7; i++) {
@@ -1174,49 +1701,73 @@ export function getDayOfWeekAnalysis(trades: Trade[], startingCapital: number) {
   });
 
   // Calculate metrics for each day
-  return Object.entries(dayStats).map(([day, stats]) => {
-    const dayNum = parseInt(day);
-    const totalTrades = stats.trades.length;
-    const winRate = totalTrades > 0 ? (stats.winningTrades / totalTrades) * 100 : 0;
-    const returnPercent = (stats.totalPnL / startingCapital) * 100;
+  return Object.entries(dayStats)
+    .map(([day, stats]) => {
+      const dayNum = parseInt(day);
+      const totalTrades = stats.trades.length;
+      const winRate =
+        totalTrades > 0 ? (stats.winningTrades / totalTrades) * 100 : 0;
+      const returnPercent = (stats.totalPnL / startingCapital) * 100;
 
-    const wins = stats.trades.filter(t => t.pnl > 0);
-    const losses = stats.trades.filter(t => t.pnl < 0);
-    const totalWins = wins.reduce((sum, t) => sum + t.pnl, 0);
-    const totalLosses = Math.abs(losses.reduce((sum, t) => sum + t.pnl, 0));
-    const profitFactor = totalLosses > 0 ? totalWins / totalLosses : totalWins > 0 ? Infinity : 0;
+      const wins = stats.trades.filter(t => t.pnl > 0);
+      const losses = stats.trades.filter(t => t.pnl < 0);
+      const totalWins = wins.reduce((sum, t) => sum + t.pnl, 0);
+      const totalLosses = Math.abs(losses.reduce((sum, t) => sum + t.pnl, 0));
+      const profitFactor =
+        totalLosses > 0
+          ? totalWins / totalLosses
+          : totalWins > 0
+            ? Infinity
+            : 0;
 
-    return {
-      day: dayNames[dayNum],
-      dayOfWeek: dayNum,
-      trades: totalTrades,
-      pnl: stats.totalPnL / 100, // Convert to dollars
-      returnPercent,
-      winningTrades: stats.winningTrades,
-      losingTrades: stats.losingTrades,
-      winRate,
-      profitFactor,
-      avgWin: wins.length > 0 ? totalWins / wins.length / 100 : 0,
-      avgLoss: losses.length > 0 ? totalLosses / losses.length / 100 : 0,
-    };
-  }).sort((a, b) => a.dayOfWeek - b.dayOfWeek);
+      return {
+        day: dayNames[dayNum],
+        dayOfWeek: dayNum,
+        trades: totalTrades,
+        pnl: stats.totalPnL / 100, // Convert to dollars
+        returnPercent,
+        winningTrades: stats.winningTrades,
+        losingTrades: stats.losingTrades,
+        winRate,
+        profitFactor,
+        avgWin: wins.length > 0 ? totalWins / wins.length / 100 : 0,
+        avgLoss: losses.length > 0 ? totalLosses / losses.length / 100 : 0,
+      };
+    })
+    .sort((a, b) => a.dayOfWeek - b.dayOfWeek);
 }
 
 /**
  * Analyze performance by month of year (1=Jan, 12=Dec)
  */
-export function getMonthOfYearAnalysis(trades: Trade[], startingCapital: number) {
+export function getMonthOfYearAnalysis(
+  trades: Trade[],
+  startingCapital: number
+) {
   const monthNames = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
   ];
-  
-  const monthStats: Record<number, {
-    trades: Trade[];
-    totalPnL: number;
-    winningTrades: number;
-    losingTrades: number;
-  }> = {};
+
+  const monthStats: Record<
+    number,
+    {
+      trades: Trade[];
+      totalPnL: number;
+      winningTrades: number;
+      losingTrades: number;
+    }
+  > = {};
 
   // Initialize all months
   for (let i = 1; i <= 12; i++) {
@@ -1241,34 +1792,41 @@ export function getMonthOfYearAnalysis(trades: Trade[], startingCapital: number)
   });
 
   // Calculate metrics for each month
-  return Object.entries(monthStats).map(([month, stats]) => {
-    const monthNum = parseInt(month);
-    const totalTrades = stats.trades.length;
-    const winRate = totalTrades > 0 ? (stats.winningTrades / totalTrades) * 100 : 0;
-    const returnPercent = (stats.totalPnL / startingCapital) * 100;
+  return Object.entries(monthStats)
+    .map(([month, stats]) => {
+      const monthNum = parseInt(month);
+      const totalTrades = stats.trades.length;
+      const winRate =
+        totalTrades > 0 ? (stats.winningTrades / totalTrades) * 100 : 0;
+      const returnPercent = (stats.totalPnL / startingCapital) * 100;
 
-    const wins = stats.trades.filter(t => t.pnl > 0);
-    const losses = stats.trades.filter(t => t.pnl < 0);
-    const totalWins = wins.reduce((sum, t) => sum + t.pnl, 0);
-    const totalLosses = Math.abs(losses.reduce((sum, t) => sum + t.pnl, 0));
-    const profitFactor = totalLosses > 0 ? totalWins / totalLosses : totalWins > 0 ? Infinity : 0;
+      const wins = stats.trades.filter(t => t.pnl > 0);
+      const losses = stats.trades.filter(t => t.pnl < 0);
+      const totalWins = wins.reduce((sum, t) => sum + t.pnl, 0);
+      const totalLosses = Math.abs(losses.reduce((sum, t) => sum + t.pnl, 0));
+      const profitFactor =
+        totalLosses > 0
+          ? totalWins / totalLosses
+          : totalWins > 0
+            ? Infinity
+            : 0;
 
-    return {
-      month: monthNames[monthNum - 1],
-      monthOfYear: monthNum,
-      trades: totalTrades,
-      pnl: stats.totalPnL / 100, // Convert to dollars
-      returnPercent,
-      winningTrades: stats.winningTrades,
-      losingTrades: stats.losingTrades,
-      winRate,
-      profitFactor,
-      avgWin: wins.length > 0 ? totalWins / wins.length / 100 : 0,
-      avgLoss: losses.length > 0 ? totalLosses / losses.length / 100 : 0,
-    };
-  }).sort((a, b) => a.monthOfYear - b.monthOfYear);
+      return {
+        month: monthNames[monthNum - 1],
+        monthOfYear: monthNum,
+        trades: totalTrades,
+        pnl: stats.totalPnL / 100, // Convert to dollars
+        returnPercent,
+        winningTrades: stats.winningTrades,
+        losingTrades: stats.losingTrades,
+        winRate,
+        profitFactor,
+        avgWin: wins.length > 0 ? totalWins / wins.length / 100 : 0,
+        avgLoss: losses.length > 0 ? totalLosses / losses.length / 100 : 0,
+      };
+    })
+    .sort((a, b) => a.monthOfYear - b.monthOfYear);
 }
-
 
 /**
  * Calculate underwater equity curve (drawdown over time)
@@ -1285,8 +1843,8 @@ export interface UnderwaterMetrics {
   maxDrawdownPct: number;
   longestDrawdownDays: number;
   averageDrawdownDays: number;
-  pctTimeInDrawdown: number;    // % of days where drawdown < 0
-  pctTimeBelowMinus10: number;  // % of days where drawdown <= -10%
+  pctTimeInDrawdown: number; // % of days where drawdown < 0
+  pctTimeBelowMinus10: number; // % of days where drawdown <= -10%
 }
 
 export function calculateUnderwaterCurve(
@@ -1304,7 +1862,10 @@ export function calculateUnderwaterCurve(
       lastPeakDate = point.date;
     }
 
-    const drawdownPercent = peak > 0 && point.equity < peak ? -((peak - point.equity) / peak) * 100 : 0;
+    const drawdownPercent =
+      peak > 0 && point.equity < peak
+        ? -((peak - point.equity) / peak) * 100
+        : 0;
     const daysUnderwater = Math.floor(
       (point.date.getTime() - lastPeakDate.getTime()) / (1000 * 60 * 60 * 24)
     );
@@ -1326,7 +1887,7 @@ export function calculateUnderwaterMetrics(
   equityCurve: EquityPoint[]
 ): UnderwaterMetrics {
   const curve = calculateUnderwaterCurve(equityCurve);
-  
+
   if (curve.length === 0) {
     return {
       curve: [],
@@ -1349,7 +1910,7 @@ export function calculateUnderwaterMetrics(
 
   for (let i = 0; i < curve.length; i++) {
     const point = curve[i]!;
-    
+
     if (point.drawdownPercent < 0) {
       if (!inDrawdown) {
         inDrawdown = true;
@@ -1372,9 +1933,11 @@ export function calculateUnderwaterMetrics(
   }
 
   // Calculate average drawdown duration
-  const averageDrawdown = drawdownPeriods.length > 0
-    ? drawdownPeriods.reduce((sum, days) => sum + days, 0) / drawdownPeriods.length
-    : 0;
+  const averageDrawdown =
+    drawdownPeriods.length > 0
+      ? drawdownPeriods.reduce((sum, days) => sum + days, 0) /
+        drawdownPeriods.length
+      : 0;
 
   // Calculate percentage of time in drawdown (drawdown < 0)
   const daysInDrawdown = curve.filter(p => p.drawdownPercent < 0).length;
@@ -1412,62 +1975,90 @@ export function generatePortfolioSummary(
   startDate: Date,
   endDate: Date
 ): string {
-  const daysDuration = Math.floor((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+  const daysDuration = Math.floor(
+    (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
+  );
   const yearsDuration = (daysDuration / 365).toFixed(1);
-  
+
   // Format dates
-  const startStr = startDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-  const endStr = endDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-  
+  const startStr = startDate.toLocaleDateString("en-US", {
+    month: "short",
+    year: "numeric",
+  });
+  const endStr = endDate.toLocaleDateString("en-US", {
+    month: "short",
+    year: "numeric",
+  });
+
   // Build summary
   const parts: string[] = [];
-  
+
   // Time period
   parts.push(`Over ${yearsDuration} years (${startStr} to ${endStr})`);
-  
+
   // Return performance
-  const returnSign = metrics.totalReturn >= 0 ? 'gained' : 'lost';
-  parts.push(`the portfolio ${returnSign} ${Math.abs(metrics.totalReturn).toFixed(1)}%`);
-  
+  const returnSign = metrics.totalReturn >= 0 ? "gained" : "lost";
+  parts.push(
+    `the portfolio ${returnSign} ${Math.abs(metrics.totalReturn).toFixed(1)}%`
+  );
+
   // Annualized return
   if (daysDuration >= 365) {
     parts.push(`(${metrics.annualizedReturn.toFixed(1)}% annualized)`);
   }
-  
+
   // Risk metrics
-  parts.push(`with a maximum drawdown of ${Math.abs(underwater.maxDrawdownPct).toFixed(1)}%`);
-  
+  parts.push(
+    `with a maximum drawdown of ${Math.abs(underwater.maxDrawdownPct).toFixed(1)}%`
+  );
+
   // Time in drawdown context
   if (underwater.pctTimeInDrawdown > 90) {
-    parts.push(`The portfolio spent ${underwater.pctTimeInDrawdown.toFixed(0)}% of the time below its peak`);
+    parts.push(
+      `The portfolio spent ${underwater.pctTimeInDrawdown.toFixed(0)}% of the time below its peak`
+    );
   } else if (underwater.pctTimeInDrawdown > 70) {
-    parts.push(`and was underwater ${underwater.pctTimeInDrawdown.toFixed(0)}% of the time`);
+    parts.push(
+      `and was underwater ${underwater.pctTimeInDrawdown.toFixed(0)}% of the time`
+    );
   } else {
-    parts.push(`spending ${underwater.pctTimeInDrawdown.toFixed(0)}% of days in drawdown`);
+    parts.push(
+      `spending ${underwater.pctTimeInDrawdown.toFixed(0)}% of days in drawdown`
+    );
   }
-  
+
   // Deep drawdown context
   if (underwater.pctTimeBelowMinus10 > 30) {
-    parts.push(`with ${underwater.pctTimeBelowMinus10.toFixed(0)}% of days experiencing drawdowns exceeding -10%`);
+    parts.push(
+      `with ${underwater.pctTimeBelowMinus10.toFixed(0)}% of days experiencing drawdowns exceeding -10%`
+    );
   } else if (underwater.pctTimeBelowMinus10 > 10) {
-    parts.push(`including ${underwater.pctTimeBelowMinus10.toFixed(0)}% of days below -10%`);
+    parts.push(
+      `including ${underwater.pctTimeBelowMinus10.toFixed(0)}% of days below -10%`
+    );
   }
-  
+
   // Trade efficiency
   if (metrics.tradeStats) {
     const { winRate, profitFactor, expectancyPnL } = metrics.tradeStats;
-    parts.push(`Trading ${metrics.tradeStats.totalTrades} times with a ${winRate.toFixed(1)}% win rate`);
-    
+    parts.push(
+      `Trading ${metrics.tradeStats.totalTrades} times with a ${winRate.toFixed(1)}% win rate`
+    );
+
     if (profitFactor > 1.5) {
-      parts.push(`the strategy showed strong profit factor of ${profitFactor.toFixed(2)}`);
+      parts.push(
+        `the strategy showed strong profit factor of ${profitFactor.toFixed(2)}`
+      );
     } else if (profitFactor > 1.0) {
       parts.push(`achieving a profit factor of ${profitFactor.toFixed(2)}`);
     }
-    
-    parts.push(`and an average expectancy of $${expectancyPnL.toFixed(0)} per trade`);
+
+    parts.push(
+      `and an average expectancy of $${expectancyPnL.toFixed(0)} per trade`
+    );
   }
-  
-  return parts.join(', ') + '.';
+
+  return parts.join(", ") + ".";
 }
 
 /**
@@ -1487,7 +2078,15 @@ export interface DayOfWeekPerformance {
 export function calculateDayOfWeekBreakdown(
   trades: Trade[]
 ): DayOfWeekPerformance[] {
-  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const dayNames = [
+    "Sunday",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+  ];
   const dayGroups = new Map<number, Trade[]>();
 
   // Initialize all days
@@ -1508,9 +2107,11 @@ export function calculateDayOfWeekBreakdown(
     const winningTrades = dayTrades.filter(t => t.pnl > 0);
     const losingTrades = dayTrades.filter(t => t.pnl < 0);
 
-    const totalPnL = dayTrades.reduce((sum, t) => sum + (t.pnl / 100), 0);
-    const totalWins = winningTrades.reduce((sum, t) => sum + (t.pnl / 100), 0);
-    const totalLosses = Math.abs(losingTrades.reduce((sum, t) => sum + (t.pnl / 100), 0));
+    const totalPnL = dayTrades.reduce((sum, t) => sum + t.pnl / 100, 0);
+    const totalWins = winningTrades.reduce((sum, t) => sum + t.pnl / 100, 0);
+    const totalLosses = Math.abs(
+      losingTrades.reduce((sum, t) => sum + t.pnl / 100, 0)
+    );
 
     results.push({
       dayName: dayNames[dayNum]!,
@@ -1518,7 +2119,10 @@ export function calculateDayOfWeekBreakdown(
       trades: dayTrades.length,
       totalPnL,
       avgPnL: dayTrades.length > 0 ? totalPnL / dayTrades.length : 0,
-      winRate: dayTrades.length > 0 ? (winningTrades.length / dayTrades.length) * 100 : 0,
+      winRate:
+        dayTrades.length > 0
+          ? (winningTrades.length / dayTrades.length) * 100
+          : 0,
       avgWin: winningTrades.length > 0 ? totalWins / winningTrades.length : 0,
       avgLoss: losingTrades.length > 0 ? totalLosses / losingTrades.length : 0,
     });
@@ -1526,7 +2130,6 @@ export function calculateDayOfWeekBreakdown(
 
   return results;
 }
-
 
 /**
  * Calculate performance breakdown by week of month
@@ -1556,7 +2159,7 @@ export function calculateWeekOfMonthBreakdown(
   for (const trade of trades) {
     const dayOfMonth = trade.exitDate.getDate();
     let weekNum: number;
-    
+
     // Determine week of month based on day of month
     if (dayOfMonth <= 7) {
       weekNum = 1;
@@ -1569,7 +2172,7 @@ export function calculateWeekOfMonthBreakdown(
     } else {
       weekNum = 5; // Days 29-31
     }
-    
+
     weekGroups.get(weekNum)!.push(trade);
   }
 
@@ -1580,9 +2183,11 @@ export function calculateWeekOfMonthBreakdown(
     const winningTrades = weekTrades.filter(t => t.pnl > 0);
     const losingTrades = weekTrades.filter(t => t.pnl < 0);
 
-    const totalPnL = weekTrades.reduce((sum, t) => sum + (t.pnl / 100), 0);
-    const totalWins = winningTrades.reduce((sum, t) => sum + (t.pnl / 100), 0);
-    const totalLosses = Math.abs(losingTrades.reduce((sum, t) => sum + (t.pnl / 100), 0));
+    const totalPnL = weekTrades.reduce((sum, t) => sum + t.pnl / 100, 0);
+    const totalWins = winningTrades.reduce((sum, t) => sum + t.pnl / 100, 0);
+    const totalLosses = Math.abs(
+      losingTrades.reduce((sum, t) => sum + t.pnl / 100, 0)
+    );
 
     results.push({
       weekNumber: weekNum,
@@ -1590,7 +2195,10 @@ export function calculateWeekOfMonthBreakdown(
       trades: weekTrades.length,
       totalPnL,
       avgPnL: weekTrades.length > 0 ? totalPnL / weekTrades.length : 0,
-      winRate: weekTrades.length > 0 ? (winningTrades.length / weekTrades.length) * 100 : 0,
+      winRate:
+        weekTrades.length > 0
+          ? (winningTrades.length / weekTrades.length) * 100
+          : 0,
       avgWin: winningTrades.length > 0 ? totalWins / winningTrades.length : 0,
       avgLoss: losingTrades.length > 0 ? totalLosses / losingTrades.length : 0,
     });
@@ -1638,7 +2246,7 @@ export function calculateRollingMetrics(
     // For each point in the equity curve, calculate metrics for the trailing window
     for (let i = window; i < equityCurve.length; i++) {
       const windowSlice = equityCurve.slice(i - window, i + 1);
-      
+
       // Calculate daily returns for the window
       const returns: number[] = [];
       for (let j = 1; j < windowSlice.length; j++) {
@@ -1653,7 +2261,9 @@ export function calculateRollingMetrics(
       let sharpe: number | null = null;
       if (returns.length > 0) {
         const mean = returns.reduce((sum, r) => sum + r, 0) / returns.length;
-        const variance = returns.reduce((sum, r) => sum + Math.pow(r - mean, 2), 0) / returns.length;
+        const variance =
+          returns.reduce((sum, r) => sum + Math.pow(r - mean, 2), 0) /
+          returns.length;
         const stdDev = Math.sqrt(variance);
         if (stdDev > 0) {
           sharpe = (mean / stdDev) * Math.sqrt(252); // Annualized
@@ -1666,7 +2276,9 @@ export function calculateRollingMetrics(
         const mean = returns.reduce((sum, r) => sum + r, 0) / returns.length;
         const downsideReturns = returns.filter(r => r < 0);
         if (downsideReturns.length > 0) {
-          const downsideVariance = downsideReturns.reduce((sum, r) => sum + Math.pow(r, 2), 0) / downsideReturns.length;
+          const downsideVariance =
+            downsideReturns.reduce((sum, r) => sum + Math.pow(r, 2), 0) /
+            downsideReturns.length;
           const downsideStdDev = Math.sqrt(downsideVariance);
           if (downsideStdDev > 0) {
             sortino = (mean / downsideStdDev) * Math.sqrt(252); // Annualized
@@ -1734,14 +2346,17 @@ export function calculateMonthlyReturnsCalendar(
 ): MonthlyReturn[] {
   if (equityCurve.length === 0) return [];
 
-  const monthlyData: Map<string, {
-    year: number;
-    month: number;
-    startEquity: number;
-    endEquity: number;
-    firstDate: Date;
-    lastDate: Date;
-  }> = new Map();
+  const monthlyData: Map<
+    string,
+    {
+      year: number;
+      month: number;
+      startEquity: number;
+      endEquity: number;
+      firstDate: Date;
+      lastDate: Date;
+    }
+  > = new Map();
 
   // Group equity points by year-month
   for (const point of equityCurve) {
@@ -1775,12 +2390,26 @@ export function calculateMonthlyReturnsCalendar(
 
   // Calculate returns and format
   const results: MonthlyReturn[] = [];
-  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const monthNames = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
 
   for (const [_, data] of Array.from(monthlyData.entries())) {
-    const returnPct = data.startEquity > 0
-      ? ((data.endEquity - data.startEquity) / data.startEquity) * 100
-      : 0;
+    const returnPct =
+      data.startEquity > 0
+        ? ((data.endEquity - data.startEquity) / data.startEquity) * 100
+        : 0;
 
     results.push({
       year: data.year,
@@ -1834,16 +2463,18 @@ export interface DailyReturnsDistribution {
  */
 function calculateSkewness(values: number[]): number {
   if (values.length === 0) return 0;
-  
+
   const n = values.length;
   const mean = values.reduce((sum, v) => sum + v, 0) / n;
-  const variance = values.reduce((sum, v) => sum + Math.pow(v - mean, 2), 0) / n;
+  const variance =
+    values.reduce((sum, v) => sum + Math.pow(v - mean, 2), 0) / n;
   const stdDev = Math.sqrt(variance);
-  
+
   if (stdDev === 0) return 0;
-  
-  const m3 = values.reduce((sum, v) => sum + Math.pow((v - mean) / stdDev, 3), 0) / n;
-  
+
+  const m3 =
+    values.reduce((sum, v) => sum + Math.pow((v - mean) / stdDev, 3), 0) / n;
+
   return m3;
 }
 
@@ -1853,31 +2484,33 @@ function calculateSkewness(values: number[]): number {
  * - Positive kurtosis (leptokurtic): fat tails, more extreme values than normal distribution
  * - Negative kurtosis (platykurtic): thin tails, fewer extreme values
  * - Zero kurtosis (mesokurtic): similar to normal distribution
- * 
+ *
  * We return excess kurtosis (kurtosis - 3) so normal distribution = 0
  */
 function calculateKurtosis(values: number[]): number {
   if (values.length === 0) return 0;
-  
+
   const n = values.length;
   const mean = values.reduce((sum, v) => sum + v, 0) / n;
-  const variance = values.reduce((sum, v) => sum + Math.pow(v - mean, 2), 0) / n;
+  const variance =
+    values.reduce((sum, v) => sum + Math.pow(v - mean, 2), 0) / n;
   const stdDev = Math.sqrt(variance);
-  
+
   if (stdDev === 0) return 0;
-  
-  const m4 = values.reduce((sum, v) => sum + Math.pow((v - mean) / stdDev, 4), 0) / n;
-  
+
+  const m4 =
+    values.reduce((sum, v) => sum + Math.pow((v - mean) / stdDev, 4), 0) / n;
+
   // Return excess kurtosis (subtract 3 to make normal distribution = 0)
   return m4 - 3;
 }
 
 /**
  * Calculate daily returns distribution from equity curve
- * 
+ *
  * Performance: O(n) where n is number of equity points
  * Expected execution time: <10ms for 10,000 days
- * 
+ *
  * @param equityCurve - Array of equity points
  * @param bucketSize - Size of each histogram bucket in percentage points (default: 0.5%)
  * @param rangeMin - Minimum bucket value (default: -5%)
@@ -1891,9 +2524,9 @@ export function calculateDailyReturnsDistribution(
   rangeMax: number = 5
 ): DailyReturnsDistribution {
   const startTime = Date.now();
-  
+
   if (equityCurve.length < 2) {
-    console.log('[Distribution] Insufficient data points:', equityCurve.length);
+    console.log("[Distribution] Insufficient data points:", equityCurve.length);
     return {
       buckets: [],
       skewness: 0,
@@ -1905,21 +2538,21 @@ export function calculateDailyReturnsDistribution(
       totalDays: 0,
     };
   }
-  
+
   // Calculate daily returns
   const dailyReturns: number[] = [];
   for (let i = 1; i < equityCurve.length; i++) {
     const prevEquity = equityCurve[i - 1]!.equity;
     const currEquity = equityCurve[i]!.equity;
-    
+
     if (prevEquity > 0) {
       const returnPct = ((currEquity - prevEquity) / prevEquity) * 100;
       dailyReturns.push(returnPct);
     }
   }
-  
+
   if (dailyReturns.length === 0) {
-    console.log('[Distribution] No valid returns calculated');
+    console.log("[Distribution] No valid returns calculated");
     return {
       buckets: [],
       skewness: 0,
@@ -1931,24 +2564,27 @@ export function calculateDailyReturnsDistribution(
       totalDays: 0,
     };
   }
-  
+
   // Calculate statistics
-  const mean = dailyReturns.reduce((sum, r) => sum + r, 0) / dailyReturns.length;
-  const variance = dailyReturns.reduce((sum, r) => sum + Math.pow(r - mean, 2), 0) / dailyReturns.length;
+  const mean =
+    dailyReturns.reduce((sum, r) => sum + r, 0) / dailyReturns.length;
+  const variance =
+    dailyReturns.reduce((sum, r) => sum + Math.pow(r - mean, 2), 0) /
+    dailyReturns.length;
   const stdDev = Math.sqrt(variance);
   const skewness = calculateSkewness(dailyReturns);
   const kurtosis = calculateKurtosis(dailyReturns);
-  
+
   // Calculate tail percentages
   const gt1pct = dailyReturns.filter(r => r > 1).length;
   const ltMinus1pct = dailyReturns.filter(r => r < -1).length;
   const pctGt1pct = (gt1pct / dailyReturns.length) * 100;
   const pctLtMinus1pct = (ltMinus1pct / dailyReturns.length) * 100;
-  
+
   // Create histogram buckets
   const buckets: DistributionBucket[] = [];
   const bucketCounts = new Map<string, number>();
-  
+
   // Initialize all buckets
   for (let edge = rangeMin; edge < rangeMax; edge += bucketSize) {
     const from = edge;
@@ -1957,34 +2593,46 @@ export function calculateDailyReturnsDistribution(
     bucketCounts.set(key, 0);
     buckets.push({ from, to, count: 0, percentage: 0 });
   }
-  
+
   // Count returns into buckets
   for (const returnPct of dailyReturns) {
     // Clamp to range
-    const clampedReturn = Math.max(rangeMin, Math.min(rangeMax - 0.01, returnPct));
-    
+    const clampedReturn = Math.max(
+      rangeMin,
+      Math.min(rangeMax - 0.01, returnPct)
+    );
+
     // Find bucket
     const bucketIndex = Math.floor((clampedReturn - rangeMin) / bucketSize);
-    const safeBucketIndex = Math.max(0, Math.min(buckets.length - 1, bucketIndex));
-    
+    const safeBucketIndex = Math.max(
+      0,
+      Math.min(buckets.length - 1, bucketIndex)
+    );
+
     buckets[safeBucketIndex]!.count++;
   }
-  
+
   // Calculate percentages
   for (const bucket of buckets) {
     bucket.percentage = (bucket.count / dailyReturns.length) * 100;
   }
-  
+
   const executionTime = Date.now() - startTime;
-  console.log(`[Distribution] Calculated for ${dailyReturns.length} days in ${executionTime}ms`);
-  console.log(`[Distribution] Stats: mean=${mean.toFixed(3)}%, stdDev=${stdDev.toFixed(3)}%, skew=${skewness.toFixed(3)}, kurtosis=${kurtosis.toFixed(3)}`);
-  
+  console.log(
+    `[Distribution] Calculated for ${dailyReturns.length} days in ${executionTime}ms`
+  );
+  console.log(
+    `[Distribution] Stats: mean=${mean.toFixed(3)}%, stdDev=${stdDev.toFixed(3)}%, skew=${skewness.toFixed(3)}, kurtosis=${kurtosis.toFixed(3)}`
+  );
+
   // Validation
   const totalPercentage = buckets.reduce((sum, b) => sum + b.percentage, 0);
   if (Math.abs(totalPercentage - 100) > 0.1) {
-    console.warn(`[Distribution] Validation warning: bucket percentages sum to ${totalPercentage.toFixed(2)}%, expected 100%`);
+    console.warn(
+      `[Distribution] Validation warning: bucket percentages sum to ${totalPercentage.toFixed(2)}%, expected 100%`
+    );
   }
-  
+
   return {
     buckets,
     skewness,
@@ -2013,19 +2661,19 @@ export interface MajorDrawdown {
 
 /**
  * Calculate major drawdowns from equity curve
- * 
+ *
  * A major drawdown is defined as any drawdown period where the depth exceeds the threshold (default -10%).
- * 
+ *
  * Algorithm:
  * 1. Track running peak equity
  * 2. When equity drops below peak, start a drawdown period
  * 3. Track trough (lowest point) during the period
  * 4. When equity returns to peak, end the period
  * 5. Filter for major drawdowns (depth < threshold)
- * 
+ *
  * Performance: O(n) where n is number of equity points
  * Expected execution time: <5ms for 10,000 days
- * 
+ *
  * @param equityCurve - Array of equity points
  * @param depthThreshold - Minimum depth to be considered "major" (default: -10%)
  * @returns Array of major drawdown periods, sorted by depth (worst first)
@@ -2035,30 +2683,39 @@ export function calculateMajorDrawdowns(
   depthThreshold: number = -10
 ): MajorDrawdown[] {
   const startTime = Date.now();
-  
+
   if (equityCurve.length < 2) {
-    console.log('[MajorDrawdowns] Insufficient data points:', equityCurve.length);
+    console.log(
+      "[MajorDrawdowns] Insufficient data points:",
+      equityCurve.length
+    );
     return [];
   }
-  
+
   const allDrawdowns: MajorDrawdown[] = [];
   let peak = equityCurve[0]!.equity;
   let peakDate = equityCurve[0]!.date;
   let inDrawdown = false;
   let troughEquity = peak;
   let troughDate = peakDate;
-  
+
   for (let i = 1; i < equityCurve.length; i++) {
     const point = equityCurve[i]!;
-    
+
     if (point.equity > peak) {
       // New peak - if we were in a drawdown, it has recovered
       if (inDrawdown) {
         const depthPct = ((troughEquity - peak) / peak) * 100;
-        const daysToTrough = Math.floor((troughDate.getTime() - peakDate.getTime()) / (1000 * 60 * 60 * 24));
-        const daysToRecovery = Math.floor((point.date.getTime() - troughDate.getTime()) / (1000 * 60 * 60 * 24));
-        const totalDurationDays = Math.floor((point.date.getTime() - peakDate.getTime()) / (1000 * 60 * 60 * 24));
-        
+        const daysToTrough = Math.floor(
+          (troughDate.getTime() - peakDate.getTime()) / (1000 * 60 * 60 * 24)
+        );
+        const daysToRecovery = Math.floor(
+          (point.date.getTime() - troughDate.getTime()) / (1000 * 60 * 60 * 24)
+        );
+        const totalDurationDays = Math.floor(
+          (point.date.getTime() - peakDate.getTime()) / (1000 * 60 * 60 * 24)
+        );
+
         allDrawdowns.push({
           startDate: peakDate,
           troughDate,
@@ -2069,10 +2726,10 @@ export function calculateMajorDrawdowns(
           totalDurationDays,
           isOngoing: false,
         });
-        
+
         inDrawdown = false;
       }
-      
+
       // Update peak
       peak = point.equity;
       peakDate = point.date;
@@ -2091,14 +2748,18 @@ export function calculateMajorDrawdowns(
       }
     }
   }
-  
+
   // Handle ongoing drawdown (hasn't recovered yet)
   if (inDrawdown) {
     const depthPct = ((troughEquity - peak) / peak) * 100;
-    const daysToTrough = Math.floor((troughDate.getTime() - peakDate.getTime()) / (1000 * 60 * 60 * 24));
+    const daysToTrough = Math.floor(
+      (troughDate.getTime() - peakDate.getTime()) / (1000 * 60 * 60 * 24)
+    );
     const lastDate = equityCurve[equityCurve.length - 1]!.date;
-    const totalDurationDays = Math.floor((lastDate.getTime() - peakDate.getTime()) / (1000 * 60 * 60 * 24));
-    
+    const totalDurationDays = Math.floor(
+      (lastDate.getTime() - peakDate.getTime()) / (1000 * 60 * 60 * 24)
+    );
+
     allDrawdowns.push({
       startDate: peakDate,
       troughDate,
@@ -2110,33 +2771,45 @@ export function calculateMajorDrawdowns(
       isOngoing: true,
     });
   }
-  
+
   // Filter for major drawdowns (depth < threshold)
-  const majorDrawdowns = allDrawdowns.filter(dd => dd.depthPct < depthThreshold);
-  
+  const majorDrawdowns = allDrawdowns.filter(
+    dd => dd.depthPct < depthThreshold
+  );
+
   // Sort by depth (worst first)
   majorDrawdowns.sort((a, b) => a.depthPct - b.depthPct);
-  
+
   const executionTime = Date.now() - startTime;
-  console.log(`[MajorDrawdowns] Found ${majorDrawdowns.length} major drawdowns (threshold: ${depthThreshold}%) in ${executionTime}ms`);
-  
+  console.log(
+    `[MajorDrawdowns] Found ${majorDrawdowns.length} major drawdowns (threshold: ${depthThreshold}%) in ${executionTime}ms`
+  );
+
   if (majorDrawdowns.length > 0) {
     const worstDD = majorDrawdowns[0]!;
-    console.log(`[MajorDrawdowns] Worst: ${worstDD.depthPct.toFixed(2)}% from ${worstDD.startDate.toISOString().split('T')[0]} to ${worstDD.troughDate.toISOString().split('T')[0]}`);
+    console.log(
+      `[MajorDrawdowns] Worst: ${worstDD.depthPct.toFixed(2)}% from ${worstDD.startDate.toISOString().split("T")[0]} to ${worstDD.troughDate.toISOString().split("T")[0]}`
+    );
   }
-  
+
   // Validation
   for (const dd of majorDrawdowns) {
     if (dd.depthPct >= 0) {
-      console.warn(`[MajorDrawdowns] Validation warning: drawdown depth is positive: ${dd.depthPct}%`);
+      console.warn(
+        `[MajorDrawdowns] Validation warning: drawdown depth is positive: ${dd.depthPct}%`
+      );
     }
     if (dd.troughDate < dd.startDate) {
-      console.warn(`[MajorDrawdowns] Validation warning: trough date before start date`);
+      console.warn(
+        `[MajorDrawdowns] Validation warning: trough date before start date`
+      );
     }
     if (dd.recoveryDate && dd.recoveryDate < dd.troughDate) {
-      console.warn(`[MajorDrawdowns] Validation warning: recovery date before trough date`);
+      console.warn(
+        `[MajorDrawdowns] Validation warning: recovery date before trough date`
+      );
     }
   }
-  
+
   return majorDrawdowns;
 }

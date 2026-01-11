@@ -109,6 +109,8 @@ export default function UserDashboard() {
     autoExecuteEnabled: false,
     quantityMultiplier: 1,
     maxPositionSize: null as number | null,
+    accountValue: 100000 as number | null,
+    useLeveraged: false,
   });
   const [showSP500, setShowSP500] = useState(true);
   const [riskDisclaimerOpen, setRiskDisclaimerOpen] = useState(false);
@@ -281,6 +283,8 @@ export default function UserDashboard() {
       autoExecuteEnabled: false,
       quantityMultiplier: 1,
       maxPositionSize: null,
+      accountValue: 100000,
+      useLeveraged: false,
     });
     setSubscribeDialogOpen(true);
   };
@@ -292,6 +296,8 @@ export default function UserDashboard() {
       autoExecuteEnabled: subscription.autoExecuteEnabled,
       quantityMultiplier: Number(subscription.quantityMultiplier) || 1,
       maxPositionSize: subscription.maxPositionSize,
+      accountValue: subscription.accountValue || 100000,
+      useLeveraged: subscription.useLeveraged || false,
     });
     setSettingsDialogOpen(true);
   };
@@ -303,6 +309,8 @@ export default function UserDashboard() {
       autoExecuteEnabled: subscription.autoExecuteEnabled,
       quantityMultiplier: Number(subscription.quantityMultiplier) || 1,
       maxPositionSize: subscription.maxPositionSize,
+      accountValue: subscription.accountValue || 100000,
+      useLeveraged: subscription.useLeveraged || false,
     });
     setAdvancedSettingsOpen(true);
   };
@@ -1722,8 +1730,79 @@ export default function UserDashboard() {
                 {/* Position Sizing */}
                 <div className="space-y-4">
                   <h4 className="font-semibold flex items-center gap-2">
+                    <Wallet className="h-4 w-4" />
+                    Account-Based Position Sizing
+                  </h4>
+                  <div className="space-y-2">
+                    <Label>Your Account Value</Label>
+                    <Input
+                      type="number"
+                      value={subscriptionSettings.accountValue || ""}
+                      onChange={e =>
+                        setSubscriptionSettings(prev => ({
+                          ...prev,
+                          accountValue: e.target.value
+                            ? Number(e.target.value)
+                            : null,
+                        }))
+                      }
+                      placeholder="100000"
+                      className="w-full"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Your trading account size in dollars. Position sizes will
+                      be scaled based on this value relative to the $100,000
+                      backtest capital.
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label>Use Leveraged Position Sizing</Label>
+                      <p className="text-xs text-muted-foreground">
+                        Scale positions proportionally to your account size (%
+                        equity scaling)
+                      </p>
+                    </div>
+                    <Switch
+                      checked={subscriptionSettings.useLeveraged}
+                      onCheckedChange={checked =>
+                        setSubscriptionSettings(prev => ({
+                          ...prev,
+                          useLeveraged: checked,
+                        }))
+                      }
+                    />
+                  </div>
+                  {subscriptionSettings.accountValue && (
+                    <div className="bg-muted/50 p-3 rounded-lg text-sm">
+                      <p className="font-medium">Position Sizing Preview:</p>
+                      <p className="text-muted-foreground">
+                        {subscriptionSettings.useLeveraged ? (
+                          <>
+                            Scaling factor:{" "}
+                            {(
+                              (subscriptionSettings.accountValue / 100000) *
+                              100
+                            ).toFixed(1)}
+                            % of backtest
+                            <br />
+                            {subscriptionSettings.accountValue < 100000
+                              ? `Your positions will be ${(subscriptionSettings.accountValue / 100000).toFixed(2)}x smaller than backtest`
+                              : `Your positions will be ${(subscriptionSettings.accountValue / 100000).toFixed(2)}x larger than backtest`}
+                          </>
+                        ) : (
+                          "Fixed position sizing (1 contract per signal)"
+                        )}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Additional Position Controls */}
+                <div className="space-y-4">
+                  <h4 className="font-semibold flex items-center gap-2">
                     <Target className="h-4 w-4" />
-                    Position Sizing
+                    Additional Position Controls
                   </h4>
                   <div className="space-y-2">
                     <Label>Quantity Multiplier</Label>

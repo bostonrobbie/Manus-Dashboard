@@ -1,24 +1,26 @@
 /**
  * User Subscription Service
- * 
+ *
  * Manages user subscriptions to trading strategies.
  * Users can subscribe to strategies to receive signals and optionally auto-execute trades.
  */
 
-import { getDb } from './db';
-import { 
-  userSubscriptions, 
-  strategies, 
+import { getDb } from "./db";
+import {
+  userSubscriptions,
+  strategies,
   userSignals,
-  auditLogs
-} from '../drizzle/schema';
-import { eq, and, sql, desc } from 'drizzle-orm';
+  auditLogs,
+} from "../drizzle/schema";
+import { eq, and, sql, desc } from "drizzle-orm";
 
 export interface SubscriptionSettings {
   notificationsEnabled: boolean;
   autoExecuteEnabled: boolean;
   quantityMultiplier: number;
   maxPositionSize: number | null;
+  accountValue: number | null;
+  useLeveraged: boolean;
 }
 
 export interface UserSubscriptionWithStrategy {
@@ -29,6 +31,8 @@ export interface UserSubscriptionWithStrategy {
   autoExecuteEnabled: boolean;
   quantityMultiplier: string;
   maxPositionSize: number | null;
+  accountValue: number | null;
+  useLeveraged: boolean;
   subscribedAt: Date;
   strategy: {
     id: number;
@@ -59,6 +63,8 @@ export async function getUserSubscriptions(
       autoExecuteEnabled: userSubscriptions.autoExecuteEnabled,
       quantityMultiplier: userSubscriptions.quantityMultiplier,
       maxPositionSize: userSubscriptions.maxPositionSize,
+      accountValue: userSubscriptions.accountValue,
+      useLeveraged: userSubscriptions.useLeveraged,
       subscribedAt: userSubscriptions.subscribedAt,
       strategy: {
         id: strategies.id,
@@ -86,7 +92,7 @@ export async function subscribeToStrategy(
   settings?: Partial<SubscriptionSettings>
 ): Promise<{ success: boolean; subscriptionId?: number; error?: string }> {
   const db = await getDb();
-  if (!db) return { success: false, error: 'Database not available' };
+  if (!db) return { success: false, error: "Database not available" };
 
   try {
     // Check if strategy exists and is active
@@ -96,11 +102,11 @@ export async function subscribeToStrategy(
       .where(eq(strategies.id, strategyId));
 
     if (!strategy) {
-      return { success: false, error: 'Strategy not found' };
+      return { success: false, error: "Strategy not found" };
     }
 
     if (!strategy.active) {
-      return { success: false, error: 'Strategy is not active' };
+      return { success: false, error: "Strategy is not active" };
     }
 
     // Check if already subscribed
@@ -115,7 +121,7 @@ export async function subscribeToStrategy(
       );
 
     if (existing) {
-      return { success: false, error: 'Already subscribed to this strategy' };
+      return { success: false, error: "Already subscribed to this strategy" };
     }
 
     // Create subscription
@@ -124,16 +130,22 @@ export async function subscribeToStrategy(
       strategyId,
       notificationsEnabled: settings?.notificationsEnabled ?? true,
       autoExecuteEnabled: settings?.autoExecuteEnabled ?? false,
-      quantityMultiplier: settings?.quantityMultiplier?.toString() ?? '1.0000',
+      quantityMultiplier: settings?.quantityMultiplier?.toString() ?? "1.0000",
       maxPositionSize: settings?.maxPositionSize ?? null,
     });
 
     // Log audit
-    await logAudit(userId, 'subscription.created', 'user_subscription', result.insertId, {
-      strategyId,
-      strategySymbol: strategy.symbol,
-      settings,
-    });
+    await logAudit(
+      userId,
+      "subscription.created",
+      "user_subscription",
+      result.insertId,
+      {
+        strategyId,
+        strategySymbol: strategy.symbol,
+        settings,
+      }
+    );
 
     return { success: true, subscriptionId: result.insertId };
   } catch (error) {
@@ -150,7 +162,7 @@ export async function unsubscribeFromStrategy(
   strategyId: number
 ): Promise<{ success: boolean; error?: string }> {
   const db = await getDb();
-  if (!db) return { success: false, error: 'Database not available' };
+  if (!db) return { success: false, error: "Database not available" };
 
   try {
     // Get existing subscription for audit
@@ -165,7 +177,7 @@ export async function unsubscribeFromStrategy(
       );
 
     if (!existing) {
-      return { success: false, error: 'Subscription not found' };
+      return { success: false, error: "Subscription not found" };
     }
 
     // Delete subscription
@@ -179,14 +191,20 @@ export async function unsubscribeFromStrategy(
       );
 
     // Log audit
-    await logAudit(userId, 'subscription.deleted', 'user_subscription', existing.id, {
-      strategyId,
-      previousSettings: {
-        notificationsEnabled: existing.notificationsEnabled,
-        autoExecuteEnabled: existing.autoExecuteEnabled,
-        quantityMultiplier: existing.quantityMultiplier,
-      },
-    });
+    await logAudit(
+      userId,
+      "subscription.deleted",
+      "user_subscription",
+      existing.id,
+      {
+        strategyId,
+        previousSettings: {
+          notificationsEnabled: existing.notificationsEnabled,
+          autoExecuteEnabled: existing.autoExecuteEnabled,
+          quantityMultiplier: existing.quantityMultiplier,
+        },
+      }
+    );
 
     return { success: true };
   } catch (error) {
@@ -204,7 +222,7 @@ export async function updateSubscriptionSettings(
   settings: Partial<SubscriptionSettings>
 ): Promise<{ success: boolean; error?: string }> {
   const db = await getDb();
-  if (!db) return { success: false, error: 'Database not available' };
+  if (!db) return { success: false, error: "Database not available" };
 
   try {
     // Get existing subscription
@@ -219,7 +237,7 @@ export async function updateSubscriptionSettings(
       );
 
     if (!existing) {
-      return { success: false, error: 'Subscription not found' };
+      return { success: false, error: "Subscription not found" };
     }
 
     // Build update object
@@ -236,9 +254,15 @@ export async function updateSubscriptionSettings(
     if (settings.maxPositionSize !== undefined) {
       updateData.maxPositionSize = settings.maxPositionSize;
     }
+    if (settings.accountValue !== undefined) {
+      updateData.accountValue = settings.accountValue;
+    }
+    if (settings.useLeveraged !== undefined) {
+      updateData.useLeveraged = settings.useLeveraged;
+    }
 
     if (Object.keys(updateData).length === 0) {
-      return { success: false, error: 'No settings to update' };
+      return { success: false, error: "No settings to update" };
     }
 
     // Update subscription
@@ -253,16 +277,22 @@ export async function updateSubscriptionSettings(
       );
 
     // Log audit
-    await logAudit(userId, 'subscription.updated', 'user_subscription', existing.id, {
-      strategyId,
-      previousSettings: {
-        notificationsEnabled: existing.notificationsEnabled,
-        autoExecuteEnabled: existing.autoExecuteEnabled,
-        quantityMultiplier: existing.quantityMultiplier,
-        maxPositionSize: existing.maxPositionSize,
-      },
-      newSettings: settings,
-    });
+    await logAudit(
+      userId,
+      "subscription.updated",
+      "user_subscription",
+      existing.id,
+      {
+        strategyId,
+        previousSettings: {
+          notificationsEnabled: existing.notificationsEnabled,
+          autoExecuteEnabled: existing.autoExecuteEnabled,
+          quantityMultiplier: existing.quantityMultiplier,
+          maxPositionSize: existing.maxPositionSize,
+        },
+        newSettings: settings,
+      }
+    );
 
     return { success: true };
   } catch (error) {
@@ -287,17 +317,21 @@ export async function getStrategySubscribers(
       autoExecuteEnabled: userSubscriptions.autoExecuteEnabled,
       quantityMultiplier: userSubscriptions.quantityMultiplier,
       maxPositionSize: userSubscriptions.maxPositionSize,
+      accountValue: userSubscriptions.accountValue,
+      useLeveraged: userSubscriptions.useLeveraged,
     })
     .from(userSubscriptions)
     .where(eq(userSubscriptions.strategyId, strategyId));
 
-  return results.map((r) => ({
+  return results.map(r => ({
     userId: r.userId,
     settings: {
       notificationsEnabled: r.notificationsEnabled,
       autoExecuteEnabled: r.autoExecuteEnabled,
-      quantityMultiplier: parseFloat(r.quantityMultiplier || '1'),
+      quantityMultiplier: parseFloat(r.quantityMultiplier || "1"),
       maxPositionSize: r.maxPositionSize,
+      accountValue: r.accountValue,
+      useLeveraged: r.useLeveraged,
     },
   }));
 }
@@ -315,7 +349,7 @@ export async function recordUserSignal(
   expiresAt?: Date
 ): Promise<{ success: boolean; signalId?: number; error?: string }> {
   const db = await getDb();
-  if (!db) return { success: false, error: 'Database not available' };
+  if (!db) return { success: false, error: "Database not available" };
 
   try {
     const [result] = await db.insert(userSignals).values({
@@ -325,7 +359,7 @@ export async function recordUserSignal(
       direction,
       price,
       quantity,
-      action: 'pending',
+      action: "pending",
       signalReceivedAt: new Date(),
       expiresAt: expiresAt || new Date(Date.now() + 5 * 60 * 1000), // Default 5 min expiry
     });
@@ -350,10 +384,7 @@ export async function getUserPendingSignals(
     .select()
     .from(userSignals)
     .where(
-      and(
-        eq(userSignals.userId, userId),
-        eq(userSignals.action, 'pending')
-      )
+      and(eq(userSignals.userId, userId), eq(userSignals.action, "pending"))
     )
     .orderBy(desc(userSignals.signalReceivedAt));
 }
@@ -364,11 +395,11 @@ export async function getUserPendingSignals(
 export async function updateSignalAction(
   signalId: number,
   userId: number,
-  action: 'executed' | 'skipped' | 'expired',
+  action: "executed" | "skipped" | "expired",
   executionLogId?: number
 ): Promise<{ success: boolean; error?: string }> {
   const db = await getDb();
-  if (!db) return { success: false, error: 'Database not available' };
+  if (!db) return { success: false, error: "Database not available" };
 
   try {
     // Verify ownership
@@ -378,11 +409,11 @@ export async function updateSignalAction(
       .where(eq(userSignals.id, signalId));
 
     if (!signal) {
-      return { success: false, error: 'Signal not found' };
+      return { success: false, error: "Signal not found" };
     }
 
     if (signal.userId !== userId) {
-      return { success: false, error: 'Unauthorized' };
+      return { success: false, error: "Unauthorized" };
     }
 
     await db
@@ -395,7 +426,7 @@ export async function updateSignalAction(
       .where(eq(userSignals.id, signalId));
 
     // Log audit
-    await logAudit(userId, `signal.${action}`, 'user_signal', signalId, {
+    await logAudit(userId, `signal.${action}`, "user_signal", signalId, {
       strategyId: signal.strategyId,
       direction: signal.direction,
       price: signal.price,
@@ -476,9 +507,9 @@ async function logAudit(
       resourceType,
       resourceId,
       newValue: JSON.stringify(data),
-      status: 'success',
+      status: "success",
     });
   } catch (error) {
-    console.error('[SubscriptionService] Failed to log audit entry:', error);
+    console.error("[SubscriptionService] Failed to log audit entry:", error);
   }
 }

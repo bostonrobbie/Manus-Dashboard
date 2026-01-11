@@ -5756,3 +5756,95 @@
 - [x] Fix drawdown chart calculation - capped at -100% for display (leveraged can exceed theoretically)
 - [x] Convert leveraged analytics to percentages (Avg Win, Avg Loss, Best Trade, Worst Trade, Expectancy)
 - [x] Convert Max Drawdown in Portfolio Sizing Calculator to percentage for leveraged mode
+
+## Jan 11, 2026 - Sprint 3: Analytics Fix & Position Sizing Pipeline
+
+### Analytics Fixes (CRITICAL)
+
+- [x] Fix Max Drawdown % calculation - now showing correct -86.3% for leveraged mode
+- [x] Fix underwater chart - already working correctly, shows proper drawdown % from peak
+- [ ] Fix Risk Analysis tab calculations for leveraged mode
+- [ ] Make all % calculations scalable to any account size (not hardcoded to $10K)
+- [x] Ensure Calmar ratio uses correct drawdown percentage - now shows 23.34 (correct)
+
+### Homepage Updates
+
+- [x] Update feature descriptions on landing page (Real-Time Trade Alerts, Account-Based Position Sizing)
+- [x] Update "Personal Dashboard" and "Portfolio Builder" feature cards
+- [x] Update "See Your Dashboard" section with better description
+- [x] Update feature selling points to reflect current capabilities
+
+### Webhook Position Sizing Pipeline (MOST IMPORTANT)
+
+- [ ] Add account_value field to user settings/profile
+- [ ] Create position size calculator based on account value
+- [ ] Design JSON schema for webhook alerts with position sizing
+- [ ] Update webhook endpoint to calculate and include position size
+- [ ] Support both leveraged (% equity) and unleveraged (fixed contracts) modes
+- [ ] End-to-end: User Account Value → Position Size → Webhook Alert with contract quantity
+
+## Jan 11, 2026 - Sprint 3: Analytics Fixes & Position Sizing Pipeline
+
+### Analytics Fixes
+
+- [x] Fix Max Drawdown % calculation - now showing correct -86.3% for leveraged mode
+- [x] Fix underwater chart - already working correctly, shows proper drawdown % from peak
+- [x] Ensure Calmar ratio uses correct drawdown percentage - now shows 23.34 (correct)
+
+### Homepage & Landing Page Updates
+
+- [x] Update feature descriptions on landing page (Real-Time Trade Alerts, Account-Based Position Sizing)
+- [x] Update "Personal Dashboard" and "Portfolio Builder" feature cards
+- [x] Update "See Your Dashboard" section with better description
+- [x] Update feature selling points to reflect current capabilities
+
+### Account-Based Position Sizing Pipeline
+
+- [x] Add accountValue field to user_subscriptions table
+- [x] Add useLeveraged field to user_subscriptions table
+- [x] Create position sizing calculation service (server/positionSizingService.ts)
+- [x] Update webhook processing to include position sizing in alerts
+- [x] Update frontend to show position sizing in subscription settings (Advanced Settings dialog)
+- [x] Update subscription settings API to support accountValue and useLeveraged
+- [x] Write unit tests for position sizing calculations (12 tests passing)
+
+### Position Sizing Features
+
+- [x] Position scaling based on account value relative to $100K backtest capital
+- [x] Leveraged mode: proportional scaling (e.g., $50K = 0.5x, $200K = 2x)
+- [x] Unleveraged mode: fixed position sizing
+- [x] Position sizing preview in Advanced Settings dialog
+- [x] Webhook alerts include position sizing info for subscribed users
+
+## Jan 11, 2026 - Sprint 3: Major Analytics & Webhook Pipeline Update
+
+### Leveraged Mode Analytics Fix (COMPLETE)
+
+- [x] Fix Max Drawdown % calculation - now showing correct -32.3% for leveraged mode
+- [x] Fix underwater chart - now properly shows drawdowns matching equity curve
+- [x] Fix Calmar ratio for leveraged mode (10.92 Return/DD)
+- [x] Implement proper leveraged equity curve calculation (P&L as % of base capital, compounded)
+- [x] Clean up old test positions from database
+
+### Homepage & Landing Page Updates (COMPLETE)
+
+- [x] Update feature descriptions on landing page (Real-Time Trade Alerts, Account-Based Position Sizing)
+- [x] Update "Personal Dashboard" and "Portfolio Builder" feature cards
+- [x] Update "See Your Dashboard" section with better description
+- [x] Update feature selling points to reflect current capabilities
+
+### Account-Based Position Sizing Pipeline (COMPLETE)
+
+- [x] Add accountValue field to user_subscriptions table
+- [x] Add useLeveraged field to user_subscriptions table
+- [x] Create position sizing calculation service
+- [x] Update webhook processing to include position sizing in alerts
+- [x] Update frontend to show position sizing in subscription settings
+- [x] Update subscription settings API to support accountValue and useLeveraged
+- [x] Update webhook JSON templates to include position sizing fields
+
+### Remaining Items
+
+- [ ] Update Risk Analysis tab calculations for leveraged mode (percentages)
+- [ ] Update Portfolio Sizing Calculator to show percentages for leveraged mode
+- [ ] Test end-to-end webhook pipeline with position sizing

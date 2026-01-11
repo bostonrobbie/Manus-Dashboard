@@ -334,6 +334,9 @@ export const userSubscriptions = mysqlTable("user_subscriptions", {
     scale: 4,
   }).default("1.0000"),
   maxPositionSize: int("maxPositionSize"), // User's max contracts for this strategy
+  // Account-based position sizing
+  accountValue: int("accountValue").default(100000), // User's account allocation for this strategy in dollars
+  useLeveraged: boolean("useLeveraged").default(false).notNull(), // Whether to use leveraged position sizing
   // Metadata
   subscribedAt: timestamp("subscribedAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
