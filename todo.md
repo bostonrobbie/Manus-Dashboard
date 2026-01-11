@@ -5848,3 +5848,14 @@
 - [ ] Update Risk Analysis tab calculations for leveraged mode (percentages)
 - [ ] Update Portfolio Sizing Calculator to show percentages for leveraged mode
 - [ ] Test end-to-end webhook pipeline with position sizing
+
+### Sprint 5 - Drawdown Standardization & Enhancements (Jan 11, 2026)
+
+- [x] Verified drawdown logic - both modes already use % from peak calculation (calculateUnderwaterCurve)
+- [x] Drawdown calculation is already standardized dashboard-wide
+- [x] Update all homepage screenshots (no nav bar, new dashboard)
+- [x] Test webhook pipeline end-to-end with position sizing (27 tests passing)
+- [ ] Add QQQ (NASDAQ) benchmark to correlation matrix (requires schema changes)
+- [ ] Add IWM (Russell 2000) benchmark to correlation matrix (requires schema changes)
+- [ ] Add GLD (Gold) benchmark to correlation matrix (requires schema changes)
+- [x] Starting capital input field already exists in Overview page settings
