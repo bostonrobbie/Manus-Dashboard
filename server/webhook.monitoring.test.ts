@@ -31,7 +31,7 @@ describe("🔴 CRITICAL: Webhook Core Functionality", () => {
   describe("Payload Validation", () => {
     it("CRITICAL: should accept valid entry signal", () => {
       const payload = {
-        symbol: "ES",
+        symbol: "NQ",
         data: "buy",
         date: new Date().toISOString(),
         quantity: 1,
@@ -40,13 +40,13 @@ describe("🔴 CRITICAL: Webhook Core Functionality", () => {
       };
 
       const result = validatePayload(payload);
-      expect(result.strategySymbol).toBe("ESTrend");
+      expect(result.strategySymbol).toBe("NQTrend");
       expect(result.action).toBe("buy");
     });
 
     it("CRITICAL: should accept valid exit signal", () => {
       const payload = {
-        symbol: "ES",
+        symbol: "NQ",
         data: "exit",
         date: new Date().toISOString(),
         quantity: 1,
@@ -72,7 +72,7 @@ describe("🔴 CRITICAL: Webhook Core Functionality", () => {
 
     it("CRITICAL: should reject missing data field", () => {
       const payload = {
-        symbol: "ES",
+        symbol: "NQ",
         date: new Date().toISOString(),
         quantity: 1,
         price: 5000,
@@ -84,18 +84,18 @@ describe("🔴 CRITICAL: Webhook Core Functionality", () => {
   });
 
   describe("Symbol Mapping", () => {
-    it("CRITICAL: should map ES to ESTrend", () => {
-      const strategy = mapSymbolToStrategy("ES");
-      expect(strategy).toBe("ESTrend");
-    });
-
     it("CRITICAL: should map NQ to NQTrend", () => {
       const strategy = mapSymbolToStrategy("NQ");
       expect(strategy).toBe("NQTrend");
     });
 
-    it("CRITICAL: should have all required strategy mappings", () => {
-      const requiredSymbols = ["ES", "NQ", "CL", "GC", "YM", "BTC"];
+    it("CRITICAL: should map NQ_LEV to NQTrendLeveraged", () => {
+      const strategy = mapSymbolToStrategy("NQ_LEV");
+      expect(strategy).toBe("NQTrendLeveraged");
+    });
+
+    it("CRITICAL: should have NQ strategy mappings", () => {
+      const requiredSymbols = ["NQ", "NQ_LEV"];
       requiredSymbols.forEach(symbol => {
         const mapped = mapSymbolToStrategy(symbol);
         expect(mapped).toBeDefined();
@@ -107,7 +107,7 @@ describe("🔴 CRITICAL: Webhook Core Functionality", () => {
   describe("Payload Parsing", () => {
     it("CRITICAL: should parse entry payload correctly", () => {
       const payload = {
-        symbol: "ES",
+        symbol: "NQ",
         data: "buy",
         date: "2024-12-17T10:00:00Z",
         quantity: 2,
@@ -116,7 +116,7 @@ describe("🔴 CRITICAL: Webhook Core Functionality", () => {
       };
 
       const parsed = validatePayload(payload);
-      expect(parsed.strategySymbol).toBe("ESTrend");
+      expect(parsed.strategySymbol).toBe("NQTrend");
       expect(parsed.direction).toBe("Long");
       expect(parsed.quantity).toBe(2);
     });
@@ -255,19 +255,20 @@ describe("🟢 INTEGRATION: System Health Checks", () => {
       });
     });
 
-    it("HEALTH: should have at least 5 core symbol mappings", () => {
-      const coreSymbols = ["ES", "NQ", "CL", "GC", "YM", "BTC"];
-      const mappedCount = coreSymbols.filter(
+    it("HEALTH: should have NQ symbol mappings", () => {
+      // Only NQ strategies are active now
+      const nqSymbols = ["NQ", "NQ_LEV", "NQTREND", "NQTRENDLEVERAGED"];
+      const mappedCount = nqSymbols.filter(
         s => mapSymbolToStrategy(s) !== s
       ).length;
-      expect(mappedCount).toBeGreaterThanOrEqual(5);
+      expect(mappedCount).toBeGreaterThanOrEqual(2); // At least NQ and NQ_LEV
     });
   });
 
   describe("Payload Structure Validation", () => {
     it("HEALTH: should handle all expected field types", () => {
       const payload = {
-        symbol: "ES",
+        symbol: "NQ",
         data: "buy",
         date: new Date().toISOString(),
         quantity: 1,
@@ -277,12 +278,12 @@ describe("🟢 INTEGRATION: System Health Checks", () => {
       };
 
       const result = validatePayload(payload);
-      expect(result.strategySymbol).toBe("ESTrend");
+      expect(result.strategySymbol).toBe("NQTrend");
     });
 
     it("HEALTH: should handle numeric strings", () => {
       const payload = {
-        symbol: "ES",
+        symbol: "NQ",
         data: "buy",
         date: new Date().toISOString(),
         quantity: "2", // String instead of number
@@ -321,7 +322,7 @@ describe("🟢 INTEGRATION: System Health Checks", () => {
 describe("🔵 REGRESSION: Previously Fixed Issues", () => {
   it("REGRESSION: should handle lowercase data field values", () => {
     const payload = {
-      symbol: "ES",
+      symbol: "NQ",
       data: "BUY", // Uppercase
       date: new Date().toISOString(),
       quantity: 1,
@@ -335,7 +336,7 @@ describe("🔵 REGRESSION: Previously Fixed Issues", () => {
 
   it("REGRESSION: should handle mixed case symbols", () => {
     const payload = {
-      symbol: "es", // Lowercase
+      symbol: "nq", // Lowercase
       data: "buy",
       date: new Date().toISOString(),
       quantity: 1,
@@ -344,12 +345,12 @@ describe("🔵 REGRESSION: Previously Fixed Issues", () => {
     };
 
     const result = validatePayload(payload);
-    expect(result.strategySymbol).toBe("ESTrend");
+    expect(result.strategySymbol).toBe("NQTrend");
   });
 
   it("REGRESSION: should handle whitespace in fields", () => {
     const payload = {
-      symbol: " ES ",
+      symbol: " NQ ",
       data: " buy ",
       date: new Date().toISOString(),
       quantity: 1,
@@ -358,7 +359,7 @@ describe("🔵 REGRESSION: Previously Fixed Issues", () => {
     };
 
     const result = validatePayload(payload);
-    expect(result.strategySymbol).toBe("ESTrend");
+    expect(result.strategySymbol).toBe("NQTrend");
   });
 
   it("REGRESSION: should handle zero quantity (defaults to 1)", () => {

@@ -55,6 +55,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { DistributionSnapshot } from "@/components/DistributionSnapshot";
 import { SEOHead, SEO_CONFIG } from "@/components/SEOHead";
+import { TradeAlertsSection } from "@/components/TradeAlertsSection";
 
 type TimeRange = "6M" | "YTD" | "1Y" | "3Y" | "5Y" | "10Y" | "ALL";
 type StrategyFilter = "all" | "unleveraged" | "leveraged";
@@ -772,6 +773,9 @@ export default function Overview() {
             </CardContent>
           </Card>
         )}
+
+        {/* Trade Alerts Section - Visible only to paying members */}
+        <TradeAlertsSection />
 
         {/* Additional Metrics */}
         {/* Major Drawdowns Table - REMOVED per user request */}

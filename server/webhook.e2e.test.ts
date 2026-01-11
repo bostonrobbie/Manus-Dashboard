@@ -1,9 +1,9 @@
 /**
  * Comprehensive E2E Webhook Test Suite
- * 
+ *
  * Tests the full webhook flow from receipt to database updates.
  * Uses isTest flag to isolate test data from production.
- * 
+ *
  * Test Categories:
  * 1. Full E2E Flow (entry → exit → trade creation)
  * 2. Edge Cases (duplicates, missing positions, invalid data)
@@ -11,9 +11,9 @@
  * 4. Action Aliases (all supported action formats)
  */
 
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 
-const baseUrl = 'http://localhost:3000';
+const baseUrl = "http://localhost:3000";
 const webhookToken = process.env.TRADINGVIEW_WEBHOOK_TOKEN;
 
 // Test data cleanup helper
@@ -25,9 +25,9 @@ async function cleanupTestData() {
 // Helper to create webhook payload
 function createPayload(overrides: Record<string, unknown> = {}) {
   return {
-    symbol: 'ESTrend',
+    symbol: "ESTrend",
     date: new Date().toISOString(),
-    data: 'buy',
+    data: "buy",
     quantity: 1,
     price: 4500,
     token: webhookToken,
@@ -39,8 +39,8 @@ function createPayload(overrides: Record<string, unknown> = {}) {
 // Helper to send webhook
 async function sendWebhook(payload: Record<string, unknown>) {
   const response = await fetch(`${baseUrl}/api/webhook/tradingview`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
   return {
@@ -53,38 +53,40 @@ async function sendWebhook(payload: Record<string, unknown>) {
 // Helper to clear test positions for a strategy
 async function clearTestPositions(symbol: string) {
   try {
-    const { clearOpenPositionsForStrategy } = await import('./db');
+    const { clearOpenPositionsForStrategy } = await import("./db");
     await clearOpenPositionsForStrategy(symbol);
   } catch (e) {
     // Ignore if function doesn't exist
   }
 }
 
-describe('Webhook E2E Tests', () => {
+describe("Webhook E2E Tests", () => {
   beforeAll(() => {
     if (!webhookToken) {
-      console.warn('TRADINGVIEW_WEBHOOK_TOKEN not set - some tests will be skipped');
+      console.warn(
+        "TRADINGVIEW_WEBHOOK_TOKEN not set - some tests will be skipped"
+      );
     }
   });
 
   // ============================================
   // 1. Full E2E Flow Tests
   // ============================================
-  describe('Full E2E Flow', () => {
+  describe("Full E2E Flow", () => {
     beforeEach(async () => {
-      await clearTestPositions('ESTrend');
+      await clearTestPositions("ESTrend");
     }, 30000); // Increase timeout for database operations
 
-    it('should process entry signal and create open position', async () => {
+    it("should process entry signal and create open position", async () => {
       if (!webhookToken) return;
 
       // Clear any existing positions first
-      await clearTestPositions('ESTrend');
+      await clearTestPositions("ESTrend");
       await new Promise(resolve => setTimeout(resolve, 100));
 
       const payload = createPayload({
-        data: 'buy',
-        direction: 'Long',
+        data: "buy",
+        direction: "Long",
         price: 4500.25,
       });
 
@@ -92,32 +94,32 @@ describe('Webhook E2E Tests', () => {
 
       expect(result.status).toBe(200);
       // Entry should be recognized as entry signal type
-      expect(result.data.signalType).toBe('entry');
+      expect(result.data.signalType).toBe("entry");
       expect(result.data.correlationId).toBeDefined();
-      
+
       // If successful, verify position was created
       if (result.data.success) {
-        expect(result.data.message).toContain('Entry signal logged');
+        expect(result.data.message).toContain("Entry signal logged");
       }
     });
 
-    it('should process exit signal and create trade with P&L', async () => {
+    it("should process exit signal and create trade with P&L", async () => {
       if (!webhookToken) return;
 
       // First, create an entry
-      await clearTestPositions('ESTrend');
+      await clearTestPositions("ESTrend");
       await new Promise(resolve => setTimeout(resolve, 100));
-      
+
       const entryPayload = createPayload({
-        data: 'buy',
-        direction: 'Long',
+        data: "buy",
+        direction: "Long",
         price: 4500,
       });
       const entryResult = await sendWebhook(entryPayload);
-      
+
       // Skip if entry failed (position already exists from other tests)
       if (!entryResult.data.success) {
-        expect(entryResult.data.signalType).toBe('entry');
+        expect(entryResult.data.signalType).toBe("entry");
         return;
       }
 
@@ -126,50 +128,54 @@ describe('Webhook E2E Tests', () => {
 
       // Then, send exit
       const exitPayload = createPayload({
-        data: 'exit',
+        data: "exit",
         price: 4550, // $50 profit
         date: new Date().toISOString(),
       });
       const exitResult = await sendWebhook(exitPayload);
 
       expect(exitResult.status).toBe(200);
-      expect(exitResult.data.signalType).toBe('exit');
+      expect(exitResult.data.signalType).toBe("exit");
       if (exitResult.data.success) {
-        expect(exitResult.data.message).toContain('Trade closed');
+        expect(exitResult.data.message).toContain("Trade closed");
       }
     });
 
-    it('should complete full round-trip: entry → exit → verify P&L', async () => {
+    it("should complete full round-trip: entry → exit → verify P&L", async () => {
       if (!webhookToken) return;
 
-      await clearTestPositions('NQTrend');
+      await clearTestPositions("NQTrend");
       await new Promise(resolve => setTimeout(resolve, 100));
 
       // Entry at 15000
-      const entryResult = await sendWebhook(createPayload({
-        symbol: 'NQTrend',
-        data: 'buy',
-        direction: 'Long',
-        price: 15000,
-      }));
-      
+      const entryResult = await sendWebhook(
+        createPayload({
+          symbol: "NQTrend",
+          data: "buy",
+          direction: "Long",
+          price: 15000,
+        })
+      );
+
       // Skip if entry failed
       if (!entryResult.data.success) {
-        expect(entryResult.data.signalType).toBe('entry');
+        expect(entryResult.data.signalType).toBe("entry");
         return;
       }
 
       await new Promise(resolve => setTimeout(resolve, 150));
 
       // Exit at 15100 ($100 profit)
-      const exitResult = await sendWebhook(createPayload({
-        symbol: 'NQTrend',
-        data: 'exit',
-        price: 15100,
-        date: new Date().toISOString(),
-      }));
+      const exitResult = await sendWebhook(
+        createPayload({
+          symbol: "NQTrend",
+          data: "exit",
+          price: 15100,
+          date: new Date().toISOString(),
+        })
+      );
 
-      expect(exitResult.data.signalType).toBe('exit');
+      expect(exitResult.data.signalType).toBe("exit");
       if (exitResult.data.success) {
         // Verify P&L is positive
         expect(exitResult.data.message).toMatch(/\+/);
@@ -180,68 +186,76 @@ describe('Webhook E2E Tests', () => {
   // ============================================
   // 2. Edge Case Tests
   // ============================================
-  describe('Edge Cases', () => {
-    it('should reject duplicate entry when position exists', async () => {
+  describe("Edge Cases", () => {
+    it("should reject duplicate entry when position exists", async () => {
       if (!webhookToken) return;
 
-      await clearTestPositions('ESORB');
+      await clearTestPositions("ESORB");
 
       // First entry
-      const firstEntry = await sendWebhook(createPayload({
-        symbol: 'ESORB',
-        data: 'buy',
-        price: 4500,
-      }));
+      const firstEntry = await sendWebhook(
+        createPayload({
+          symbol: "ESORB",
+          data: "buy",
+          price: 4500,
+        })
+      );
       expect(firstEntry.data.success).toBe(true);
 
       // Second entry should fail
-      const secondEntry = await sendWebhook(createPayload({
-        symbol: 'ESORB',
-        data: 'buy',
-        price: 4510,
-        date: new Date().toISOString(), // Different timestamp
-      }));
+      const secondEntry = await sendWebhook(
+        createPayload({
+          symbol: "ESORB",
+          data: "buy",
+          price: 4510,
+          date: new Date().toISOString(), // Different timestamp
+        })
+      );
 
       expect(secondEntry.data.success).toBe(false);
-      expect(secondEntry.data.error).toBe('POSITION_EXISTS');
-      expect(secondEntry.data.message).toContain('Send an exit signal first');
+      expect(secondEntry.data.error).toBe("POSITION_EXISTS");
+      expect(secondEntry.data.message).toContain("Send an exit signal first");
     });
 
-    it('should reject exit when no position exists', async () => {
+    it("should reject exit when no position exists", async () => {
       if (!webhookToken) return;
 
-      await clearTestPositions('CLTrend');
+      await clearTestPositions("CLTrend");
 
-      const exitResult = await sendWebhook(createPayload({
-        symbol: 'CLTrend',
-        data: 'exit',
-        price: 75.50,
-      }));
+      const exitResult = await sendWebhook(
+        createPayload({
+          symbol: "CLTrend",
+          data: "exit",
+          price: 75.5,
+        })
+      );
 
       expect(exitResult.data.success).toBe(false);
-      expect(exitResult.data.error).toBe('NO_OPEN_POSITION');
-      expect(exitResult.data.message).toContain('Send an entry signal');
+      expect(exitResult.data.error).toBe("NO_OPEN_POSITION");
+      expect(exitResult.data.message).toContain("Send an entry signal");
     });
 
-    it('should handle unknown strategy gracefully', async () => {
+    it("should handle unknown strategy gracefully", async () => {
       if (!webhookToken) return;
 
-      const result = await sendWebhook(createPayload({
-        symbol: 'UNKNOWN_STRATEGY_XYZ',
-        data: 'buy',
-        price: 100,
-      }));
+      const result = await sendWebhook(
+        createPayload({
+          symbol: "UNKNOWN_STRATEGY_XYZ",
+          data: "buy",
+          price: 100,
+        })
+      );
 
       expect(result.data.success).toBe(false);
-      expect(result.data.error).toContain('Unknown strategy');
+      expect(result.data.error).toContain("Unknown strategy");
     });
 
-    it('should handle missing required fields', async () => {
+    it("should handle missing required fields", async () => {
       if (!webhookToken) return;
 
       // Missing symbol
       const noSymbol = await sendWebhook({
-        data: 'buy',
+        data: "buy",
         price: 100,
         token: webhookToken,
         isTest: true,
@@ -250,8 +264,8 @@ describe('Webhook E2E Tests', () => {
 
       // Missing price
       const noPrice = await sendWebhook({
-        symbol: 'ESTrend',
-        data: 'buy',
+        symbol: "ESTrend",
+        data: "buy",
         token: webhookToken,
         isTest: true,
       });
@@ -259,7 +273,7 @@ describe('Webhook E2E Tests', () => {
 
       // Missing action
       const noAction = await sendWebhook({
-        symbol: 'ESTrend',
+        symbol: "ESTrend",
         price: 100,
         token: webhookToken,
         isTest: true,
@@ -267,40 +281,44 @@ describe('Webhook E2E Tests', () => {
       expect(noAction.data.success).toBe(false);
     });
 
-    it('should handle short positions correctly', async () => {
+    it("should handle short positions correctly", async () => {
       if (!webhookToken) return;
 
-      await clearTestPositions('GCTrend');
+      await clearTestPositions("GCTrend");
       await new Promise(resolve => setTimeout(resolve, 100));
 
       // Short entry at 2000
-      const entryResult = await sendWebhook(createPayload({
-        symbol: 'GCTrend',
-        data: 'sell',
-        direction: 'Short',
-        price: 2000,
-      }));
-      
+      const entryResult = await sendWebhook(
+        createPayload({
+          symbol: "GCTrend",
+          data: "sell",
+          direction: "Short",
+          price: 2000,
+        })
+      );
+
       // Skip if entry failed
       if (!entryResult.data.success) {
-        expect(entryResult.data.signalType).toBe('entry');
+        expect(entryResult.data.signalType).toBe("entry");
         return;
       }
 
       await new Promise(resolve => setTimeout(resolve, 150));
 
       // Exit at 1950 ($50 profit for short)
-      const exitResult = await sendWebhook(createPayload({
-        symbol: 'GCTrend',
-        data: 'exit',
-        price: 1950,
-        date: new Date().toISOString(),
-      }));
+      const exitResult = await sendWebhook(
+        createPayload({
+          symbol: "GCTrend",
+          data: "exit",
+          price: 1950,
+          date: new Date().toISOString(),
+        })
+      );
 
-      expect(exitResult.data.signalType).toBe('exit');
+      expect(exitResult.data.signalType).toBe("exit");
       if (exitResult.data.success) {
         // Short profit: entry - exit = 2000 - 1950 = $50
-        expect(exitResult.data.message).toContain('+');
+        expect(exitResult.data.message).toContain("+");
       }
     });
   });
@@ -308,12 +326,12 @@ describe('Webhook E2E Tests', () => {
   // ============================================
   // 3. Security Tests
   // ============================================
-  describe('Security', () => {
-    it('should reject requests without token', async () => {
+  describe("Security", () => {
+    it("should reject requests without token", async () => {
       // Use unique timestamp to avoid idempotency cache
       const result = await sendWebhook({
-        symbol: 'ESTrend',
-        data: 'buy',
+        symbol: "ESTrend",
+        data: "buy",
         price: 4500,
         date: new Date().toISOString(),
         // No token
@@ -323,71 +341,81 @@ describe('Webhook E2E Tests', () => {
       // Either error or message should indicate auth failure
       // Note: idempotent responses may not include original error
       if (!result.data.idempotent) {
-        const errorText = (result.data.error || result.data.message || '').toLowerCase();
-        expect(errorText).toContain('token');
+        const errorText = (
+          result.data.error ||
+          result.data.message ||
+          ""
+        ).toLowerCase();
+        expect(errorText).toContain("token");
       }
     });
 
-    it('should reject requests with invalid token', async () => {
+    it("should reject requests with invalid token", async () => {
       // Use unique timestamp to avoid idempotency cache
       const result = await sendWebhook({
-        symbol: 'ESTrend',
-        data: 'buy',
+        symbol: "ESTrend",
+        data: "buy",
         price: 4500,
         date: new Date().toISOString(),
-        token: 'invalid_token_' + Date.now(),
+        token: "invalid_token_" + Date.now(),
       });
 
       expect(result.data.success).toBe(false);
       // Either error or message should indicate auth failure
       // Note: idempotent responses may not include original error
       if (!result.data.idempotent) {
-        const errorText = (result.data.error || result.data.message || '').toLowerCase();
-        expect(errorText).toContain('token');
+        const errorText = (
+          result.data.error ||
+          result.data.message ||
+          ""
+        ).toLowerCase();
+        expect(errorText).toContain("token");
       }
     });
 
-    it('should include rate limit headers', async () => {
+    it("should include rate limit headers", async () => {
       if (!webhookToken) return;
 
       const result = await sendWebhook(createPayload());
 
-      expect(result.headers['x-ratelimit-remaining']).toBeDefined();
-      expect(result.headers['x-ratelimit-reset']).toBeDefined();
+      expect(result.headers["x-ratelimit-remaining"]).toBeDefined();
+      expect(result.headers["x-ratelimit-reset"]).toBeDefined();
     });
 
-    it('should include correlation ID in response', async () => {
+    it("should include correlation ID in response", async () => {
       if (!webhookToken) return;
 
       const result = await sendWebhook(createPayload());
 
       expect(result.data.correlationId).toBeDefined();
       expect(result.data.correlationId).toMatch(/^wh_/);
-      expect(result.headers['x-correlation-id']).toBeDefined();
+      expect(result.headers["x-correlation-id"]).toBeDefined();
     });
 
-    it('should reject timestamps too far in the past', async () => {
+    it("should reject timestamps too far in the past", async () => {
       if (!webhookToken) return;
 
       const oldDate = new Date();
       oldDate.setMinutes(oldDate.getMinutes() - 10); // 10 minutes ago
 
-      const result = await sendWebhook(createPayload({
-        date: oldDate.toISOString(),
-      }));
+      const result = await sendWebhook(
+        createPayload({
+          date: oldDate.toISOString(),
+        })
+      );
 
       expect(result.data.success).toBe(false);
-      expect(result.data.error).toBe('TIMESTAMP_INVALID');
+      expect(result.data.error).toBe("TIMESTAMP_INVALID");
     });
 
-    it('should handle idempotent requests', async () => {
+    it("should handle idempotent requests", async () => {
       if (!webhookToken) return;
 
-      await clearTestPositions('BTCTrend');
+      await clearTestPositions("BTCTrend");
 
       const payload = createPayload({
-        symbol: 'BTCTrend',
-        data: 'buy',
+        symbol: "BTCTrend",
+        data: "buy",
         price: 42000,
       });
 
@@ -405,170 +433,188 @@ describe('Webhook E2E Tests', () => {
   // ============================================
   // 4. Action Alias Tests
   // ============================================
-  describe('Action Aliases', () => {
+  describe("Action Aliases", () => {
     // Test action aliases - these tests verify the API accepts various action formats
     // They handle position state gracefully since E2E tests may have leftover positions
-    
+
     it('should accept "buy" as long entry action', async () => {
       if (!webhookToken) return;
 
-      await clearTestPositions('YMORB');
+      await clearTestPositions("NQTrend");
       await new Promise(resolve => setTimeout(resolve, 50));
 
-      const result = await sendWebhook(createPayload({
-        symbol: 'YMORB',
-        data: 'buy',
-        price: 35000,
-      }));
+      const result = await sendWebhook(
+        createPayload({
+          symbol: "NQTrend",
+          data: "buy",
+          price: 35000,
+        })
+      );
 
       // Either success (new position) or POSITION_EXISTS (already have one)
-      expect(result.data.signalType).toBe('entry');
+      expect(result.data.signalType).toBe("entry");
     });
 
     it('should accept "sell" as short entry action', async () => {
       if (!webhookToken) return;
 
-      await clearTestPositions('NQORB');
+      await clearTestPositions("NQTrendLeveraged");
       await new Promise(resolve => setTimeout(resolve, 50));
 
-      const result = await sendWebhook(createPayload({
-        symbol: 'NQORB',
-        data: 'sell',
-        price: 15000,
-      }));
+      const result = await sendWebhook(
+        createPayload({
+          symbol: "NQTrendLeveraged",
+          data: "sell",
+          price: 15000,
+        })
+      );
 
       // Either success (new position) or POSITION_EXISTS (already have one)
-      expect(result.data.signalType).toBe('entry');
+      expect(result.data.signalType).toBe("entry");
     });
 
-    it('should recognize exit actions', async () => {
+    it("should recognize exit actions", async () => {
       if (!webhookToken) return;
 
       // Test that 'exit' is recognized as an exit signal type
       // The actual success depends on position state
-      const result = await sendWebhook(createPayload({
-        symbol: 'GCTrend',
-        data: 'exit',
-        price: 2050,
-        date: new Date().toISOString(),
-      }));
+      const result = await sendWebhook(
+        createPayload({
+          symbol: "GCTrend",
+          data: "exit",
+          price: 2050,
+          date: new Date().toISOString(),
+        })
+      );
 
       // Verify it's recognized as an exit signal
-      expect(result.data.signalType).toBe('exit');
+      expect(result.data.signalType).toBe("exit");
     });
 
-    it('should be case-insensitive for actions', async () => {
+    it("should be case-insensitive for actions", async () => {
       if (!webhookToken) return;
 
-      await clearTestPositions('CLTrend');
+      await clearTestPositions("CLTrend");
       await new Promise(resolve => setTimeout(resolve, 50));
 
-      const result = await sendWebhook(createPayload({
-        symbol: 'CLTrend',
-        data: 'BUY', // Uppercase
-        price: 75,
-      }));
+      const result = await sendWebhook(
+        createPayload({
+          symbol: "CLTrend",
+          data: "BUY", // Uppercase
+          price: 75,
+        })
+      );
 
       // Should recognize BUY as entry action regardless of position state
-      expect(result.data.signalType).toBe('entry');
+      expect(result.data.signalType).toBe("entry");
     });
 
-    it('should reject unknown actions with helpful message', async () => {
+    it("should reject unknown actions with helpful message", async () => {
       if (!webhookToken) return;
 
-      const result = await sendWebhook(createPayload({
-        data: 'invalid_action',
-        price: 100,
-      }));
+      const result = await sendWebhook(
+        createPayload({
+          data: "invalid_action",
+          price: 100,
+        })
+      );
 
       expect(result.data.success).toBe(false);
-      expect(result.data.error).toContain('Unknown action');
-      expect(result.data.error).toContain('buy');
-      expect(result.data.error).toContain('exit');
+      expect(result.data.error).toContain("Unknown action");
+      expect(result.data.error).toContain("buy");
+      expect(result.data.error).toContain("exit");
     });
   });
 
   // ============================================
   // 5. API Stability Tests
   // ============================================
-  describe('API Stability', () => {
-    it('should return consistent response structure', async () => {
+  describe("API Stability", () => {
+    it("should return consistent response structure", async () => {
       if (!webhookToken) return;
 
-      await clearTestPositions('BTCTrend');
+      await clearTestPositions("BTCTrend");
       await new Promise(resolve => setTimeout(resolve, 50));
 
-      const result = await sendWebhook(createPayload({
-        symbol: 'BTCTrend',
-        price: 42000,
-      }));
+      const result = await sendWebhook(
+        createPayload({
+          symbol: "BTCTrend",
+          price: 42000,
+        })
+      );
 
       // Required fields in every response
-      expect(result.data).toHaveProperty('success');
-      expect(result.data).toHaveProperty('message');
-      expect(result.data).toHaveProperty('correlationId');
-      expect(result.data).toHaveProperty('processingTimeMs');
-      expect(typeof result.data.processingTimeMs).toBe('number');
+      expect(result.data).toHaveProperty("success");
+      expect(result.data).toHaveProperty("message");
+      expect(result.data).toHaveProperty("correlationId");
+      expect(result.data).toHaveProperty("processingTimeMs");
+      expect(typeof result.data.processingTimeMs).toBe("number");
     });
 
-    it('should return logId for all processed requests', async () => {
+    it("should return logId for all processed requests", async () => {
       if (!webhookToken) return;
 
-      await clearTestPositions('NQTrend');
+      await clearTestPositions("NQTrend");
       await new Promise(resolve => setTimeout(resolve, 50));
 
-      const result = await sendWebhook(createPayload({
-        symbol: 'NQTrend',
-        price: 15000,
-      }));
+      const result = await sendWebhook(
+        createPayload({
+          symbol: "NQTrend",
+          price: 15000,
+        })
+      );
 
       expect(result.data.logId).toBeDefined();
-      expect(typeof result.data.logId).toBe('number');
+      expect(typeof result.data.logId).toBe("number");
     });
 
-    it('should return signalType for successful signals', async () => {
+    it("should return signalType for successful signals", async () => {
       if (!webhookToken) return;
 
       // Use a unique symbol for this test with unique timestamp
-      await clearTestPositions('SITrend');
+      await clearTestPositions("SITrend");
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      const entryResult = await sendWebhook(createPayload({
-        symbol: 'SITrend',
-        data: 'buy',
-        price: 25,
-        date: new Date().toISOString(),
-      }));
-      
+      const entryResult = await sendWebhook(
+        createPayload({
+          symbol: "SITrend",
+          data: "buy",
+          price: 25,
+          date: new Date().toISOString(),
+        })
+      );
+
       // Verify signalType is returned (may be undefined for idempotent cached responses)
       if (!entryResult.data.idempotent) {
-        expect(entryResult.data.signalType).toBe('entry');
+        expect(entryResult.data.signalType).toBe("entry");
       }
-      
+
       // If entry was successful, test exit
       if (entryResult.data.success) {
         await new Promise(resolve => setTimeout(resolve, 200));
 
-        const exitResult = await sendWebhook(createPayload({
-          symbol: 'SITrend',
-          data: 'exit',
-          price: 26,
-          date: new Date().toISOString(),
-        }));
+        const exitResult = await sendWebhook(
+          createPayload({
+            symbol: "SITrend",
+            data: "exit",
+            price: 26,
+            date: new Date().toISOString(),
+          })
+        );
         if (!exitResult.data.idempotent) {
-          expect(exitResult.data.signalType).toBe('exit');
+          expect(exitResult.data.signalType).toBe("exit");
         }
       }
     });
 
-    it('should use consistent error codes', async () => {
+    it("should use consistent error codes", async () => {
       // Test all known error codes are returned correctly
       const errorCodes = [
-        'POSITION_EXISTS',
-        'NO_OPEN_POSITION',
-        'DUPLICATE',
-        'VALIDATION_ERROR',
-        'TIMESTAMP_INVALID',
+        "POSITION_EXISTS",
+        "NO_OPEN_POSITION",
+        "DUPLICATE",
+        "VALIDATION_ERROR",
+        "TIMESTAMP_INVALID",
       ];
 
       // Just verify the error code format is consistent
@@ -581,19 +627,19 @@ describe('Webhook E2E Tests', () => {
   // ============================================
   // 6. Health Check Tests
   // ============================================
-  describe('Health Check', () => {
-    it('should return health status', async () => {
+  describe("Health Check", () => {
+    it("should return health status", async () => {
       const response = await fetch(`${baseUrl}/api/webhook/health`);
       const data = await response.json();
 
       expect(response.status).toBe(200);
       expect(data.status).toBeDefined();
-      expect(data.service).toBe('tradingview-webhook');
+      expect(data.service).toBe("tradingview-webhook");
       expect(data.version).toBeDefined();
       expect(data.timestamp).toBeDefined();
     });
 
-    it('should include security configuration in health check', async () => {
+    it("should include security configuration in health check", async () => {
       const response = await fetch(`${baseUrl}/api/webhook/health`);
       const data = await response.json();
 
@@ -603,7 +649,7 @@ describe('Webhook E2E Tests', () => {
       expect(data.security.idempotencyEnabled).toBe(true);
     });
 
-    it('should include diagnostics in health check', async () => {
+    it("should include diagnostics in health check", async () => {
       const response = await fetch(`${baseUrl}/api/webhook/health`);
       const data = await response.json();
 
@@ -617,24 +663,26 @@ describe('Webhook E2E Tests', () => {
 // ============================================
 // Test Data Cleanup Utility
 // ============================================
-describe('Test Data Management', () => {
-  it('should mark all test data with isTest flag', async () => {
+describe("Test Data Management", () => {
+  it("should mark all test data with isTest flag", async () => {
     if (!webhookToken) return;
 
     // Use a unique symbol to avoid conflicts with other tests
-    await clearTestPositions('YMORB');
+    await clearTestPositions("YMORB");
     await new Promise(resolve => setTimeout(resolve, 100));
 
-    const result = await sendWebhook(createPayload({
-      symbol: 'YMORB',
-      price: 35000,
-      isTest: true,
-      date: new Date().toISOString(),
-    }));
+    const result = await sendWebhook(
+      createPayload({
+        symbol: "YMORB",
+        price: 35000,
+        isTest: true,
+        date: new Date().toISOString(),
+      })
+    );
 
     // Either success or POSITION_EXISTS is acceptable
     // The key is that the webhook was processed and logged
     expect(result.data.logId).toBeDefined();
-    expect(result.data.signalType).toBe('entry');
+    expect(result.data.signalType).toBe("entry");
   });
 });

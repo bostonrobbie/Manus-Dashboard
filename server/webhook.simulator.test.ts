@@ -145,13 +145,13 @@ describe("Webhook Test Simulator", () => {
     it("should map TradingView symbols correctly", async () => {
       const { mapSymbolToStrategy } = await import("./webhookService");
 
-      expect(mapSymbolToStrategy("ES")).toBe("ESTrend");
-      expect(mapSymbolToStrategy("ES1!")).toBe("ESTrend");
+      // NQ symbols are mapped to active strategies
       expect(mapSymbolToStrategy("NQ")).toBe("NQTrend");
-      expect(mapSymbolToStrategy("BTC")).toBe("BTCTrend");
-      expect(mapSymbolToStrategy("CL")).toBe("CLTrend");
-      expect(mapSymbolToStrategy("GC")).toBe("GCTrend");
-      expect(mapSymbolToStrategy("YM")).toBe("YMORB");
+      expect(mapSymbolToStrategy("NQ1!")).toBe("NQTrend");
+      expect(mapSymbolToStrategy("NQ_LEV")).toBe("NQTrendLeveraged");
+      // Archived symbols return as-is
+      expect(mapSymbolToStrategy("ES")).toBe("ES");
+      expect(mapSymbolToStrategy("BTC")).toBe("BTC");
     });
 
     it("should reject invalid JSON", async () => {
@@ -200,27 +200,26 @@ describe("Webhook Test Simulator", () => {
   });
 
   describe("Symbol Mapping Edge Cases", () => {
-    it("should handle case-insensitive symbols", async () => {
+    it("should handle case-insensitive NQ symbols", async () => {
       const { mapSymbolToStrategy } = await import("./webhookService");
 
-      expect(mapSymbolToStrategy("es")).toBe("ESTrend");
-      expect(mapSymbolToStrategy("Es")).toBe("ESTrend");
-      expect(mapSymbolToStrategy("ES")).toBe("ESTrend");
+      expect(mapSymbolToStrategy("nq")).toBe("NQTrend");
+      expect(mapSymbolToStrategy("Nq")).toBe("NQTrend");
+      expect(mapSymbolToStrategy("NQ")).toBe("NQTrend");
     });
 
-    it("should handle symbols with whitespace", async () => {
+    it("should handle NQ symbols with whitespace", async () => {
       const { mapSymbolToStrategy } = await import("./webhookService");
 
-      expect(mapSymbolToStrategy(" ES ")).toBe("ESTrend");
-      expect(mapSymbolToStrategy("ES ")).toBe("ESTrend");
+      expect(mapSymbolToStrategy(" NQ ")).toBe("NQTrend");
+      expect(mapSymbolToStrategy("NQ ")).toBe("NQTrend");
     });
 
-    it("should pass through already-mapped symbols", async () => {
+    it("should pass through already-mapped NQ strategy symbols", async () => {
       const { mapSymbolToStrategy } = await import("./webhookService");
 
-      expect(mapSymbolToStrategy("ESTrend")).toBe("ESTrend");
       expect(mapSymbolToStrategy("NQTrend")).toBe("NQTrend");
-      expect(mapSymbolToStrategy("BTCTrend")).toBe("BTCTrend");
+      expect(mapSymbolToStrategy("NQTrendLeveraged")).toBe("NQTrendLeveraged");
     });
   });
 });

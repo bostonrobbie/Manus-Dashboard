@@ -47,7 +47,7 @@ const faqs = [
   {
     question: "What markets do you cover?",
     answer:
-      "We focus on futures markets including E-mini S&P 500 (ES), E-mini NASDAQ (NQ), E-mini Dow (YM), Crude Oil (CL), Gold (GC), and Bitcoin (BTC). Each strategy is specifically designed and backtested for its target market.",
+      "We currently focus on E-mini NASDAQ-100 (NQ) futures with our NQ Trend strategy. This strategy has been extensively backtested over 14+ years of data. We plan to add more markets and strategies in the future, and all subscribers will get access to new strategies at no additional cost.",
   },
   {
     question: "How accurate is your backtesting data?",
@@ -815,25 +815,24 @@ export default function LandingPage() {
             {/* Screenshot Card Component with Zoom */}
             {[
               {
-                src: "/screenshots/strategies-page.webp",
-                alt: "Futures trading strategy performance comparison showing ES, NQ, CL, GC, and BTC strategies with equity curves and key metrics",
+                src: "/screenshots/overview-all-time.webp",
+                alt: "NQ Trend strategy performance dashboard showing equity curve, Sharpe ratio, and key metrics over 14+ years",
                 title: "Strategy Performance",
                 description:
-                  "Compare leveraged vs unleveraged variants with detailed metrics",
+                  "Track NQ Trend performance with detailed metrics and equity curves",
+              },
+              {
+                src: "/screenshots/strategies-page.webp",
+                alt: "NQ Trend leveraged vs unleveraged comparison with equity curves and risk metrics",
+                title: "Leveraged vs Unleveraged",
+                description:
+                  "Compare both variants side-by-side with full analytics",
               },
               {
                 src: "/screenshots/compare-page.webp",
-                alt: "Portfolio builder tool comparing ES and NQ futures trading strategies with combined equity curves over 15 years",
-                title: "Portfolio Builder",
-                description:
-                  "Combine strategies and see combined equity curves",
-              },
-              {
-                src: "/screenshots/my-dashboard.webp",
-                alt: "Personal futures trading dashboard showing customized portfolio performance with 15+ years of data",
-                title: "Personal Dashboard",
-                description:
-                  "Select your strategies and track your personal portfolio",
+                alt: "Calendar P&L view showing daily, weekly, and monthly trading performance",
+                title: "Calendar P&L",
+                description: "View performance by day, week, month, or year",
               },
             ].map((screenshot, index) => (
               <div

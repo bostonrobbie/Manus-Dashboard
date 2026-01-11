@@ -5696,3 +5696,34 @@
 - [x] Update chartConfig tests for flexible strategy count
 - [x] Fix webhook quantity test to match actual behavior
 - [x] All 1,240 tests passing
+
+## Dashboard Updates (Jan 10, 2026)
+
+### Webhook Configuration
+
+- [x] Update webhook symbol mapping for NQTrend and NQTrendLeveraged
+
+### Navigation Updates
+
+- [x] Archive Strategies page from navigation (keep code)
+- [x] Archive My Dashboard page from navigation (keep code)
+- [x] Archive Compare page from navigation (keep code)
+
+### Trade Alerts Relocation
+
+- [x] Move trade alerts section from My Dashboard to Overview page
+- [x] Move current trade section from My Dashboard to Overview page
+- [x] Place alerts under the 2 main charts on Overview
+- [x] Make alerts visible only to paying members
+
+### Homepage Updates
+
+- [ ] Update homepage content for NQ strategy
+- [ ] Update screenshots to reflect new strategy
+- [ ] Remove old multi-strategy references
+
+### Access Control
+
+- [ ] Allow non-subscribers to view dashboard
+- [x] Hide live trade alerts from non-paying members
+- [ ] Keep alerts visible for paying subscribers only

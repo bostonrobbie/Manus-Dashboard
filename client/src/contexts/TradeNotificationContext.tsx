@@ -1,4 +1,4 @@
-import React, {
+import {
   createContext,
   useContext,
   useEffect,
@@ -7,6 +7,7 @@ import React, {
   useRef,
 } from "react";
 import { toast } from "sonner";
+import { useAuth } from "@/_core/hooks/useAuth";
 
 // Trade notification from SSE
 export interface TradeNotification {
@@ -166,8 +167,24 @@ export function TradeNotificationProvider({
     return eventSource;
   }, [soundEnabled]);
 
-  // Connect on mount
+  // Get user to check if they're a paid member
+  const { user } = useAuth();
+
+  // Check if user is a paying subscriber
+  const isPaidMember =
+    user?.subscriptionTier === "pro" ||
+    user?.subscriptionTier === "premium" ||
+    user?.subscriptionStatus === "active" ||
+    user?.role === "admin";
+
+  // Connect on mount only for paid members
   useEffect(() => {
+    // Only connect to SSE for paid members
+    if (!isPaidMember) {
+      setIsConnected(false);
+      return;
+    }
+
     const eventSource = connect();
 
     return () => {
@@ -178,7 +195,7 @@ export function TradeNotificationProvider({
         clearTimeout(reconnectTimeoutRef.current);
       }
     };
-  }, [connect]);
+  }, [connect, isPaidMember]);
 
   const markAllAsRead = useCallback(() => {
     setUnreadCount(0);

@@ -110,41 +110,27 @@ export class WebhookValidationError extends Error {
 }
 
 // Strategy symbol mapping (TradingView symbols to database symbols)
+// Currently only NQ Trend strategies are active
 const SYMBOL_MAPPING: Record<string, string> = {
-  // ES (E-mini S&P 500)
-  ES: "ESTrend",
-  "ES1!": "ESTrend",
-  ESH2024: "ESTrend",
-  ES_TREND: "ESTrend",
-  ES_ORB: "ESORB",
-  ESTREND: "ESTrend",
-  // NQ (E-mini Nasdaq)
+  // NQ (E-mini Nasdaq) - Primary active strategies
   NQ: "NQTrend",
   "NQ1!": "NQTrend",
   NQ_TREND: "NQTrend",
-  NQ_ORB: "NQORB",
   NQTREND: "NQTrend",
-  // CL (Crude Oil)
-  CL: "CLTrend",
-  "CL1!": "CLTrend",
-  CL_TREND: "CLTrend",
-  CLTREND: "CLTrend",
-  // BTC (Bitcoin)
-  BTC: "BTCTrend",
-  BTCUSD: "BTCTrend",
-  "BTC1!": "BTCTrend",
-  BTC_TREND: "BTCTrend",
-  BTCTREND: "BTCTrend",
-  // GC (Gold)
-  GC: "GCTrend",
-  "GC1!": "GCTrend",
-  GC_TREND: "GCTrend",
-  GCTREND: "GCTrend",
-  // YM (E-mini Dow)
-  YM: "YMORB",
-  "YM1!": "YMORB",
-  YM_ORB: "YMORB",
-  YMORB: "YMORB",
+  MNQ: "NQTrend", // Micro NQ maps to same strategy
+  "MNQ1!": "NQTrend",
+  // NQ Leveraged variant
+  NQ_LEV: "NQTrendLeveraged",
+  NQLEV: "NQTrendLeveraged",
+  NQ_LEVERAGED: "NQTrendLeveraged",
+  NQTRENDLEVERAGED: "NQTrendLeveraged",
+  NQTRENDLEV: "NQTrendLeveraged",
+  // Legacy mappings (archived strategies - kept for reference)
+  // ES: "ESTrend", // Archived
+  // CL: "CLTrend", // Archived
+  // BTC: "BTCTrend", // Archived
+  // GC: "GCTrend", // Archived
+  // YM: "YMORB", // Archived
 };
 
 /**

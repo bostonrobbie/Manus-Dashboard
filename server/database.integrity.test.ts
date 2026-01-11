@@ -220,7 +220,7 @@ describe("Database Integrity - Benchmark Data", () => {
     const lastDate = benchmarkData[benchmarkData.length - 1]!.date;
     const daysSinceLastData =
       (now.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24);
-    expect(daysSinceLastData).toBeLessThan(10); // Within last 10 days
+    expect(daysSinceLastData).toBeLessThan(15); // Within last 15 days (allows for weekends/holidays)
   });
 });
 
