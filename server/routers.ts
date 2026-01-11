@@ -784,8 +784,7 @@ export const appRouter = router({
           }
         }
 
-        // Add portfolio and benchmark to correlation matrix
-        strategyEquityCurves.set("Portfolio", portfolioEquity);
+        // Add benchmark to correlation matrix (removed Portfolio since we only have 1 strategy)
         strategyEquityCurves.set("S&P 500", benchmarkEquity);
 
         const strategyCorrelationMatrix =

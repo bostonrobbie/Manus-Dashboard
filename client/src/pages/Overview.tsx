@@ -925,7 +925,7 @@ export default function Overview() {
                       </span>
                       <span className="font-semibold text-red-600">
                         {strategyFilter === "leveraged"
-                          ? `${(((allTimeData?.metrics.maxDrawdownDollars ?? metrics.maxDrawdownDollars) / 10 / startingCapital) * 100).toFixed(1)}%`
+                          ? `${((allTimeData?.metrics.maxDrawdown ?? metrics.maxDrawdown) / 10).toFixed(1)}%`
                           : `$${((allTimeData?.metrics.maxDrawdownDollars ?? metrics.maxDrawdownDollars) / 10).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
                       </span>
                     </div>
@@ -941,22 +941,36 @@ export default function Overview() {
                           Minimum Account Size:
                         </span>
                         <span className="text-lg font-bold text-primary">
-                          $
-                          {Math.max(
-                            500,
-                            Math.ceil(
-                              ((allTimeData?.metrics.maxDrawdownDollars ??
-                                metrics.maxDrawdownDollars) /
-                                10 +
-                                500) /
-                                100
-                            ) * 100
-                          ).toLocaleString()}
+                          {strategyFilter === "leveraged"
+                            ? // For leveraged: Calculate based on max DD % - need enough capital to survive the drawdown
+                              // If max DD is 32.3%, you need at least $500 / (1 - 0.323) = $738 to survive it
+                              `$${Math.max(
+                                500,
+                                Math.ceil(
+                                  500 /
+                                    (1 -
+                                      (allTimeData?.metrics.maxDrawdown ??
+                                        metrics.maxDrawdown) /
+                                        1000) /
+                                    100
+                                ) * 100
+                              ).toLocaleString()}`
+                            : `$${Math.max(
+                                500,
+                                Math.ceil(
+                                  ((allTimeData?.metrics.maxDrawdownDollars ??
+                                    metrics.maxDrawdownDollars) /
+                                    10 +
+                                    500) /
+                                    100
+                                ) * 100
+                              ).toLocaleString()}`}
                         </span>
                       </div>
                       <p className="text-xs text-muted-foreground mt-2">
-                        Based on max drawdown + margin requirement with 0% risk
-                        of ruin
+                        {strategyFilter === "leveraged"
+                          ? "Based on max drawdown % + margin requirement"
+                          : "Based on max drawdown + margin requirement with 0% risk of ruin"}
                       </p>
                     </div>
                   </CardContent>
@@ -977,7 +991,7 @@ export default function Overview() {
                       </span>
                       <span className="font-semibold text-red-600">
                         {strategyFilter === "leveraged"
-                          ? `${(((allTimeData?.metrics.maxDrawdownDollars ?? metrics.maxDrawdownDollars) / startingCapital) * 100).toFixed(1)}%`
+                          ? `${(allTimeData?.metrics.maxDrawdown ?? metrics.maxDrawdown).toFixed(1)}%`
                           : `$${(allTimeData?.metrics.maxDrawdownDollars ?? metrics.maxDrawdownDollars).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
                       </span>
                     </div>
@@ -993,21 +1007,35 @@ export default function Overview() {
                           Minimum Account Size:
                         </span>
                         <span className="text-lg font-bold text-primary">
-                          $
-                          {Math.max(
-                            5000,
-                            Math.ceil(
-                              ((allTimeData?.metrics.maxDrawdownDollars ??
-                                metrics.maxDrawdownDollars) +
-                                5000) /
-                                1000
-                            ) * 1000
-                          ).toLocaleString()}
+                          {strategyFilter === "leveraged"
+                            ? // For leveraged: Calculate based on max DD % - need enough capital to survive the drawdown
+                              // If max DD is 32.3%, you need at least $5000 / (1 - 0.323) = $7,385 to survive it
+                              `$${Math.max(
+                                5000,
+                                Math.ceil(
+                                  5000 /
+                                    (1 -
+                                      (allTimeData?.metrics.maxDrawdown ??
+                                        metrics.maxDrawdown) /
+                                        100) /
+                                    1000
+                                ) * 1000
+                              ).toLocaleString()}`
+                            : `$${Math.max(
+                                5000,
+                                Math.ceil(
+                                  ((allTimeData?.metrics.maxDrawdownDollars ??
+                                    metrics.maxDrawdownDollars) +
+                                    5000) /
+                                    1000
+                                ) * 1000
+                              ).toLocaleString()}`}
                         </span>
                       </div>
                       <p className="text-xs text-muted-foreground mt-2">
-                        Based on max drawdown + margin requirement with 0% risk
-                        of ruin
+                        {strategyFilter === "leveraged"
+                          ? "Based on max drawdown % + margin requirement"
+                          : "Based on max drawdown + margin requirement with 0% risk of ruin"}
                       </p>
                     </div>
                   </CardContent>
@@ -1016,20 +1044,37 @@ export default function Overview() {
 
               <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900 rounded-lg p-4">
                 <p className="text-sm text-blue-900 dark:text-blue-100">
-                  <strong>Note:</strong> These calculations assume trading with
-                  the same position sizing as your backtest ($
-                  {startingCapital.toLocaleString()} starting capital). The
-                  minimum account size ensures you can survive the maximum
-                  historical drawdown ($
-                  {(
-                    allTimeData?.metrics.maxDrawdownDollars ??
-                    metrics.maxDrawdownDollars
-                  ).toLocaleString(undefined, {
-                    minimumFractionDigits: 0,
-                    maximumFractionDigits: 0,
-                  })}
-                  ) plus maintain required margin. For 0% risk of ruin, your
-                  actual trading capital should exceed these minimums.
+                  <strong>Note:</strong>{" "}
+                  {strategyFilter === "leveraged" ? (
+                    <>
+                      For leveraged (% equity) mode, the max drawdown of{" "}
+                      {(
+                        allTimeData?.metrics.maxDrawdown ?? metrics.maxDrawdown
+                      ).toFixed(1)}
+                      % means your account could decline by that percentage from
+                      its peak. The minimum account size is calculated to ensure
+                      you can survive this drawdown while maintaining required
+                      margin. These calculations scale proportionally with any
+                      account size.
+                    </>
+                  ) : (
+                    <>
+                      These calculations assume trading with the same position
+                      sizing as your backtest ($
+                      {startingCapital.toLocaleString()} starting capital). The
+                      minimum account size ensures you can survive the maximum
+                      historical drawdown ($
+                      {(
+                        allTimeData?.metrics.maxDrawdownDollars ??
+                        metrics.maxDrawdownDollars
+                      ).toLocaleString(undefined, {
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 0,
+                      })}
+                      ) plus maintain required margin. For 0% risk of ruin, your
+                      actual trading capital should exceed these minimums.
+                    </>
+                  )}
                 </p>
               </div>
             </div>

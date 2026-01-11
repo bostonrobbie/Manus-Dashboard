@@ -940,12 +940,22 @@ function calculateLeveragedTradeStats(
     };
   }
 
-  // Use pnlPercent for all calculations
-  const pnlPercentages = trades.map(t => t.pnlPercent / 10000); // Convert to decimal
+  // Calculate pnlPercent from pnl if pnlPercent is 0 (legacy data)
+  // For leveraged mode, we calculate the percentage based on the base capital ($100K for mini contracts)
+  const BASE_CAPITAL = 100000; // Base capital used in backtest
+  const pnlPercentages = trades.map(t => {
+    if (t.pnlPercent !== 0) {
+      return t.pnlPercent / 10000; // Convert stored value to decimal
+    }
+    // Calculate from pnl: pnl is in cents, so convert to dollars first
+    const pnlDollars = t.pnl / 100;
+    return pnlDollars / BASE_CAPITAL; // Percentage as decimal
+  });
   const pnlDollars = pnlPercentages.map(p => p * startingCapital); // Convert to dollars for display
 
-  const winningTrades = trades.filter(t => t.pnlPercent > 0);
-  const losingTrades = trades.filter(t => t.pnlPercent < 0);
+  // Use pnl for win/loss determination since pnlPercent may be 0
+  const winningTrades = trades.filter(t => t.pnl > 0);
+  const losingTrades = trades.filter(t => t.pnl < 0);
   const winRate = (winningTrades.length / trades.length) * 100;
 
   const sortedPnl = [...pnlDollars].sort((a, b) => a - b);
@@ -956,27 +966,29 @@ function calculateLeveragedTradeStats(
         2
       : sortedPnl[Math.floor(sortedPnl.length / 2)]!;
 
+  // Calculate avgWin and avgLoss using pnl (since pnlPercent may be 0)
   const avgWinPct =
     winningTrades.length > 0
-      ? winningTrades.reduce((sum, t) => sum + t.pnlPercent / 10000, 0) /
+      ? winningTrades.reduce((sum, t) => sum + t.pnl / 100 / BASE_CAPITAL, 0) /
         winningTrades.length
       : 0;
   const avgLossPct =
     losingTrades.length > 0
       ? Math.abs(
-          losingTrades.reduce((sum, t) => sum + t.pnlPercent / 10000, 0)
+          losingTrades.reduce((sum, t) => sum + t.pnl / 100 / BASE_CAPITAL, 0)
         ) / losingTrades.length
       : 0;
 
   const avgWin = avgWinPct * startingCapital;
   const avgLoss = avgLossPct * startingCapital;
 
+  // Calculate profit factor using pnl
   const totalWinsPct = winningTrades.reduce(
-    (sum, t) => sum + t.pnlPercent / 10000,
+    (sum, t) => sum + t.pnl / 100 / BASE_CAPITAL,
     0
   );
   const totalLossesPct = Math.abs(
-    losingTrades.reduce((sum, t) => sum + t.pnlPercent / 10000, 0)
+    losingTrades.reduce((sum, t) => sum + t.pnl / 100 / BASE_CAPITAL, 0)
   );
   const profitFactor =
     totalLossesPct > 0
@@ -1010,11 +1022,12 @@ function calculateLeveragedTradeStats(
   let currentLossStreak = 0,
     maxLossStreak = 0;
   for (const trade of trades) {
-    if (trade.pnlPercent > 0) {
+    // Use pnl instead of pnlPercent since pnlPercent may be 0
+    if (trade.pnl > 0) {
       currentWinStreak++;
       maxWinStreak = Math.max(maxWinStreak, currentWinStreak);
       currentLossStreak = 0;
-    } else if (trade.pnlPercent < 0) {
+    } else if (trade.pnl < 0) {
       currentLossStreak++;
       maxLossStreak = Math.max(maxLossStreak, currentLossStreak);
       currentWinStreak = 0;
