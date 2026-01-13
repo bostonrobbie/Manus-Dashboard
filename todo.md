@@ -5922,3 +5922,21 @@
 - [x] Add Equity % column to signal log table (shows % for leveraged, "Fixed" for unleveraged)
 - [x] Add new signal-log.webp screenshot for homepage
 - [x] Update Live Trade Alerts card to use new signal-log screenshot
+
+### Sprint 7 Continued - Feature Boxes & Screenshots (Jan 13, 2026)
+
+- [ ] Replace Kelly Calculator box with "All Future Strategies Included"
+- [ ] Replace Account-Based Position Sizing box with "Lock In Your Rate For Life"
+- [ ] Send test webhook signals to populate Signal Log
+- [ ] Take fresh screenshots of Signal Log with Contracts/Equity % columns
+- [ ] Update homepage with new screenshots
+
+### Sprint 7 Completed Items (Jan 13, 2026)
+
+- [x] Replace Kelly Calculator with "All Future Strategies Included" box
+- [x] Replace Account-Based Position Sizing with "Lock In Your Rate For Life" box
+- [x] Add Contracts column to Signal Log (shows micro/mini conversion e.g. "10 MNQ")
+- [x] Add Equity % column to Signal Log (shows "10%" for leveraged, "Fixed" for unleveraged)
+- [x] Take fresh screenshot of Signal Log with new columns
+- [x] Update homepage with new signal-log.webp screenshot
+- [x] Move Dashboard Screenshots section higher on homepage
