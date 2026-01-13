@@ -589,7 +589,7 @@ export default function Home() {
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-8 max-w-6xl mx-auto">
               {[
                 {
-                  src: "/screenshots/signal-log.webp",
+                  src: "/screenshots/live-trades.png",
                   alt: "Real-time trade signals showing strategy, direction, micro contracts, equity percentage, P&L, and latency for live webhook alerts",
                   title: "Live Trade Alerts",
                   description:
