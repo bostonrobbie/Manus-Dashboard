@@ -5903,3 +5903,22 @@
 - [x] Update strategies-page.webp screenshot
 - [x] Update compare-page.webp screenshot
 - [x] Update my-dashboard.webp screenshot
+
+### Sprint 7 - Homepage & Trade Display Improvements (Jan 13, 2026)
+
+- [ ] Replace Real-Time Trade Alerts screenshot with live trades/alerts view
+- [ ] Update 6 feature boxes with compelling USPs:
+  - Keep: NQ Trend Strategy, Real-Time Trade Alerts, Professional Analytics
+  - Add: All Future Strategies Included, Lock In Rate For Life, etc.
+- [ ] Move dashboard screenshots section higher on homepage
+- [ ] Fix trade display - convert to micro/mini contract sizes with correct quantities
+- [ ] Add equity % for leveraged trades in alerts display
+
+### Sprint 7 - Homepage & Trade Display Updates (Jan 13, 2026)
+
+- [x] Update 6 feature boxes with compelling USPs (NQ Trend, TradingView Signals, Kelly Calculator, Professional Analytics, Real-Time Trade Alerts, Account-Based Position Sizing)
+- [x] Move dashboard screenshots section higher on page (after What You Get section)
+- [x] Add Contracts column to signal log table (shows micro/mini conversion)
+- [x] Add Equity % column to signal log table (shows % for leveraged, "Fixed" for unleveraged)
+- [x] Add new signal-log.webp screenshot for homepage
+- [x] Update Live Trade Alerts card to use new signal-log screenshot

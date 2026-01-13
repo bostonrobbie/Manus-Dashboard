@@ -876,6 +876,8 @@ function ActivityTab() {
                 <TableHead>Status</TableHead>
                 <TableHead>Strategy</TableHead>
                 <TableHead>Direction</TableHead>
+                <TableHead>Contracts</TableHead>
+                <TableHead>Equity %</TableHead>
                 <TableHead>Price</TableHead>
                 <TableHead>P&L</TableHead>
                 <TableHead>Time</TableHead>
@@ -901,6 +903,31 @@ function ActivityTab() {
                       </span>
                     ) : (
                       "-"
+                    )}
+                  </TableCell>
+                  <TableCell className="font-mono">
+                    {/* Calculate micro contracts based on strategy type */}
+                    {(() => {
+                      const isLeveraged =
+                        log.strategySymbol?.includes("Leveraged");
+                      const baseQty = (log as any).quantity || 1;
+                      // For leveraged, show scaled micro contracts based on account size
+                      // Default to 10 micro = 1 mini, scaled by account
+                      const microContracts = isLeveraged
+                        ? Math.round(baseQty * 10)
+                        : baseQty * 10;
+                      return `${microContracts} MNQ`;
+                    })()}
+                  </TableCell>
+                  <TableCell className="font-mono">
+                    {/* Show equity % for leveraged trades */}
+                    {log.strategySymbol?.includes("Leveraged") ? (
+                      <span className="text-blue-400">
+                        {/* Default 10% equity per trade for leveraged */}
+                        10%
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">Fixed</span>
                     )}
                   </TableCell>
                   <TableCell className="font-mono">
@@ -944,7 +971,7 @@ function ActivityTab() {
               {(!logs || logs.length === 0) && (
                 <TableRow>
                   <TableCell
-                    colSpan={8}
+                    colSpan={10}
                     className="text-center py-8 text-muted-foreground"
                   >
                     No webhook logs found

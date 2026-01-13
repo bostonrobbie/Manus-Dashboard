@@ -13,9 +13,7 @@ import {
   ChevronUp,
   Check,
   X,
-  Calculator,
   Cpu,
-  Webhook,
   AlertTriangle,
   Brain,
   Database,
@@ -451,30 +449,15 @@ export default function Home() {
               <Card className="bg-gray-900/50 border-gray-800 hover:border-emerald-500/50 transition-colors">
                 <CardContent className="p-4 sm:p-6">
                   <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center mb-4">
-                    <Database className="w-6 h-6 text-emerald-400" />
+                    <TrendingUp className="w-6 h-6 text-emerald-400" />
                   </div>
                   <h3 className="text-lg font-semibold text-white mb-2">
-                    8 Backtested Strategies
+                    NQ Trend Strategy
                   </h3>
                   <p className="text-gray-400 text-sm">
-                    ES, NQ, YM, CL, GC, and BTC futures strategies with 14+
-                    years of historical data. Trend following and opening range
-                    breakout systems.
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-gray-900/50 border-gray-800 hover:border-emerald-500/50 transition-colors">
-                <CardContent className="p-4 sm:p-6">
-                  <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center mb-4">
-                    <Webhook className="w-6 h-6 text-blue-400" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-white mb-2">
-                    Real-Time TradingView Signals
-                  </h3>
-                  <p className="text-gray-400 text-sm">
-                    Instant webhook alerts when strategies trigger. Entry, exit,
-                    and position sizing delivered in milliseconds.
+                    Our flagship NASDAQ-100 trend following strategy with 14+
+                    years of backtested data. +752K total return with a 2.01
+                    Sharpe ratio.
                   </p>
                 </CardContent>
               </Card>
@@ -485,11 +468,12 @@ export default function Home() {
                     <Zap className="w-6 h-6 text-purple-400" />
                   </div>
                   <h3 className="text-lg font-semibold text-white mb-2">
-                    Real-Time Alerts
+                    Real-Time Trade Alerts
                   </h3>
                   <p className="text-gray-400 text-sm">
-                    Get instant TradingView alerts when strategies signal. Never
-                    miss a trade opportunity with webhook notifications.
+                    Get instant notifications when trades execute. See live
+                    positions, entry prices, P&L, and exact contract quantities
+                    on your dashboard.
                   </p>
                 </CardContent>
               </Card>
@@ -511,16 +495,31 @@ export default function Home() {
 
               <Card className="bg-gray-900/50 border-gray-800 hover:border-emerald-500/50 transition-colors">
                 <CardContent className="p-4 sm:p-6">
-                  <div className="w-12 h-12 rounded-xl bg-rose-500/10 flex items-center justify-center mb-4">
-                    <Calculator className="w-6 h-6 text-rose-400" />
+                  <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center mb-4">
+                    <Database className="w-6 h-6 text-blue-400" />
                   </div>
                   <h3 className="text-lg font-semibold text-white mb-2">
-                    Kelly Criterion Sizing
+                    All Future Strategies Included
                   </h3>
                   <p className="text-gray-400 text-sm">
-                    Optimal position sizing calculator based on your risk
-                    tolerance and strategy performance. Maximize growth while
-                    managing risk.
+                    Subscribe once and get access to every new strategy we
+                    release — ES, CL, GC, BTC, and more. No extra fees, ever.
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gray-900/50 border-gray-800 hover:border-emerald-500/50 transition-colors">
+                <CardContent className="p-4 sm:p-6">
+                  <div className="w-12 h-12 rounded-xl bg-rose-500/10 flex items-center justify-center mb-4">
+                    <CheckCircle2 className="w-6 h-6 text-rose-400" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-white mb-2">
+                    Lock In Your Rate For Life
+                  </h3>
+                  <p className="text-gray-400 text-sm">
+                    Subscribe now at $49/month and keep that rate forever — even
+                    as we add more strategies and features. Prices will
+                    increase.
                   </p>
                 </CardContent>
               </Card>
@@ -531,11 +530,11 @@ export default function Home() {
                     <Target className="w-6 h-6 text-cyan-400" />
                   </div>
                   <h3 className="text-lg font-semibold text-white mb-2">
-                    Portfolio Builder
+                    Exact Position Sizing
                   </h3>
                   <p className="text-gray-400 text-sm">
-                    Combine strategies for diversification. See combined equity
-                    curves, correlations, and risk metrics in real-time.
+                    Enter your account size and get exact contract quantities
+                    for each trade. Leveraged mode shows % of equity per trade.
                   </p>
                 </CardContent>
               </Card>
@@ -567,6 +566,77 @@ export default function Home() {
                   </a>
                 </div>
               </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Dashboard Screenshots Section - Moved Higher */}
+        <section className="py-12 sm:py-20 border-t border-gray-800/50 bg-gray-900/20">
+          <div className="container px-4">
+            <div className="text-center mb-8 sm:mb-16">
+              <h2 className="text-2xl sm:text-4xl font-light text-white mb-3 sm:mb-4">
+                See{" "}
+                <span className="font-bold text-emerald-400">
+                  Inside the Platform
+                </span>
+              </h2>
+              <p className="text-gray-400 max-w-2xl mx-auto text-sm sm:text-base px-2">
+                Full transparency. Every metric, every trade, every correlation
+                — visible before you subscribe.
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-8 max-w-6xl mx-auto">
+              {[
+                {
+                  src: "/screenshots/signal-log.webp",
+                  alt: "Real-time trade signals showing strategy, direction, micro contracts, equity percentage, P&L, and latency for live webhook alerts",
+                  title: "Live Trade Alerts",
+                  description:
+                    "See live positions, entry prices, P&L, and exact contract quantities in real-time",
+                },
+                {
+                  src: "/screenshots/overview-all-time.webp",
+                  alt: "Portfolio overview with equity curve, performance metrics, and 14+ years of backtested data",
+                  title: "Portfolio Analytics",
+                  description:
+                    "Full equity curves, Sharpe ratios, and risk metrics across all strategies",
+                },
+                {
+                  src: "/screenshots/compare-page.webp",
+                  alt: "Strategy comparison tool with correlation matrix showing QQQ, IWM, GLD, and S&P 500 benchmarks",
+                  title: "Correlation Matrix",
+                  description:
+                    "Compare strategy correlations with major indices (SPY, QQQ, IWM, GLD)",
+                },
+              ].map((screenshot, index) => (
+                <div
+                  key={index}
+                  className="group rounded-2xl overflow-hidden border border-gray-800 cursor-pointer transition-all hover:border-emerald-500/50 hover:shadow-lg hover:shadow-emerald-500/10"
+                  onClick={() => setExpandedScreenshot(screenshot.src)}
+                >
+                  <div className="relative overflow-hidden">
+                    <img
+                      src={screenshot.src}
+                      alt={screenshot.alt}
+                      className="w-full transition-transform duration-300 group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                      <span className="opacity-0 group-hover:opacity-100 transition-opacity bg-emerald-500 text-white px-3 py-1 rounded-full text-sm font-medium">
+                        Click to expand
+                      </span>
+                    </div>
+                  </div>
+                  <div className="bg-gray-900 p-4 h-[88px] flex flex-col justify-center">
+                    <h4 className="text-white font-medium mb-1 text-base">
+                      {screenshot.title}
+                    </h4>
+                    <p className="text-gray-400 text-sm line-clamp-2">
+                      {screenshot.description}
+                    </p>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </section>
@@ -829,101 +899,30 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Dashboard Screenshots Section */}
-        <section className="py-20 border-t border-gray-800/50 bg-gray-900/20">
-          <div className="container">
-            <div className="text-center mb-16">
-              <h2 className="text-3xl sm:text-4xl font-light text-white mb-4">
-                See{" "}
-                <span className="font-bold text-emerald-400">
-                  Inside the Platform
-                </span>
-              </h2>
-              <p className="text-gray-400 max-w-2xl mx-auto">
-                Full transparency. Every metric, every trade, every correlation
-                — visible before you subscribe.
-              </p>
-            </div>
-
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
-              {[
-                {
-                  src: "/screenshots/strategies-page.webp",
-                  alt: "Futures trading strategy performance comparison showing ES, NQ, CL, GC, and BTC strategies with equity curves and key metrics",
-                  title: "Strategy Performance",
-                  description:
-                    "Compare all 8 strategies side by side with detailed metrics",
-                },
-                {
-                  src: "/screenshots/compare-page.webp",
-                  alt: "Portfolio builder tool comparing ES and NQ futures trading strategies with combined equity curves over 15 years",
-                  title: "Portfolio Builder",
-                  description:
-                    "Combine strategies and see combined equity curves",
-                },
-                {
-                  src: "/screenshots/my-dashboard.webp",
-                  alt: "Personal futures trading dashboard showing customized portfolio performance with 15+ years of data",
-                  title: "Personal Dashboard",
-                  description:
-                    "Select your strategies and track your personal portfolio",
-                },
-              ].map((screenshot, index) => (
-                <div
-                  key={index}
-                  className="group rounded-2xl overflow-hidden border border-gray-800 cursor-pointer transition-all hover:border-emerald-500/50 hover:shadow-lg hover:shadow-emerald-500/10"
-                  onClick={() => setExpandedScreenshot(screenshot.src)}
-                >
-                  <div className="relative overflow-hidden">
-                    <img
-                      src={screenshot.src}
-                      alt={screenshot.alt}
-                      className="w-full transition-transform duration-300 group-hover:scale-105"
-                    />
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
-                      <span className="opacity-0 group-hover:opacity-100 transition-opacity bg-emerald-500 text-white px-3 py-1 rounded-full text-sm font-medium">
-                        Click to expand
-                      </span>
-                    </div>
-                  </div>
-                  <div className="bg-gray-900 p-4 h-[88px] flex flex-col justify-center">
-                    <h4 className="text-white font-medium mb-1 text-base">
-                      {screenshot.title}
-                    </h4>
-                    <p className="text-gray-400 text-sm line-clamp-2">
-                      {screenshot.description}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Expanded Screenshot Modal */}
-            {expandedScreenshot && (
-              <div
-                className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4 cursor-pointer"
-                onClick={() => setExpandedScreenshot(null)}
+        {/* Expanded Screenshot Modal - Moved to end of component */}
+        {expandedScreenshot && (
+          <div
+            className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4 cursor-pointer"
+            onClick={() => setExpandedScreenshot(null)}
+          >
+            <div className="relative max-w-7xl max-h-[90vh] overflow-auto">
+              <img
+                src={expandedScreenshot}
+                alt="Expanded screenshot"
+                className="w-full h-auto rounded-lg"
+              />
+              <button
+                className="absolute top-4 right-4 bg-gray-900/80 text-white p-2 rounded-full hover:bg-gray-800 transition-colors"
+                onClick={e => {
+                  e.stopPropagation();
+                  setExpandedScreenshot(null);
+                }}
               >
-                <div className="relative max-w-7xl max-h-[90vh] overflow-auto">
-                  <img
-                    src={expandedScreenshot}
-                    alt="Expanded screenshot"
-                    className="w-full h-auto rounded-lg"
-                  />
-                  <button
-                    className="absolute top-4 right-4 bg-gray-900/80 text-white p-2 rounded-full hover:bg-gray-800 transition-colors"
-                    onClick={e => {
-                      e.stopPropagation();
-                      setExpandedScreenshot(null);
-                    }}
-                  >
-                    <X className="w-6 h-6" />
-                  </button>
-                </div>
-              </div>
-            )}
+                <X className="w-6 h-6" />
+              </button>
+            </div>
           </div>
-        </section>
+        )}
 
         {/* Pricing Section */}
         <section id="pricing" className="py-20 border-t border-gray-800/50">
